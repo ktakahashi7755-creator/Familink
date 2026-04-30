@@ -152,6 +152,97 @@
 
 ---
 
-## 6. このルールの優先順位
+## 6. Familink 開発チーム（Skills）
+
+このリポジトリの `.claude/skills/` 配下に、Familink 専用の 17 ロールを Skill として配置している。Claude Code は短文指示でも適切な Skill を自動選択して使い分けること。
+
+### ロール一覧（17 Skills）
+
+| Skill | 役割 |
+|---|---|
+| `familink-core` | ブランド / 世界観 / Hoku 方針 / 価格 / UI 方針の最上位 |
+| `familink-master-controller` | 親スレ / Git / worklog / 開始終了プロトコル |
+| `familink-ceo-strategy` | ユニコーン / 売却 / 資金調達 / 競合差別化 |
+| `familink-product-owner` | MVP / 優先度（S/A/B/C）/ リリース判断 |
+| `familink-requirements-architect` | 要件定義 / 受け入れ条件 / 画面仕様 / データ要件 |
+| `familink-cto-architect` | 技術設計 / LocalStorage / 認証 / DB / 課金影響範囲 |
+| `familink-html-engineer` | シングル HTML / Vanilla JS / CSS の最小修正 |
+| `familink-frontend-engineer` | UI ロジック / 状態管理 / 画面遷移 |
+| `familink-uiux-designer` | 画面導線 / 余白 / 文言 / 上質 UI |
+| `familink-brand-asset-director` | 画像 / アバター / カラー / プレミアム素材 |
+| `familink-hoku-ai-designer` | Hoku の人格 / 口調 / 短文応答 / 確認フロー |
+| `familink-monetization-lead` | 無料 / 480 円 / 30 日トライアル / 課金導線 |
+| `familink-qa-lead` | 手動テスト / 回帰 / iPhone 確認項目 |
+| `familink-debug-engineer` | バグ調査 / 最小修正 / 副作用確認 |
+| `familink-appstore-release-lead` | App Store 公開前品質 / 審査 / メタデータ |
+| `familink-growth-lead` | 初期ユーザー獲得 / SNS / 口コミ / TestFlight |
+| `familink-chief-review-officer` | 横断レビュー / 携帯向けに 3 件以内へ圧縮 |
+
+### Skill の使い分け原則
+
+- **判断 / 設計** が必要な作業は、対応する Skill を**呼んでから**動く
+- Skill の出力は各 SKILL.md の「出力形式」に従う
+- 1 タスクで複数 Skill を使う場合、最後に `familink-chief-review-officer` で圧縮する（特に携帯閲覧時）
+- Skill 同士で判断が衝突した場合、`familink-core` を最上位として裁定する
+
+---
+
+## 7. 自走開発ルール（指示が出せない時間帯の運用）
+
+ユーザーは日中、細かい指示ができない。Claude Code は以下のルールで自律的に動いてよい。
+
+### 自走してよい作業
+- 現状確認 / 総点検 / バグ洗い出し
+- 優先度 S の小修正（押して動かない / 保存されない / 閉じない / JS エラー / 主要画面開かない / iPhone で操作不能）
+- UI の軽微な調整 / Hoku 文言の軽微な調整
+- テスト項目作成 / worklog 更新 / docs 更新 / CLAUDE.md 更新
+- 安全な小コミット
+
+### 必ず事前確認が必要な作業（独断禁止）
+- 認証変更
+- DB / Supabase 移行
+- 課金本実装
+- LocalStorage 構造変更
+- React Native 移行
+- 大規模 UI 刷新
+- 外部 API 追加
+- 依存ライブラリ追加
+- 全体リファクタリング
+- 既存 Hoku デザイン変更
+- 画像素材の削除 / 差し替え
+
+### 優先度ルール（S/A/B/C）
+- **S**: すぐ直すべき致命的バグ。押せない / 保存されない / 閉じない / JS エラー / iPhone で操作不能
+- **A**: App Store 公開前に直したい重要改善。導線 / バリデーション / 分かりづらさ
+- **B**: 公開後でよい改善。細かい UX / 整理 / 便利機能
+- **C**: 将来機能。Supabase / RN / 大規模課金 / グロース施策
+
+---
+
+## 8. 携帯短文指示への対応
+
+ユーザーは携帯から数語の指示しか出せないことが多い。以下の短文を受けたら、対応する Skill を自動選択して動く。
+
+| 短文指示 | 起動する Skill |
+|---|---|
+| 次 / 進めて | `familink-master-controller` → 前回 worklog の「次にやること」へ |
+| 確認して / 作業開始確認 | `familink-master-controller`（開始プロトコル） |
+| 修正して / バグ直して | `familink-debug-engineer` + `familink-html-engineer` |
+| テストして / 総点検して | `familink-qa-lead` |
+| iPhone 確認ポイント出して | `familink-qa-lead` |
+| 作業終了 / 閉じて / 一区切り / コミットして | `familink-master-controller`（終了プロトコル） |
+| 優先度 S だけ直して | `familink-product-owner` で抽出 → `familink-debug-engineer` |
+| プロっぽくして / この画面整えて | `familink-uiux-designer` |
+| Hoku の文言直して | `familink-hoku-ai-designer` |
+| 最小変更で実装して | `familink-html-engineer`（最小差分） |
+| まだコード変更しないで | 全 Skill：設計 / 提案のみ。Write/Edit を保留 |
+| まとめて / 短く報告して | `familink-chief-review-officer` |
+
+短文指示を受けても、§1 の開始プロトコルと §2 の終了プロトコルは省略しないこと。
+
+---
+
+## 9. このルールの優先順位
 
 ユーザーからの個別指示がこのドキュメントと競合した場合は、**ユーザー指示を優先**しつつ、worklog の「未確認事項」にその旨を記録する。
+Skill 間の判断衝突は `familink-core` を最上位として裁定する。
