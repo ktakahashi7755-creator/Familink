@@ -100,3 +100,55 @@ Familink 自走開発チームのセットアップ（17 Skills 配置 + CLAUDE.
 ### コミット
 - ハッシュ: 本エントリを含む 2 番目のコミットで記録（`git log -1` で参照）
 - メッセージ: `setup Familink autonomous development team skills`
+
+---
+
+## 2026-04-30  env: 不明（自走セッション）  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Familink 本体コードの自走取り込み試行 + .gitignore 整備（取り込み元未発見につき素地のみ整備）
+
+### 変更ファイル
+- `.gitignore`（新規）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- master-controller / cto-architect / html-engineer / qa-lead / debug-engineer の 5 ロールで自走を試行
+- アクセス可能な範囲（`/home`, `/tmp`, `/old_root`, `/opt`, `/mnt`, `/media`, `/srv`）で `familink.html` / `index.html` / `*familink*` / `*backup*` を検索
+- 結果: アプリ本体 HTML はサンドボックス内に存在しない。`/opt/node*` 配下の HTML は npm 関連のみ（無関係）
+- 見つからないため、ユーザー指示「無理に作らず必要ファイルを明確に報告」に従い**取り込みコードは生成しない**
+- `.gitignore` を新設（`.claude/settings.local.json` / OS 一時ファイル / node_modules / 機微情報を除外）
+- 取り込み準備（`src/` 作成、画像分類、base64 抽出、LocalStorage キー把握）はすべて見送り
+- アプリ本体コード・既存 Skills・既存 docs は一切変更していない
+
+### 検索した場所と結果
+- `/home/user/` → このリポジトリ `Familink/` のみ
+- `/tmp/claude-0/-home-user-Familink/*` → Claude Code のセッションタスクキャッシュのみ（ユーザーデータなし）
+- `/old_root`, `/mnt`, `/media`, `/srv` → 空
+- `find` で `*.html` を最大深度 8 まで探索 → npm の docs HTML のみ
+- `find` で `*backup*` → ヒットなし
+
+### テスト結果
+- 未実施: アプリ本体コードが存在しないため対象なし
+- 静的検証として `.gitignore` の構文（コメントとパターンのみ）は問題なし
+
+### 未確認事項
+- ユーザーの PC ローカルから本セッション（`/home/user/Familink/`）への同期手段が未確立
+- 想定される選択肢:
+  1. PC で別クローンを作って push → このセッションで pull
+  2. ユーザーが本体 HTML を直接このセッションに貼り付け（ファイル丸ごと貼り付け）
+  3. iPhone / 別端末からアップロード可能な仕組みを使う
+- どれにするかはユーザー判断待ち
+
+### iPhone 確認ポイント
+- なし（本体未取り込みのため）
+
+### 次にやること
+- ユーザーが復帰したら、本体 HTML をこのセッションに到達させる手段を 1 つ選ぶ
+  - 推奨: PC でローカルクローンに `src/familink.html` をコピー → コミット & push → このセッションで `git pull` → 検証 → 必要なら追加コミット
+- 本体到達後に再度 master-controller で開始 → 検証 → 取り込みコミット → S 級総点検
+- 自走で出した【オーナー向け最終報告】を最初に確認
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `prepare repo for app source import (.gitignore + autonomous attempt log)`
