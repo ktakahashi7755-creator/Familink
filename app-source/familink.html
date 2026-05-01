@@ -7021,7 +7021,7 @@ function handleAction(intent, q) {
       const tasks = (S.tasks||[]).filter(t=>t.status!=='done');
       const matched = tasks.filter(t=>raw&&(t.title.includes(raw)||raw.includes(t.title)));
       if(!matched.length) {
-        if(!tasks.length) return '未完了のタスクはないよ。';
+        if(!tasks.length) return '未完了のタスクはありません。';
         return `「${raw||'?'}」が見つからなかった。${NL}未完了タスク：${NL}`+tasks.slice(0,4).map(t=>`・${t.title}`).join(NL);
       }
       if(matched.length>1) return 'どれを完了にする？'+NL+matched.map(t=>`・${t.title}`).join(NL);
@@ -7256,7 +7256,7 @@ function hokuLocalAnswer(q) {
   /* 今週 */
   if(ql.match(/今週|週|スケジュール|直近|これから/)) {
     const evs=ctx.upcoming_events;
-    if(!evs.length) return '今後7日間の予定、今は何も入ってないよ。';
+    if(!evs.length) return '今後7日間の予定はまだ入っていません。';
     const g={};
     evs.forEach(e=>{if(!g[e.date])g[e.date]=[];g[e.date].push(e);});
     return `今後の予定（${evs.length}件）${NL+NL}`+
@@ -7318,7 +7318,7 @@ function hokuLocalAnswer(q) {
   /* 持ち物 */
   if(ql.match(/持ち物|準備|持参|かばん|忘れ/) && !ql.match(/追加|入れ|登録/)) {
     const p=ctx.prep;
-    if(!p.urgent.length&&!p.no_date.length) return '準備リストに未完了のものはないよ！';
+    if(!p.urgent.length&&!p.no_date.length) return '準備リストに未完了のものはありません。';
     let r='準備リストはこちらです。'+NL+NL;
     if(p.urgent.length) r+='【期日あり】'+NL+list(p.urgent,x=>`・${x.text}（${x.date}）`)+NL+NL;
     if(p.no_date.length) r+='【期日なし】'+NL+list(p.no_date,x=>`・${x.text}`);
@@ -7356,11 +7356,11 @@ function hokuLocalAnswer(q) {
   if(ql.match(/まとめ|状況|全体|ダッシュ|どう/)) {
     const t=ctx.tasks, b=ctx.budget, evCnt=ctx.today_events.length;
     return `今日（${ctx.today_label}）のまとめです。${NL+NL}`+
-      `📅 今日の予定：${evCnt}件${NL}`+
+      `今日の予定：${evCnt}件${NL}`+
       `未完了タスク：${t.total}件${t.overdue.length?' (期限切れ'+t.overdue.length+'件)':''}${NL}`+
-      `🎒 準備リスト：${ctx.prep.urgent.length}件${NL}`+
-      `📋 未読お知らせ：${ctx.unread_announcements.length}件${NL}`+
-      `💰 今月収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
+      `準備リスト：${ctx.prep.urgent.length}件${NL}`+
+      `未読お知らせ：${ctx.unread_announcements.length}件${NL}`+
+      `今月収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
   }
 
   /* ヘルプ */

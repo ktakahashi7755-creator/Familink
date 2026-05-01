@@ -847,5 +847,103 @@ Wave 3：エージェント開発チームによる体系的 QA + Hoku 品質改
 3. 問題なければ第 2 弾（H-01）の設計開始
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `2222b09`（push 済み）
 - メッセージ: `wave 3: fix Hoku intent over-matching + reduce help emojis + polite tone + signup copy`
+
+---
+
+## 2026-05-01 22:31  env: 不明（自走セッション・エージェント開発チーム体制）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 4：実機 QA に出せる安定版への深掘り検証 + 軽微改善
+
+### 変更ファイル
+- `app-source/familink.html`（Hoku 応答 7 箇所のピンポイント編集）
+- `docs/iphone-qa-guide.md`（§4-4 拡張 + §4-5 新設）
+- `docs/qa-results-2026-05-01-wave4.md`（新規 / Wave 4 QA 結果）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+
+#### Phase 1：状態確認
+- HEAD = `2222b09`（Wave 3 完了）から開始
+- 既存 4 バックアップタグ確認、worklog / qa-results-wave3 / iphone-qa-guide すべて読了
+
+#### Phase 2：深掘り 21 画面テスト（Playwright）
+- 設定画面 17 アクション全数検証 → 未定義関数 0
+- カスタムボード作成 → 詳細遷移 → アイテム追加可能を確認
+- スキャン画面 textarea + 送信ボタン存在確認
+- 7 画面の空状態の文言を全数キャプチャ・確認
+- `showPremiumGate` / `goChildDetail` の実関数名と接続を再確認
+- 当初検出した 2 件の「関数なし」は私の命名ミスと判明 → 取り下げ
+- **致命バグ 0 件**
+
+#### Phase 3-5：軽微改善
+- **HOKU-EMOJI-02**：「今日のまとめ」応答から絵文字 `📅 🎒 📋 💰` 4 個を削除
+- **HOKU-TONE-02**：応答 3 箇所の「ないよ／入ってないよ」を「ありません／入っていません」に統一
+  - 「今後7日間の予定、今は何も入ってないよ。」
+  - 「準備リストに未完了のものはないよ！」
+  - 「未完了のタスクはないよ。」
+- **M-08 showConfirm アイコン分岐**：13 箇所すべて destructive 操作で ⚠️ が適切と判断、修正不要
+- **家計タブの 💸 / 💰**：機能的識別性のため温存（UI ガイドラインで borderline）
+
+#### Phase 6：ドキュメント整備
+- `iphone-qa-guide.md` §4-4「クイックチェック」を 5 → 7 項目に拡張
+- `iphone-qa-guide.md` §4-5「Wave 2 / 3 / 4 で追加した検証項目」セクションを新設
+- 起動 URL / IP 取得手順 / Windows PowerShell サポートは既存維持で OK
+
+#### Phase 7：検証
+- node --check JS 構文 OK / HTTP 200 / 21 画面 ID 全存在
+- 個人名 0 / kenya@ 0 / password value 0 / 「掲示板」UI 上 0（Hoku 入力 regex のみ 1）
+- 「だよ。／あるよ。／ないよ。／教えて。」残存 0 件
+- 動的検証：「今日のまとめ」 → 絵文字 0 件確認
+
+### テスト結果
+- 致命バグ：0 件
+- 21 画面 ID 存在：全 OK
+- 主要モーダル開閉 + 保存：全 OK（task / post / event / tx / prep / cb-create）
+- LocalStorage 永続化：全 OK
+- Hoku FAB / 8 種応答：全 OK
+- 設定 17 アクション：未定義関数 0
+- pageerror / console.error：0 件（環境ノイズ除く）
+
+### 影響範囲
+- Hoku 応答 7 箇所の文言調整（絵文字 4 + 口語 3）
+- 既存ロジック・データ構造・関数シグネチャ：すべて温存
+- LocalStorage 構造：不変
+- 既存ユーザーデータへの破壊的影響：なし
+
+### 未確認事項
+- iPhone Safari 実機での 21 画面動作（次セッションでオーナー実走）
+- カスタムボードでのアイテム追加 UX
+- スキャンフローの一連動作
+
+### iPhone 確認ポイント
+- `docs/iphone-qa-guide.md` §4-4 クイックチェック 7 項目
+- §4-5 Wave 2 / 3 / 4 検証項目
+- §5〜§7 で本格 QA
+
+### エージェント別の実施まとめ
+- **PO/PM**：「実バグ 0 件」を MVP 安定版達成サインとして確認
+- **QA Lead**：Playwright で深掘り（17 設定アクション / カスタムボード / 空状態 7 画面 / Hoku チップ）→ 全 PASS
+- **UX/UI Lead**：空状態 7 画面の文言が自然と確認、Hoku 応答内の絵文字 + 口語を起票
+- **Frontend**：7 箇所のピンポイント Edit のみ、構造変更なし
+- **Hoku AI Lead**：「今日のまとめ」絵文字削除 + 「ないよ」3 箇所を丁寧調へ
+- **Release Manager**：qa-results-wave4 新設 / iphone-qa-guide 更新 / worklog 追記 / commit / push / backup-005
+
+### 自動停止ルールの遵守
+9 項目すべて回避（認証 / クラウド / 課金 / LS 構造 / 画面作り替え / React 化 / 2h 超 / 実機必須 / 既存破壊リスク）
+
+### 残課題
+- High：H-01（ローカルプロフィール作成、第 2 弾本命）/ M-06（オンボード CTA 分岐、H-01 連動）
+- Medium：家計タブ絵文字 / カスタムボードアイテム追加 UX 実機 / スキャンフロー実機
+- Low：L-01〜L-04 / App Store 申請準備
+
+### 次にオーナーが確認すべきこと
+1. iPhone 実機 QA（最優先）：`docs/iphone-qa-guide.md` §4-4 → §4-5 → §5〜§7
+2. Wave 4 修正の動作確認：「今日のまとめ」応答に絵文字なし、各空状態文言が丁寧
+3. 問題なければ第 2 弾（H-01 ローカルプロフィール）の設計開始
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 4: deep QA verification + remove residual Hoku emojis + polite empty-state messages`
