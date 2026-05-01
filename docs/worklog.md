@@ -490,3 +490,66 @@ app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 1: remove dev login prefill / guard demo overwrite / rewrite premium gate / generic sample names`
+
+---
+
+## 2026-05-01 15:39  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+実機 QA 準備資料の作成（本体 HTML は変更なし）
+
+### 変更ファイル
+- `docs/iphone-qa-guide.md`（新規 / iPhone 実機 QA の手順書）
+- `README.md`（軽微更新 / QA ガイドへのポインタを追加）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- ユーザー指示「第 2 弾着手前に実機 QA を優先」を受け、QA 準備資料を整備
+- 本体 HTML（`app-source/familink.html`）は **未改変**（指示通り）
+- React/Next/Vite 化なし、依存追加なし
+
+#### `docs/iphone-qa-guide.md` の構成
+1. このガイドでやること
+2. 必要なもの（PC / Python3 / iPhone / Wi-Fi）
+3. PC でサーバを起動する手順（macOS / Windows / Linux 別、ターミナルの開き方から）
+4. iPhone からアクセスする（URL 入力 / トラブル時の確認 / ホーム画面追加）
+5. **第 1 弾修正の検証チェックリスト**（H-03 / H-04 / H-05 / H-06 / H-02）
+6. **21 画面チェックリスト**（起動 / 表示 / 戻る / 主要操作 / 保存復元）
+7. iPhone 実機ならではの観点（セーフエリア / Hoku FAB / キーボード / D&D / LocalStorage 復元）
+8. **バグ報告テンプレート**（コピペで `docs/qa-results-YYYY-MM-DD.md` を作る形式）
+9. QA 結果記録後の流れ（worklog 追記 → commit → push）
+10. 困ったときの参照先
+
+#### `README.md` の軽微更新
+- 既存の「同一 LAN の iPhone から確認」セクションの後に、`docs/iphone-qa-guide.md` への 1 行ポインタを追加
+- 起動手順の正本は今後 `iphone-qa-guide.md`（詳細）と README（要約）の二段構え。重複は最小限
+
+### テスト結果
+- ドキュメントのみの追加・更新で実行対象なし
+- Markdown のリンク / コードブロック / テーブル構文を目視確認
+
+### 影響範囲
+- 既存ファイルの破壊的変更なし
+- 既存ドキュメント体系（`docs/`）に新規 1 ファイル追加 + README 軽微追記のみ
+- 既存ユーザー / アプリ動作への影響なし
+
+### 未確認事項
+- 実機 QA そのもの（ユーザーが PC + iPhone で実走）
+- バグ報告テンプレートの記入感（実際に使ってみて改善余地があるか）
+
+### iPhone確認ポイント
+- `docs/iphone-qa-guide.md` の手順を上から順に試す
+- 第 1 弾検証 5 項目（H-03/04/05/06/02）を §5 のチェックリストで確認
+- 21 画面 §6 を順に確認
+- 実機固有観点 §7 を確認
+- 発見バグを §8 のテンプレートで `docs/qa-results-YYYY-MM-DD.md` に記録
+
+### 次にやること
+1. **ユーザー側で iPhone 実機 QA 実施**（`docs/iphone-qa-guide.md` を参照）
+2. QA 結果を `docs/qa-results-YYYY-MM-DD.md` に記録 → commit → push
+3. High 級バグが出たら、次セッションで `familink-debug-engineer` + `familink-html-engineer` で最小差分修正に着手
+4. QA で問題なければ第 2 弾（H-01 ローカルプロフィール作成 / 用語統一 / Hoku 文言整理）を提案
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `add iPhone QA guide with 21-screen checklist and bug report template`
