@@ -397,3 +397,96 @@ app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `add 5-role team review with prioritized issue catalog (no code changes)`
+
+---
+
+## 2026-05-01 15:33  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+第 1 弾修正：H-03 / H-04 / H-05 / H-06 + H-02（公開ブロッカー解消、最小差分）
+
+### 変更ファイル
+- `app-source/familink.html`（5 種の修正、計 8 箇所のピンポイント編集）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+
+#### H-03：ログインフォームの dev プレフィル削除（XS）
+- `familink.html:2030` `value="kenya@familink.app"` 削除
+- `familink.html:2034` `value="password"` 削除
+- placeholder のみ残存 → 起動時に空欄状態でユーザーが入力する形に
+
+#### H-04：デモデータの全消去に確認ガード追加（XS）
+- `familink.html:3367` `doQuickDemo()` を 2 段階に分割：
+  - 既存データ（events/tasks/txs/posts のいずれか）がある場合 → `showConfirm()` で「デモデータで上書きしますか？」の確認モーダルを出す
+  - 既存データなし（初回 / 全消去後）→ 即座に `_applyQuickDemo()` を実行
+- 既存の実装本体は `_applyQuickDemo()` 関数として分離（挙動は同じ）
+- `showConfirm()` 既存実装の `icon=''` パスで警告アイコンなしモード（情報確認用）
+
+#### H-05：プレミアムゲートのコピー書き直し（S）
+- タイトル：「プレミアムアバター」→「Familink プレミアム」
+- 本文：「このアバターはプレミアムプラン限定です」→「家族の予定・タスク・記録をもっと便利に、もっと自由に」
+- 特典見出し：「プレミアムプランの特典」→「プレミアムでできること」
+- 特典 4 行（旧 3 行から拡張）：
+  1. 家族ボードを複数作成・カスタムボード
+  2. 家計管理の詳細機能・準備リストのテンプレート
+  3. Hokuの高度な提案・家族向けアドバイス
+  4. プレミアムアイコン・通知の高度設定
+- ユーザー指示の「無料 / プレミアム線引き」に整合（`docs/premium-strategy.md` §4）
+- 価格ブロック（¥480/月、¥4,800/年）と CTA は据え置き
+
+#### H-06：プレミアムゲートの絵文字 3 個を SVG に置換（S）
+- `⭐` / `🚫` / `👨‍👩‍👧` を削除
+- すべて `stroke="#B8860B"` の SVG チェックマーク（同じデザイン）に統一
+- UI ガイドライン「1 画面 2 個以下」を遵守（クラウンの SVG 1 個のみ残存）
+
+#### H-02：個人名・アバターの一般サンプル化（S、第 1 弾内に収まったので同梱）
+- `MEMBERS[]` の 5 エントリ：name / av のみ変更（id は join key として温存）
+  - 賢弥 → パパ（av: 賢→パ）
+  - 星愛 → ママ（av: 星→マ）
+  - 星斗 → 太郎（av: 斗→太）
+  - 星旺 → 花子（av: 旺→花）
+  - 星汰 → 健太（av: 汰→健）
+- `seedDemo()` 内の personal-name 文字列 12 箇所を一括置換（events / tasks / txs / posts.body / notifs.title）
+- `<input id="ev-title">` の placeholder 「例：星斗の英語」→「例：太郎の英語」（1 箇所、見落とし防止で grep 再走確認済）
+- ID キー（kenya/seiai/seito/seio/seitaro）は member 参照キーとして全 59 箇所で温存。データ互換維持
+- 将来の H-01（PIN）/ クラウド認証拡張への影響なし（関数名・状態構造は不変）
+
+### テスト結果
+- **JS 構文チェック（`node --check`）**：パス（5977 行 → 6010 行に増えたが構文エラーなし）
+- **id 重複チェック**：新規重複なし（既存の `rcpt-*` / `${H(t.id)}` 4 件は三項演算 / 排他描画で既知安全）
+- **HTTP 配信**：`python3 -m http.server` で `src/familink.html`・`app-source/familink.html` 双方が HTTP 200、size=1298403（修正前 1296962 → +1441 bytes、増分妥当）
+- **個人名 grep 再確認**：`賢弥|星愛|星斗|星旺|星汰` の出現は 0 件（完全置換）
+- **ID 温存確認**：'kenya' 25 / 'seiai' 13 / 'seito' 9 / 'seio' 6 / 'seitaro' 6 — すべて旧来通り
+- **`_applyQuickDemo` 関数の参照整合**：定義 1 / 呼び出し 2（callback + immediate）
+- **プレミアムゲート構造**：HTML タグバランス確認済、SVG 5 個（クラウン 1 + チェック 4）
+- **実機ブラウザ起動**：未実施（理由：サンドボックスにブラウザなし。次回 PC + iPhone Safari で実走）
+
+### 影響範囲
+- ログイン UI：起動時に空欄 → ユーザーが任意のメール（または空 → エラー toast）
+- 既存ユーザーデータ：影響なし（id キーは温存、PERSIST 構造は不変）
+- 既存 LocalStorage データ：影響なし（読み込み時の seedDemo は空時のみ走るためデモ復活なし）
+- 既に保存済みの `S.user` がオブジェクトコピーで `name:'賢弥'` を持つケース：起動後に MEMBERS から再取得される画面（home greeting 等）では新名表示。直接 `S.user.name` を参照する箇所は古名のまま残る可能性あり → 下記未確認事項に記録
+
+### 未確認事項
+- `S.user.name` を直接参照する箇所が古名で残るユーザーがいる可能性（既存の LocalStorage に旧 MEMBERS のスナップショットが入っている場合）。再ログイン or デモデータ上書きで解消する見込み。実機で確認
+- 「広告非表示」を訴求から外した（実装されていないため）。ユーザー確認の上で OK の判断
+- 「無料トライアル」CTA 文言：現状「今すぐ始める」のまま（`activatePremiumDemo` はデモ解除）。本実装時に再検討
+- iPhone 実機での 21 画面動作（特に H-04 確認モーダルの表示と H-06 SVG レンダ）
+
+### iPhone確認ポイント
+- ログイン画面が空欄で表示されるか（H-03）
+- 「デモデータで試してみる」ボタン → 既存データありで確認モーダル表示（H-04）
+- 設定 → アバター変更 → プレミアムアバター選択 → ゲートが新コピー + SVG で表示されるか（H-05/06）
+- ホーム挨拶が「おはようございます、パパさん」等の新名になるか（H-02）
+- カレンダー / タスク / 家計のサンプルに「太郎」「花子」「健太」が出るか（H-02）
+
+### 次にやること
+1. PC + iPhone Safari で `README.md` 手順に従って起動
+2. iPhone 実機 QA を `docs/qa-findings-2026-05-01.md` §3 + 上記確認ポイントで実走
+3. 実機で発見した S/A 級バグを起票
+4. 第 2 弾着手判断：H-01（ローカルプロフィール作成 + 選択フロー）と M シリーズ（用語統一・Hoku 文言・s-cdetail レンダ）。LocalStorage 構造変更の前に `familink-cto-architect` で影響範囲確認
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 1: remove dev login prefill / guard demo overwrite / rewrite premium gate / generic sample names`

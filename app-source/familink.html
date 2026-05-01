@@ -2027,11 +2027,11 @@ select.input {
       <div class="modal-form">
         <div class="field">
           <div class="field-label">メールアドレス</div>
-          <input class="input" id="login-email" type="email" placeholder="example@mail.com" value="kenya@familink.app">
+          <input class="input" id="login-email" type="email" placeholder="example@mail.com">
         </div>
         <div class="field">
           <div class="field-label">パスワード</div>
-          <input class="input" id="login-pass" type="password" placeholder="パスワードを入力" value="password">
+          <input class="input" id="login-pass" type="password" placeholder="パスワードを入力">
         </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">ログインする</button>
       </div>
@@ -2749,7 +2749,7 @@ select.input {
       <input type="hidden" id="ev-id">
       <div class="field">
         <div class="field-label">タイトル <span style="color:var(--red)">*</span></div>
-        <input class="input" id="ev-title" placeholder="例：星斗の英語">
+        <input class="input" id="ev-title" placeholder="例：太郎の英語">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field">
@@ -2993,11 +2993,11 @@ select.input {
 const SK = 'familink_v3';
 
 const MEMBERS = [
-  { id:'kenya',   name:'賢弥',  role:'parent', av:'賢', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
-  { id:'seiai',   name:'星愛',  role:'parent', av:'星', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
-  { id:'seito',   name:'星斗',  role:'child',  av:'斗', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
-  { id:'seio',    name:'星旺',  role:'child',  av:'旺', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
-  { id:'seitaro', name:'星汰',  role:'child',  av:'汰', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
+  { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
+  { id:'seiai',   name:'ママ',  role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+  { id:'seito',   name:'太郎',  role:'child',  av:'太', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
+  { id:'seio',    name:'花子',  role:'child',  av:'花', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
+  { id:'seitaro', name:'健太',  role:'child',  av:'健', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
 ];
 const CHILDREN = MEMBERS.filter(m => m.role === 'child');
 
@@ -3365,6 +3365,24 @@ function doLogin() {
 }
 
 function doQuickDemo() {
+  const hasData = (S.events && S.events.length) ||
+                  (S.tasks  && S.tasks.length)  ||
+                  (S.txs    && S.txs.length)    ||
+                  (S.posts  && S.posts.length);
+  if(hasData) {
+    showConfirm(
+      'デモデータで上書きしますか？',
+      '現在の家族の記録（予定・タスク・家計など）はすべて削除され、サンプルデータに置き換わります。',
+      'デモデータで上書き',
+      _applyQuickDemo,
+      ''
+    );
+    return;
+  }
+  _applyQuickDemo();
+}
+
+function _applyQuickDemo() {
   S.loggedIn = true;
   S.user = MEMBERS[0];
   S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.notifs = [];
@@ -3391,35 +3409,35 @@ function doLogout() {
 function seedDemo() {
   const t = todayStr();
   if(!S.events.length) S.events = [
-    {id:uid(),title:'星斗 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
-    {id:uid(),title:'歯科検診（星愛）',date:addDays(t,1),time:'10:30',color:'#FF9B4E',member:'seiai',note:'保険証を忘れずに'},
-    {id:uid(),title:'星旺 サッカー',date:addDays(t,2),time:'15:00',color:'#52C47A',member:'seio',note:'お弁当不要'},
+    {id:uid(),title:'太郎 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
+    {id:uid(),title:'歯科検診（ママ）',date:addDays(t,1),time:'10:30',color:'#FF9B4E',member:'seiai',note:'保険証を忘れずに'},
+    {id:uid(),title:'花子 サッカー',date:addDays(t,2),time:'15:00',color:'#52C47A',member:'seio',note:'お弁当不要'},
     {id:uid(),title:'家族でピクニック 🌸',date:addDays(t,3),time:'10:00',color:'#F07CB3',member:'kenya',note:'弁当・レジャーシート持参'},
-    {id:uid(),title:'星汰 ピアノ発表会',date:addDays(t,5),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'礼服着用'},
+    {id:uid(),title:'健太 ピアノ発表会',date:addDays(t,5),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'礼服着用'},
     {id:uid(),title:'PTAミーティング',date:addDays(t,7),time:'18:00',color:'#FF6B6B',member:'seiai',note:''},
   ];
   if(!S.tasks.length) S.tasks = [
     {id:uid(),text:'スーパーで牛乳・卵を買う',member:'seiai',done:false,at:t},
-    {id:uid(),text:'星斗の体育着を洗濯する',member:'kenya',done:true,at:t},
+    {id:uid(),text:'太郎の体育着を洗濯する',member:'kenya',done:true,at:t},
     {id:uid(),text:'保護者アンケートを提出する',member:'seiai',done:false,at:t},
     {id:uid(),text:'車のオイル交換の予約',member:'kenya',done:false,at:addDays(t,-1)},
   ];
   if(!S.txs.length) {
     S.txs = [
-      {id:uid(),type:'income', amount:380000,cat:'給与',desc:'4月分給与（賢弥）',date:addDays(t,-5),member:'kenya'},
-      {id:uid(),type:'income', amount:290000,cat:'給与',desc:'4月分給与（星愛）',date:addDays(t,-5),member:'seiai'},
+      {id:uid(),type:'income', amount:380000,cat:'給与',desc:'4月分給与（パパ）',date:addDays(t,-5),member:'kenya'},
+      {id:uid(),type:'income', amount:290000,cat:'給与',desc:'4月分給与（ママ）',date:addDays(t,-5),member:'seiai'},
       {id:uid(),type:'expense',amount:12400, cat:'食費',desc:'週末のまとめ買い',date:addDays(t,-3),member:'seiai'},
-      {id:uid(),type:'expense',amount:14800, cat:'教育費',desc:'星斗 英語教室4月分',date:addDays(t,-2),member:'seito'},
-      {id:uid(),type:'expense',amount:3200,  cat:'医療費',desc:'星旺 小児科',date:addDays(t,-1),member:'seio'},
+      {id:uid(),type:'expense',amount:14800, cat:'教育費',desc:'太郎 英語教室4月分',date:addDays(t,-2),member:'seito'},
+      {id:uid(),type:'expense',amount:3200,  cat:'医療費',desc:'花子 小児科',date:addDays(t,-1),member:'seio'},
       {id:uid(),type:'expense',amount:8600,  cat:'娯楽費',desc:'映画・外食',date:t,member:'kenya'},
-      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'星汰 ピアノ教室4月分',date:addDays(t,-4),member:'seitaro'},
+      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'健太 ピアノ教室4月分',date:addDays(t,-4),member:'seitaro'},
     ];
     S.budgetY = new Date().getFullYear();
     S.budgetM = new Date().getMonth();
   }
   if(!S.posts.length) S.posts = [
     {id:uid(),author:'kenya',title:'今週末のピクニック🌸について',
-      body:'天気予報確認したら土曜日は晴れそう！\n弁当は星愛が担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね😊',
+      body:'天気予報確認したら土曜日は晴れそう！\n弁当はママが担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね😊',
       time:addDays(t,-1),pinned:true,
       reactions:{'👍':['seiai','seito'],'❤️':['seio','seitaro'],'😄':['seiai']},
       comments:[
@@ -3471,7 +3489,7 @@ function seedDemo() {
     {id:uid(),text:'防止・日焼け止め',cat:'その他',done:false,date:addDays(t,3)},
   ];
   if(!S.notifs.length) S.notifs = [
-    {id:uid(),title:'星斗の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'📅'},
+    {id:uid(),title:'太郎の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'📅'},
     {id:uid(),title:'未完了タスクがあります',desc:'保護者アンケートの提出をお忘れなく',time:t,read:false,icon:'✅'},
     {id:uid(),title:'⭐ ファミリンクへようこそ！',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'🌟'},
   ];
@@ -8971,23 +8989,29 @@ window.addEventListener('DOMContentLoaded', init);
     <div style="width:72px;height:72px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 6px 24px rgba(255,170,0,.35);">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="#fff"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>
     </div>
-    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">プレミアムアバター</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Familink プレミアム</div>
     <div style="font-size:14px;color:var(--text-sub);line-height:1.7;margin-bottom:24px;">
-      このアバターはプレミアムプラン限定です。<br>
-      特別感・高級感あるキャラクターが<br>すべて使えるようになります。
+      家族の予定・タスク・記録を<br>もっと便利に、もっと自由に。
     </div>
     <!-- プレミアム特典 -->
     <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-radius:var(--r);padding:16px;margin-bottom:24px;text-align:left;">
-      <div style="font-size:12px;font-weight:700;color:#B8860B;margin-bottom:10px;">プレミアムプランの特典</div>
+      <div style="font-size:12px;font-weight:700;color:#B8860B;margin-bottom:10px;">プレミアムでできること</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">⭐</span>プレミアムアバターが使い放題
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          家族ボードを複数作成・カスタムボード
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">🚫</span>広告非表示
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          家計管理の詳細機能・準備リストのテンプレート
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">👨‍👩‍👧</span>家族の記録をもっと便利に
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          Hokuの高度な提案・家族向けアドバイス
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          プレミアムアイコン・通知の高度設定
         </div>
       </div>
     </div>
