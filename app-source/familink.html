@@ -2038,7 +2038,7 @@ select.input {
       <div class="login-divider">または</div>
       <button class="btn btn-outline btn-block" onclick="doQuickDemo()">デモデータで試してみる</button>
       <div style="text-align:center;font-size:13px;color:var(--text-muted)">
-        アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は準備中です。デモデータでお試しください。')">新規登録</span>
+        アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は近日公開予定です。まずはデモデータでお試しください。')">新規登録</span>
       </div>
       <button class="btn btn-ghost btn-block" onclick="go('s-ob')" style="margin-top:4px">← ウェルカム画面へ</button>
     </div>
@@ -6975,8 +6975,8 @@ function detectIntent(q) {
   if(q.match(/タスク.*消|消.*タスク|タスク.*削除|さっきの.*消して/) && !q.match(/予定/)) {
     return {type:'action', action:'delete_task', raw:q};
   }
-  // タスク追加
-  if(q.match(/タスク|やること|追加して|入れて/) && !q.match(/予定|円/)) {
+  // タスク追加（タスク／やること系語 + 追加系動詞の両方が必要）
+  if(q.match(/タスク|やること/) && q.match(/追加|入れ|登録|作って/) && !q.match(/予定|円/)) {
     return {type:'action', action:'create_task', raw:q};
   }
   return {type:'query', raw:q};
@@ -7236,7 +7236,7 @@ function hokuLocalAnswer(q) {
   /* 今日 */
   if(ql.match(/今日|本日|きょう/)) {
     const evs=ctx.today_events, tTod=ctx.tasks.today;
-    let r=`今日（${ctx.today_label}）の状況だよ。${NL+NL}`;
+    let r=`今日（${ctx.today_label}）の状況をお知らせします。${NL+NL}`;
     r+=evs.length?'【予定】'+NL+evs.map(e=>`・${e.time!=='終日'?e.time+' ':''}${e.title}${e.member?' ['+e.member+']':''}`).join(NL):'【予定】なし';
     if(tTod.length) r+=NL+NL+'【今日が期日のタスク】'+NL+tTod.map(t=>`・${t.title}`).join(NL);
     if(!evs.length&&!tTod.length) r+=NL+'特に登録がないから、今日は余裕あるね。';
@@ -7246,7 +7246,7 @@ function hokuLocalAnswer(q) {
   /* 明日 */
   if(ql.match(/明日|あした/)) {
     const evs=ctx.tomorrow_events, prep=ctx.prep.urgent.slice(0,3);
-    let r=`明日の状況だよ。${NL+NL}`;
+    let r=`明日の状況をお知らせします。${NL+NL}`;
     r+=evs.length?'【予定】'+NL+evs.map(e=>`・${e.time!=='終日'?e.time+' ':''}${e.title}`).join(NL):'【予定】なし';
     if(prep.length) r+=NL+NL+'【準備が必要なもの】'+NL+prep.map(p=>`・${p.text}（${p.date}）`).join(NL);
     if(!evs.length&&!prep.length) r+=NL+'明日は特に何もないみたい。ゆっくりね。';
@@ -7280,7 +7280,7 @@ function hokuLocalAnswer(q) {
     const t=ctx.tasks;
     const all=[...t.overdue,...t.today,...t.soon,...t.high_priority];
     const u=[...new Map(all.map(x=>[x.title,x])).values()].slice(0,3);
-    if(!u.length) return '急ぎのことは今のところなさそうだよ。';
+    if(!u.length) return '急ぎのことは今のところなさそうです。';
     return '今やるべきことはこれかな：'+NL+NL+u.map((x,i)=>`${i+1}. ${x.title}${x.due&&x.due!=='期日なし'?' ['+x.due+']':''}`).join(NL);
   }
 
@@ -7288,7 +7288,7 @@ function hokuLocalAnswer(q) {
   if(ql.match(/家計|支出|収入|お金|円|予算|費/) && !ql.match(/追加|入れ|登録/)) {
     const b=ctx.budget;
     if(!b.income&&!b.expense) return `${b.month}の家計データはまだ登録されてないみたい。`;
-    let r=`${b.month}の家計まとめだよ。${NL+NL}`;
+    let r=`${b.month}の家計まとめです。${NL+NL}`;
     r+=`収入：${yen(b.income)}${NL}支出：${yen(b.expense)}${NL}収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
     if(b.top_categories.length) r+=NL+NL+'支出の多いカテゴリ：'+NL+b.top_categories.slice(0,4).map(c=>`・${c.cat}：${yen(c.amount)}`).join(NL);
     return r;
@@ -7299,7 +7299,7 @@ function hokuLocalAnswer(q) {
     const b=ctx.budget;
     if(!b.top_categories.length) return `${b.month}の支出データがないみたい。`;
     const top=b.top_categories[0];
-    let r=`${b.month}で一番多いのは「${top.cat}」（${yen(top.amount)}）だよ。${NL+NL}`;
+    let r=`${b.month}で一番多いのは「${top.cat}」（${yen(top.amount)}）です。${NL+NL}`;
     r+=b.top_categories.slice(0,4).map(c=>`・${c.cat}：${yen(c.amount)}`).join(NL);
     return r;
   }
@@ -7307,7 +7307,7 @@ function hokuLocalAnswer(q) {
   /* 期限 */
   if(ql.match(/期限|締め切り|提出|〆切/)) {
     const t=ctx.tasks;
-    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところなさそうだよ。';
+    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところなさそうです。';
     let r='期限が近いものまとめたよ。'+NL+NL;
     if(t.overdue.length) r+='⛔ 期限切れ：'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
     if(t.today.length)   r+='🔴 今日まで：'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
@@ -7319,7 +7319,7 @@ function hokuLocalAnswer(q) {
   if(ql.match(/持ち物|準備|持参|かばん|忘れ/) && !ql.match(/追加|入れ|登録/)) {
     const p=ctx.prep;
     if(!p.urgent.length&&!p.no_date.length) return '準備リストに未完了のものはないよ！';
-    let r='準備リストだよ。'+NL+NL;
+    let r='準備リストはこちらです。'+NL+NL;
     if(p.urgent.length) r+='【期日あり】'+NL+list(p.urgent,x=>`・${x.text}（${x.date}）`)+NL+NL;
     if(p.no_date.length) r+='【期日なし】'+NL+list(p.no_date,x=>`・${x.text}`);
     return r.trim();
@@ -7348,14 +7348,14 @@ function hokuLocalAnswer(q) {
   if(ql.match(/家族|メンバー|誰|こども|子ども/)) {
     const mems=ctx.members;
     const parents=mems.filter(m=>m.role==='parent'), children=mems.filter(m=>m.role!=='parent');
-    return `家族メンバーだよ。${NL+NL}保護者：${parents.map(m=>m.name).join('、')}${NL+NL}こどもたち：${NL}`+
+    return `家族メンバーをご案内します。${NL+NL}保護者：${parents.map(m=>m.name).join('、')}${NL+NL}こどもたち：${NL}`+
       children.map(m=>`・${m.name}（予定${m.evCnt}件 タスク${m.taskCnt}件）`).join(NL);
   }
 
   /* まとめ */
   if(ql.match(/まとめ|状況|全体|ダッシュ|どう/)) {
     const t=ctx.tasks, b=ctx.budget, evCnt=ctx.today_events.length;
-    return `今日（${ctx.today_label}）のまとめだよ。${NL+NL}`+
+    return `今日（${ctx.today_label}）のまとめです。${NL+NL}`+
       `📅 今日の予定：${evCnt}件${NL}`+
       `未完了タスク：${t.total}件${t.overdue.length?' (期限切れ'+t.overdue.length+'件)':''}${NL}`+
       `🎒 準備リスト：${ctx.prep.urgent.length}件${NL}`+
@@ -7365,11 +7365,11 @@ function hokuLocalAnswer(q) {
 
   /* ヘルプ */
   if(ql.match(/できる|使い方|ヘルプ|何|help/i)) {
-    return '聞いたり頼んだりできることはこれだよ。'+NL+NL+
-      '📅 予定・タスク・家計・準備の確認'+NL+
-      '➕ 「予定追加して」「タスク入れて」「家計登録して」'+NL+
-      '✅ 「〇〇のタスク完了して」「〇〇消して」'+NL+NL+
-      '気軽に話しかけてね。';
+    return 'お手伝いできることは大きく 3 つです。'+NL+NL+
+      '・予定／タスク／家計／準備の確認'+NL+
+      '・予定追加・タスク追加・家計登録（「予定追加して」など）'+NL+
+      '・タスクの完了や削除（「〇〇のタスク完了して」など）'+NL+NL+
+      '気軽に話しかけてくださいね。';
   }
 
   /* デフォルト */
