@@ -209,3 +209,56 @@ Familink 本体コードの自走取り込み試行 + .gitignore 整備（取り
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `add unicorn project policy to CLAUDE.md and split detail into 6 docs`
+
+---
+
+## 2026-05-01 15:10  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
+
+### 変更ファイル
+- `app-source/familink.html`（新規取り込み: `origin/claude/merge-and-push-main-u44Ty` 4be200e からチェックアウト）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- `git fetch origin` で `claude/merge-and-push-main-u44Ty` の最新（`4be200e add app source html`）を取得
+- 現ブランチを切り替えずに `git checkout origin/claude/merge-and-push-main-u44Ty -- app-source/familink.html` でファイルのみ取り込み
+- ブランチ運用は CLAUDE.md / 指示通り `claude/familylink-unicorn-product-TzM1F` を維持
+- アプリ本体は **未改変**（取り込みのみ。React/Next/Vite への移植・改造は未実施）
+
+### 構造解析サマリ
+- 単一 HTML：9188 行 / 1.3MB（base64 画像が大半）
+- セクション割り：
+  - `<head>`: 1–11
+  - `<style>`: 12–1984（CSS 1973 行）
+  - `<body>`: 1985–2987（マークアップ 1003 行、画面 21 個）
+  - `<script>`: 2988–8964（Vanilla JS 5977 行、`node --check` パス）
+  - 末尾：8965–9188（プレミアムゲートモーダル / カスタムボード画面 / Hoku FAB）
+- 外部依存：Google Fonts のみ（`Noto Sans JP`, `Poppins`）。外部 JS なし
+- 画面 21 個（`<div id="s-*" class="screen">`）：
+  ob / login / home / cal / task / hoku / docs / docs-folder / docs-receipt / board / board-detail / budget / health / prep / ch / cdetail / notif / settings / scan / scan-confirm / custom-board
+- 状態管理：LocalStorage キー `familink_v3`、PERSIST 23 項目
+  （loggedIn, user, events, tasks, txs, posts, announces, health, prep, notifs, budgetY, budgetM, folders, docs, kanbanCols, tkVisibleMembers, userPhotos, userAvatars, userAvatarType, isPremiumUser, homeOrder, customBoards, boardItems, boardSections）
+- 主要定数：MEMBERS / CHILDREN / OFFICIAL_AVATARS / PREMIUM_AVATARS / AVATAR_CATEGORIES / EV_COLORS / CATS_EX / CATS_IN / IMGS
+- CSS は `var(--*)` トークン運用済み
+
+### テスト結果
+- 静的検証：`node --check` で JS 構文 OK
+- ブラウザ起動確認：未実施（理由：サンドボックスにブラウザなし。取り込み方針確定後に実機 / iPhone 確認）
+- `npm run build` / `npm run dev`：未実施（理由：`package.json` 未存在。フレームワーク選定がユーザー判断待ち）
+
+### 未確認事項
+- 取り込み方針が未決定（A: 単一 HTML 運用継続 / B: Vite + Vanilla / C: React+Vite に段階移植 / D: Next.js）。CLAUDE.md §10.2 の「大規模設計変更 / 依存追加」に該当するため独断不可
+- 実機での動作確認（特に iPhone Safari）
+
+### iPhone確認ポイント
+- 取り込み方針が決まり次第、`app-source/familink.html` を直接ブラウザで開いた時の起動 / 21 画面の表示 / LocalStorage 保存 / Hoku FAB 表示を iPhone で確認
+
+### 次にやること
+- ユーザーに取り込み方針 4 案（A/B/C/D）から選択してもらう
+- 選択後：方針 A なら `src/familink.html` 等への配置整理 + `familink-html-engineer` で QA。B/C/D ならフレームワーク基盤を最小構成で生成し、画面単位で段階移植
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `import app source html from merge-and-push-main branch (analysis only, no migration)`
