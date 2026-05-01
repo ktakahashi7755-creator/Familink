@@ -657,5 +657,83 @@ app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
 4. 問題なければ第 2 弾（H-01 ローカルプロフィール作成）の設計へ
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `3b74db2`（push 済み）
 - メッセージ: `wave 2: fix task title display bug + unify '家族ボード' + soften Hoku tone + cleanup notification`
+
+---
+
+## 2026-05-01 16:15  env: 不明（自走セッション wrap-up）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 2 wrap-up：21 画面 Playwright スイープ + ヘルスレポート作成 + 課題一覧の解決ステータス更新
+
+### 変更ファイル
+- `docs/screen-health-report-2026-05-01.md`（新規 / 21 画面動的検証レポート）
+- `docs/issues-2026-05-01-team-review.md`（解決ステータス追記）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- 本体 HTML は **未変更**
+- Playwright で 21 画面すべてを順に開いて動的検証：
+  - 結果：✅ OK 20 / ⚠️ HIDDEN 1（s-custom-board は demo にデータなしで expected） / 🔴 ERROR 0 / 🔴 EXCEPTION 0
+  - pageerror / console.error（cert/favicon 除く）：**全画面で 0 件**
+- `docs/screen-health-report-2026-05-01.md` 新設：21 画面の textLen / htmlLen / status / 観察事項を記録
+- `docs/issues-2026-05-01-team-review.md` の冒頭に解決ステータス表を追加（Wave 1 / 2 で 12 件中 10 件が解決またはステータス確定）
+
+### バックアップ
+- `backup-002-wave2` タグ + `backup/002-wave2` ブランチを作成・push 済み（HEAD = 3b74db2）
+
+### テスト結果
+- Playwright 21 画面スイープ：20 OK / 1 HIDDEN（expected） / エラー 0
+- 動的検証で確認：タスクタイトル復活 / 家族ボード反映 / Hoku 新口調 / サンプル名表示
+- node --check JS 構文 OK（前回確認済み、wrap-up での再変更なし）
+
+### 未確認事項
+- iPhone Safari 実機での挙動（21 画面 + 第 1 弾検証 + 第 2 弾検証）
+- カスタムボード作成 → 表示 → 戻る の一連フロー（demo にデータがないため Playwright で未検証）
+- 4G 回線での初回ロード時間（base64 画像で 1.3MB）
+
+### iPhone確認ポイント
+- `docs/iphone-qa-guide.md` §4-4 のクイックチェック 5 項目（30 秒）
+- §5 第 1 弾検証 + §6 21 画面チェック + §7 実機固有観点
+- 特にタスク画面でタイトルが正しく見えるか（最重要）
+
+### 残課題
+- **H-01**：ローカルプロフィール作成 + 選択フロー（第 2 弾本命 / 推定 1〜2 日）
+- **M-06**：オンボード CTA 2 つの導線分岐（H-01 連動）
+- **M-08**：showConfirm のアイコン分岐
+- App Store メタデータ / プライバシーポリシー（公開準備）
+- L-01 画像 base64 外出し（公開後の軽量化）
+
+### 次にやること（人間確認待ち）
+1. **iPhone 実機 QA**（最優先）：`docs/iphone-qa-guide.md` を上から順に
+2. 問題なければ第 2 弾（H-01）の設計開始 → `familink-cto-architect` で LocalStorage 構造変更の影響範囲確認
+3. 並行：App Store 申請準備（メタデータ / スクリーンショット / 説明文 / プライバシー）
+
+### 自走セッションのサマリ（16:00–16:15）
+- 開始：HEAD = 235def9（Wave 1 完了 + iPhone QA 準備）
+- 中継：HEAD = 3b74db2（Wave 2 修正 + push、backup-002 作成）
+- 終了：HEAD = 本コミット予定（wrap-up artifacts、backup-003 作成）
+
+#### 実施した修正（本体への安全な改善のみ）
+1. 🔴 タスクタイトル表示の致命バグ修正（migrateTaskData 呼び出し追加）
+2. M-04 用語統一「家族ボード」（UI 4 + コメント 4 + Hoku 応答文 2 + 入力 regex 互換）
+3. M-01/M-02 Hoku 口調・絵文字（5 箇所）
+4. M-07 通知の絵文字整理（1 箇所）
+5. iphone-qa-guide.md にクイックチェック追加
+6. README.md から行数記述削除
+
+#### 起票を取り下げ（実バグではないと再判定）
+- M-03（s-cdetail）：インライン描画設計のため switch case 不要
+- M-05（ブランド表記）：意図的なバイリンガル
+
+#### 自動停止ルールへの遵守
+- LocalStorage 構造変更：**未実施**（互換層を活用）
+- 認証方式の判断：**未実施**（H-01 を残置）
+- プレミアム範囲の仕様判断：**未実施**（既存判断を尊重）
+- 画面構成の変更：**未実施**
+- 実機確認なしで判定不能な変更：**未実施**
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 2 wrap-up: add 21-screen health report + update issues catalog with resolution status`
