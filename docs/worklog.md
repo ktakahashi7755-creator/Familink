@@ -262,3 +262,72 @@ app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `import app source html from merge-and-push-main branch (analysis only, no migration)`
+
+---
+
+## 2026-05-01 15:18  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+案 A 採用：単一 HTML 運用での起動環境整備 + 静的 QA + 課題一覧化
+
+### 変更ファイル
+- `src/familink.html`（新規 / `app-source/familink.html` への symlink。正本は app-source 一箇所のまま）
+- `README.md`（新規 / 起動手順）
+- `docs/qa-findings-2026-05-01.md`（新規 / QA 静的レビュー結果）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- 案 A（単一 HTML 運用継続）採用に基づき、本体 HTML を改造せず以下を実施：
+  - `src/familink.html` を `../app-source/familink.html` への symlink として設置（重複コピー回避）
+  - `README.md` を新設し、`python3 -m http.server` での起動手順（PC ローカル / iPhone LAN 経由）を記録
+  - `docs/qa-findings-2026-05-01.md` で `familink-qa-lead` 観点の静的 QA 結果と修正方針を一覧化
+- 本体 HTML（`app-source/familink.html`）は **未改変**
+- React / Next / Vite / 依存ライブラリ / 大規模分割は **すべて見送り**（指示通り）
+
+### テスト結果
+- 静的サーバ起動確認：`python3 -m http.server 8767` でリポジトリ直下から起動
+  - `src/familink.html` → HTTP 200 / size=1296962
+  - `app-source/familink.html` → HTTP 200 / size=1296962
+  - symlink 経由でも実体経由でも同サイズで配信を確認
+- JS 構文：`node --check` パス（前回確認済み）
+- 静的 QA（致命要素）：
+  - `eval` / `new Function`：使用なし
+  - `console.*`：残骸なし
+  - `TODO/FIXME/XXX`：なし
+  - `setInterval`：なし
+  - `id` 重複：`rcpt-*` 3 件は三項演算で排他レンダリングのため実害なし、`data-id="${H(t.id)}"` 2 件は list/kanban の排他描画のため実害なし
+  - `onclick` 参照関数：未定義なし（全て定義済み）
+  - LocalStorage：`SK='familink_v3'`（PERSIST 23 項目を JSON）と `FAB_KEY='hoku_fab_pos_v2'` の 2 キー、try/catch あり
+  - `safe-area-inset-*`：CSS 内 40 箇所利用
+- 重点 12 項目：画面遷移 / 保存 / スマホ表示 / Hoku FAB / プレミアムゲート / カレンダー / タスク / 家族ボード / 家計 / 体調 / 準備リスト / カスタムボード — 全関数が定義され、設計上の懸念は静的に検出されず
+- 実機ブラウザ確認：未実施（理由：本サンドボックスにブラウザなし。次回 PC / iPhone Safari で実走必要）
+
+### 致命バグ（S 級）
+- **静的解析では検出なし**（実機 QA で発見されたら即起票）
+
+### 静的に検出した観察事項
+- A 級候補：`${...}` 補間 741 箇所中 `H()` エスケープは 187 箇所。ユーザー入力（name/title/merchant/memo/note）の経路に絞ってピンポイント点検が望ましい
+- B 級候補：`data-id` 連打時の挙動 / リスナー解除網羅 / 3 桁 px の実機表示確認 / 画像 base64 1.3MB の初回ロード重さ
+- 詳細と優先度別修正方針は `docs/qa-findings-2026-05-01.md` §4–§5 に記録
+
+### 未確認事項
+- **iPhone 実機での 21 画面テスト**（最重要 / 次回必須）
+- LocalStorage の保存 → 再読み込み復元（実機）
+- Hoku FAB の touchstart/move/end チェーン（実機）
+- 4G 回線での初回ロード時間
+
+### iPhone確認ポイント
+- `README.md` の「同一 LAN の iPhone から確認」手順に従って起動
+- `docs/qa-findings-2026-05-01.md` §3 の 12 項目を順に確認
+- 発見したバグ・UI 崩れは worklog に追記し、qa-findings の §5 に S / A 級として転記
+
+### 次にやること
+1. PC で `python3 -m http.server 8000 --bind 0.0.0.0` 起動
+2. iPhone Safari で `http://<PC-IP>:8000/src/familink.html` を開く
+3. `docs/qa-findings-2026-05-01.md` §3 の 12 項目を実走
+4. バグがあれば `familink-debug-engineer` + `familink-html-engineer` で最小差分修正（A/S 級のみ）
+5. その後、`docs/mvp-requirements.md` の受け入れ条件を初回検証
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `set up single-HTML hosting (src symlink + README) and add static QA findings`
