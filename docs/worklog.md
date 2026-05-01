@@ -331,3 +331,69 @@ app-source/familink.html を unicorn ブランチへ取り込み + 構造解析
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `set up single-HTML hosting (src symlink + README) and add static QA findings`
+
+---
+
+## 2026-05-01 15:25  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+5 役割チームレビュー（PO/UX/FE/QA/Release）+ 課題一覧化（修正は未実施）
+
+### 変更ファイル
+- `docs/issues-2026-05-01-team-review.md`（新規 / 課題一覧と修正方針）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- 5 役割（Product Owner / UX-UI Lead / Frontend Engineer / QA Lead / Release Manager）の観点で `app-source/familink.html` をレビュー
+- 本体 HTML は **未改変**（指示通り、修正は確認後）
+- 課題を **High / Medium / Low** で分類し、各課題に「役割 / 該当箇所（行番号）/ 影響範囲 / 修正方針 / 差分規模（XS/S/M/L）」を付与
+- 推奨着手順（第 1〜4 弾）と着手前確認項目を明記
+
+### 主要発見（要点のみ。詳細は issues-2026-05-01-team-review.md）
+
+#### High（公開ブロッカー / 致命挙動）
+- **H-01**: `doLogin()` がパスワードを検証しない（メール非空なら常に `MEMBERS[0]`=賢弥でログイン）。`familink.html:3355–3365`
+- **H-02**: `MEMBERS` が賢弥家族 5 名固定。誰がログインしても賢弥家族になる。`familink.html:2995–3001`
+- **H-03**: ログインフォームに dev プレフィル `kenya@familink.app` / `password` 残存。`familink.html:2030, 2034`
+- **H-04**: `doQuickDemo()` が確認なしで全データ消去。`familink.html:3367–3377`
+- **H-05**: プレミアムゲートのコピーが「アバター限定」と読め、480 円の価値が伝わらない（`docs/premium-strategy.md` 乖離）
+- **H-06**: プレミアムゲートに絵文字 3 個（⭐🚫👨‍👩‍👧）— UI ガイドライン「1 画面 2 個以下」違反
+
+#### Medium（公開前に直したい）
+- M-01: Hoku の口調がガイドライン微ズレ（「だよ」「のんびり」系）
+- M-02: Hoku 応答に絵文字 ⚠️ / 👍 混入
+- M-03: `switchTab(refresh)` で `s-cdetail` のレンダ分岐抜け（`familink.html:3320–3349`）
+- M-04: 用語ゆれ「掲示板」(UI 9 箇所) vs「家族ボード」(docs)
+- M-05: ブランド表記ゆれ「ファミリンク」3 vs「Familink」12
+- M-06: オンボード CTA 2 つが両方とも同一遷移
+- M-07: 通知に ⭐ + 🌟 同行重複
+- M-08: m-confirm のデフォルトアイコンが ⚠️（情報確認でも警告色）
+
+#### Low（公開後でよい）
+- L-01: 画像 base64 1.3MB の初回ロード重さ
+- L-02: XSS サーフェス点検（H() 経由 187/741）
+- L-03: addEventListener 47 vs removeEventListener 12 のリーク懸念
+- L-04: seedDemo の二度目セーフガード
+
+### テスト結果
+- 静的解析のみ実施（grep + sed + 各関数の前後行精読）
+- アプリ実行：未実施（実機 QA は別途）
+
+### 未確認事項
+- iPhone 実機で 21 画面の動作（特に H-03, H-04, H-06 修正後の表示）
+- H-01 / H-02 の **実装方針**（ローカル PIN / クラウド認証 / プロフィール選択のみ）— ユーザー判断待ち
+- H-05 の **プレミアム差分機能**（実装済み機能のうち何を有料線引きにするか）— ユーザー判断待ち
+
+### iPhone確認ポイント
+- 修正前の現状確認として、`README.md` 手順で iPhone Safari から起動 → 21 画面の起動 / 戻る / 保存を確認
+- `docs/qa-findings-2026-05-01.md` §3 の 12 項目チェックを並走
+
+### 次にやること
+1. **ユーザー確認**：着手前確認 4 項目（issues-2026-05-01-team-review.md 末尾）に回答してもらう
+2. ユーザー GO 後、第 1 弾（H-03 / H-04 / H-06 / H-05）を最小差分で実装
+3. 第 2 弾（H-01 / H-02 / M-06）の前に `familink-cto-architect` で LocalStorage 構造変更の影響範囲確認
+4. 並走で iPhone 実機 QA
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `add 5-role team review with prioritized issue catalog (no code changes)`
