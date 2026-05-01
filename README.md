@@ -9,7 +9,7 @@
 ## 構成
 
 ```
-app-source/familink.html   # アプリ本体（単一 HTML 運用 / 9188 行）
+app-source/familink.html   # アプリ本体（単一 HTML 運用）
 src/familink.html          # 上記への symlink（公開確認用ショートカット）
 docs/                      # 仕様・ガイドライン・worklog
 .claude/skills/            # Familink 専用 17 Skills
