@@ -152,3 +152,60 @@ Familink 本体コードの自走取り込み試行 + .gitignore 整備（取り
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `prepare repo for app source import (.gitignore + autonomous attempt log)`
+
+---
+
+## 2026-05-01 14:37  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+完全自動化・ユニコーン企業プロジェクト方針の CLAUDE.md 追記 + docs 6 本新設
+
+### 変更ファイル
+- `CLAUDE.md`（追記: §10 / §11）
+- `docs/product-roadmap.md`（新規）
+- `docs/mvp-requirements.md`（新規）
+- `docs/ui-ux-guideline.md`（新規）
+- `docs/premium-strategy.md`（新規）
+- `docs/test-checklist.md`（新規）
+- `docs/hoku-guideline.md`（新規）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- CLAUDE.md §10「完全自動化・ユニコーン企業プロジェクト方針」を新設
+  - 10.1 中心価値（北極星）/ 10.2 自律実行と人間確認の境界 / 10.3 ユニコーン視点チェックリスト
+  - 10.4 プレミアム戦略要点 / 10.5 UI/UX 品質基準要点 / 10.6 Hoku 役割要点
+  - 10.7 機能優先順位（具体機能ベース）/ 10.8 自律改善 / 10.9 セルフレビュー観点
+  - 10.10 ドキュメント体系 / 10.11 最終ゴール（短期 / 中期 / 長期）
+- CLAUDE.md §11「絶対ルール（要約）」を新設
+- 既存の §1〜§9（開始終了プロトコル / Skills / 自走ルール / 携帯短文）は **削除せず**、§10 から相互参照
+- 重複回避のため、各テーマの正本を docs に分離：
+  - `docs/product-roadmap.md`：Phase 0〜4 / 北極星 / 後回し明示
+  - `docs/mvp-requirements.md`：MVP 必須機能 / 受け入れ条件 / 含めないもの
+  - `docs/ui-ux-guideline.md`：絶対ルール / レイアウト / 色 / 文言 / 導線 / レビュー観点
+  - `docs/premium-strategy.md`：480 円本命 / 上位プラン段階導入 / 候補機能 / 導線 / 計測
+  - `docs/test-checklist.md`：コミット前チェック / 6 視点セルフレビュー / S 級 / iPhone / 回帰
+  - `docs/hoku-guideline.md`：人格 / 口調 / UI 配置 / 応答パターン / 禁止事項
+- アプリ本体コードは未変更（ユーザー指示「既存を消さない / MVP から外れた過剰実装をしない」を遵守）
+
+### テスト結果
+- 未実施: ドキュメントのみの追加で実行対象なし
+- 静的検証: ファイル新規作成 6 件 + CLAUDE.md 追記の構文（Markdown）確認済み
+
+### 未確認事項
+- アプリ本体 HTML はまだ取り込まれていない（前回エントリの懸案を引き継ぎ）
+- `docs/app-store-release-checklist.md` は §10.10 に項目登録のみ。実体は申請準備時に作成予定
+- §10.11 の指標（北極星 / 計測）は本体取り込み後に再評価
+
+### iPhone確認ポイント
+- なし（ドキュメント変更のみ）
+- 次回 iPhone セッション冒頭で CLAUDE.md §10 の新セクションが読み込まれることを確認
+
+### 次にやること
+- アプリ本体 HTML の取り込み（PC からの push 待ち）
+- 取り込み後、`familink-master-controller` で開始 → `familink-qa-lead` で S 級総点検
+- §10.3 ユニコーン視点チェックリストを既存機能に適用し、`docs/product-roadmap.md` の Phase 振り分けを更新
+- `docs/mvp-requirements.md` の受け入れ条件を実装で満たせているか初回検証
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `add unicorn project policy to CLAUDE.md and split detail into 6 docs`
