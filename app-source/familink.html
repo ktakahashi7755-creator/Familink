@@ -2027,18 +2027,18 @@ select.input {
       <div class="modal-form">
         <div class="field">
           <div class="field-label">メールアドレス</div>
-          <input class="input" id="login-email" type="email" placeholder="example@mail.com" value="kenya@familink.app">
+          <input class="input" id="login-email" type="email" placeholder="example@mail.com">
         </div>
         <div class="field">
           <div class="field-label">パスワード</div>
-          <input class="input" id="login-pass" type="password" placeholder="パスワードを入力" value="password">
+          <input class="input" id="login-pass" type="password" placeholder="パスワードを入力">
         </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">ログインする</button>
       </div>
       <div class="login-divider">または</div>
       <button class="btn btn-outline btn-block" onclick="doQuickDemo()">デモデータで試してみる</button>
       <div style="text-align:center;font-size:13px;color:var(--text-muted)">
-        アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は準備中です。デモデータでお試しください。')">新規登録</span>
+        アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は近日公開予定です。まずはデモデータでお試しください。')">新規登録</span>
       </div>
       <button class="btn btn-ghost btn-block" onclick="go('s-ob')" style="margin-top:4px">← ウェルカム画面へ</button>
     </div>
@@ -2391,7 +2391,7 @@ select.input {
     <button class="header-icon-btn" onclick="goBack()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div class="header-title">掲示板</div>
+    <div class="header-title">家族ボード</div>
     <div style="display:flex;gap:4px;">
       <button class="header-icon-btn" onclick="openPostModal(null)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -2749,7 +2749,7 @@ select.input {
       <input type="hidden" id="ev-id">
       <div class="field">
         <div class="field-label">タイトル <span style="color:var(--red)">*</span></div>
-        <input class="input" id="ev-title" placeholder="例：星斗の英語">
+        <input class="input" id="ev-title" placeholder="例：太郎の英語">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field">
@@ -2968,14 +2968,14 @@ select.input {
     <div class="tab-label">家計</div>
   </button>
 
-  <!-- 掲示板 -->
+  <!-- 家族ボード（タブ） -->
   <button class="tab-btn" id="tab-board" onclick="switchTab('s-board')">
     <div class="tab-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
     </div>
-    <div class="tab-label">掲示板</div>
+    <div class="tab-label">家族ボード</div>
   </button>
 
 </nav>
@@ -2993,11 +2993,11 @@ select.input {
 const SK = 'familink_v3';
 
 const MEMBERS = [
-  { id:'kenya',   name:'賢弥',  role:'parent', av:'賢', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
-  { id:'seiai',   name:'星愛',  role:'parent', av:'星', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
-  { id:'seito',   name:'星斗',  role:'child',  av:'斗', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
-  { id:'seio',    name:'星旺',  role:'child',  av:'旺', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
-  { id:'seitaro', name:'星汰',  role:'child',  av:'汰', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
+  { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
+  { id:'seiai',   name:'ママ',  role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+  { id:'seito',   name:'太郎',  role:'child',  av:'太', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
+  { id:'seio',    name:'花子',  role:'child',  av:'花', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
+  { id:'seitaro', name:'健太',  role:'child',  av:'健', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
 ];
 const CHILDREN = MEMBERS.filter(m => m.role === 'child');
 
@@ -3054,7 +3054,7 @@ const EV_COLORS = ['#4A90E2','#52C47A','#FF9B4E','#F07CB3','#9B7EDE','#FF6B6B','
 
 const CATS_EX = ['食費','教育費','医療費','光熱費','通信費','娯楽費','交通費','被服費','日用品','その他'];
 
-// 掲示板カテゴリ色（renderHome でも使用するため早期定義）
+// 家族ボード カテゴリ色（renderHome でも使用するため早期定義）
 const CAT_COLOR = {家事:'#16A34A',買い物:'#2563EB',配送:'#D97706',学校:'#7C3AED',重要:'#DC2626',その他:'#8A9ABE'};
 const CAT_BG    = {家事:'#DCFCE7',買い物:'#DBEAFE',配送:'#FEF3C7',学校:'#EDE9FE',重要:'#FFE8E8',その他:'var(--bg-muted)'};
 const CATS_IN   = ['給与','ボーナス','副業','お小遣い','その他'];
@@ -3365,6 +3365,24 @@ function doLogin() {
 }
 
 function doQuickDemo() {
+  const hasData = (S.events && S.events.length) ||
+                  (S.tasks  && S.tasks.length)  ||
+                  (S.txs    && S.txs.length)    ||
+                  (S.posts  && S.posts.length);
+  if(hasData) {
+    showConfirm(
+      'デモデータで上書きしますか？',
+      '現在の家族の記録（予定・タスク・家計など）はすべて削除され、サンプルデータに置き換わります。',
+      'デモデータで上書き',
+      _applyQuickDemo,
+      ''
+    );
+    return;
+  }
+  _applyQuickDemo();
+}
+
+function _applyQuickDemo() {
   S.loggedIn = true;
   S.user = MEMBERS[0];
   S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.notifs = [];
@@ -3391,35 +3409,35 @@ function doLogout() {
 function seedDemo() {
   const t = todayStr();
   if(!S.events.length) S.events = [
-    {id:uid(),title:'星斗 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
-    {id:uid(),title:'歯科検診（星愛）',date:addDays(t,1),time:'10:30',color:'#FF9B4E',member:'seiai',note:'保険証を忘れずに'},
-    {id:uid(),title:'星旺 サッカー',date:addDays(t,2),time:'15:00',color:'#52C47A',member:'seio',note:'お弁当不要'},
+    {id:uid(),title:'太郎 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
+    {id:uid(),title:'歯科検診（ママ）',date:addDays(t,1),time:'10:30',color:'#FF9B4E',member:'seiai',note:'保険証を忘れずに'},
+    {id:uid(),title:'花子 サッカー',date:addDays(t,2),time:'15:00',color:'#52C47A',member:'seio',note:'お弁当不要'},
     {id:uid(),title:'家族でピクニック 🌸',date:addDays(t,3),time:'10:00',color:'#F07CB3',member:'kenya',note:'弁当・レジャーシート持参'},
-    {id:uid(),title:'星汰 ピアノ発表会',date:addDays(t,5),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'礼服着用'},
+    {id:uid(),title:'健太 ピアノ発表会',date:addDays(t,5),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'礼服着用'},
     {id:uid(),title:'PTAミーティング',date:addDays(t,7),time:'18:00',color:'#FF6B6B',member:'seiai',note:''},
   ];
   if(!S.tasks.length) S.tasks = [
     {id:uid(),text:'スーパーで牛乳・卵を買う',member:'seiai',done:false,at:t},
-    {id:uid(),text:'星斗の体育着を洗濯する',member:'kenya',done:true,at:t},
+    {id:uid(),text:'太郎の体育着を洗濯する',member:'kenya',done:true,at:t},
     {id:uid(),text:'保護者アンケートを提出する',member:'seiai',done:false,at:t},
     {id:uid(),text:'車のオイル交換の予約',member:'kenya',done:false,at:addDays(t,-1)},
   ];
   if(!S.txs.length) {
     S.txs = [
-      {id:uid(),type:'income', amount:380000,cat:'給与',desc:'4月分給与（賢弥）',date:addDays(t,-5),member:'kenya'},
-      {id:uid(),type:'income', amount:290000,cat:'給与',desc:'4月分給与（星愛）',date:addDays(t,-5),member:'seiai'},
+      {id:uid(),type:'income', amount:380000,cat:'給与',desc:'4月分給与（パパ）',date:addDays(t,-5),member:'kenya'},
+      {id:uid(),type:'income', amount:290000,cat:'給与',desc:'4月分給与（ママ）',date:addDays(t,-5),member:'seiai'},
       {id:uid(),type:'expense',amount:12400, cat:'食費',desc:'週末のまとめ買い',date:addDays(t,-3),member:'seiai'},
-      {id:uid(),type:'expense',amount:14800, cat:'教育費',desc:'星斗 英語教室4月分',date:addDays(t,-2),member:'seito'},
-      {id:uid(),type:'expense',amount:3200,  cat:'医療費',desc:'星旺 小児科',date:addDays(t,-1),member:'seio'},
+      {id:uid(),type:'expense',amount:14800, cat:'教育費',desc:'太郎 英語教室4月分',date:addDays(t,-2),member:'seito'},
+      {id:uid(),type:'expense',amount:3200,  cat:'医療費',desc:'花子 小児科',date:addDays(t,-1),member:'seio'},
       {id:uid(),type:'expense',amount:8600,  cat:'娯楽費',desc:'映画・外食',date:t,member:'kenya'},
-      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'星汰 ピアノ教室4月分',date:addDays(t,-4),member:'seitaro'},
+      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'健太 ピアノ教室4月分',date:addDays(t,-4),member:'seitaro'},
     ];
     S.budgetY = new Date().getFullYear();
     S.budgetM = new Date().getMonth();
   }
   if(!S.posts.length) S.posts = [
     {id:uid(),author:'kenya',title:'今週末のピクニック🌸について',
-      body:'天気予報確認したら土曜日は晴れそう！\n弁当は星愛が担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね😊',
+      body:'天気予報確認したら土曜日は晴れそう！\n弁当はママが担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね😊',
       time:addDays(t,-1),pinned:true,
       reactions:{'👍':['seiai','seito'],'❤️':['seio','seitaro'],'😄':['seiai']},
       comments:[
@@ -3432,7 +3450,7 @@ function seedDemo() {
       reactions:{'👍':['kenya'],'👏':['kenya']},
       comments:[]},
   ];
-  // アナウンス掲示板のデモデータ
+  // 家族ボード（アナウンス）のデモデータ
   if(!(S.announces||[]).length) {
     S.announces = [
       {id:uid(), title:'金魚の水槽掃除をお願い',
@@ -3471,9 +3489,9 @@ function seedDemo() {
     {id:uid(),text:'防止・日焼け止め',cat:'その他',done:false,date:addDays(t,3)},
   ];
   if(!S.notifs.length) S.notifs = [
-    {id:uid(),title:'星斗の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'📅'},
+    {id:uid(),title:'太郎の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'📅'},
     {id:uid(),title:'未完了タスクがあります',desc:'保護者アンケートの提出をお忘れなく',time:t,read:false,icon:'✅'},
-    {id:uid(),title:'⭐ ファミリンクへようこそ！',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'🌟'},
+    {id:uid(),title:'Familinkへようこそ',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'🌟'},
   ];
   // 通常フォルダがなければデモフォルダを追加（receipts_rootは含まない）
   const hasNormalFolders = (S.folders||[]).some(f => f.type === 'normal');
@@ -3494,6 +3512,9 @@ function seedDemo() {
     S.folders.push({id:'f-receipts',name:'領収証',type:'receipts_root',isPinned:false,order:99,parentFolderId:null,createdAt:t});
   }
   if(!S.docs) S.docs = [];
+  // seedDemo で作成したタスクは旧スキーマ (text/member/done/at) のため、
+  // 描画で使う新スキーマ (title/assignedTo/status/...) に正規化する
+  migrateTaskData();
 }
 
 /* ============================================================
@@ -3519,7 +3540,7 @@ function renderHome() {
   const grid = document.getElementById('home-grid');
   if(!grid) return;
 
-  // ── 掲示板コンテンツ ──
+  // ── 家族ボード（アナウンス）コンテンツ ──
   const uid2 = userId();
   const annPinned = (S.announces||[]).filter(a=>a.isPinned).slice(0,1);
   const annRecent = (S.announces||[]).filter(a=>!a.isPinned).slice(0,2);
@@ -3642,7 +3663,7 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
   if(bid === 'b_board') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FEF3C7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>'
-      + '<div class="bc-title">掲示板</div>'
+      + '<div class="bc-title">家族ボード</div>'
       + (unreadAnn ? '<div class="badge">'+unreadAnn+'</div>' : '')
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+postHTML+'</div><img class="bc-bg" src="'+IMGS.bg_green2+'" alt=""></div>';
@@ -4976,7 +4997,7 @@ function addNotif(title, desc, icon) {
 }
 
 /* ============================================================
-   BOARD — アナウンス掲示板
+   BOARD — 家族ボード（アナウンス）
    ============================================================ */
 
 /* ── リアクション定義（絵文字） ── */
@@ -5871,7 +5892,7 @@ function renderSettings() {
       ${ni('s-home',"go('s-home')",si('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>','#4A90E2'),'#EBF4FF','ホーム','今日の予定と家族の状況を確認')}
       ${ni('s-cal',"go('s-cal')",si('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>','#52C47A'),'#D9F5E5','カレンダー','家族の予定をまとめて管理')}
       ${ni('s-task',"go('s-task')",si('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>','#4A90E2'),'#EBF4FF','タスク','担当者ごとにやることを整理')}
-      ${ni('s-board',"go('s-board')",si('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','#9B7FE8'),'#F0EBFF','掲示板','家族への共有や連絡を残す')}
+      ${ni('s-board',"go('s-board')",si('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','#9B7FE8'),'#F0EBFF','家族ボード','家族への共有や連絡を残す')}
       ${ni('s-prep',"go('s-prep')",si('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>','#52C47A'),'#D9F5E5','準備リスト','持ち物や提出物をチェック')}
       ${ni('s-health',"go('s-health')",si('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>','#FF6B6B'),'#FFE8E8','体調管理','子どもの体温や体調を記録')}
       ${ni('s-budget',"go('s-budget')",si('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>','#FFB800'),'#FFF8DC','家計','支出と収入を家族で把握')}
@@ -6954,8 +6975,8 @@ function detectIntent(q) {
   if(q.match(/タスク.*消|消.*タスク|タスク.*削除|さっきの.*消して/) && !q.match(/予定/)) {
     return {type:'action', action:'delete_task', raw:q};
   }
-  // タスク追加
-  if(q.match(/タスク|やること|追加して|入れて/) && !q.match(/予定|円/)) {
+  // タスク追加（タスク／やること系語 + 追加系動詞の両方が必要）
+  if(q.match(/タスク|やること/) && q.match(/追加|入れ|登録|作って/) && !q.match(/予定|円/)) {
     return {type:'action', action:'create_task', raw:q};
   }
   return {type:'query', raw:q};
@@ -7000,7 +7021,7 @@ function handleAction(intent, q) {
       const tasks = (S.tasks||[]).filter(t=>t.status!=='done');
       const matched = tasks.filter(t=>raw&&(t.title.includes(raw)||raw.includes(t.title)));
       if(!matched.length) {
-        if(!tasks.length) return '未完了のタスクはないよ。';
+        if(!tasks.length) return '未完了のタスクはありません。';
         return `「${raw||'?'}」が見つからなかった。${NL}未完了タスク：${NL}`+tasks.slice(0,4).map(t=>`・${t.title}`).join(NL);
       }
       if(matched.length>1) return 'どれを完了にする？'+NL+matched.map(t=>`・${t.title}`).join(NL);
@@ -7203,9 +7224,9 @@ function hokuLocalAnswer(q) {
     const h=new Date().getHours();
     const g=h<12?'おはよう！':h<18?'やあ！':'こんばんは！';
     const evs=ctx.today_events;
-    let r=g+' Hokuだよ。'+NL;
-    r+=evs.length?'今日の予定、'+evs.length+'件あるよ。':'今日は予定ゼロ。のんびりできるね。';
-    if(ctx.tasks.overdue.length) r+=NL+'⚠️ 期限切れのタスクが'+ctx.tasks.overdue.length+'件あるから、ちょっと見ておいてね。';
+    let r=g+' Hokuです。'+NL;
+    r+=evs.length?'今日の予定、'+evs.length+'件あります。':'今日は予定がありません。ゆっくり過ごせそうですね。';
+    if(ctx.tasks.overdue.length) r+=NL+'期限切れのタスクが'+ctx.tasks.overdue.length+'件あります。確認してみてくださいね。';
     return r;
   }
 
@@ -7215,7 +7236,7 @@ function hokuLocalAnswer(q) {
   /* 今日 */
   if(ql.match(/今日|本日|きょう/)) {
     const evs=ctx.today_events, tTod=ctx.tasks.today;
-    let r=`今日（${ctx.today_label}）の状況だよ。${NL+NL}`;
+    let r=`今日（${ctx.today_label}）の状況をお知らせします。${NL+NL}`;
     r+=evs.length?'【予定】'+NL+evs.map(e=>`・${e.time!=='終日'?e.time+' ':''}${e.title}${e.member?' ['+e.member+']':''}`).join(NL):'【予定】なし';
     if(tTod.length) r+=NL+NL+'【今日が期日のタスク】'+NL+tTod.map(t=>`・${t.title}`).join(NL);
     if(!evs.length&&!tTod.length) r+=NL+'特に登録がないから、今日は余裕あるね。';
@@ -7225,7 +7246,7 @@ function hokuLocalAnswer(q) {
   /* 明日 */
   if(ql.match(/明日|あした/)) {
     const evs=ctx.tomorrow_events, prep=ctx.prep.urgent.slice(0,3);
-    let r=`明日の状況だよ。${NL+NL}`;
+    let r=`明日の状況をお知らせします。${NL+NL}`;
     r+=evs.length?'【予定】'+NL+evs.map(e=>`・${e.time!=='終日'?e.time+' ':''}${e.title}`).join(NL):'【予定】なし';
     if(prep.length) r+=NL+NL+'【準備が必要なもの】'+NL+prep.map(p=>`・${p.text}（${p.date}）`).join(NL);
     if(!evs.length&&!prep.length) r+=NL+'明日は特に何もないみたい。ゆっくりね。';
@@ -7235,7 +7256,7 @@ function hokuLocalAnswer(q) {
   /* 今週 */
   if(ql.match(/今週|週|スケジュール|直近|これから/)) {
     const evs=ctx.upcoming_events;
-    if(!evs.length) return '今後7日間の予定、今は何も入ってないよ。';
+    if(!evs.length) return '今後7日間の予定はまだ入っていません。';
     const g={};
     evs.forEach(e=>{if(!g[e.date])g[e.date]=[];g[e.date].push(e);});
     return `今後の予定（${evs.length}件）${NL+NL}`+
@@ -7259,7 +7280,7 @@ function hokuLocalAnswer(q) {
     const t=ctx.tasks;
     const all=[...t.overdue,...t.today,...t.soon,...t.high_priority];
     const u=[...new Map(all.map(x=>[x.title,x])).values()].slice(0,3);
-    if(!u.length) return '急ぎのことは今のところなさそうだよ。';
+    if(!u.length) return '急ぎのことは今のところなさそうです。';
     return '今やるべきことはこれかな：'+NL+NL+u.map((x,i)=>`${i+1}. ${x.title}${x.due&&x.due!=='期日なし'?' ['+x.due+']':''}`).join(NL);
   }
 
@@ -7267,8 +7288,8 @@ function hokuLocalAnswer(q) {
   if(ql.match(/家計|支出|収入|お金|円|予算|費/) && !ql.match(/追加|入れ|登録/)) {
     const b=ctx.budget;
     if(!b.income&&!b.expense) return `${b.month}の家計データはまだ登録されてないみたい。`;
-    let r=`${b.month}の家計まとめだよ。${NL+NL}`;
-    r+=`収入：${yen(b.income)}${NL}支出：${yen(b.expense)}${NL}収支：${b.balance>=0?'+':''}${yen(b.balance)} ${b.balance>=0?'👍':'⚠️'}`;
+    let r=`${b.month}の家計まとめです。${NL+NL}`;
+    r+=`収入：${yen(b.income)}${NL}支出：${yen(b.expense)}${NL}収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
     if(b.top_categories.length) r+=NL+NL+'支出の多いカテゴリ：'+NL+b.top_categories.slice(0,4).map(c=>`・${c.cat}：${yen(c.amount)}`).join(NL);
     return r;
   }
@@ -7278,7 +7299,7 @@ function hokuLocalAnswer(q) {
     const b=ctx.budget;
     if(!b.top_categories.length) return `${b.month}の支出データがないみたい。`;
     const top=b.top_categories[0];
-    let r=`${b.month}で一番多いのは「${top.cat}」（${yen(top.amount)}）だよ。${NL+NL}`;
+    let r=`${b.month}で一番多いのは「${top.cat}」（${yen(top.amount)}）です。${NL+NL}`;
     r+=b.top_categories.slice(0,4).map(c=>`・${c.cat}：${yen(c.amount)}`).join(NL);
     return r;
   }
@@ -7286,7 +7307,7 @@ function hokuLocalAnswer(q) {
   /* 期限 */
   if(ql.match(/期限|締め切り|提出|〆切/)) {
     const t=ctx.tasks;
-    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところなさそうだよ。';
+    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところなさそうです。';
     let r='期限が近いものまとめたよ。'+NL+NL;
     if(t.overdue.length) r+='⛔ 期限切れ：'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
     if(t.today.length)   r+='🔴 今日まで：'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
@@ -7297,8 +7318,8 @@ function hokuLocalAnswer(q) {
   /* 持ち物 */
   if(ql.match(/持ち物|準備|持参|かばん|忘れ/) && !ql.match(/追加|入れ|登録/)) {
     const p=ctx.prep;
-    if(!p.urgent.length&&!p.no_date.length) return '準備リストに未完了のものはないよ！';
-    let r='準備リストだよ。'+NL+NL;
+    if(!p.urgent.length&&!p.no_date.length) return '準備リストに未完了のものはありません。';
+    let r='準備リストはこちらです。'+NL+NL;
     if(p.urgent.length) r+='【期日あり】'+NL+list(p.urgent,x=>`・${x.text}（${x.date}）`)+NL+NL;
     if(p.no_date.length) r+='【期日なし】'+NL+list(p.no_date,x=>`・${x.text}`);
     return r.trim();
@@ -7309,16 +7330,16 @@ function hokuLocalAnswer(q) {
     const h=ctx.health;
     if(!h.length) return '体調記録がまだないみたい。';
     const lat=h[0];
-    let r=`直近の体調記録だよ。${NL+NL}最新（${lat.date}）${lat.child}: ${lat.temp}℃ ${lat.cond} ${lat.temp>=37.5?'⚠️発熱中':'✅'}`;
+    let r=`直近の体調記録です。${NL+NL}最新（${lat.date}）${lat.child}: ${lat.temp}℃ ${lat.cond}${lat.temp>=37.5?'（発熱中）':''}`;
     if(h.length>1) r+=NL+NL+h.slice(1).map(x=>`・${x.date} ${x.child}: ${x.temp}℃ ${x.cond}`).join(NL);
     return r;
   }
 
   /* お知らせ */
-  if(ql.match(/掲示板|お知らせ|アナウンス|連絡/)) {
+  if(ql.match(/家族ボード|掲示板|お知らせ|アナウンス|連絡/)) {
     const anns=ctx.unread_announcements, total=(S.announces||[]).length;
-    if(!total) return '掲示板に投稿はないみたい。';
-    let r=`掲示板（全${total}件${anns.length?'・未読'+anns.length+'件':''}）${NL+NL}`;
+    if(!total) return '家族ボードにはまだ投稿がありません。';
+    let r=`家族ボード（全${total}件${anns.length?'・未読'+anns.length+'件':''}）${NL+NL}`;
     r+=anns.length?'未読：'+NL+anns.map(a=>`・${a.title}（${a.author}）`).join(NL):'全部読んでるね。';
     return r;
   }
@@ -7327,28 +7348,28 @@ function hokuLocalAnswer(q) {
   if(ql.match(/家族|メンバー|誰|こども|子ども/)) {
     const mems=ctx.members;
     const parents=mems.filter(m=>m.role==='parent'), children=mems.filter(m=>m.role!=='parent');
-    return `家族メンバーだよ。${NL+NL}保護者：${parents.map(m=>m.name).join('、')}${NL+NL}こどもたち：${NL}`+
+    return `家族メンバーをご案内します。${NL+NL}保護者：${parents.map(m=>m.name).join('、')}${NL+NL}こどもたち：${NL}`+
       children.map(m=>`・${m.name}（予定${m.evCnt}件 タスク${m.taskCnt}件）`).join(NL);
   }
 
   /* まとめ */
   if(ql.match(/まとめ|状況|全体|ダッシュ|どう/)) {
     const t=ctx.tasks, b=ctx.budget, evCnt=ctx.today_events.length;
-    return `今日（${ctx.today_label}）のまとめだよ。${NL+NL}`+
-      `📅 今日の予定：${evCnt}件${NL}`+
-      `✅ 未完了タスク：${t.total}件${t.overdue.length?' (⚠️期限切れ'+t.overdue.length+'件)':''}${NL}`+
-      `🎒 準備リスト：${ctx.prep.urgent.length}件${NL}`+
-      `📋 未読お知らせ：${ctx.unread_announcements.length}件${NL}`+
-      `💰 今月収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
+    return `今日（${ctx.today_label}）のまとめです。${NL+NL}`+
+      `今日の予定：${evCnt}件${NL}`+
+      `未完了タスク：${t.total}件${t.overdue.length?' (期限切れ'+t.overdue.length+'件)':''}${NL}`+
+      `準備リスト：${ctx.prep.urgent.length}件${NL}`+
+      `未読お知らせ：${ctx.unread_announcements.length}件${NL}`+
+      `今月収支：${b.balance>=0?'+':''}${yen(b.balance)}`;
   }
 
   /* ヘルプ */
   if(ql.match(/できる|使い方|ヘルプ|何|help/i)) {
-    return '聞いたり頼んだりできることはこれだよ。'+NL+NL+
-      '📅 予定・タスク・家計・準備の確認'+NL+
-      '➕ 「予定追加して」「タスク入れて」「家計登録して」'+NL+
-      '✅ 「〇〇のタスク完了して」「〇〇消して」'+NL+NL+
-      '気軽に話しかけてね。';
+    return 'お手伝いできることは大きく 3 つです。'+NL+NL+
+      '・予定／タスク／家計／準備の確認'+NL+
+      '・予定追加・タスク追加・家計登録（「予定追加して」など）'+NL+
+      '・タスクの完了や削除（「〇〇のタスク完了して」など）'+NL+NL+
+      '気軽に話しかけてくださいね。';
   }
 
   /* デフォルト */
@@ -8971,23 +8992,29 @@ window.addEventListener('DOMContentLoaded', init);
     <div style="width:72px;height:72px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 6px 24px rgba(255,170,0,.35);">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="#fff"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>
     </div>
-    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">プレミアムアバター</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Familink プレミアム</div>
     <div style="font-size:14px;color:var(--text-sub);line-height:1.7;margin-bottom:24px;">
-      このアバターはプレミアムプラン限定です。<br>
-      特別感・高級感あるキャラクターが<br>すべて使えるようになります。
+      家族の予定・タスク・記録を<br>もっと便利に、もっと自由に。
     </div>
     <!-- プレミアム特典 -->
     <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-radius:var(--r);padding:16px;margin-bottom:24px;text-align:left;">
-      <div style="font-size:12px;font-weight:700;color:#B8860B;margin-bottom:10px;">プレミアムプランの特典</div>
+      <div style="font-size:12px;font-weight:700;color:#B8860B;margin-bottom:10px;">プレミアムでできること</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">⭐</span>プレミアムアバターが使い放題
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          家族ボードを複数作成・カスタムボード
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">🚫</span>広告非表示
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          家計管理の詳細機能・準備リストのテンプレート
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <span style="font-size:16px;">👨‍👩‍👧</span>家族の記録をもっと便利に
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          Hokuの高度な提案・家族向けアドバイス
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          プレミアムアイコン・通知の高度設定
         </div>
       </div>
     </div>
