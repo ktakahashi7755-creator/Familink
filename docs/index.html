@@ -5967,7 +5967,7 @@ function renderSettings() {
       ${ni('s-budget',"go('s-budget')",si('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>','#FFB800'),'#FFF8DC','家計','支出と収入を家族で把握')}
       ${ni('s-docs',"go('s-docs')",si('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>','#4A90E2'),'#EBF4FF','書類保管庫','大事な書類や写真を整理')}
       ${ni('s-scan',"go('s-scan')",si('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>','#9B7FE8'),'#F0EBFF','予定表スキャン','お便りや予定表を読み取り登録')}
-      ${ni('s-hoku','openHoku()','<img src="'+IMGS.hoku+'" style="width:22px;height:22px;object-fit:contain" alt="Hoku">','#EBF4FF','Hoku AI','家族の毎日をやさしくサポート')}
+      ${ni('s-hoku','openHoku()','<img src="'+IMGS.hoku+'" style="width:22px;height:22px;object-fit:contain" alt="Hoku">','#EBF4FF','Hoku AI','家族運営AI ─ 毎日の段取りをやさしくサポート')}
     </div>
 
     <!-- Premium -->
@@ -5998,7 +5998,7 @@ function renderSettings() {
     <div class="menu-footer">
       <div class="menu-footer-tagline">家族の毎日を、少しだけラクに。</div>
       Familink v3.0<br>
-      <span style="font-size:10px">Hokuが家族の共有をそっとサポートします。</span>
+      <span style="font-size:10px">家族運営AI「Hoku」が、毎日の段取りをそっと支えます。</span>
     </div>`;
 }
 
@@ -7867,11 +7867,11 @@ function hokuLocalAnswer(q) {
 
   /* ヘルプ */
   if(ql.match(/できる|使い方|ヘルプ|何|help/i)) {
-    return 'お手伝いできることは大きく 3 つです。'+NL+NL+
-      '・予定／タスク／家計／準備の確認'+NL+
-      '・予定追加・タスク追加・家計登録（「予定追加して」など）'+NL+
-      '・タスクの完了や削除（「〇〇のタスク完了して」など）'+NL+NL+
-      '「持ち物を整理したい」「子どもが熱っぽい」「節約したい」など、家族の困りごとも気軽に話しかけてくださいね。';
+    return 'Hokuは、家族運営をやさしく支える AI ガイドです。'+NL+NL+
+      '・予定／タスク／家計／準備の確認・登録'+NL+
+      '・「予定追加して」「○○円使った」など自然文で記録'+NL+
+      '・タスクの完了・削除（「〇〇のタスク完了して」など）'+NL+NL+
+      '「持ち物を整理したい」「子どもが熱っぽい」「節約したい」など、家族運営の困りごとも気軽に話しかけてください。最適な保存先や次の一手をご案内します。';
   }
 
   /* デフォルト */
