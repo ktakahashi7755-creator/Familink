@@ -1168,3 +1168,101 @@ GitHub Pages 404 の根本原因対応：Private 制約の明示 + Actions ワ�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `add GitHub Actions Pages workflow + clarify private repo prerequisite`
+
+---
+
+## 2026-05-02 06:06  env: 不明（Wave 5 自走セッション）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 5：Hoku 音声入力機能追加 + 応答 7 カテゴリ拡充 + GitHub Pages 公開版整合
+
+### 変更ファイル
+- `app-source/familink.html`（HTML 1 + CSS 1 + JS 4 関数 + 7 応答カテゴリ）
+- `docs/index.html`（新規 / `app-source/familink.html` のコピー、md5 一致）
+- `docs/qa-results-2026-05-02-wave5.md`（新規）
+- `docs/iphone-qa-guide.md`（§4-5 に Wave 5 検証項目 11 個追加）
+- `docs/worklog.md`（追記）
+
+### 主要実装：Hoku 音声入力（Web Speech API）
+
+- `webkitSpeechRecognition` / `SpeechRecognition` を使用、外部 API 不使用
+- マイクボタン（44x44 SVG、絵文字なし）を入力バー左に配置
+- 「聞き取り中…」バッジ + 赤パルスアニメで状態可視化
+- 認識結果は入力欄に追記、誤認識対策で自動送信せず
+- エラーハンドリング 5 種（not-allowed / no-speech / audio-capture / network / aborted）
+- 非対応端末ではボタン半透明 + トースト案内
+- 既存 `hokuSend` / `hokuLocalAnswer` への影響ゼロ
+
+### 主要実装：Hoku 応答 7 カテゴリ追加
+
+ガイダンス系を `hokuLocalAnswer` の data-lookup 分岐 **より前** に配置：
+
+| カテゴリ | キーワード例 |
+|---|---|
+| 持ち物・整理 | 持ち物 / 整理したい / 忘れ物 |
+| 子どもの体調心配 | 熱っぽい / 発熱 / ぐったり |
+| 節約・出費 | 節約 / 出費抑え / 貯金 |
+| 家事の段取り | 家事 / まわらない / ワンオペ |
+| 子育ての悩み | 寝かしつけ / イヤイヤ / 偏食 |
+| プレミアム機能 | プレミアム / 月額 / 480 |
+| 通知設定 | 通知設定 / リマインド / アラーム設定 |
+
+- 安全配慮：医療・お金・子育ては断定せず専門相談を案内
+- 絵文字使用 0 件
+
+### Playwright 動的検証結果
+
+```
+ガイダンス 7 / 7 ✅ — すべて意図通りの応答
+回帰テスト 7 / 7 ✅ — 既存応答すべて維持
+JS syntax: OK / HTTP 200 / pageerror 0
+```
+
+### GitHub Pages 公開版整合
+
+- `app-source/familink.html` md5 = `20389e41...`
+- `docs/index.html` md5 = `20389e41...` （完全一致）
+- ルート `index.html`（リダイレクト）も従来通り動作
+- Pages source = GitHub Actions のままで Wave 5 がそのまま反映される予定
+
+### 影響範囲
+- 既存 LocalStorage 構造：不変
+- 既存関数シグネチャ：不変
+- 既存応答パターン：不変（追加のみ）
+- 既存 UI：マイクボタン追加のみ（既存ボタン位置・形状不変）
+
+### 未確認事項
+- iPhone Safari 実機での音声入力動作（サンドボックスでは Chromium で代替検証）
+- ホーム画面追加（PWA 風）状態での動作
+- マイク許可フローの実機確認
+
+### iPhone 確認ポイント
+- マイクアイコン表示
+- マイク許可ダイアログ
+- 「明日の持ち物どうしよう」音声入力 → 認識結果 → 送信 → 整理アドバイス
+- 各ガイダンスカテゴリの応答精度
+
+### エージェント別実施まとめ
+- **PO/PM**：外部 API 禁止 / iPhone Safari フォールバック必須を厳守
+- **QA Lead**：14 クエリ Playwright 検証で全 PASS
+- **UX/UI Lead**：絵文字なし SVG / 視覚フィードバック設計
+- **Frontend**：JS 4 関数 + HTML/CSS 追加、既存コード不変
+- **Hoku AI Lead**：応答 7 カテゴリを安全 + 家族向けで設計
+- **Release Manager**：docs/index.html 同期 / qa-results 新設 / iphone-qa-guide 更新
+
+### 自動停止ルールの遵守
+8 項目すべて回避（外部 API / 仕様判断 / 既存破壊 / LS 構造 / 認証 / 1h 超 / 実機必須 / 主要機能破壊）
+
+### 残課題
+- High：なし（実機 QA 待ち）
+- Medium：iPhone Safari 実機での音声入力確認 / マイク許可フロー実機確認 / PWA モード動作
+- Low：音声認識精度向上 / 連続入力モード / 自動送信オプション
+
+### 次にオーナーが確認すべきこと
+1. iPhone Safari で `https://ktakahashi7755-creator.github.io/Familink/` 再読込
+2. Hoku 画面のマイクアイコン → 音声で「明日の持ち物どうしよう」
+3. `docs/iphone-qa-guide.md` §4-5 Wave 5 検証 11 項目
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 5: add Hoku voice input (Web Speech API) + 7 guidance categories + sync docs/index.html`
