@@ -1742,19 +1742,6 @@ select.input {
 .tk-due.today   { color:var(--primary); border-color:var(--primary); background:var(--primary-light); }
 .tk-cat { display:inline-flex; font-size:10px; font-weight:600; padding:2px 7px;
   border-radius:var(--r-full); background:var(--bg-muted); color:var(--text-muted); }
-.kanban-wrap { display:flex; gap:12px; padding:12px 16px 120px;
-  overflow-x:auto; align-items:flex-start; scrollbar-width:none; }
-.kanban-col { flex-shrink:0; width:250px; background:var(--bg-muted); border-radius:14px; padding:12px 10px; }
-.kanban-col-hd { font-size:12px; font-weight:700; color:var(--text-sub);
-  padding:0 4px 10px; display:flex; align-items:center; gap:6px;   touch-action:none; user-select:none; -webkit-user-select:none;
-}
-.kanban-col-dot { width:8px; height:8px; border-radius:50%; }
-.kanban-card { background:#fff; border-radius:10px; padding:11px 12px;
-  margin-bottom:7px; box-shadow:var(--s-sm); border:1.5px solid var(--border-light);
-  cursor:grab; transition:var(--t-spring); touch-action:none; user-select:none; -webkit-user-select:none; }
-.kanban-card.dragging { opacity:.5; }
-.kanban-drop-zone { min-height:60px; border-radius:10px; border:2px dashed var(--border); }
-.kanban-drop-zone.drag-over { border-color:var(--primary); background:var(--primary-light); }
 .te-mem-btn { display:flex; align-items:center; gap:6px; padding:5px 10px;
   border-radius:var(--r-full); border:1.5px solid var(--border);
   background:#fff; cursor:pointer; font-size:12px; font-weight:600;
@@ -1787,12 +1774,6 @@ select.input {
   background:var(--primary-light);
   border-radius:14px; margin:0 16px 8px;
 }
-.kanban-drag-placeholder {
-  border:2px dashed var(--primary);
-  background:var(--primary-light);
-  border-radius:10px; margin-bottom:7px;
-}
-
 .docs-doc-icon {
   width: 40px; height: 40px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
@@ -2347,9 +2328,7 @@ nav#tabbar.hidden { display: none !important; }
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid"></span>
-    <button class="header-icon-btn" onclick="go('s-scan')" title="書類スキャン">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-    </button>  </div>
+  </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-grid" id="home-grid"></div>
@@ -2414,17 +2393,6 @@ nav#tabbar.hidden { display: none !important; }
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title">タスク</div>
-    <!-- リスト/カンバン切替 -->
-    <div style="display:flex;gap:2px;background:var(--bg-muted);border-radius:10px;padding:3px;">
-      <button id="task-view-list" onclick="setTaskView('list')"
-        style="border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:var(--t-spring);background:var(--primary);color:#fff;">
-        リスト
-      </button>
-      <button id="task-view-kanban" onclick="setTaskView('kanban')"
-        style="border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:var(--t-spring);background:transparent;color:var(--text-muted);">
-        カンバン
-      </button>
-    </div>
     <button class="header-icon-btn" onclick="openTaskModal(null)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -2559,138 +2527,6 @@ nav#tabbar.hidden { display: none !important; }
     <div class="hoku-listening-badge" id="hoku-listening-badge">聞き取り中…（タップで停止）</div>
   </div>
 
-</div>
-
-<!-- ===== RECEIPT CAPTURE — 領収証スキャン ===== -->
-<div id="s-docs-receipt" class="screen hidden">
-  <div class="header">
-    <button class="header-icon-btn" onclick="cancelReceiptCapture()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="header-title" id="rcpt-screen-title">領収証を追加</div>
-  </div>
-  <div class="scroll-area" style="flex:1;" id="rcpt-flow-area"></div>
-  <div class="rcpt-flow-actions hidden" id="rcpt-flow-actions"></div>
-</div>
-
-<!-- ===== DOCUMENT ARCHIVE — 書類保管庫 ===== -->
-<div id="s-docs" class="screen hidden">
-  <div class="header">
-    <button class="header-icon-btn" onclick="goBack()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="header-title">書類保管庫</div>
-    <button class="header-icon-btn" onclick="openFolderModal(null)" title="フォルダを追加">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
-  </div>
-  <div class="scroll-area pb-tab" id="docs-main"></div>
-</div>
-
-<!-- フォルダ内 -->
-<div id="s-docs-folder" class="screen hidden">
-  <div class="header" id="docs-folder-hd">
-    <button class="header-icon-btn" onclick="goBack()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div style="flex:1;min-width:0;text-align:center;">
-      <div class="header-title" id="docs-folder-title" style="margin:0;">フォルダ</div>
-      <div id="docs-folder-breadcrumb" style="font-size:10px;color:var(--text-muted);display:none;line-height:1.2;"></div>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;">
-      <button class="docs-action-btn" id="docs-pin-btn" onclick="toggleFolderPin()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        ピン
-      </button>
-      <button class="header-icon-btn" onclick="openFolderMenu()" title="フォルダ操作">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
-      </button>
-    </div>
-  </div>
-  <div class="scroll-area" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));" id="docs-folder-list"></div>
-  <button class="fab" id="docs-fab" style="bottom:calc(98px + env(safe-area-inset-bottom));right:18px;font-size:22px;width:50px;height:50px;" onclick="openReceiptCapture()">＋</button>
-</div>
-
-<!-- フォルダ追加・編集モーダル -->
-<div id="m-folder" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-folder-title">フォルダを追加</div>
-    <input type="hidden" id="fm-id">
-    <input type="hidden" id="fm-parent">
-    <div class="modal-form">
-      <div class="field">
-        <div class="field-label">フォルダ名 <span style="color:var(--red)">*</span></div>
-        <input class="input" id="fm-name" placeholder="例：学校・旅行・保険" maxlength="20">
-      </div>
-      <button class="btn btn-primary btn-block" onclick="saveFolder()">保存する</button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-folder')">キャンセル</button>
-    </div>
-  </div>
-</div>
-
-<!-- フォルダメニュー（編集/削除） -->
-<div id="m-folder-menu" class="modal-backdrop hidden">
-  <div class="modal" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-folder-menu-name" style="font-size:15px;margin-bottom:16px;"></div>
-    <button id="m-subfolder-btn" class="btn btn-outline btn-block" onclick="closeModal('m-folder-menu');openSubFolderModal()" style="margin-bottom:8px;">
-      サブフォルダを追加
-    </button>
-    <button class="btn btn-outline btn-block" onclick="closeModal('m-folder-menu');openFolderModal(S._viewFolder)" style="margin-bottom:8px;">
-      フォルダ名を変更
-    </button>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-folder-menu');deleteFolderConfirm()" style="color:var(--red);margin-bottom:0;">
-      このフォルダを削除
-    </button>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-folder-menu')" style="margin-top:4px;">キャンセル</button>
-  </div>
-</div>
-
-<!-- 書類追加・編集モーダル -->
-<div id="m-doc" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-doc-title">書類を追加</div>
-    <input type="hidden" id="dm-id">
-    <div class="modal-form">
-      <!-- 画像/ファイルアップロード -->
-      <div class="field">
-        <div class="field-label">ファイル（任意）</div>
-        <div class="docs-file-zone" id="dm-preview" onclick="document.getElementById('dm-file').click()">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-          <div class="docs-file-label">タップして画像を選択</div>
-        </div>
-        <input type="file" id="dm-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx" style="display:none" onchange="handleDocFile(event)">
-        <input type="hidden" id="dm-data">
-        <input type="hidden" id="dm-file-type" value="other">
-      </div>
-      <div class="field">
-        <div class="field-label">タイトル <span style="color:var(--red)">*</span></div>
-        <input class="input" id="dm-title" placeholder="例：入学届・健康診断結果">
-      </div>
-      <div class="field">
-        <div class="field-label">種類</div>
-        <select class="input" id="dm-type">
-          <option value="other">書類・その他</option>
-          <option value="pdf">PDF</option>
-          <option value="image">画像</option>
-          <option value="scan">スキャン</option>
-        </select>
-      </div>
-      <div class="field">
-        <div class="field-label">保存フォルダ</div>
-        <select class="input" id="dm-folder"></select>
-      </div>
-      <div class="field">
-        <div class="field-label">メモ</div>
-        <input class="input" id="dm-memo" placeholder="例：2024年4月提出">
-      </div>
-      <button class="btn btn-primary btn-block" onclick="saveDoc()">保存する</button>
-      <button class="btn btn-danger btn-block" id="dm-del-btn" onclick="deleteDocConfirm()" style="display:none;margin-top:4px;">削除する</button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-doc')">キャンセル</button>
-    </div>
-  </div>
 </div>
 
 <!-- ===== BOARD ===== -->
@@ -2891,162 +2727,6 @@ nav#tabbar.hidden { display: none !important; }
 </div>
   <!-- 写真変更用 hidden input -->
   <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarFile(event)">
-</div>
-
-<!-- ===== OCR SCAN ===== -->
-<!-- ===== SCHEDULE SCANNER ===== -->
-<div id="s-scan" class="screen hidden">
-  <div class="header">
-    <button class="header-icon-btn" onclick="goBack()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="header-title">予定表を読み取る</div>
-  </div>
-  <div class="scroll-area" style="flex:1;" id="scan-capture-area">
-
-    <!-- STEP 1: 入力方法選択 -->
-    <div style="padding:20px 16px 0;">
-      <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;margin-bottom:10px;">STEP 1　予定表のテキストを貼り付け</div>
-
-      <textarea id="scan-text-input" class="input"
-        rows="10"
-        placeholder="予定表・スケジュール表の内容をここに貼り付けてください。
-
-例：
-4月7日(月) 入学式 体育館集合
-4月10日 始業式
-5月1日〜5日 GW休み
-5月15日(木) 遠足 弁当持参"
-        style="resize:none;line-height:1.7;font-size:13px;"></textarea>
-
-      <!-- または画像から読み取る -->
-      <div style="text-align:center;margin:12px 0;color:var(--text-muted);font-size:12px;">または</div>
-
-      <div class="scan-zone" onclick="document.getElementById('ocr-input').click()">
-        <div style="width:44px;height:44px;border-radius:14px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);margin-bottom:10px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">写真から読み取る（試験的）</div>
-        <div style="font-size:11px;color:var(--text-muted);">予定表の写真を選択します</div>
-      </div>
-      <input type="file" id="ocr-input" accept="image/*" style="display:none" onchange="handleScheduleScan(event)">
-
-      <!-- 注意 -->
-      <div style="background:var(--accent-light);border-radius:12px;padding:12px 14px;margin-top:12px;border-left:3px solid var(--accent);">
-        <div style="font-size:12px;font-weight:700;color:var(--accent-dark);margin-bottom:4px;">確認画面あり・誤登録しません</div>
-        <div style="font-size:11px;color:var(--text-sub);line-height:1.7;">AIが読み取った予定は一覧で確認してから登録できます。</div>
-      </div>
-    </div>
-
-    <!-- ローディング -->
-    <div id="scan-loading" style="display:none;padding:60px 16px;text-align:center;">
-      <div class="loading" style="margin:0 auto 16px;"><span></span><span></span><span></span></div>
-      <div style="font-size:16px;font-weight:700;color:var(--text);">AIが解析中...</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">予定・日付・時刻を抽出しています</div>
-    </div>
-
-    <!-- エラー -->
-    <div id="scan-error" style="display:none;padding:16px 16px 0;">
-      <div style="background:var(--red-light);border-radius:12px;padding:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">読み取りに失敗しました</div>
-        <div id="scan-error-msg" style="font-size:12px;color:var(--text-sub);line-height:1.7;"></div>
-        <button class="btn btn-outline btn-sm" onclick="resetScan()" style="margin-top:10px;">もう一度試す</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- フッター：解析ボタン -->
-  <div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--border-light);">
-    <button class="btn btn-primary btn-block" onclick="startTextScan()">
-      AIで予定を解析する
-    </button>
-  </div>
-</div>
-
-<!-- ===== SCAN CONFIRM — 読み取り結果確認 ===== -->
-<div id="s-scan-confirm" class="screen hidden">
-  <div class="header">
-    <button class="header-icon-btn" onclick="go('s-scan')">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="header-title" id="scan-confirm-title">読み取り結果</div>
-    <button class="header-icon-btn" id="scan-select-all-btn" onclick="scanToggleAll()" style="font-size:11px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全選択</button>
-  </div>
-
-  <!-- フィルターバー -->
-  <div style="display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none;">
-    <button class="tk-filter-btn active" data-sf="all"    onclick="setScanFilter('all')">すべて</button>
-    <button class="tk-filter-btn"        data-sf="1月"   onclick="setScanFilter('1月')">1月</button>
-    <button class="tk-filter-btn"        data-sf="2月"   onclick="setScanFilter('2月')">2月</button>
-    <button class="tk-filter-btn"        data-sf="3月"   onclick="setScanFilter('3月')">3月</button>
-    <button class="tk-filter-btn"        data-sf="4月"   onclick="setScanFilter('4月')">4月</button>
-    <button class="tk-filter-btn"        data-sf="5月"   onclick="setScanFilter('5月')">5月</button>
-    <button class="tk-filter-btn"        data-sf="6月"   onclick="setScanFilter('6月')">6月</button>
-    <button class="tk-filter-btn"        data-sf="7月"   onclick="setScanFilter('7月')">7月</button>
-    <button class="tk-filter-btn"        data-sf="8月"   onclick="setScanFilter('8月')">8月</button>
-    <button class="tk-filter-btn"        data-sf="9月"   onclick="setScanFilter('9月')">9月</button>
-    <button class="tk-filter-btn"        data-sf="10月"  onclick="setScanFilter('10月')">10月</button>
-    <button class="tk-filter-btn"        data-sf="11月"  onclick="setScanFilter('11月')">11月</button>
-    <button class="tk-filter-btn"        data-sf="12月"  onclick="setScanFilter('12月')">12月</button>
-  </div>
-
-  <!-- サマリー -->
-  <div id="scan-summary" style="padding:8px 16px 4px;font-size:12px;color:var(--text-muted);"></div>
-
-  <!-- 予定一覧 -->
-  <div class="scroll-area" id="scan-confirm-list" style="flex:1;padding:4px 0 16px;"></div>
-
-  <!-- 登録ボタン -->
-  <div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--border-light);">
-    <button class="btn btn-primary btn-block" id="scan-register-btn" onclick="registerScannedEvents()">
-      選択した予定を登録する
-    </button>
-  </div>
-</div>
-
-<!-- 予定編集モーダル（スキャン用） -->
-<div id="m-scan-edit" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">予定を確認・編集</div>
-    <input type="hidden" id="se-idx">
-    <div class="modal-form">
-      <div class="field">
-        <div class="field-label">予定名 <span style="color:var(--red)">*</span></div>
-        <input class="input" id="se-title" placeholder="予定名を入力">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field">
-          <div class="field-label">日付</div>
-          <input class="input" id="se-date" type="date">
-        </div>
-        <div class="field">
-          <div class="field-label">開始時刻</div>
-          <input class="input" id="se-time" type="time">
-        </div>
-      </div>
-      <div class="field">
-        <div class="field-label">担当メンバー</div>
-        <select class="input" id="se-member"></select>
-      </div>
-      <div class="field">
-        <div class="field-label">メモ・場所</div>
-        <textarea class="input" id="se-note" rows="2" style="resize:none;"></textarea>
-      </div>
-      <div id="se-items-field" class="field" style="display:none;">
-        <div class="field-label">持ち物・提出物</div>
-        <div id="se-items-list" style="font-size:13px;color:var(--text-sub);line-height:1.8;"></div>
-      </div>
-      <div id="se-uncertainty-badge" style="display:none;background:var(--accent-light);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent-dark);">
-        ⚠ AIが不確かと判定した項目があります。内容をご確認ください。
-      </div>
-      <button class="btn btn-primary btn-block" onclick="saveScanEdit()">確認完了</button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-scan-edit')">キャンセル</button>
-    </div>
-  </div>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -3424,7 +3104,7 @@ let S = {
   events: [], tasks: [], txs: [], posts: [], announces: [],
   health: [], prep: [], notifs: [],
   folders: [], docs: [],
-  kanbanCols: ['todo','doing','hold','done'],
+  kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   _boardCat: '', _boardPostId: null,
   userPhotos: {}, // { memberId: 'data:image/...' } - カスタム写真
@@ -3574,7 +3254,7 @@ function go(id) {
 function goBack() {
   // ── Hoku AI → 安全な前画面へ（S.prev汚染防止）──
   if(S.screen === 's-hoku') {
-    const safe = ['s-home','s-task','s-cal','s-board','s-budget','s-health','s-prep','s-docs','s-scan'];
+    const safe = ['s-home','s-task','s-cal','s-board','s-budget','s-health','s-prep'];
     const dest = safe.includes(S.prev) ? S.prev : 's-home';
     go(dest);
     S.prev = 's-home'; // s-hokう汚染をリセット
@@ -3587,40 +3267,9 @@ function goBack() {
     return;
   }
   // ── タスク画面 → ホームへ ──
-  if(S.screen === 's-scan-confirm') { go('s-scan'); return; }
   if(S.screen === 's-custom-board') { go('s-home'); return; }
   if(S.screen === 's-board-detail') { go('s-board'); return; }
   if(S.screen === 's-task') { go('s-home'); return; }
-  if(S.screen === 's-docs-receipt') { cancelReceiptCapture(); return; }
-  // ── 書類フォルダ内（サブフォルダ or トップレベルフォルダ）──
-  if(S.screen === 's-docs-folder') {
-    const folder = (S.folders||[]).find(f=>f.id===S._viewFolder);
-    if(folder && folder.parentFolderId) {
-      // サブフォルダ → 親フォルダへ（S.prevに依存しない）
-      const parentFolder = (S.folders||[]).find(f=>f.id===folder.parentFolderId);
-      S._viewFolder = folder.parentFolderId;
-      showScreen('s-docs-folder');
-      S.screen = 's-docs-folder';
-      refresh('s-docs-folder');
-    } else {
-      // トップレベルフォルダ → 書類保管庫へ
-      showScreen('s-docs');
-      S.screen = 's-docs';
-      S.prev = 's-home';
-      refresh('s-docs');
-    }
-    return;
-  }
-  // ── 書類保管庫 → 常にホームへ ──
-  if(S.screen === 's-docs') {
-    go('s-home');
-    return;
-  }
-  // ── 領収証追加画面 ──
-  if(S.screen === 's-docs-receipt') {
-    cancelReceiptCapture();
-    return;
-  }
   // ── その他 ──
   const _dest = S.prev || 's-home';
   go(_dest === 's-hoku' ? 's-home' : _dest);
@@ -3652,10 +3301,6 @@ function refresh(id) {
     case 's-notif':   renderNotif(); break;
     case 's-settings':renderSettings(); break;
     case 's-hoku':    renderHoku(); break;
-    case 's-docs':         renderDocs(); break;
-    case 's-docs-folder':  renderDocsFolder(); break;
-    case 's-scan':         resetScan(); break;
-    case 's-scan-confirm': renderScanConfirm(); break;
     case 's-custom-board': renderCustomBoardDetail(); break;
   }
 }
@@ -3960,25 +3605,7 @@ function seedDemo() {
     {id:uid(),title:'未完了タスクがあります',desc:'保護者アンケートの提出をお忘れなく',time:t,read:false,icon:'✅'},
     {id:uid(),title:'Familinkへようこそ',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'🌟'},
   ];
-  // 通常フォルダがなければデモフォルダを追加（receipts_rootは含まない）
-  const hasNormalFolders = (S.folders||[]).some(f => f.type === 'normal');
-  if(!hasNormalFolders) {
-    // receipts系フォルダは保持しつつ通常フォルダを追加
-    const specialFolders = (S.folders||[]).filter(f => f.type && f.type !== 'normal');
-    S.folders = [
-      ...specialFolders,
-      {id:'df1', name:'重要',   isPinned:true,  order:0, type:'normal', parentFolderId:null, createdAt:t},
-      {id:'df2', name:'幼稚園', isPinned:false, order:1, type:'normal', parentFolderId:null, createdAt:t},
-      {id:'df3', name:'小学校', isPinned:false, order:2, type:'normal', parentFolderId:null, createdAt:t},
-      {id:'df4', name:'中学校', isPinned:false, order:3, type:'normal', parentFolderId:null, createdAt:t},
-      {id:'df5', name:'旅行',   isPinned:false, order:4, type:'normal', parentFolderId:null, createdAt:t},
-    ];
-  }
-  // receipts_root が未存在の場合は追加
-  if(!S.folders.find(f=>f.type==='receipts_root')) {
-    S.folders.push({id:'f-receipts',name:'領収証',type:'receipts_root',isPinned:false,order:99,parentFolderId:null,createdAt:t});
-  }
-  if(!S.docs) S.docs = [];
+  // 書類保管庫機能は撤廃済（Wave 15）：S.folders / S.docs は今後使用しない
   // seedDemo で作成したタスクは旧スキーマ (text/member/done/at) のため、
   // 描画で使う新スキーマ (title/assignedTo/status/...) に正規化する
   migrateTaskData();
@@ -4092,7 +3719,9 @@ function renderHome() {
    ============================================================ */
 
 /* ホームに表示する固定ボードのID */
-var HO_FIXED = ['b_board','b_task','b_docs','b_cal'];
+var HO_FIXED = ['b_board','b_task','b_cal'];
+/* 旧バージョンで存在した固定ボード（廃止済 / homeOrder から除外する） */
+var HO_RETIRED = ['b_docs'];
 
 /* homeOrder を初期化・マイグレーション */
 function hoInitOrder() {
@@ -4117,8 +3746,9 @@ function hoInitOrder() {
   cbKeys.forEach(function(k){
     if(order.indexOf(k)<0) order.push(k);
   });
-  // 削除済みカスタムボードを除去
+  // 削除済みカスタムボードを除去 + 廃止された固定ボードを除去
   order = order.filter(function(k){
+    if(HO_RETIRED.indexOf(k) >= 0) return false;
     if(k.startsWith('cb_')) return cbKeys.indexOf(k)>=0;
     return true;
   });
@@ -4142,12 +3772,6 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + (pending ? '<div class="badge">'+pending+'</div>' : '')
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+taskHTML+'</div><img class="bc-bg" src="'+IMGS.bg_yellow1+'" alt=""></div>';
-  } else if(bid === 'b_docs') {
-    card = '<div class="bc-head">'
-      + '<div class="bc-icon" style="background:#EDE9FE;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>'
-      + '<div class="bc-title">書類保管庫</div>'
-      + '</div>'
-      + '<div class="bc-body"><div class="bc-content"><div class="empty" style="padding:6px 0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5" style="opacity:.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><div style="font-size:11px;color:var(--text-muted)">書類を整理・保管</div></div></div><img class="bc-bg" src="'+IMGS.bg_yellow2+'" alt=""></div>';
   } else if(bid === 'b_cal') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FCE7F3;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
@@ -4189,7 +3813,6 @@ function hoSwap(fromIdx, toIdx) {
 function hoCardClick(bid) {
   if(bid==='b_board') { switchTab('s-board'); return; }
   if(bid==='b_task')  { switchTab('s-task');  return; }
-  if(bid==='b_docs')  { go('s-docs');         return; }
   if(bid==='b_cal')   { switchTab('s-cal');   return; }
   if(bid.startsWith('cb_')) openCustomBoard(bid.slice(3));
 }
@@ -4593,11 +4216,6 @@ function applyTkFilters(tasks){
   });
 }
 
-function getKanbanCols() {
-  const order = S.kanbanCols && S.kanbanCols.length === 4 ? S.kanbanCols : ['todo','doing','hold','done'];
-  return order.map(k => ({key:k, ...KANBAN_COL_DEF[k]}));
-}
-
 function getTkVisibleMembers() {
   if(!S.tkVisibleMembers || !S.tkVisibleMembers.length) return MEMBERS.map(m=>m.id);
   return S.tkVisibleMembers;
@@ -4677,32 +4295,6 @@ function removeTkMember(id) {
   showToast(`${getMem(id).name}を非表示にしました。＋から再表示できます。`);
 }
 
-function renderKanbanView(){
-  const el=document.getElementById('tk-main');
-  if(!el)return;
-  const cols = getKanbanCols();
-  const base=_tkFilter==='all'?(S.tasks||[]).filter(t=>_tkMember==='all'||t.assignedTo===_tkMember):applyTkFilters(S.tasks||[]);
-  el.style.overflowX='auto';
-  el.innerHTML=`<div class="kanban-wrap">${cols.map(col=>{
-    const ct=base.filter(t=>t.status===col.key).sort((a,b)=>(a.order||0)-(b.order||0));
-    return`<div class="kanban-col" data-status="${col.key}" data-col-key="${col.key}">
-      <div class="kanban-col-hd" style="cursor:grab;">
-        <div class="kanban-col-dot" style="background:${col.dot};"></div>
-        ${col.label}
-        <span style="margin-left:auto;background:var(--bg-card);border-radius:var(--r-full);padding:1px 8px;font-size:11px;">${ct.length}</span>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.35;margin-left:4px;" title="長押しで列を並び替え"><circle cx="8" cy="6" r="1.5" fill="currentColor"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/><circle cx="8" cy="18" r="1.5" fill="currentColor"/><circle cx="16" cy="6" r="1.5" fill="currentColor"/><circle cx="16" cy="12" r="1.5" fill="currentColor"/><circle cx="16" cy="18" r="1.5" fill="currentColor"/></svg>
-      </div>
-      ${ct.map(t=>tkKanbanCard(t)).join('')}
-      <div class="kanban-drop-zone"></div>
-      ${col.key!=='done'?`<button onclick="openTaskModal(null,'${col.key}')" style="width:100%;border:none;background:none;color:var(--text-muted);font-size:12px;font-weight:600;padding:8px;cursor:pointer;border-radius:8px;text-align:left;">＋ 追加</button>`:''}
-    </div>`;
-  }).join('')}</div>`;
-  // カードのタッチD&Dをバインド
-  el.querySelectorAll('.kanban-card').forEach(card => bindKanbanDrag(card));
-  // 列のタッチD&Dをバインド
-  el.querySelectorAll('.kanban-col').forEach(col => bindColumnDrag(col));
-}
-
 function renderListView(){
   const el=document.getElementById('tk-main');
   if(!el)return;
@@ -4723,8 +4315,7 @@ function renderListView(){
 
 function renderTaskScreen(){
   renderTkMemberFilter();
-  if(_tkView==='kanban')renderKanbanView();
-  else renderListView();
+  renderListView();
 }
 
 function renderTkMemberFilter() {
@@ -4783,17 +4374,6 @@ function setTaskFilter(f){
   renderTaskScreen();
 }
 
-function setTaskView(v){
-  _tkView=v;
-  ['list','kanban'].forEach(k=>{
-    const b=document.getElementById(`task-view-${k}`);
-    if(!b)return;
-    b.style.background=v===k?'var(--primary)':'transparent';
-    b.style.color=v===k?'#fff':'var(--text-muted)';
-  });
-  renderTaskScreen();
-}
-
 function setTkMember(id) {
   _tkMember = id;
   renderTkMemberFilter();
@@ -4844,19 +4424,6 @@ function confirmDeleteTaskInline(id) {
   );
 }
 
-function tkKanbanCard(t){
-  const mem=getMem(t.assignedTo);
-  const dc=tkDueClass(t.dueDate),dl=tkDueLabel(t.dueDate);
-  return`<div class="kanban-card" data-id="${H(t.id)}" onclick="openTaskModal('${H(t.id)}')">
-    <div style="font-size:13px;font-weight:600;line-height:1.4;margin-bottom:6px;">${H(t.title)}</div>
-    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-      ${dl?`<span class="tk-due ${dc}">${dl}</span>`:''}
-      ${t.priority&&t.priority!=='none'?`<span style="font-size:10px;color:${TK_PRIORITY_COLOR[t.priority]};font-weight:700;">${TK_PRIORITY_LABEL[t.priority]}</span>`:''}
-      ${t.assignedTo?`<div class="av" style="background:${H(mem.grad)};width:18px;height:18px;font-size:8px;margin-left:auto;">${H(mem.av)}</div>`:''}
-    </div>
-  </div>`;
-}
-
 function toggleTkMemberVisible(id) {
   const visible = getTkVisibleMembers();
   let newVisible;
@@ -4880,12 +4447,6 @@ function toggleTkMemberVisible(id) {
 const TK_CATS = {'':'', school:'学校・提出物', chore:'家事', shopping:'買い物', health:'健康・医療', event:'行事・イベント', other:'その他'};
 const TK_PRIORITY_COLOR = {none:'#D8E3F5', low:'#52C47A', med:'#FF9B4E', high:'#FF6B6B'};
 const TK_PRIORITY_LABEL = {none:'', low:'低', med:'中', high:'高'};
-const KANBAN_COL_DEF = {
-  todo:  {label:'未着手', dot:'#94A3B8'},
-  doing: {label:'進行中', dot:'#4A90E2'},
-  hold:  {label:'保留',   dot:'#FFB800'},
-  done:  {label:'完了',   dot:'#52C47A'},
-};
 
 /* ============================================================
    DRAG & DROP ENGINE v3 — PC(mouse) + Mobile(touch)
@@ -5032,227 +4593,6 @@ function bindListDrag(card) {
     document.addEventListener('mouseup',   onUp);
   });
 }
-
-/* ══════════════════════════════════════════════════════════
-   カンバンカード D&D  — Touch + Mouse
-══════════════════════════════════════════════════════════ */
-function bindKanbanDrag(card) {
-  const activate = (cx, cy) => {
-    _ds.mode = 'kanban';
-    _ds.id   = card.dataset.id;
-    _ds.src  = card;
-    _ds.ghost = _createGhost(card, cx, cy);
-    _ds.ghost.style.borderRadius = '10px';
-    card.style.opacity = '0.15';
-    const rect = card.getBoundingClientRect();
-    _ds.placeholder = document.createElement('div');
-    _ds.placeholder.className = 'kanban-drag-placeholder';
-    _ds.placeholder.style.height = rect.height + 'px';
-    card.after(_ds.placeholder);
-    navigator.vibrate && navigator.vibrate([15,8,20]);
-  };
-
-  const moveHandler = (cx, cy) => {
-    _moveGhost(cx, cy);
-    const hit   = _elAt(cx, cy);
-    const tCard = hit?.closest?.('.kanban-card');
-    const tCol  = hit?.closest?.('.kanban-col');
-    if(tCard && tCard !== card && _ds.placeholder) {
-      const tRect = tCard.getBoundingClientRect();
-      const after = cy > tRect.top + tRect.height / 2;
-      tCard.parentNode.insertBefore(_ds.placeholder, after ? tCard.nextSibling : tCard);
-    } else if(tCol && _ds.placeholder) {
-      const zone = tCol.querySelector('.kanban-drop-zone');
-      if(zone) tCol.insertBefore(_ds.placeholder, zone);
-    }
-  };
-
-  const endHandler = () => {
-    if(_ds.mode !== 'kanban') { _dsReset(); return; }
-    const newCol    = _ds.placeholder?.closest?.('.kanban-col');
-    const newStatus = newCol?.dataset?.status;
-    if(newStatus && _ds.id) {
-      const task = (S.tasks||[]).find(t => t.id === _ds.id);
-      if(task) {
-        task.status      = newStatus;
-        task.completedAt = newStatus === 'done' ? todayStr() : '';
-        task.updatedAt   = todayStr();
-      }
-      if(_ds.placeholder?.parentNode)
-        _ds.placeholder.parentNode.insertBefore(card, _ds.placeholder);
-      newCol?.querySelectorAll('.kanban-card').forEach((c,i) => {
-        const t = (S.tasks||[]).find(t => t.id === c.dataset.id);
-        if(t) t.order = i;
-      });
-    }
-    _dsReset(); saveS(); renderTaskScreen(); renderHome();
-  };
-
-  /* Touch */
-  card.addEventListener('touchstart', e => {
-    if(e.touches.length !== 1) return;
-    _dsReset();
-    const t = e.touches[0];
-    _ds.startX = t.clientX; _ds.startY = t.clientY;
-    _ds.timer = setTimeout(() => activate(t.clientX, t.clientY), LONG_PRESS_MS);
-  }, {passive:true});
-  card.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if(!_ds.ghost) {
-      if(Math.hypot(t.clientX-_ds.startX, t.clientY-_ds.startY) > CANCEL_THRESHOLD)
-        clearTimeout(_ds.timer);
-      return;
-    }
-    if(_ds.mode !== 'kanban') return;
-    e.preventDefault();
-    moveHandler(t.clientX, t.clientY);
-  }, {passive:false});
-  card.addEventListener('touchend',    endHandler);
-  card.addEventListener('touchcancel', endHandler);
-
-  /* Mouse (PC) */
-  card.addEventListener('mousedown', e => {
-    if(e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    _dsReset();
-    _ds.startX = e.clientX; _ds.startY = e.clientY;
-    let started = false;
-    const onMove = ev => {
-      if(!started) {
-        if(Math.hypot(ev.clientX-_ds.startX, ev.clientY-_ds.startY) < 5) return;
-        activate(ev.clientX, ev.clientY);
-        started = true;
-      }
-      if(_ds.mode !== 'kanban') return;
-      moveHandler(ev.clientX, ev.clientY);
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup',   onUp);
-      if(started) endHandler();
-      else _dsReset();
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup',   onUp);
-  });
-}
-
-/* ══════════════════════════════════════════════════════════
-   カンバン列 D&D  — Touch + Mouse
-══════════════════════════════════════════════════════════ */
-function bindColumnDrag(colEl) {
-  const hd = colEl.querySelector('.kanban-col-hd');
-  if(!hd) return;
-
-  const activateCol = (cx, cy) => {
-    _ds.mode = 'col';
-    _ds.id   = colEl.dataset.colKey;
-    _ds.src  = colEl;
-    const rect  = colEl.getBoundingClientRect();
-    const clone = colEl.cloneNode(true);
-    _ds.offsetX = cx - rect.left;
-    _ds.offsetY = cy - rect.top;
-    clone.style.cssText = `
-      position:fixed; z-index:9999; pointer-events:none;
-      width:${rect.width}px; height:${rect.height}px;
-      border-radius:14px; background:var(--bg-muted);
-      box-shadow:0 18px 44px rgba(0,0,0,.22);
-      transform:scale(1.03) rotate(.8deg); opacity:.9; overflow:hidden;
-      left:${rect.left}px; top:${rect.top}px;
-    `;
-    document.body.appendChild(clone);
-    _ds.ghost = clone;
-    colEl.style.opacity = '0.1';
-    _ds.placeholder = document.createElement('div');
-    _ds.placeholder.style.cssText = `
-      flex-shrink:0; width:${rect.width}px;
-      background:var(--primary-light); border:2px dashed var(--primary);
-      border-radius:14px; min-height:120px;
-    `;
-    colEl.after(_ds.placeholder);
-    navigator.vibrate && navigator.vibrate([15,8,20]);
-  };
-
-  const moveCols = (cx, cy) => {
-    if(!_ds.ghost) return;
-    _ds.ghost.style.left = (cx - _ds.offsetX) + 'px';
-    _ds.ghost.style.top  = (cy - _ds.offsetY) + 'px';
-    if(_ds.ghost) _ds.ghost.style.display = 'none';
-    const hit  = document.elementFromPoint(cx, cy);
-    if(_ds.ghost) _ds.ghost.style.display = '';
-    const tCol = hit?.closest?.('.kanban-col');
-    if(tCol && tCol !== colEl && _ds.placeholder) {
-      const tRect = tCol.getBoundingClientRect();
-      const after = cx > tRect.left + tRect.width / 2;
-      tCol.parentNode.insertBefore(_ds.placeholder, after ? tCol.nextSibling : tCol);
-    }
-  };
-
-  const endCol = () => {
-    if(_ds.mode !== 'col') { _dsReset(); return; }
-    const newOrder = [];
-    const wrap = _ds.placeholder?.parentNode;
-    if(wrap && _ds.id) {
-      if(_ds.placeholder?.parentNode)
-        _ds.placeholder.parentNode.insertBefore(colEl, _ds.placeholder);
-      wrap.querySelectorAll('.kanban-col').forEach(c => newOrder.push(c.dataset.colKey));
-      if(newOrder.length === 4) { S.kanbanCols = newOrder; }
-    }
-    _dsReset(); saveS(); renderTaskScreen();
-  };
-
-  /* Touch */
-  hd.addEventListener('touchstart', e => {
-    if(e.touches.length !== 1) return;
-    _dsReset();
-    const t = e.touches[0];
-    _ds.startX = t.clientX; _ds.startY = t.clientY;
-    _ds.timer = setTimeout(() => activateCol(t.clientX, t.clientY), LONG_PRESS_MS);
-  }, {passive:true});
-  hd.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if(!_ds.ghost) {
-      if(Math.hypot(t.clientX-_ds.startX, t.clientY-_ds.startY) > CANCEL_THRESHOLD)
-        clearTimeout(_ds.timer);
-      return;
-    }
-    if(_ds.mode !== 'col') return;
-    e.preventDefault();
-    moveCols(t.clientX, t.clientY);
-  }, {passive:false});
-  hd.addEventListener('touchend',    endCol);
-  hd.addEventListener('touchcancel', endCol);
-
-  /* Mouse (PC) */
-  hd.addEventListener('mousedown', e => {
-    if(e.button !== 0) return;
-    e.preventDefault();
-    _dsReset();
-    _ds.startX = e.clientX; _ds.startY = e.clientY;
-    let started = false;
-    const onMove = ev => {
-      if(!started) {
-        if(Math.hypot(ev.clientX-_ds.startX, ev.clientY-_ds.startY) < 5) return;
-        activateCol(ev.clientX, ev.clientY);
-        started = true;
-      }
-      if(_ds.mode !== 'col') return;
-      moveCols(ev.clientX, ev.clientY);
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup',   onUp);
-      if(started) endCol();
-      else _dsReset();
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup',   onUp);
-  });
-}
-
-
-
 function reorderTask(dragId,targetId){
   const tasks=S.tasks||[];
   const di=tasks.findIndex(t=>t.id===dragId),ti=tasks.findIndex(t=>t.id===targetId);
@@ -5420,27 +4760,17 @@ function renderBudget() {
     const mem = getMem(t.member);
     const ico = CAT_ICO[t.cat]||'📦';
     const clr = CAT_CLR[t.cat]||'var(--bg-muted)';
-    const rcptBadge = t.sourceDocId
-      ? `<span class="rcpt-linked-badge" onclick="event.stopPropagation();viewReceiptFromTx('${H(t.sourceDocId)}')">領収証</span>`
-      : '';
     return `<div class="tx-item" onclick="deleteTxConfirm('${H(t.id)}')">
       <div class="tx-cat-icon" style="background:${clr}">${ico}</div>
       <div style="flex:1">
         <div class="tx-desc">${H(t.desc||t.cat)}</div>
         <div class="tx-meta">${H(jpDate(t.date))} • ${H(mem.name)} • ${H(t.cat)}</div>
-        ${rcptBadge ? `<div style="margin-top:3px;">${rcptBadge}</div>` : ''}
       </div>
       <div class="tx-amount ${t.type==='expense'?'ex':'in'}">${t.type==='expense'?'−':'+'}${fmtAmt(t.amount)}</div>
     </div>`;
   }).join('');
 }
 
-function viewReceiptFromTx(docId) {
-  const doc = (S.docs||[]).find(d=>d.id===docId);
-  if(!doc) { showToast('書類が見つかりません','error'); return; }
-  S._viewFolder = doc.folderId;
-  go('s-docs-folder');
-}
 
 function setBudgetType(type) {
   S.budgetType = type;
@@ -6615,8 +5945,6 @@ function renderSettings() {
       ${ni('s-prep',"go('s-prep')",si('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>','#52C47A'),'#D9F5E5','準備リスト','持ち物や提出物をチェック')}
       ${ni('s-health',"go('s-health')",si('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>','#FF6B6B'),'#FFE8E8','体調管理','子どもの体温や体調を記録')}
       ${ni('s-budget',"go('s-budget')",si('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>','#FFB800'),'#FFF8DC','家計','支出と収入を家族で把握')}
-      ${ni('s-docs',"go('s-docs')",si('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>','#4A90E2'),'#EBF4FF','書類保管庫','大事な書類や写真を整理')}
-      ${ni('s-scan',"go('s-scan')",si('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>','#9B7FE8'),'#F0EBFF','予定表スキャン','お便りや予定表を読み取り登録')}
       ${ni('s-hoku','openHoku()','<img src="'+IMGS.hoku+'" style="width:22px;height:22px;object-fit:contain" alt="Hoku">','#EBF4FF','Hoku AI','家族運営AI ─ 毎日の段取りをやさしくサポート')}
     </div>
 
@@ -7336,10 +6664,12 @@ function _hoTouchStart(e, card) {
   _ho.fromEl  = card;
   _ho.active  = false;
   _ho.moved   = false;
+  _ho.scrolled = false;
   _ho.isMouse = false;
   _ho._sx = t.clientX; _ho._sy = t.clientY;
   clearTimeout(_ho.holdTimer);
   _ho.holdTimer = setTimeout(function(){
+    if(_ho.scrolled) return; // スクロール中は長押し起動しない
     _ho.active = true;
     card.style.opacity = '0.28';
     _hoMakeGhost(card, t.clientX, t.clientY);
@@ -7350,8 +6680,10 @@ function _hoTouchStart(e, card) {
 function _hoTouchMove(e) {
   var t = e.touches[0];
   if(!_ho.active) {
-    if(Math.abs(t.clientX-_ho._sx)>14||Math.abs(t.clientY-_ho._sy)>14)
+    if(Math.abs(t.clientX-_ho._sx)>10||Math.abs(t.clientY-_ho._sy)>10) {
       clearTimeout(_ho.holdTimer);
+      _ho.scrolled = true; // スクロール検知 → タップ抑止
+    }
     return;
   }
   e.preventDefault();
@@ -7363,11 +6695,13 @@ function _hoTouchMove(e) {
 function _hoTouchEnd(e) {
   clearTimeout(_ho.holdTimer);
   if(!_ho.active) {
-    // ドラッグなし → タップ
-    if(_ho.fromIdx>=0) {
-      var bid = (S.homeOrder||[])[_ho.fromIdx];
-      if(bid) hoCardClick(bid);
+    // スクロール中の touchend → タップ抑止（書類保管庫等への誤遷移防止）
+    if(_ho.scrolled) {
+      _ho.scrolled = false;
+      _ho.fromIdx=-1; _ho.fromEl=null;
+      return;
     }
+    // ドラッグなし → タップは click イベント側に委譲（重複起動防止）
     _ho.fromIdx=-1; _ho.fromEl=null;
     return;
   }
@@ -7383,7 +6717,7 @@ function cbAttachGridEvents() {
   _cbEventsAttached = true;
 
   grid.addEventListener('click', function(e) {
-    if(_ho.moved) { _ho.moved=false; return; }
+    if(_ho.moved || _ho.scrolled) { _ho.moved=false; _ho.scrolled=false; return; }
     var card = e.target.closest('.ho-card[data-hoid]');
     if(card) hoCardClick(card.dataset.hoid);
   });
@@ -8678,1300 +8012,12 @@ function buildHokuContextLite() {
 }
 
 
-/* ============================================================
-   DOCUMENT ARCHIVE — 書類保管庫
-   ============================================================ */
-
-function folderSvg(color) {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color||'currentColor'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
-}
-function docTypeSvg(type) {
-  const icons = {
-    pdf:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-    image: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
-    scan:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-    excel: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>`,
-    word:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 10 19 12 14 14 19 16 13"/></svg>`,
-    ppt:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="14" r="2"/><line x1="10" y1="12" x2="10" y2="8"/></svg>`,
-    other: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
-  };
-  return icons[type] || icons.other;
-}
-
-function renderDocs() {
-  const el = document.getElementById('docs-main');
-  if(!el) return;
-  const folders = (S.folders||[]).sort((a,b)=>a.order-b.order);
-  const pinned  = folders.filter(f=>f.isPinned && !f.parentFolderId);
-  const regular = folders.filter(f=>!f.isPinned && f.type !== 'receipts_root' && !f.parentFolderId);
-  let html = '';
-  if(pinned.length) {
-    html += `<div class="docs-section-hd"><div class="docs-section-label">ピン留め</div></div>
-    <div class="docs-pin-grid">
-      ${pinned.map(f=>{
-        const cnt=(S.docs||[]).filter(d=>d.folderId===f.id).length;
-        return `<div class="docs-pin-card" onclick="openDocsFolder('${f.id}')">
-          <div class="docs-pin-icon">${folderSvg()}</div>
-          <div class="docs-pin-name">${H(f.name)}</div>
-          <div class="docs-pin-count">${cnt}件</div>
-          <div class="docs-pin-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="m12 17.27 4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08L12 17.27z"/></svg></div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-  html += `<div class="docs-section-hd"><div class="docs-section-label">すべてのフォルダ</div></div>`;
-  if(!folders.length) {
-    html += `<div class="docs-empty">
-      <div style="opacity:.25;">${folderSvg()}</div>
-      <div class="docs-empty-title">フォルダがありません</div>
-      <div class="docs-empty-sub">右上の + からフォルダを追加できます</div>
-    </div>`;
-  } else {
-    html += `<div class="docs-folder-list">
-      ${folders.map(f=>{
-        const cnt=(S.docs||[]).filter(d=>d.folderId===f.id).length;
-        const pinIcon = f.isPinned ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--primary)" style="margin-right:4px;opacity:.6"><path d="m12 17.27 4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08L12 17.27z"/></svg>` : '';
-        return `<div class="docs-folder-item" onclick="openDocsFolder('${f.id}')">
-          <div class="docs-folder-item-icon">${folderSvg()}</div>
-          <div style="flex:1;min-width:0;">
-            <div class="docs-folder-item-name">${pinIcon}${H(f.name)}</div>
-            <div class="docs-folder-item-meta">${cnt}件の書類</div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--border)"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-  html += `<div style="height:16px;"></div>`;
-
-  // ── 領収証セクション ──
-  const rcptRoot = (S.folders||[]).find(f=>f.type==='receipts_root');
-  if(rcptRoot) {
-    const yearFolders = (S.folders||[]).filter(f=>f.type==='receipts_year'&&f.parentFolderId===rcptRoot.id);
-    const rcptTotal   = (S.docs||[]).filter(d=>{ const mf=(S.folders||[]).find(f=>f.id===d.folderId); return mf&&(mf.type==='receipts_month'||mf.type==='receipts_root'); }).length;
-    html += `<div class="docs-section-hd"><div class="docs-section-label">領収証</div></div>
-    <div class="docs-folder-list">
-      <div class="docs-folder-item" onclick="openDocsFolder('f-receipts')">
-        <div class="docs-folder-item-icon" style="background:#FEF3C7;color:#D97706;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div class="docs-folder-item-name">領収証</div>
-          <div class="docs-folder-item-meta">${yearFolders.length}年分 · ${rcptTotal}件</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--border)"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-    </div>`;
-  }
-
-  html += `<div style="height:16px;"></div>`;
-  el.innerHTML = html;
-}
-
-function openDocsFolder(folderId) {
-  S._viewFolder = folderId;
-  go('s-docs-folder');
-}
-
-function renderDocsFolder() {
-  const folder = (S.folders||[]).find(f=>f.id===S._viewFolder);
-  if(!folder) { goBack(); return; }
-  const titleEl = document.getElementById('docs-folder-title');
-  if(titleEl) titleEl.textContent = folder.name;
-  // サブフォルダの場合はパンくず（親フォルダ名）を表示
-  const breadcrumbEl = document.getElementById('docs-folder-breadcrumb');
-  if(breadcrumbEl) {
-    const parent = folder.parentFolderId ? (S.folders||[]).find(f=>f.id===folder.parentFolderId) : null;
-    if(parent) {
-      breadcrumbEl.textContent = `書類保管庫 › ${parent.name}`;
-      breadcrumbEl.style.display = '';
-    } else {
-      breadcrumbEl.style.display = 'none';
-    }
-  }
-  const menuNameEl = document.getElementById('m-folder-menu-name');
-  if(menuNameEl) menuNameEl.textContent = folder.name;
-  const pinBtn = document.getElementById('docs-pin-btn');
-  if(pinBtn) {
-    pinBtn.classList.toggle('pinned', !!folder.isPinned);
-    pinBtn.style.display = (folder.type === 'normal' && !folder.parentFolderId) ? '' : 'none';
-  }
-
-  // ── FABを先に設定（IDで確実に取得） ──
-  const fab = document.getElementById('docs-fab');
-  if(fab) {
-    const isReceiptFolder = ['receipts_root','receipts_year','receipts_month'].includes(folder.type);
-    fab.style.display = isReceiptFolder ? 'none' : '';
-    // onclick は HTML で openReceiptCapture() に固定済み
-  }
-
-  const el = document.getElementById('docs-folder-list');
-  if(!el) return;
-
-  // ── 領収証ルート（年フォルダ一覧）──
-  if(folder.type === 'receipts_root') {
-    const yearFolders = (S.folders||[]).filter(f=>f.type==='receipts_year'&&f.parentFolderId===folder.id)
-      .sort((a,b)=>b.year-a.year);
-    if(!yearFolders.length) {
-      el.innerHTML = `<div class="docs-empty">
-        <div style="opacity:.25;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg></div>
-        <div class="docs-empty-title">領収証がありません</div>
-        <div class="docs-empty-sub">右上の「撮影・追加」で領収証を登録できます</div>
-        <button class="btn btn-primary" style="margin-top:8px;" onclick="openReceiptCapture()">撮影・追加</button>
-      </div>`;
-    } else {
-      el.innerHTML = `<div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
-        ${yearFolders.map(yf=>{
-          const cnt=(S.docs||[]).filter(d=>{const mf=(S.folders||[]).find(f=>f.id===d.folderId);return mf&&mf.type==='receipts_month'&&mf.parentFolderId===yf.id;}).length;
-          return `<div class="docs-folder-item" onclick="openDocsFolder('${yf.id}')">
-            <div class="docs-folder-item-icon" style="background:#FEF3C7;color:#D97706;">
-              <span style="font-size:13px;font-weight:800;">${yf.year}</span>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div class="docs-folder-item-name">${H(yf.name)}</div>
-              <div class="docs-folder-item-meta">${cnt}件の領収証</div>
-            </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--border)"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>`;
-        }).join('')}
-      </div>`;
-    }
-    return;
-  }
-
-  // ── 領収証年フォルダ（月フォルダ一覧）──
-  if(folder.type === 'receipts_year') {
-    const monthFolders = (S.folders||[]).filter(f=>f.type==='receipts_month'&&f.parentFolderId===folder.id)
-      .sort((a,b)=>b.month-a.month);
-    if(!monthFolders.length) {
-      el.innerHTML = `<div class="docs-empty">
-        <div class="docs-empty-title">この年の領収証はありません</div>
-        <button class="btn btn-primary" style="margin-top:8px;" onclick="openReceiptCapture()">撮影・追加</button>
-      </div>`;
-    } else {
-      el.innerHTML = `<div class="rcpt-sub-grid" style="padding-top:14px;">
-        ${monthFolders.map(mf=>{
-          const cnt=(S.docs||[]).filter(d=>d.folderId===mf.id).length;
-          return `<div class="rcpt-sub-card" onclick="openDocsFolder('${mf.id}')">
-            <div class="rcpt-sub-card-name">${mf.month}月</div>
-            <div class="rcpt-sub-card-count">${cnt}件</div>
-          </div>`;
-        }).join('')}
-      </div>`;
-    }
-    return;
-  }
-
-  // ── 領収証月フォルダ（領収証一覧）──
-  if(folder.type === 'receipts_month') {
-    const docs = (S.docs||[]).filter(d=>d.folderId===folder.id)
-      .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
-    if(!docs.length) {
-      el.innerHTML = `<div class="docs-empty">
-        <div class="docs-empty-title">この月の領収証はありません</div>
-        <button class="btn btn-primary" style="margin-top:8px;" onclick="openReceiptCapture()">撮影・追加</button>
-      </div>`;
-    } else {
-      el.innerHTML = `<div class="docs-doc-list" style="padding-top:12px;">
-        ${docs.map(doc=>{
-          const tx = doc.linkedTxId ? (S.txs||[]).find(t=>t.id===doc.linkedTxId) : null;
-          const preview = doc.data ? `<img src="${doc.data}" alt="">` : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>`;
-          return `<div class="docs-doc-item" onclick="openDocModal('${H(doc.id)}')">
-            <div class="docs-doc-icon" style="background:#FEF3C7;color:#D97706;">${preview}</div>
-            <div style="flex:1;min-width:0;">
-              <div class="docs-doc-title">${H(doc.title)}</div>
-              <div class="docs-doc-meta">${H(doc.createdAt||'')}${tx?` · ¥${tx.amount.toLocaleString()}`:''}</div>
-              ${tx ? `<div style="margin-top:3px;"><span class="rcpt-linked-badge" onclick="event.stopPropagation();switchTab('s-budget')">家計に連携済み</span></div>` : ''}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`;
-    }
-    return;
-  }
-
-  // ── 通常フォルダ（typeがnormalまたは未定義）──
-  const subFolders = (S.folders||[]).filter(f=>f.parentFolderId===folder.id && f.type==='normal')
-    .sort((a,b)=>(a.order||0)-(b.order||0));
-  const docs = (S.docs||[]).filter(d=>d.folderId===folder.id)
-    .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
-
-  if(!subFolders.length && !docs.length) {
-    el.innerHTML = `<div class="docs-empty">
-      <div style="opacity:.25;">${docTypeSvg('other')}</div>
-      <div class="docs-empty-title">まだ何もありません</div>
-      <div class="docs-empty-sub">書類やサブフォルダを追加できます</div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn btn-outline" style="flex:1;" onclick="openSubFolderModal()">
-          フォルダを追加
-        </button>
-        <button class="btn btn-primary" style="flex:1;" onclick="openReceiptCapture()">
-          ファイルを追加
-        </button>
-      </div>
-    </div>`;
-    return;
-  }
-
-  let content = '';
-
-  // ── サブフォルダ一覧 ──
-  if(subFolders.length) {
-    content += `<div style="padding:14px 16px 4px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;color:var(--text-muted);font-weight:700;letter-spacing:.05em;">フォルダ</div>
-        <button onclick="openSubFolderModal()" style="background:none;border:none;color:var(--primary);font-size:12px;font-weight:600;cursor:pointer;padding:2px 6px;">＋ 追加</button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        ${subFolders.map(sf=>{
-          const sfDocCnt = (S.docs||[]).filter(d=>d.folderId===sf.id).length;
-          const sfSubCnt = (S.folders||[]).filter(f=>f.parentFolderId===sf.id).length;
-          const meta = [sfSubCnt>0?`${sfSubCnt}件のフォルダ`:'', sfDocCnt>0?`${sfDocCnt}件の書類`:''].filter(Boolean).join('・')||'空のフォルダ';
-          return `<div class="docs-folder-item" onclick="openDocsFolder('${H(sf.id)}')">
-            <div class="docs-folder-item-icon" style="background:var(--primary-light);color:var(--primary);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div class="docs-folder-item-name">${H(sf.name)}</div>
-              <div class="docs-folder-item-meta">${meta}</div>
-            </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--border)"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }
-
-  // ── 書類一覧 ──
-  if(docs.length) {
-    if(subFolders.length) {
-      content += `<div style="padding:10px 16px 4px;font-size:12px;color:var(--text-muted);font-weight:700;letter-spacing:.05em;">書類</div>`;
-    }
-    content += `<div class="docs-doc-list" style="padding-top:4px;">
-      ${docs.map(doc=>{
-        const iconContent = doc.data ? `<img src="${doc.data}" alt="">` : docTypeSvg(doc.fileType||'other');
-        return `<div class="docs-doc-item" onclick="openDocModal('${H(doc.id)}')">
-          <div class="docs-doc-icon type-${H(doc.fileType||'other')}">${iconContent}</div>
-          <div style="flex:1;min-width:0;">
-            <div class="docs-doc-title">${H(doc.title)}</div>
-            <div class="docs-doc-meta">${H((doc.fileType||'書類').toUpperCase())} · ${H(doc.createdAt||'')}</div>
-            ${doc.memo?`<div class="docs-doc-memo">${H(doc.memo)}</div>`:''}
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--border)"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`;
-      }).join('')}
-    </div>`;
-  } else if(subFolders.length) {
-    // サブフォルダはあるが書類なし
-    content += `<div style="padding:8px 16px 16px;text-align:center;">
-      <button class="btn btn-outline" onclick="openReceiptCapture()" style="width:100%;">
-        ＋ ファイルを追加する
-      </button>
-    </div>`;
-  }
-
-  el.innerHTML = content;
-}
-
-function openSubFolderModal() {
-  document.getElementById('m-folder-title').textContent = 'サブフォルダを追加';
-  document.getElementById('fm-id').value = '';
-  document.getElementById('fm-parent').value = S._viewFolder || '';
-  document.getElementById('fm-name').value = '';
-  openModal('m-folder');
-  setTimeout(()=>document.getElementById('fm-name').focus(), 200);
-}
-
-function openFolderModal(folderId) {
-  const isEdit = !!folderId;
-  document.getElementById('m-folder-title').textContent = isEdit ? 'フォルダ名を変更' : 'フォルダを追加';
-  document.getElementById('fm-id').value = folderId||'';
-  document.getElementById('fm-parent').value = '';
-  const folder = folderId ? (S.folders||[]).find(f=>f.id===folderId) : null;
-  document.getElementById('fm-name').value = folder ? folder.name : '';
-  openModal('m-folder');
-  setTimeout(()=>document.getElementById('fm-name').focus(), 200);
-}
-
-function saveFolder() {
-  const name = document.getElementById('fm-name').value.trim();
-  if(!name){ showToast('フォルダ名を入力してください','error'); return; }
-  const id     = document.getElementById('fm-id').value;
-  const parent = document.getElementById('fm-parent').value || null;
-  if(!S.folders) S.folders = [];
-  if(id) {
-    const f = S.folders.find(f=>f.id===id);
-    if(f) f.name = name;
-  } else {
-    const maxOrder = S.folders.reduce((m,f)=>Math.max(m,f.order||0), -1);
-    S.folders.push({id:uid(), name, type:'normal', isPinned:false, order:maxOrder+1, parentFolderId:parent, createdAt:todayStr()});
-  }
-  saveS(); closeModal('m-folder');
-  if(!document.getElementById('s-docs-folder').classList.contains('hidden')) renderDocsFolder();
-  else renderDocs();
-  showToast(id?'フォルダ名を変更しました': parent?'サブフォルダを追加しました':'フォルダを追加しました');
-}
-
-function toggleFolderPin() {
-  const f = (S.folders||[]).find(f=>f.id===S._viewFolder);
-  if(!f) return;
-  f.isPinned = !f.isPinned;
-  saveS(); renderDocsFolder();
-  showToast(f.isPinned?'ピン留めしました':'ピン留めを解除しました');
-}
-
-function openFolderMenu() {
-  const folder = (S.folders||[]).find(f=>f.id===S._viewFolder);
-  const subBtn = document.getElementById('m-subfolder-btn');
-  // 通常フォルダのみサブフォルダ追加可能
-  if(subBtn) subBtn.style.display = (folder && folder.type === 'normal') ? '' : 'none';
-  openModal('m-folder-menu');
-}
-
-/* フォルダIDとその子孫全てを収集（再帰） */
-function collectFolderIds(folderId) {
-  const ids = [folderId];
-  (S.folders||[]).filter(f=>f.parentFolderId===folderId).forEach(child=>{
-    ids.push(...collectFolderIds(child.id));
-  });
-  return ids;
-}
-
-function deleteFolderConfirm() {
-  const f = (S.folders||[]).find(f=>f.id===S._viewFolder);
-  if(!f) return;
-  const idsToDelete = collectFolderIds(f.id);
-  const docCnt = (S.docs||[]).filter(d=>idsToDelete.includes(d.folderId)).length;
-  const subCnt = idsToDelete.length - 1; // 自身を除く
-  const parts = [];
-  if(subCnt>0) parts.push(`フォルダ ${subCnt}件`);
-  if(docCnt>0) parts.push(`書類 ${docCnt}件`);
-  const msg = parts.length
-    ? `「${f.name}」と中の${parts.join('・')}を削除します。元に戻せません。`
-    : `「${f.name}」を削除します。元に戻せません。`;
-  const parentFolderId = f.parentFolderId;
-  showConfirm('フォルダを削除', msg, '削除する', ()=>{
-    S.folders = (S.folders||[]).filter(f=>!idsToDelete.includes(f.id));
-    S.docs    = (S.docs||[]).filter(d=>!idsToDelete.includes(d.folderId));
-    saveS();
-    showToast('フォルダを削除しました');
-    if(parentFolderId) {
-      // サブフォルダだった場合、親フォルダへ戻る
-      S._viewFolder = parentFolderId;
-      showScreen('s-docs-folder');
-      S.prev = 's-docs';
-      refresh('s-docs-folder');
-    } else {
-      showScreen('s-docs');
-      S.prev = 's-home';
-      refresh('s-docs');
-    }
-  }, '');
-}
-
-function openDocModal(docId) {
-  const isEdit = !!docId;
-  document.getElementById('m-doc-title').textContent = isEdit ? '書類を編集' : '書類を追加';
-  document.getElementById('dm-id').value = docId||'';
-  const folSel = document.getElementById('dm-folder');
-  folSel.innerHTML = (S.folders||[])
-    .filter(f=>f.type==='normal')
-    .map(f=>{
-      const parent = f.parentFolderId ? (S.folders||[]).find(p=>p.id===f.parentFolderId) : null;
-      const label  = parent ? `${H(parent.name)} › ${H(f.name)}` : H(f.name);
-      return `<option value="${H(f.id)}" ${f.id===S._viewFolder?'selected':''}>${label}</option>`;
-    }).join('');
-  const doc = docId ? (S.docs||[]).find(d=>d.id===docId) : null;
-  document.getElementById('dm-title').value = doc ? doc.title : '';
-  document.getElementById('dm-type').value  = doc ? (doc.fileType||'other') : 'other';
-  document.getElementById('dm-memo').value  = doc ? (doc.memo||'') : '';
-  document.getElementById('dm-data').value  = doc ? (doc.data||'') : '';
-  if(doc?.folderId) folSel.value = doc.folderId;
-  const preview = document.getElementById('dm-preview');
-  if(doc?.data) {
-    preview.innerHTML = `<img src="${doc.data}" alt=""><div class="docs-file-label" style="background:rgba(0,0,0,.35);color:#fff;padding:2px 8px;border-radius:4px;position:absolute;bottom:8px;">変更する</div>`;
-  } else {
-    preview.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><div class="docs-file-label">タップして画像を選択</div>`;
-  }
-  document.getElementById('dm-del-btn').style.display = isEdit ? '' : 'none';
-  openModal('m-doc');
-}
-
-function handleDocFile(event) {
-  const file = event.target.files[0];
-  if(!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-  const fileType = getDocFileKind ? getDocFileKind(ext) : (file.type.startsWith('image/')? 'image' : 'other');
-  document.getElementById('dm-type').value = fileType;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const data = e.target.result;
-    document.getElementById('dm-data').value = data;
-    const preview = document.getElementById('dm-preview');
-    if(fileType === 'image') {
-      preview.innerHTML = `<img src="${data}" alt=""><div class="docs-file-label" style="background:rgba(0,0,0,.35);color:#fff;padding:2px 8px;border-radius:4px;position:absolute;bottom:8px;z-index:2;">変更する</div>`;
-    } else {
-      preview.innerHTML = `<div class="docs-doc-icon type-${fileType}" style="width:52px;height:52px;border-radius:14px;margin:0 auto;">${docTypeSvg(fileType)}</div>
-        <div class="docs-file-label" style="max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:1;">${H(file.name)}</div>`;
-    }
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-function saveDoc() {
-  const title = document.getElementById('dm-title').value.trim();
-  if(!title){ showToast('タイトルを入力してください','error'); return; }
-  const id = document.getElementById('dm-id').value;
-  const folderId = document.getElementById('dm-folder').value;
-  const fileType = document.getElementById('dm-type').value;
-  const memo = document.getElementById('dm-memo').value.trim();
-  const data = document.getElementById('dm-data').value;
-  if(!S.docs) S.docs=[];
-  if(id) {
-    const doc = S.docs.find(d=>d.id===id);
-    if(doc) Object.assign(doc,{title,folderId,fileType,memo,data});
-  } else {
-    S.docs.push({id:uid(),title,folderId,fileType,memo,data,createdBy:S.user?.id||'kenya',createdAt:todayStr()});
-  }
-  saveS(); closeModal('m-doc'); renderDocsFolder();
-  showToast(id?'書類を更新しました':'書類を追加しました');
-}
-
-function deleteDocConfirm() {
-  const id = document.getElementById('dm-id').value;
-  const doc = (S.docs||[]).find(d=>d.id===id);
-  if(!doc) return;
-  showConfirm('書類を削除',`「${doc.title}」を削除します。`,'削除する',()=>{
-    // 連携している家計レコードも削除
-    if(doc.linkedTxId) S.txs = (S.txs||[]).filter(t=>t.id!==doc.linkedTxId);
-    S.docs = S.docs.filter(d=>d.id!==id);
-    saveS(); closeModal('m-doc'); renderDocsFolder();
-    showToast('書類を削除しました');
-  },'');
-}
-
-/* ============================================================
-   RECEIPT OCR FLOW — 領収証スキャン
-   ============================================================ */
-
-let _rcptImageData  = null; // base64
-let _rcptMimeType   = 'image/jpeg';
-let _rcptFileType   = 'image'; // image / pdf / excel / word / other
-let _rcptFileName   = '';
-let _rcptOcrData    = null;
-
-/* 年/月フォルダ自動生成 */
-function getOrCreateReceiptsRoot() {
-  let r=(S.folders||[]).find(f=>f.type==='receipts_root');
-  if(!r){
-    r={id:'f-receipts',name:'領収証',type:'receipts_root',isPinned:false,order:99,parentFolderId:null,createdAt:todayStr()};
-    S.folders.push(r); saveS();
-  }
-  return r;
-}
-function getOrCreateYearFolder(year) {
-  const root=getOrCreateReceiptsRoot();
-  let yf=(S.folders||[]).find(f=>f.type==='receipts_year'&&f.year===year&&f.parentFolderId===root.id);
-  if(!yf){
-    yf={id:`f-r-${year}`,name:`${year}年`,type:'receipts_year',year,isPinned:false,order:year,parentFolderId:root.id,createdAt:todayStr()};
-    S.folders.push(yf); saveS();
-  }
-  return yf;
-}
-function getOrCreateMonthFolder(year,month) {
-  const yf=getOrCreateYearFolder(year);
-  let mf=(S.folders||[]).find(f=>f.type==='receipts_month'&&f.year===year&&f.month===month&&f.parentFolderId===yf.id);
-  if(!mf){
-    mf={id:`f-r-${year}-${month}`,name:`${month}月`,type:'receipts_month',year,month,isPinned:false,order:month,parentFolderId:yf.id,createdAt:todayStr()};
-    S.folders.push(mf); saveS();
-  }
-  return mf;
-}
-
-/* フロー開始 — showScreen を直接使い S.prev を汚染しない */
-let _rcptFromFolder = null; // 戻り先フォルダID
-
-function openReceiptCapture() {
-  _rcptImageData = null; _rcptOcrData = null;
-  _rcptFromFolder = S._viewFolder || null; // 開く前のフォルダを記憶
-  // go() を使わず showScreen で遷移（S.prev を変更しない → 戻るループ防止）
-  showScreen('s-docs-receipt');
-  renderRcptFlow('capture');
-}
-
-function cancelReceiptCapture() {
-  // go() を使わず showScreen() で戻る（S.prev に 's-docs-receipt' を残さない）
-  if(_rcptFromFolder) {
-    S._viewFolder = _rcptFromFolder;
-    showScreen('s-docs-folder');
-    S.prev = 's-docs';
-    refresh('s-docs-folder');
-  } else {
-    showScreen('s-docs');
-    S.prev = 's-home';
-    refresh('s-docs');
-  }
-}
-
-function renderRcptFlow(state) {
-  const area    = document.getElementById('rcpt-flow-area');
-  const actions = document.getElementById('rcpt-flow-actions');
-  if(!area||!actions) return;
-  actions.classList.toggle('hidden', state==='capture'||state==='processing');
-
-  if(state==='capture') {
-    area.innerHTML = `
-      <div style="padding:24px 16px 8px;">
-
-        <!-- 1枚フルワイドカード -->
-        <div onclick="document.getElementById('rcpt-file').click()"
-             style="background:#fff;border-radius:18px;padding:28px 20px 24px;
-                    display:flex;flex-direction:column;align-items:center;gap:14px;
-                    cursor:pointer;box-shadow:var(--s-sm);
-                    border:1.5px solid var(--border-light);transition:var(--t-spring);">
-
-          <!-- 2アイコン横並び -->
-          <div style="display:flex;gap:14px;align-items:center;">
-            <div style="width:52px;height:52px;border-radius:14px;background:var(--primary-light);
-                        display:flex;align-items:center;justify-content:center;color:var(--primary);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="12" y1="12" x2="12" y2="18"/>
-                <line x1="9" y1="15" x2="15" y2="15"/>
-              </svg>
-            </div>
-            <div style="width:52px;height:52px;border-radius:14px;background:#FEF3C7;
-                        display:flex;align-items:center;justify-content:center;color:#D97706;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
-            </div>
-          </div>
-
-          <!-- ラベル -->
-          <div style="text-align:center;">
-            <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.2px;">
-              ファイル選択 / 撮影して追加
-            </div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.7;">
-              写真ライブラリ・その場で撮影<br>PDF・Excel・Word・CSV
-            </div>
-          </div>
-        </div>
-
-        <!-- AI説明 -->
-        <div class="rcpt-note" style="margin-top:14px;">
-          写真・領収証を選択・撮影するとAIが日付・金額・店名を自動で読み取ります
-        </div>
-
-        <!-- ファイル選択 input（全種別・撮影含む） -->
-        <input type="file" id="rcpt-file"
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx"
-          style="display:none" onchange="handleRcptFile(event)">
-      </div>`;
-
-  } else if(state==='preview') {
-    const isImage = _rcptFileType === 'image';
-    const previewContent = isImage && _rcptImageData
-      ? `<img src="${_rcptImageData}" alt="選択ファイル" style="width:100%;height:100%;object-fit:contain;position:absolute;inset:0;">`
-      : `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;z-index:1;">
-           ${docTypeSvg(_rcptFileType)}
-           <div style="font-size:12px;color:var(--text-sub);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${H(_rcptFileName||'ファイル選択済み')}</div>
-         </div>`;
-    area.innerHTML = `
-      <div style="padding:16px;">
-        <div class="rcpt-zone" style="height:200px;margin:0;cursor:default;">
-          ${previewContent}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-          <button class="btn btn-outline" onclick="document.getElementById('rcpt-chg-file').click()" style="font-size:12px;height:36px;border-radius:var(--r-full);">
-            ファイルを変更
-          </button>
-          <button class="btn btn-outline" onclick="document.getElementById('rcpt-chg-cam').click()" style="font-size:12px;height:36px;border-radius:var(--r-full);">
-            撮影し直す
-          </button>
-        </div>
-        <input type="file" id="rcpt-chg-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx" style="display:none" onchange="handleRcptFile(event)">
-        <input type="file" id="rcpt-chg-cam" accept="image/*" capture="environment" style="display:none" onchange="handleRcptFile(event)">
-      </div>`;
-    actions.innerHTML = `
-      ${isImage ? `<button class="btn btn-primary btn-block" onclick="startRcptOcr()">AIで内容を読み取る</button>` : ''}
-      <button class="btn btn-outline btn-block" onclick="skipOcrAndConfirm()">
-        ${isImage ? '手動で入力する' : '内容を入力して保存する'}
-      </button>`;
-
-  } else if(state==='processing') {
-    area.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 20px;text-align:center;">
-        <div class="loading"><span></span><span></span><span></span></div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);">読み取り中...</div>
-        <div style="font-size:13px;color:var(--text-muted);">AIが領収証の内容を解析しています</div>
-      </div>`;
-
-  } else if(state==='confirm') {
-    const d = _rcptOcrData || {};
-    const isOcr = d._source==='ocr';
-    const isImage = _rcptFileType === 'image';
-
-    const previewHtml = isImage && _rcptImageData
-      ? `<img src="${_rcptImageData}" style="width:calc(100% - 32px);margin:16px;max-height:150px;object-fit:contain;border-radius:12px;background:var(--bg-muted);display:block;">`
-      : `<div style="margin:16px;height:72px;border-radius:12px;background:var(--bg-muted);display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--border-light);">
-          ${docTypeSvg(_rcptFileType)}
-          <div style="font-size:13px;color:var(--text-sub);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${H(_rcptFileName||'ファイル選択済み')}</div>
-        </div>`;
-
-    const fromFolder = _rcptFromFolder ? (S.folders||[]).find(f=>f.id===_rcptFromFolder) : null;
-    const isFromNormal = fromFolder && fromFolder.type === 'normal';
-    const normalFolders = (S.folders||[]).filter(f=>f.type==='normal');
-    const folderOpts = `<option value="auto" ${!isFromNormal?'selected':''}>領収証フォルダ（日付別・自動整理）</option>${normalFolders.map(f=>`<option value="${H(f.id)}" ${f.id===_rcptFromFolder?'selected':''}>${H(f.name)}</option>`).join('')}`;
-
-    area.innerHTML = `${previewHtml}
-      ${isOcr ? `<div class="rcpt-note" style="margin-bottom:0;">AIが読み取りました。確認・修正してください。</div>` : ''}
-      <div class="modal-form" style="padding:16px;">
-        <div class="field">
-          <div class="field-label">タイトル</div>
-          <input class="input" id="rcpt-title" value="${H(d.merchant||(_rcptFileName?_rcptFileName.split('.').slice(0,-1).join('.'):''))}" placeholder="例：スーパーの領収証">
-        </div>
-        <div class="field">
-          <div class="field-label">保存先フォルダ</div>
-          <select class="input" id="rcpt-save-folder">${folderOpts}</select>
-        </div>
-        <div class="field">
-          <div class="field-label">日付</div>
-          <input class="input" id="rcpt-date" type="date" value="${d.date||todayStr()}">
-        </div>
-        ${isImage ? `
-        <div class="field">
-          <div class="field-label">金額（円）</div>
-          <input class="input" id="rcpt-amount" type="number" inputmode="numeric" value="${d.amount||''}" placeholder="0">
-        </div>
-        <div class="field">
-          <div class="field-label">店名・支払先</div>
-          <input class="input" id="rcpt-merchant" value="${H(d.merchant||'')}" placeholder="例：スーパーマルエツ">
-        </div>
-        <div class="field">
-          <div class="field-label">カテゴリ</div>
-          <select class="input" id="rcpt-cat">${CATS_EX.map(c=>`<option value="${c}" ${c===(d.category||'食費')?'selected':''}>${c}</option>`).join('')}</select>
-        </div>` : `
-        <input type="hidden" id="rcpt-amount" value="0">
-        <input type="hidden" id="rcpt-merchant" value="">
-        <input type="hidden" id="rcpt-cat" value="その他">
-        `}
-        <div class="field">
-          <div class="field-label">メモ</div>
-          <input class="input" id="rcpt-memo" value="${H(d.memo||'')}" placeholder="任意">
-        </div>
-      </div>`;
-
-    actions.innerHTML = isImage
-      ? `<button class="btn btn-primary btn-block" onclick="saveReceiptWithBudget()">家計に追加して保存</button>
-         <button class="btn btn-outline btn-block" onclick="saveReceiptDocOnly()">書類のみ保存</button>`
-      : `<button class="btn btn-primary btn-block" onclick="saveReceiptDocOnly()">保存する</button>`;
-  }
-}
-
-function getDocFileKind(ext) {
-  if(['jpg','jpeg','png','gif','webp','heic'].includes(ext)) return 'image';
-  if(['pdf'].includes(ext)) return 'pdf';
-  if(['xls','xlsx','csv'].includes(ext)) return 'excel';
-  if(['doc','docx'].includes(ext)) return 'word';
-  if(['ppt','pptx'].includes(ext)) return 'ppt';
-  return 'other';
-}
-
-function handleRcptFile(event) {
-  const file = event.target.files[0];
-  if(!file) return;
-  _rcptMimeType = file.type || 'image/jpeg';
-  _rcptFileName = file.name || '';
-  _rcptFileType = getDocFileKind(file.name.split('.').pop().toLowerCase());
-  const reader = new FileReader();
-  reader.onload = e => {
-    _rcptImageData = e.target.result;
-    renderRcptFlow('preview');
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-function skipOcrAndConfirm() {
-  _rcptOcrData = {_source:'manual'};
-  renderRcptFlow('confirm');
-}
-
-async function startRcptOcr() {
-  renderRcptFlow('processing');
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 300,
-        messages: [{
-          role: 'user',
-          content: [
-            {type:'image', source:{type:'base64', media_type:_rcptMimeType, data:_rcptImageData.split(',')[1]}},
-            {type:'text',  text:`この領収書・レシート画像から情報を抽出し、JSONのみ返してください（説明不要）。\n{"date":"YYYY-MM-DD または null","amount": 数値または null,"merchant":"店名 または null","category":"食費|教育費|医療費|光熱費|通信費|娯楽費|交通費|被服費|日用品|その他 のどれか","memo":""}`}
-          ]
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = (data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(text);
-    parsed._source = 'ocr';
-    // カテゴリが既存リストにない場合はデフォルト
-    if(!CATS_EX.includes(parsed.category)) parsed.category = 'その他';
-    _rcptOcrData = parsed;
-  } catch(e) {
-    _rcptOcrData = {_source:'manual'};
-    showToast('OCR読み取りに失敗しました。手動で入力してください。','error');
-  }
-  renderRcptFlow('confirm');
-}
-
-function _getRcptFormData() {
-  return {
-    date:         document.getElementById('rcpt-date')?.value || todayStr(),
-    amount:       parseInt(document.getElementById('rcpt-amount')?.value)||0,
-    merchant:     document.getElementById('rcpt-merchant')?.value.trim()||'',
-    category:     document.getElementById('rcpt-cat')?.value||'その他',
-    memo:         document.getElementById('rcpt-memo')?.value.trim()||'',
-    saveFolderId: document.getElementById('rcpt-save-folder')?.value || 'auto',
-  };
-}
-
-/* 保存先フォルダを解決 */
-function _resolveTargetFolder(form) {
-  if(form.saveFolderId && form.saveFolderId !== 'auto') {
-    const f = (S.folders||[]).find(f=>f.id===form.saveFolderId);
-    if(f) return f;
-  }
-  // auto: 領収証の年/月フォルダ
-  const [y,m] = form.date.split('-').map(Number);
-  return getOrCreateMonthFolder(y, m);
-}
-
-function saveReceiptWithBudget() {
-  const form = _getRcptFormData();
-  const targetFolder = _resolveTargetFolder(form);
-  const isReceiptFolder = targetFolder.type === 'receipts_month';
-
-  const docId = uid();
-  const txId  = uid();
-
-  // 家計レコード
-  const tx = {
-    id:txId, type:'expense', cat:form.category,
-    amount:form.amount||0, date:form.date,
-    memo: form.merchant ? `${form.merchant}（領収証）` : '（領収証）',
-    member: S.user?.id||'kenya', sourceDocId:docId,
-  };
-  if(!S.txs) S.txs=[];
-  S.txs.push(tx);
-
-  // 書類レコード
-  const doc = {
-    id:docId, folderId:targetFolder.id,
-    title: form.merchant||`領収証 ${form.date}`,
-    fileType: _rcptFileType||'image', documentKind:'receipt',
-    memo:form.memo, data:_rcptImageData||'',
-    fileName:_rcptFileName||'',
-    ocrData:{...form, _source:_rcptOcrData?._source||'manual'},
-    linkedTxId:txId,
-    createdBy:S.user?.id||'kenya', createdAt:todayStr(),
-  };
-  if(!S.docs) S.docs=[];
-  S.docs.push(doc);
-  saveS();
-  showToast('保存し、家計に追加しました');
-  S._viewFolder = targetFolder.id;
-  showScreen('s-docs-folder');
-  S.prev = 's-docs';
-  refresh('s-docs-folder');
-}
-
-function saveReceiptDocOnly() {
-  const form = _getRcptFormData();
-  const targetFolder = _resolveTargetFolder(form);
-
-  const doc = {
-    id:uid(), folderId:targetFolder.id,
-    title: form.merchant || (document.getElementById('rcpt-title')?.value.trim()) || `書類 ${form.date}`,
-    fileType: _rcptFileType||'image', documentKind: targetFolder.type==='receipts_month'?'receipt':'document',
-    memo:form.memo, data:_rcptImageData||'',
-    fileName:_rcptFileName||'',
-    ocrData:{...form, _source:_rcptOcrData?._source||'manual'},
-    linkedTxId:null,
-    createdBy:S.user?.id||'kenya', createdAt:todayStr(),
-  };
-  if(!S.docs) S.docs=[];
-  S.docs.push(doc);
-  saveS();
-  showToast('書類として保存しました');
-  S._viewFolder = targetFolder.id;
-  showScreen('s-docs-folder');
-  S.prev = 's-docs';
-  refresh('s-docs-folder');
-}
-
-/* ============================================================
-   SCHEDULE SCANNER — テキスト貼り付け + AI解析
-   ============================================================ */
-
-let _scanItems  = [];
-let _scanFilter = 'all';
-
-function resetScan() {
-  _scanItems = []; _scanFilter = 'all';
-  const inp = document.getElementById('scan-text-input');
-  if(inp) inp.value = '';
-  const loadEl = document.getElementById('scan-loading');
-  const errEl  = document.getElementById('scan-error');
-  if(loadEl) loadEl.style.display = 'none';
-  if(errEl)  errEl.style.display  = 'none';
-}
-
-/* 後方互換 */
-function triggerOcr() { document.getElementById('ocr-input')?.click(); }
-function copyOcrText() {}
-function addOcrEvent() {}
-
-/* ── 月番号→文字列 ── */
-function monthLabel(dateStr) {
-  if(!dateStr) return '';
-  const m = parseInt((dateStr||'').split('-')[1]||0);
-  return m ? `${m}月` : '';
-}
-
-/* ── STEP1: テキスト解析 ── */
-async function startTextScan() {
-  const text = (document.getElementById('scan-text-input')?.value||'').trim();
-  if(!text) { showToast('予定表のテキストを貼り付けてください','error'); return; }
-
-  const loadEl = document.getElementById('scan-loading');
-  const errEl  = document.getElementById('scan-error');
-  const area   = document.getElementById('scan-capture-area');
-  if(area)   area.style.display   = 'none';
-  if(loadEl) loadEl.style.display = '';
-  if(errEl)  errEl.style.display  = 'none';
-
-  try {
-    const items = await callScheduleTextAI(text);
-    if(loadEl) loadEl.style.display = 'none';
-    if(area)   area.style.display   = '';
-
-    if(!items.length) {
-      showScanError('予定を読み取れませんでした。日付と予定名が含まれるテキストを貼り付けてください。');
-      return;
-    }
-    _scanItems = items;
-    go('s-scan-confirm');
-    renderScanConfirm();
-  } catch(err) {
-    if(loadEl) loadEl.style.display = 'none';
-    if(area)   area.style.display   = '';
-    showScanError(err.message || '解析に失敗しました。');
-  }
-}
-
-/* ── テキスト解析AI ── */
-async function callScheduleTextAI(text) {
-  const year = todayStr().split('-')[0];
-  const members_str = MEMBERS.map(m=>m.name).join('、');
-
-  const prompt = `あなたは予定表解析AIです。必ず日本語で答えてください。
-以下のテキストから全ての予定を抽出し、JSONのみ返してください。説明文は不要です。
-
-【ルール】
-・日付がある行を全て予定として抽出
-・不明な値はnull（推測しない）
-・年が不明なら${year}年とする
-・罫線・ヘッダー・タイトル行は無視
-・家族メンバー候補：${members_str}
-
-【JSON形式のみ返す（他の文章は不要）】
-{"items":[{"title":"予定名","event_date":"YYYY-MM-DD","start_time":"HH:MM or null","all_day":true,"target_child":"子ども名 or null","notes":"メモ or null","items_to_bring":[],"submission_items":[],"uncertain":false}]}
-
----予定表テキスト---
-${text.slice(0, 8000)}
----以上---
-
-上記から予定を抽出したJSONのみ返してください：`;
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      messages: [{role:'user', content: prompt}]
-    })
-  });
-
-  const data = await res.json();
-  const rawText = (data.content?.[0]?.text || '').trim();
-
-  // JSONを抽出（複数戦略）
-  let parsed = null;
-  const cleaned = rawText.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
-  try { parsed = JSON.parse(cleaned); } catch(_) {}
-  if(!parsed) {
-    const s=cleaned.indexOf('{'), e=cleaned.lastIndexOf('}');
-    if(s!==-1&&e>s) try { parsed=JSON.parse(cleaned.slice(s,e+1)); } catch(_) {}
-  }
-  if(!parsed) {
-    const s=cleaned.indexOf('['), e=cleaned.lastIndexOf(']');
-    if(s!==-1&&e>s) try { parsed={items:JSON.parse(cleaned.slice(s,e+1))}; } catch(_) {}
-  }
-
-  if(!parsed) throw new Error('AIの応答を解析できませんでした。');
-
-  const raw = parsed?.items || parsed?.events || parsed?.schedule || [];
-  return raw.map((item, i) => ({
-    _id:i, _selected:true, _edited:false,
-    _dup: checkDuplicate(item.event_date||item.date, item.title),
-    title:     item.title       || '',
-    date:      item.event_date  || item.date || '',
-    time:      item.start_time  || item.time || '',
-    allDay:    item.all_day     ?? !(item.start_time||item.time),
-    member:    resolveChildMember(item.target_child),
-    note:      item.notes       || item.note || '',
-    items_to_bring:   item.items_to_bring   || [],
-    submission_items: item.submission_items || [],
-    uncertain: item.uncertain   ?? false,
-    category:  item.category    || '',
-  }));
-}
-
-/* ── 画像から読み取り（試験的） ── */
-async function handleScheduleScan(event) {
-  const file = event.target.files[0];
-  if(!file) return;
-  event.target.value = '';
-
-  const loadEl = document.getElementById('scan-loading');
-  const errEl  = document.getElementById('scan-error');
-  const area   = document.getElementById('scan-capture-area');
-  if(area)   area.style.display   = 'none';
-  if(loadEl) loadEl.style.display = '';
-  if(errEl)  errEl.style.display  = 'none';
-
-  try {
-    // Canvas で圧縮・JPEG変換
-    const {b64} = await compressImageForAPI(file);
-
-    const year = todayStr().split('-')[0];
-    const members_str = MEMBERS.map(m=>m.name).join('、');
-    const prompt = `この画像の予定表・スケジュール表から全予定を抽出し、JSONのみ返してください。
-年不明なら${year}年。不明値はnull。メンバー候補：${members_str}
-形式：{"items":[{"title":"予定名","event_date":"YYYY-MM-DD","start_time":"HH:MM or null","all_day":true,"target_child":null,"notes":null,"items_to_bring":[],"submission_items":[],"uncertain":false}]}`;
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{role:'user', content:[
-          {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}},
-          {type:'text',  text:prompt}
-        ]}]
-      })
-    });
-
-    const data = await res.json();
-    if(data.error) throw new Error(data.error.message||'APIエラー');
-
-    const rawText = (data.content?.[0]?.text||'').trim();
-    const cleaned = rawText.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
-
-    // テキスト入力欄に抽出テキストを流し込む（フォールバック）
-    let parsed = null;
-    try { parsed = JSON.parse(cleaned); } catch(_) {}
-    const s=cleaned.indexOf('{'), e=cleaned.lastIndexOf('}');
-    if(!parsed && s!==-1 && e>s) try { parsed=JSON.parse(cleaned.slice(s,e+1)); } catch(_) {}
-
-    if(loadEl) loadEl.style.display = 'none';
-    if(area)   area.style.display   = '';
-
-    if(parsed) {
-      const raw = parsed?.items||parsed?.events||parsed?.schedule||[];
-      if(raw.length) {
-        _scanItems = raw.map((item,i)=>({
-          _id:i,_selected:true,_edited:false,
-          _dup:checkDuplicate(item.event_date||item.date,item.title),
-          title:item.title||'',date:item.event_date||item.date||'',
-          time:item.start_time||item.time||'',allDay:item.all_day??!(item.start_time||item.time),
-          member:resolveChildMember(item.target_child),note:item.notes||item.note||'',
-          items_to_bring:item.items_to_bring||[],submission_items:item.submission_items||[],
-          uncertain:item.uncertain??false,category:item.category||'',
-        }));
-        go('s-scan-confirm');
-        renderScanConfirm();
-        return;
-      }
-    }
-    // 画像解析失敗 → テキスト欄に結果を貼り付けてユーザーに確認させる
-    if(rawText) {
-      const inp = document.getElementById('scan-text-input');
-      if(inp) inp.value = rawText;
-      showToast('画像を読み取りました。内容を確認して「AIで解析」を押してください。');
-    } else {
-      showScanError('画像から予定を読み取れませんでした。テキストを手動で貼り付けてください。');
-    }
-  } catch(err) {
-    if(loadEl) loadEl.style.display = 'none';
-    if(area)   area.style.display   = '';
-    // 画像エラーはテキスト入力を促す
-    showScanError(`画像の読み取りに失敗しました。\n予定表のテキストを直接貼り付けてご利用ください。`);
-  }
-}
-
-/* ── 画像圧縮 ── */
-function compressImageForAPI(file) {
-  return new Promise((resolve, reject) => {
-    const MAX = 1024, Q = 0.80;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let {width:w, height:h} = img;
-      if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-      const cv=document.createElement('canvas');
-      cv.width=w; cv.height=h;
-      const ctx=cv.getContext('2d');
-      if(!ctx) { reject(new Error('Canvas非対応')); return; }
-      ctx.drawImage(img,0,0,w,h);
-      const dataUrl=cv.toDataURL('image/jpeg',Q);
-      resolve({b64:dataUrl.split(',')[1]});
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像読込失敗')); };
-    img.src = url;
-  });
-}
-
-
-
-
-/* ── スキャン確認画面 全関数 ── */
-
-function showScanError(msg) {
-  const area  = document.getElementById('scan-capture-area');
-  const errEl = document.getElementById('scan-error');
-  const errMsg= document.getElementById('scan-error-msg');
-  if(area)   area.style.display   = '';
-  if(errEl)  errEl.style.display  = '';
-  if(errMsg) errMsg.innerHTML = H(msg).replace(/\n/g,'<br>');
-}
-
-function checkDuplicate(date, title) {
-  if(!date||!title) return false;
-  return (S.events||[]).some(e =>
-    e.date===date && (e.title===title||e.title.includes(title)||title.includes(e.title))
-  );
-}
-
-function resolveChildMember(childName) {
-  if(!childName) return S.user?.id||'kenya';
-  const found = MEMBERS.find(m =>
-    m.name===childName||m.name.includes(childName)||childName.includes(m.name)
-  );
-  return found ? found.id : (S.user?.id||'kenya');
-}
-
-function setScanFilter(f) {
-  _scanFilter = f;
-  document.querySelectorAll('[data-sf]').forEach(b =>
-    b.classList.toggle('active', b.dataset.sf===f)
-  );
-  renderScanConfirm();
-}
-
-function scanToggleAll() {
-  const visible = getFilteredScanItems();
-  const allSel  = visible.every(i=>i._selected);
-  visible.forEach(i=>{ i._selected=!allSel; });
-  const btn = document.getElementById('scan-select-all-btn');
-  if(btn) btn.textContent = allSel?'全選択':'全解除';
-  renderScanConfirm();
-}
-
-function getFilteredScanItems() {
-  if(_scanFilter==='all') return _scanItems;
-  return _scanItems.filter(i=>monthLabel(i.date)===_scanFilter);
-}
-
-function renderScanConfirm() {
-  const items  = getFilteredScanItems();
-  const selCnt = _scanItems.filter(i=>i._selected).length;
-  const total  = _scanItems.length;
-  const dupCnt = _scanItems.filter(i=>i._dup).length;
-
-  const titleEl = document.getElementById('scan-confirm-title');
-  if(titleEl) titleEl.textContent = `読み取り結果（${total}件）`;
-
-  const sumEl = document.getElementById('scan-summary');
-  if(sumEl) {
-    let txt = `${selCnt}件選択中 / 全${total}件`;
-    if(dupCnt) txt += ` · <span style="color:var(--orange);">⚠ 重複候補${dupCnt}件</span>`;
-    sumEl.innerHTML = txt;
-  }
-
-  const regBtn = document.getElementById('scan-register-btn');
-  if(regBtn) {
-    regBtn.textContent = selCnt>0
-      ? `選択した${selCnt}件をカレンダーへ登録`
-      : '予定を選択してください';
-    regBtn.disabled     = selCnt===0;
-    regBtn.style.opacity= selCnt===0?'.5':'';
-  }
-
-  const listEl = document.getElementById('scan-confirm-list');
-  if(!listEl) return;
-
-  if(!items.length) {
-    listEl.innerHTML=`<div class="docs-empty" style="margin-top:32px;">
-      <div class="docs-empty-title">${_scanFilter==='all'?'予定がありません':'この月の予定はありません'}</div>
-    </div>`;
-    return;
-  }
-
-  // 月別グループ
-  const groups={};
-  items.forEach(item=>{
-    const key=item.date?monthLabel(item.date):'日付不明';
-    if(!groups[key]) groups[key]=[];
-    groups[key].push(item);
-  });
-
-  let html='';
-  for(const [month,list] of Object.entries(groups)){
-    html+=`<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;padding:12px 20px 4px;">${month}</div>`;
-    html+=list.map(item=>scanItemCardHtml(item)).join('');
-  }
-  listEl.innerHTML=html;
-}
-
-function scanItemCardHtml(item){
-  const mem    =getMem(item.member);
-  const dayNum =item.date?item.date.split('-').slice(1).join('/'):'日付不明';
-  const timeStr=item.allDay?'終日':(item.time||'');
-  const hasBag =item.items_to_bring.length+item.submission_items.length>0;
-  return`<div class="scan-item-card ${item._selected?'':'excluded'} ${item._dup?'duplicate':''}" data-sid="${item._id}">
-    <div class="scan-check ${item._selected?'checked':''}" onclick="toggleScanItem(${item._id})">
-      ${item._selected?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:''}
-    </div>
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-        <span class="scan-item-date">${dayNum}</span>
-        ${timeStr?`<span style="font-size:10px;color:var(--text-muted);">${timeStr}</span>`:''}
-        ${item._dup?`<span class="scan-dup-badge">重複候補</span>`:''}
-        ${item.uncertain?`<span class="scan-uncertainty">要確認</span>`:''}
-      </div>
-      <div style="font-size:14px;font-weight:600;color:${item._selected?'var(--text)':'var(--text-muted)'};line-height:1.4;">${H(item.title)}</div>
-      ${item.note?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${H(item.note)}</div>`:''}
-      ${hasBag?`<div style="font-size:11px;color:var(--primary);margin-top:3px;">${item.items_to_bring.length?`持ち物: ${item.items_to_bring.slice(0,2).map(H).join('・')}`:''}</div>`:''}
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-      ${avHtml(mem.id, 22, 9)}
-      <button onclick="openScanEdit(${item._id})" style="background:none;border:none;cursor:pointer;padding:2px;color:var(--text-muted);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-    </div>
-  </div>`;
-}
-
-function toggleScanItem(id){
-  const item=_scanItems.find(i=>i._id===id);
-  if(item){item._selected=!item._selected;renderScanConfirm();}
-}
-
-function openScanEdit(id){
-  const item=_scanItems.find(i=>i._id===id);
-  if(!item) return;
-  document.getElementById('se-idx').value  =id;
-  document.getElementById('se-title').value=item.title;
-  document.getElementById('se-date').value =item.date;
-  document.getElementById('se-time').value =item.time;
-  document.getElementById('se-note').value =item.note;
-  const memSel=document.getElementById('se-member');
-  memSel.innerHTML=MEMBERS.map(m=>
-    `<option value="${H(m.id)}" ${m.id===item.member?'selected':''}>${H(m.name)}</option>`
-  ).join('');
-  const allItems=[...item.items_to_bring,...item.submission_items];
-  const itemsField=document.getElementById('se-items-field');
-  const itemsList =document.getElementById('se-items-list');
-  if(allItems.length){
-    itemsField.style.display='';
-    itemsList.innerHTML=allItems.map(it=>`<div>・ ${H(it)}</div>`).join('');
-  } else { itemsField.style.display='none'; }
-  const ucBadge=document.getElementById('se-uncertainty-badge');
-  if(ucBadge) ucBadge.style.display=item.uncertain?'':'none';
-  openModal('m-scan-edit');
-}
-
-function saveScanEdit(){
-  const id  =parseInt(document.getElementById('se-idx').value);
-  const item=_scanItems.find(i=>i._id===id);
-  if(!item) return;
-  item.title    =document.getElementById('se-title').value.trim();
-  item.date     =document.getElementById('se-date').value;
-  item.time     =document.getElementById('se-time').value;
-  item.note     =document.getElementById('se-note').value.trim();
-  item.member   =document.getElementById('se-member').value;
-  item.uncertain=false; item._edited=true;
-  item._dup     =checkDuplicate(item.date,item.title);
-  closeModal('m-scan-edit');
-  renderScanConfirm();
-  showToast('編集しました');
-}
-
-function registerScannedEvents(){
-  const toAdd=_scanItems.filter(i=>i._selected&&i.title&&i.date);
-  if(!toAdd.length){showToast('登録する予定を選択してください','error');return;}
-  let added=0,prepAdded=0;
-  toAdd.forEach(item=>{
-    const mem=getMem(item.member);
-    const colMatch=(mem.grad||'#4A90E2').match(/#[0-9A-Fa-f]{6}/);
-    S.events.push({
-      id:uid(),title:item.title,date:item.date,
-      time:item.time||'09:00',
-      color:colMatch?colMatch[0]:'#4A90E2',
-      member:item.member,
-      note:[item.note,item.items_to_bring.length?`持ち物: ${item.items_to_bring.join('・')}`:''].filter(Boolean).join(' / '),
-    });
-    added++;
-    [...item.items_to_bring.map(it=>({text:it,cat:'学校',date:item.date})),
-     ...item.submission_items.map(it=>({text:`【提出】${it}`,cat:'学校',date:item.date}))
-    ].forEach(p=>{
-      if(!S.prep) S.prep=[];
-      S.prep.push({id:uid(),text:p.text,cat:p.cat,done:false,date:p.date});
-      prepAdded++;
-    });
-  });
-  saveS();
-  showToast(prepAdded>0
-    ?`${added}件をカレンダーに登録しました（持ち物${prepAdded}件も準備リストへ）`
-    :`${added}件をカレンダーに登録しました`
-  );
-  _scanItems=[];
-  go('s-cal');
-  refresh('s-cal');
-}
 
 /* ============================================================
    INIT
    ============================================================ */
 function init() {
   loadS();
-  migrateData();
   migrateTaskData(); // タスクデータ移行
   if(S.loggedIn && S.user) {
     seedDemo();
@@ -9980,28 +8026,6 @@ function init() {
   } else {
     document.getElementById('tabbar').classList.add('hidden');
     showScreen('s-ob');
-  }
-}
-
-/* 旧データ移行：type フィールド追加 & receipts_root 保証 */
-function migrateData() {
-  if(!S.folders) S.folders = [];
-  if(!S.docs)    S.docs    = [];
-  // type フィールドのない既存フォルダを修正
-  // 名前が「領収証」またはIDが「f-receipts」のフォルダは receipts_root として保護
-  S.folders.forEach(f => {
-    if(!f.type || (f.type === 'normal' && (f.id === 'f-receipts' || f.name === '領収証'))) {
-      f.type = (f.id === 'f-receipts' || f.name === '領収証') ? 'receipts_root' : 'normal';
-    }
-  });
-  // 通常フォルダがある場合のみ receipts_root を追加
-  const hasNormal = S.folders.some(f => f.type === 'normal');
-  if(hasNormal && !S.folders.find(f => f.type === 'receipts_root')) {
-    S.folders.push({
-      id:'f-receipts', name:'領収証', type:'receipts_root',
-      isPinned:false, order:99, parentFolderId:null, createdAt:todayStr()
-    });
-    if(S.loggedIn) saveS();
   }
 }
 
