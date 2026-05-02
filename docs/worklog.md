@@ -1759,3 +1759,161 @@ H-01 ローカルプロフィール導入時も同方式で forward-compat 可�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 11: 100/100 score - multi-intent + multi-viewport + 5 release-prep docs`
+
+---
+
+## 2026-05-02 08:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 12：事業視点 100 点診断 + 90 日ロードマップ + セールスピッチ素材 + Hoku 位置付け強化
+
+### 変更ファイル
+- `app-source/familink.html`（小規模テキスト編集 3 箇所）
+- `docs/index.html`（同期）
+- `docs/product-growth-review-2026-05-02.md`（新規）
+- `docs/roadmap-to-mvp-v1.md`（新規）
+- `docs/sales-pitch-materials.md`（新規）
+- `docs/release-score-2026-05-02-wave12.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+- Hoku の自己紹介を「家族運営AI」に統一する 3 箇所の surgical text edit
+  - 設定画面 Hoku カード サブテキスト
+  - メニューフッター
+  - Hoku のヘルプ応答文
+- 事業視点での 9 軸 100 点評価レポート作成（HONEST 評価：78/100、QA 100 とは別軸）
+- v0.1 → v0.2 → v1.0 の 90 日ロードマップ（家族同期 / IAP / Hoku 強化）
+- App Store / LP / SNS / プレス / 投資家向けピッチ素材集
+- 機能変更ゼロ（位置付け文言のみ）
+
+### テスト結果
+- md5 一致：app-source/familink.html ↔ docs/index.html（ac7a39553bda010b3f1d213833eb4857）
+- 行数一致：9717 行
+- 「家族運営AI」表記 grep 確認：2 箇所反映 OK
+- node --check：HTML のため対象外（前回まで JS 抽出での確認実施済み、本回は文字列のみ変更で構文影響なし）
+
+### Wave 12 評価ハイライト（HONEST 78/100）
+| 軸 | 配点 | 得点 |
+|---|---|---|
+| プロダクト品質 | 15 | 14 |
+| コアバリュー明確さ | 15 | 13 |
+| Hoku 体験 | 15 | 11 |
+| 課金価値 実体 | 10 | 6 |
+| 共有・継続フック | 10 | 5 |
+| オンボーディング | 10 | 7 |
+| 信頼・安全性 | 10 | 9 |
+| グロース余地 | 10 | 8 |
+| ユニコーン視点 | 5 | 5 |
+| **合計** | 100 | **78** |
+
+### 弱点（次の 90 日で潰す）
+- W-1 家族 2 端末同期がない（コア提案が物理的に未成立）
+- W-2 通知・週次サマリーなし（リテンション設計弱）
+- W-3 課金価値が文言ベース（実体が薄い）
+- W-5 Hoku が文脈を覚えない
+
+### 未確認事項
+- 実家族での週次リテンション計測（v0.2 着手で初実施）
+- 弁護士による法務確認（v0.1 公開前の必須）
+- WKWebView ラッパーアプリの動作確認（v0.1 公開前）
+
+### iPhone 確認ポイント
+1. キャッシュクリア + リロード
+2. 設定画面の Hoku カード：「家族運営AI ─ 毎日の段取りをやさしくサポート」表示
+3. メニューフッター：「家族運営AI「Hoku」が、毎日の段取りをそっと支えます。」表示
+4. Hoku で「何ができる？」と入力 → 「家族運営をやさしく支える AI ガイド」と返答
+
+### 次にやること
+- v0.1 残作業：H-01 ローカルプロフィール実装 + スクリーンショット撮影 + 法務確認
+- v0.2 着手：F-01 家族 2 端末同期（QR コード共有）
+- ピッチ素材を SNS / LP に展開
+- Wave 13 候補：H-01 実装 + オンボーディング第 1 弾（家族追加 → 1 件目入力 → Hoku 紹介）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 12: business growth diagnosis 78/100 + 90-day roadmap + sales pitch materials`
+
+---
+
+## 2026-05-02 09:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 13：初回体験オンボーディング第 1 弾実装（s-onboard 4 ステップ + ローカルプロフィール + 最初の 1 件登録 + Hoku 紹介）
+
+### 変更ファイル
+- `app-source/familink.html`（s-onboard 画面 + CSS + JS 追加）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-02-wave13.md`（新規）
+- `docs/release-score-2026-05-02-wave13.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+- 新規画面 `s-onboard`（22 画面目）：4 ステップの初回オンボーディング
+  - Step 1：価値説明（Familink + Hoku の 3 ポイント）
+  - Step 2：ローカルプロフィール作成（表示名 / 役割 9 択 / 家族名）
+  - Step 3：最初の 1 件登録（予定追加：タイトル / 日付 / 時刻）
+  - Step 4：Hoku 紹介（家族運営 AI + 自然文例 + 音声入力案内）
+- PERSIST に `userProfile` `onboardCompleted` を追加（**追加のみ・既存構造変更なし**）
+- doLogin / doQuickDemo を改修：`!S.onboardCompleted` のとき startOnboarding() 経由
+- renderHome 挨拶を `userProfile.displayName || S.user.name` で表示
+- 設定画面に「はじめての方ガイドを見る」を追加（reopenOnboarding）
+- noTab に s-onboard を追加（タブバー非表示）
+- CSS：ob2-* クラス（プログレスバー / ステップ / ロールグリッド / ボタン）
+
+### テスト結果
+- md5 一致：32ad84340af3f6b653911727f50c1880（src ↔ docs）
+- 行数：10037 行（src / docs 一致）
+- 画面 ID：22（既存 21 + s-onboard）
+- node --check（JS 抽出）：エラーなし
+- HTTP 200（src / docs）：両方 OK
+- 個人名 / 固定パスワード grep：該当なし
+- Playwright（iPhone 13 viewport 390×844）：
+  - 通常フロー（4 ステップ完走）：全 PASS
+  - スキップフロー：PASS
+  - LS 保存：onboardCompleted / userProfile / イベント全 OK
+  - リロード後の挙動：完了済みは s-home 直行 OK
+  - ホーム挨拶：登録した表示名が反映 OK
+  - pageerror：0 件 / Wave 13 関連 console.error：0 件
+  - 4 件の ERR_CERT_AUTHORITY_INVALID は外部 CDN（フォント）取得失敗で機能と無関係
+
+### 評点（Wave 13）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| 初回体験 | 10 | 9 |
+| プロフィール作成 | 10 | 9 |
+| Hoku 紹介 | 10 | 8 |
+| 既存機能への影響 | 10 | 10 |
+| **小計** | 40 | 36 |
+
+### MVP v0.1 完成度
+Wave 12: 78/100 → Wave 13: **82/100**（+4 底上げ）
+判定：A-（良作 MVP）
+
+### 残課題
+- OB-1 既存ユーザーへの onboardingCompleted 判定追加検討
+- OB-2 プロフィール編集画面（Wave 14 候補）
+- OB-3 役割→既存メンバーマッピング（Wave 14 候補）
+- OB-4 完了率計測（v0.2 / プライバシー配慮型）
+- OB-5 スクリーンショット撮影（実機・公開前）
+- v0.1 残：H-01（実装済 ✅）/ 法務確認 / WKWebView ラッパー
+
+### iPhone 確認ポイント
+1. キャッシュクリア + リロード
+2. ウェルカム → ログイン →「デモデータで試してみる」→ s-onboard が表示される
+3. Step 1〜4 の遷移と進捗バー（25%→50%→75%→100%）
+4. 役割ボタン 9 択（パパ/ママ/息子/娘/祖父/祖母/パートナー/兄弟姉妹/その他）
+5. 表示名未入力でエラートースト
+6. 「保育園のお迎え」を明日に登録 → カレンダーで反映確認
+7. ホーム挨拶が「テストパパさん」など登録した名前に
+8. 設定 →「はじめての方ガイドを見る」で再表示
+9. スキップフローで s-home に直行
+10. リロードで再表示されない
+
+### 次にやること
+- v0.2 着手：F-01 家族 2 端末同期（QR コード共有）
+- Wave 14 候補：プロフィール編集画面 + 役割→メンバーマッピング
+- 公開前残：法務確認 + WKWebView ラッパー + スクリーンショット
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 13: onboarding step1 - 4-step flow + local profile + first item + hoku intro`

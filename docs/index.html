@@ -1812,11 +1812,99 @@ select.input {
    ============================================================ */
 .pb-tab { padding-bottom: calc(98px + env(safe-area-inset-bottom)); }
 
-/* タブバー：ウェルカム・ログイン画面では強制非表示 */
+/* タブバー：ウェルカム・ログイン・オンボーディング画面では強制非表示 */
 #s-ob:not(.hidden) ~ #tabbar,
-#s-login:not(.hidden) ~ #tabbar {
+#s-login:not(.hidden) ~ #tabbar,
+#s-onboard:not(.hidden) ~ #tabbar {
   display: none !important;
 }
+
+/* ============================================================
+   ONBOARDING (s-onboard) — Wave 13 初回体験
+   ============================================================ */
+#s-onboard {
+  background: linear-gradient(162deg, #EBF4FF 0%, #F4F7FD 60%, #FFFDF5 100%);
+  min-height: 100vh;
+  padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+.ob2-wrap { max-width: 480px; margin: 0 auto; }
+.ob2-progress {
+  height: 4px; background: rgba(74,144,226,.15); border-radius: 2px;
+  overflow: hidden; margin-bottom: 6px;
+}
+.ob2-progress-bar {
+  height: 100%; background: linear-gradient(90deg,#4A90E2,#7BB3F5);
+  border-radius: 2px; transition: width .3s ease;
+}
+.ob2-step-indicator {
+  font-size: 11px; color: var(--text-muted); text-align: right;
+  margin-bottom: 18px; letter-spacing: .3px;
+}
+.ob2-step { animation: ob2fade .25s ease-out; }
+.ob2-step.hidden { display: none !important; }
+nav#tabbar.hidden { display: none !important; }
+@keyframes ob2fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.ob2-icon {
+  display: flex; justify-content: center; margin-bottom: 14px;
+}
+.ob2-icon img { width: 84px; height: 84px; object-fit: contain; }
+.ob2-title {
+  font-size: 22px; font-weight: 800; color: var(--text);
+  text-align: center; line-height: 1.4; margin-bottom: 12px; letter-spacing: -.2px;
+}
+.ob2-desc {
+  font-size: 14px; color: var(--text-sub); line-height: 1.7;
+  text-align: center; margin-bottom: 20px;
+}
+.ob2-points {
+  list-style: none; padding: 0; margin: 0 0 24px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ob2-points li {
+  background: rgba(255,255,255,.7); border-radius: 12px;
+  padding: 12px 14px; font-size: 14px; color: var(--text);
+  border: 1px solid rgba(74,144,226,.12);
+}
+.ob2-role-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-top: 6px;
+}
+.ob2-role-btn {
+  background: #fff; border: 1.5px solid rgba(74,144,226,.18);
+  border-radius: 10px; padding: 10px 4px; font-size: 13px;
+  color: var(--text); cursor: pointer; transition: all .15s ease;
+  font-weight: 600;
+}
+.ob2-role-btn:active { transform: scale(.96); }
+.ob2-role-btn.selected {
+  background: linear-gradient(135deg,#4A90E2,#7BB3F5); color: #fff;
+  border-color: transparent; box-shadow: 0 4px 12px rgba(74,144,226,.25);
+}
+.ob2-btn-primary {
+  width: 100%; background: linear-gradient(135deg,#4A90E2,#7BB3F5);
+  color: #fff; border: none; border-radius: 14px;
+  padding: 16px; font-size: 16px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(74,144,226,.3);
+  margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ob2-btn-primary:active { transform: scale(.98); }
+.ob2-btn-skip, .ob2-btn-back {
+  width: 100%; background: transparent; color: var(--text-muted);
+  border: none; padding: 12px; font-size: 13px; cursor: pointer;
+  margin-top: 4px;
+}
+.ob2-btn-skip:active, .ob2-btn-back:active { color: var(--primary); }
+.ob2-hint {
+  background: rgba(255,255,255,.6); border-radius: 10px;
+  padding: 12px 14px; font-size: 12px; color: var(--text-sub);
+  line-height: 1.6; margin: 12px 0 18px;
+  border-left: 3px solid var(--primary);
+}
+.ob2-hoku-icon {
+  display: flex; justify-content: center; margin-bottom: 10px;
+}
+.ob2-hoku-icon img { width: 96px; height: 96px; object-fit: contain; }
 
 /* Animated loading dots */
 .loading { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 32px; }
@@ -2100,6 +2188,79 @@ select.input {
         アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は近日公開予定です。まずはデモデータでお試しください。')">新規登録</span>
       </div>
       <button class="btn btn-ghost btn-block" onclick="go('s-ob')" style="margin-top:4px">← ウェルカム画面へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ONBOARDING (Wave 13) ===== -->
+<div id="s-onboard" class="screen hidden">
+  <div class="ob2-wrap">
+    <div class="ob2-progress"><div class="ob2-progress-bar" id="ob2-progress-bar" style="width:25%"></div></div>
+    <div class="ob2-step-indicator" id="ob2-step-indicator">1 / 4</div>
+
+    <!-- Step 1: 価値の説明 -->
+    <div class="ob2-step" id="ob2-step-1">
+      <div class="ob2-icon"><img src="" id="ob2-hero-img" alt="Familink"></div>
+      <h2 class="ob2-title">家族みんなで、毎日をチームに</h2>
+      <p class="ob2-desc">Familink は、家族の予定・タスク・体調・家計・準備をひとつにまとめるアプリです。<br>家族運営AI「Hoku」が、毎日の段取りをやさしくサポートします。</p>
+      <ul class="ob2-points">
+        <li>📅 予定・タスク・準備をひとつに</li>
+        <li>💛 体調・家計をやさしく見える化</li>
+        <li>🤖 Hoku が次の一手をご提案</li>
+      </ul>
+      <button class="ob2-btn-primary" onclick="ob2Next()">はじめましょう</button>
+      <button class="ob2-btn-skip" onclick="ob2Skip()">スキップしてホームへ</button>
+    </div>
+
+    <!-- Step 2: プロフィール作成 -->
+    <div class="ob2-step hidden" id="ob2-step-2">
+      <h2 class="ob2-title">あなたについて教えてください</h2>
+      <p class="ob2-desc">家族での表示名と役割を設定します。<br>あとから設定画面で変更できます。</p>
+      <div class="field">
+        <div class="field-label">表示名</div>
+        <input class="input" id="ob2-displayName" placeholder="例：パパ、ママ、たろう" maxlength="12">
+      </div>
+      <div class="field">
+        <div class="field-label">あなたの役割</div>
+        <div class="ob2-role-grid" id="ob2-role-grid"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">家族の呼び方（任意）</div>
+        <input class="input" id="ob2-familyName" placeholder="例：山田家、ファミリンク家" maxlength="20">
+      </div>
+      <button class="ob2-btn-primary" onclick="ob2SaveProfile()">次へ</button>
+      <button class="ob2-btn-back" onclick="ob2Prev()">戻る</button>
+    </div>
+
+    <!-- Step 3: 最初の1件登録 -->
+    <div class="ob2-step hidden" id="ob2-step-3">
+      <h2 class="ob2-title">最初の予定を入れてみましょう</h2>
+      <p class="ob2-desc">明日の予定を1つだけ登録してみましょう。<br>あとでいつでも編集・削除できます。</p>
+      <div class="field">
+        <div class="field-label">予定のタイトル</div>
+        <input class="input" id="ob2-firstTitle" placeholder="例：保育園のお迎え" maxlength="30">
+      </div>
+      <div class="field">
+        <div class="field-label">日付</div>
+        <input class="input" id="ob2-firstDate" type="date">
+      </div>
+      <div class="field">
+        <div class="field-label">時刻（任意）</div>
+        <input class="input" id="ob2-firstTime" type="time" value="09:00">
+      </div>
+      <button class="ob2-btn-primary" onclick="ob2SaveFirst()">登録して次へ</button>
+      <button class="ob2-btn-skip" onclick="ob2NextSkip()">あとで登録する</button>
+      <button class="ob2-btn-back" onclick="ob2Prev()">戻る</button>
+    </div>
+
+    <!-- Step 4: Hoku 紹介 -->
+    <div class="ob2-step hidden" id="ob2-step-4">
+      <div class="ob2-hoku-icon"><img src="" id="ob2-hoku-img" alt="Hoku"></div>
+      <h2 class="ob2-title">Hoku が毎日を伴走します</h2>
+      <p class="ob2-desc">Hoku は家族運営をやさしく支える AI ガイドです。「明日の小児科で持ち物を整理したい」「子どもが熱っぽい」など、自然な言葉で話しかけてください。最適な保存先と次の一手をご案内します。</p>
+      <div class="ob2-hint">📱 音声入力に対応した機種では、マイクボタンから声で話しかけられます。対応していない場合はキーボードでどうぞ。</div>
+      <button class="ob2-btn-primary" onclick="ob2Done()">ホームへ進む</button>
+      <button class="ob2-btn-back" onclick="ob2Prev()">戻る</button>
     </div>
   </div>
 </div>
@@ -3195,7 +3356,7 @@ let S = {
   boardSections: [], // [{id,boardId,title,order}]
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted'];
 
 function saveS() {
   const d = {};
@@ -3324,7 +3485,7 @@ function go(id) {
   S.prev = S.screen;
   showScreen(id);
   // 認証前画面ではタブバーを非表示
-  const noTab = ['s-ob', 's-login'];
+  const noTab = ['s-ob', 's-login', 's-onboard'];
   document.getElementById('tabbar').classList.toggle('hidden', noTab.includes(id));
   refresh(id);
 }
@@ -3428,9 +3589,13 @@ function doLogin() {
   S.user = MEMBERS[0];
   seedDemo();
   saveS();
+  if(!S.onboardCompleted) {
+    startOnboarding();
+    return;
+  }
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
-  showToast(`${S.user.name}さん、ようこそ`);
+  showToast(`${displayName()}さん、ようこそ`);
 }
 
 function doQuickDemo() {
@@ -3457,9 +3622,161 @@ function _applyQuickDemo() {
   S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.notifs = [];
   seedDemo();
   saveS();
+  if(!S.onboardCompleted) {
+    startOnboarding();
+    return;
+  }
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
   showToast('デモデータを読み込みました');
+}
+
+/* ============================================================
+   ONBOARDING (Wave 13) — 初回体験フロー
+   ============================================================ */
+const OB2_ROLES = [
+  { id:'parent_pa',   label:'パパ' },
+  { id:'parent_ma',   label:'ママ' },
+  { id:'child_son',   label:'息子' },
+  { id:'child_dau',   label:'娘' },
+  { id:'grand_pa',    label:'祖父' },
+  { id:'grand_ma',    label:'祖母' },
+  { id:'partner',     label:'パートナー' },
+  { id:'sibling',     label:'兄弟姉妹' },
+  { id:'other',       label:'その他' },
+];
+let _ob2Step = 1;
+let _ob2RoleId = null;
+
+function startOnboarding() {
+  _ob2Step = 1;
+  _ob2RoleId = null;
+  // 画像注入（IMGS が読めるタイミング）
+  const heroEl = document.getElementById('ob2-hero-img');
+  if(heroEl && IMGS && IMGS.hoku) heroEl.src = IMGS.hoku;
+  const hokuEl = document.getElementById('ob2-hoku-img');
+  if(hokuEl && IMGS && IMGS.hoku) hokuEl.src = IMGS.hoku;
+  // 既存プロフィール優先表示
+  const dn = document.getElementById('ob2-displayName');
+  if(dn) dn.value = (S.userProfile && S.userProfile.displayName) || '';
+  const fn = document.getElementById('ob2-familyName');
+  if(fn) fn.value = (S.userProfile && S.userProfile.familyName) || '';
+  // 役割ボタン構築
+  ob2RenderRoles();
+  // 既選択の役割
+  if(S.userProfile && S.userProfile.roleId) {
+    _ob2RoleId = S.userProfile.roleId;
+    ob2RenderRoles();
+  }
+  // 日付デフォルト：明日
+  const dateEl = document.getElementById('ob2-firstDate');
+  if(dateEl) {
+    const t = new Date(); t.setDate(t.getDate()+1);
+    dateEl.value = t.toISOString().slice(0,10);
+  }
+  ob2GoStep(1);
+  document.getElementById('tabbar').classList.add('hidden');
+  showScreen('s-onboard');
+}
+
+function ob2RenderRoles() {
+  const grid = document.getElementById('ob2-role-grid');
+  if(!grid) return;
+  grid.innerHTML = OB2_ROLES.map(r =>
+    `<button class="ob2-role-btn ${r.id===_ob2RoleId?'selected':''}" onclick="ob2SelectRole('${r.id}')">${H(r.label)}</button>`
+  ).join('');
+}
+function ob2SelectRole(id) {
+  _ob2RoleId = id;
+  const dn = document.getElementById('ob2-displayName');
+  if(dn && !dn.value) {
+    const found = OB2_ROLES.find(r => r.id===id);
+    if(found && (id==='parent_pa' || id==='parent_ma' || id==='grand_pa' || id==='grand_ma')) {
+      dn.value = found.label;
+    }
+  }
+  ob2RenderRoles();
+}
+
+function ob2GoStep(n) {
+  _ob2Step = n;
+  for(let i=1; i<=4; i++) {
+    const el = document.getElementById('ob2-step-'+i);
+    if(el) el.classList.toggle('hidden', i !== n);
+  }
+  const bar = document.getElementById('ob2-progress-bar');
+  if(bar) bar.style.width = (n*25) + '%';
+  const ind = document.getElementById('ob2-step-indicator');
+  if(ind) ind.textContent = n + ' / 4';
+  // スクロール最上部
+  const sc = document.getElementById('s-onboard');
+  if(sc) sc.scrollTop = 0;
+}
+function ob2Next() { ob2GoStep(Math.min(4, _ob2Step+1)); }
+function ob2Prev() { ob2GoStep(Math.max(1, _ob2Step-1)); }
+function ob2NextSkip() { ob2GoStep(Math.min(4, _ob2Step+1)); }
+
+function ob2SaveProfile() {
+  const dn = document.getElementById('ob2-displayName').value.trim();
+  if(!dn) { showToast('表示名を入力してください','error'); return; }
+  if(!_ob2RoleId) { showToast('役割を選んでください','error'); return; }
+  const fn = document.getElementById('ob2-familyName').value.trim();
+  S.userProfile = {
+    displayName: dn,
+    roleId: _ob2RoleId,
+    familyName: fn || '',
+    createdAt: todayStr ? todayStr() : (new Date()).toISOString().slice(0,10)
+  };
+  saveS();
+  ob2GoStep(3);
+}
+
+function ob2SaveFirst() {
+  const title = document.getElementById('ob2-firstTitle').value.trim();
+  const date  = document.getElementById('ob2-firstDate').value;
+  const time  = document.getElementById('ob2-firstTime').value || '09:00';
+  if(!title) { showToast('予定のタイトルを入力してください','error'); return; }
+  if(!date)  { showToast('日付を選択してください','error'); return; }
+  S.events = S.events || [];
+  S.events.push({
+    id: uid(),
+    title: title,
+    date: date,
+    time: time,
+    color: '#4A90E2',
+    member: (S.user && S.user.id) || 'kenya',
+    note: ''
+  });
+  saveS();
+  showToast('最初の予定を登録しました');
+  ob2GoStep(4);
+}
+
+function ob2Done() {
+  S.onboardCompleted = true;
+  saveS();
+  document.getElementById('tabbar').classList.remove('hidden');
+  switchTab('s-home');
+  const dn = displayName();
+  showToast(`${dn}さん、ようこそ Familink へ`);
+}
+
+function ob2Skip() {
+  S.onboardCompleted = true;
+  saveS();
+  document.getElementById('tabbar').classList.remove('hidden');
+  switchTab('s-home');
+  showToast('オンボーディングをスキップしました');
+}
+
+function displayName() {
+  if(S.userProfile && S.userProfile.displayName) return S.userProfile.displayName;
+  return (S.user && S.user.name) || 'ゲスト';
+}
+
+function reopenOnboarding() {
+  // 設定からの再表示。完了フラグはリセットせず、1 ステップ目から見せる
+  startOnboarding();
 }
 
 function doLogout() {
@@ -3593,7 +3910,8 @@ function renderHome() {
   const m = S.user || MEMBERS[0];
   const greetEl = document.getElementById('home-greeting');
   if(greetEl) {
-    greetEl.innerHTML = `${H(greeting())}、<strong>${H(m.name)}</strong>さん`;
+    const nm = (S.userProfile && S.userProfile.displayName) || m.name;
+    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
   }
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
@@ -5967,7 +6285,7 @@ function renderSettings() {
       ${ni('s-budget',"go('s-budget')",si('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>','#FFB800'),'#FFF8DC','家計','支出と収入を家族で把握')}
       ${ni('s-docs',"go('s-docs')",si('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>','#4A90E2'),'#EBF4FF','書類保管庫','大事な書類や写真を整理')}
       ${ni('s-scan',"go('s-scan')",si('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>','#9B7FE8'),'#F0EBFF','予定表スキャン','お便りや予定表を読み取り登録')}
-      ${ni('s-hoku','openHoku()','<img src="'+IMGS.hoku+'" style="width:22px;height:22px;object-fit:contain" alt="Hoku">','#EBF4FF','Hoku AI','家族の毎日をやさしくサポート')}
+      ${ni('s-hoku','openHoku()','<img src="'+IMGS.hoku+'" style="width:22px;height:22px;object-fit:contain" alt="Hoku">','#EBF4FF','Hoku AI','家族運営AI ─ 毎日の段取りをやさしくサポート')}
     </div>
 
     <!-- Premium -->
@@ -5988,6 +6306,10 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>','#4A90E2')}</div>
         <div class="settings-item-label">通知</div><div class="settings-arrow">›</div>
       </div>
+      <div class="settings-item" onclick="reopenOnboarding()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>','#4A90E2')}</div>
+        <div class="settings-item-label">はじめての方ガイドを見る</div><div class="settings-arrow">›</div>
+      </div>
       <div class="settings-item" onclick="doLogout()">
         <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
         <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
@@ -5998,7 +6320,7 @@ function renderSettings() {
     <div class="menu-footer">
       <div class="menu-footer-tagline">家族の毎日を、少しだけラクに。</div>
       Familink v3.0<br>
-      <span style="font-size:10px">Hokuが家族の共有をそっとサポートします。</span>
+      <span style="font-size:10px">家族運営AI「Hoku」が、毎日の段取りをそっと支えます。</span>
     </div>`;
 }
 
@@ -7867,11 +8189,11 @@ function hokuLocalAnswer(q) {
 
   /* ヘルプ */
   if(ql.match(/できる|使い方|ヘルプ|何|help/i)) {
-    return 'お手伝いできることは大きく 3 つです。'+NL+NL+
-      '・予定／タスク／家計／準備の確認'+NL+
-      '・予定追加・タスク追加・家計登録（「予定追加して」など）'+NL+
-      '・タスクの完了や削除（「〇〇のタスク完了して」など）'+NL+NL+
-      '「持ち物を整理したい」「子どもが熱っぽい」「節約したい」など、家族の困りごとも気軽に話しかけてくださいね。';
+    return 'Hokuは、家族運営をやさしく支える AI ガイドです。'+NL+NL+
+      '・予定／タスク／家計／準備の確認・登録'+NL+
+      '・「予定追加して」「○○円使った」など自然文で記録'+NL+
+      '・タスクの完了・削除（「〇〇のタスク完了して」など）'+NL+NL+
+      '「持ち物を整理したい」「子どもが熱っぽい」「節約したい」など、家族運営の困りごとも気軽に話しかけてください。最適な保存先や次の一手をご案内します。';
   }
 
   /* デフォルト */
