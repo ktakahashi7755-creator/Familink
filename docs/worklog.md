@@ -1008,5 +1008,79 @@ Wave 4：実機 QA に出せる安定版への深掘り検証 + 軽微改善
 4. 一次合格 → 第 2 弾（H-01 ローカルプロフィール）の設計開始
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `eae3233`（push 済み）
 - メッセージ: `mark stable for iPhone QA: add owner checklist (mobile-friendly)`
+
+---
+
+## 2026-05-02 00:28  env: 不明（GitHub Pages 一時公開準備）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+GitHub Pages による実機 QA 一時公開：ルート `index.html` リダイレクト + README 設定手順
+
+### 変更ファイル
+- `index.html`（新規 / リポジトリ直下のリダイレクトページ）
+- `README.md`（追記 / GitHub Pages 設定手順セクション）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- **本体 HTML（`app-source/familink.html`）は変更なし**
+- リポジトリ直下に `index.html` を新設：
+  - `<meta http-equiv="refresh" content="0; url=app-source/familink.html">` で即座に自動リダイレクト
+  - 自動進行しない場合のフォールバックリンクを表示
+  - `apple-mobile-web-app-capable` 等の iPhone 向け meta も付与（ホーム画面追加対応）
+  - viewport / theme-color は本体 HTML と整合
+- `README.md` に「出先の iPhone から確認したい（GitHub Pages 一時公開）」セクションを追加：
+  - 公開 URL：`https://ktakahashi7755-creator.github.io/Familink/`
+  - GitHub Settings での設定手順（Pages → Source → Branch / Folder 指定）
+  - Branch = `claude/familylink-unicorn-product-TzM1F` / Folder = `/ (root)` を明記
+  - キャッシュ問題対処法を追記
+
+### Claude Code 側でできなかったこと（オーナーに依頼）
+- GitHub Pages の設定変更は GitHub Web UI でのみ可能（API ベースだが Pages 設定エンドポイントへのアクセス権なし）
+- README に手順を明記したので、オーナーが Settings → Pages で 1 回だけ設定する必要あり
+
+### 公開不可情報の再確認（grep）
+- 個人名（賢弥/星愛/星斗/星旺/星汰）：0 件
+- `kenya@familink.app`：0 件
+- `value="password"`：0 件
+- 「掲示板」（UI 上、互換 regex 除く）：0 件
+- → 公開して問題なし
+
+### テスト結果
+- ローカル `python3 -m http.server` で：
+  - ROOT `/` → HTTP 200 / リダイレクト HTML（991 bytes）
+  - `/app-source/familink.html` → HTTP 200 / 1,298,894 bytes
+- リダイレクト HTML の構文：手動目視で問題なし
+- 本体 HTML：未変更で動作確認済み
+
+### 影響範囲
+- 既存の起動方法（`python3 -m http.server` から `src/familink.html` を開く）は引き続き動作
+- 新規追加した `index.html` は GitHub Pages 経由のみで意味を持つ（ローカル http.server でも動くが既存導線とは独立）
+- 既存ファイル / LocalStorage 構造 / アプリ動作：すべて不変
+
+### 未確認事項
+- GitHub Pages を実際に有効化した状態での動作確認（オーナー側設定後に確認可能）
+- Pages 経由での iPhone Safari からのアクセス
+- カスタムドメインや HTTPS 証明書の挙動（GitHub 標準 *.github.io で十分）
+
+### iPhone 確認ポイント（オーナー設定後）
+1. オーナーが GitHub Settings → Pages で Branch / Folder を設定
+2. 数分後に `https://ktakahashi7755-creator.github.io/Familink/` を iPhone Safari で開く
+3. 自動的に Familink ウェルカム画面が表示される
+4. `docs/qa-owner-checklist.md` の 10 項目を順に確認
+
+### 残課題
+- Pages 設定はオーナー側で実施待ち
+- 実機 QA 完了後は Pages を無効化（Branch を None に）が安全
+
+### 次にやること
+1. **オーナー側で GitHub Settings → Pages の設定**（README §出先の iPhone から〜 を参照）
+2. 反映後、iPhone から URL を開いて実機 QA 開始
+3. `docs/qa-owner-checklist.md` の 10 項目をチェック
+4. バグがあれば `docs/qa-results-YYYY-MM-DD.md` に記録 → push
+5. 一次合格後、Pages を無効化推奨
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `add GitHub Pages redirect index.html and setup instructions`
