@@ -1264,5 +1264,95 @@ JS syntax: OK / HTTP 200 / pageerror 0
 3. `docs/iphone-qa-guide.md` §4-5 Wave 5 検証 11 項目
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `0a33d56`（push 済み）
 - メッセージ: `wave 5: add Hoku voice input (Web Speech API) + 7 guidance categories + sync docs/index.html`
+
+---
+
+## 2026-05-02 06:32  env: 不明（Wave 6 自走セッション）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 6：包括診断 → Hoku ガイダンス 5 カテゴリ追加 + 音声入力発見性向上
+
+### 変更ファイル
+- `app-source/familink.html`（ガイダンス 5 カテゴリ + チップ拡充 + プレースホルダー + 空状態 + デフォルト応答 + 子育て regex 整理）
+- `docs/index.html`（同期コピー、md5 一致）
+- `docs/qa-results-2026-05-02-wave6.md`（新規）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+
+#### 包括診断（Phase 2-3）
+- Playwright 包括テストで 21 画面 / Hoku 関連 / LocalStorage / 公開安全性 を一気通貫検証
+- 致命バグ 0 件、High 0、Medium 5（未対応カテゴリ）
+- 21 画面すべて navigate OK、ホームカード 6 個 onclick OK
+- Hoku 4 関数すべて存在、音声入力 UI 配置済
+- LocalStorage 永続化（タスク追加 → リロード → 復元）OK
+- 個人名 / kenya@ / password / 「掲示板」(UI) すべて 0 件
+
+#### Hoku ガイダンス 5 カテゴリ追加（Phase 6）
+1. **朝の準備**：「夜のうちに済ませる + 朝の必須リスト」の 2 軸
+2. **登園・登校**：「子どもが見て分かる」+ 相談窓口
+3. **習い事**：「曜日 × 持ち物 × 送迎」の 3 軸
+4. **買い物**：家族ボード活用、定番固定リスト
+5. **家族共有**：「どこに書くか」をルール化
+
+#### Hoku UI 改善（Phase 5・7）
+- HOKU_SUGGESTIONS を 9 → 14 個に拡充（ガイダンス例 5 + 既存維持）
+- 入力欄プレースホルダーに「マイクで音声入力もできます」追加
+- 空状態に「マイクボタンで音声入力もできます」バッジ追加
+- デフォルト応答を「聞ける内容（例）」5 種類で具体化
+- 「子育て一般」regex から登園/登校を分離 → 専用応答へ誘導
+
+### 動的検証結果（19 クエリ）
+- 新規 5 ガイダンス：全 PASS
+- 既存 7 ガイダンス（Wave 5 由来）：全 PASS
+- 既存 7 data-lookup（Wave 1-4 由来）：全 PASS
+- デフォルト応答：改善された例示で表示
+
+### 静的検証
+- node --check JS 構文 OK
+- 行数：9,490 行
+- app-source ↔ docs/index.html md5 完全一致
+- 公開不可情報（個人名 / 固定メール / 固定パスワード / 「掲示板」UI）：すべて 0 件
+
+### 影響範囲
+- LocalStorage 構造：不変
+- 既存関数シグネチャ：不変
+- 既存 UI 配置：不変（チップ追加と placeholder 文言のみ）
+- 既存応答：すべて維持
+
+### GitHub Pages 反映予定
+- QA branch コミットを default branch にもマージ
+- Pages workflow が自動再デプロイ
+- 数分後に `https://ktakahashi7755-creator.github.io/Familink/` で Wave 6 反映
+
+### iPhone 確認ポイント
+- ホーム → Hoku FAB → 14 個のチップ
+- 「朝の準備が大変」「習い事多すぎ」「買い物リスト作りたい」「家族にどう共有」「登園いやがる」のガイダンス応答
+- マイクアイコン + プレースホルダー + 空状態バッジ
+
+### 残課題
+- High：なし
+- Medium：iPhone Safari 実機での音声入力確認 / PWA モード動作 / カスタムボード UX 実機 / スキャン UX 実機
+- Low：音声認識精度向上 / 連続入力モード / L-01〜L-04 / App Store 申請準備 / H-01 ローカルプロフィール
+
+### エージェント別実施
+- **PO/PM**：Wave 5 安定版から「Hoku 応答カバレッジ」を価値追加と判断
+- **QA Lead**：包括診断 → Medium 5 起票 → 修正後再テストで全 PASS
+- **UX/UI Lead**：チップ拡充 / プレースホルダー / 空状態バッジ追加
+- **Frontend**：ガイダンス 5 + チップ + 文言調整、既存コード不変
+- **Hoku AI Lead**：5 カテゴリ設計（医療・お金断定なし、家族向け実用的）
+- **Release Manager**：docs 同期 / qa-results 新設 / 両 branch コミット予定
+
+### 自動停止ルール遵守
+9 項目すべて回避（認証 / クラウド / 課金 / LS 構造 / 外部 AI API / 仕様判断 / 画面作り替え / 主要機能破壊 / 4h 超）
+
+### 次にオーナーが確認すべきこと
+1. iPhone Safari キャッシュクリア後 GitHub Pages 再読込
+2. Hoku 画面でチップ 14 個・新ガイダンス 5 種を確認
+3. 音声入力ボタン + プレースホルダー + 空状態バッジを視認
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 6: add 5 guidance categories + improve voice input discoverability + sync docs`
