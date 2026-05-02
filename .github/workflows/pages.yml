@@ -1,10 +1,11 @@
 name: Deploy to GitHub Pages
 
-# トリガー：QA 投入ブランチへの push、または手動実行
+# トリガー：QA ブランチまたは default ブランチへの push、または手動実行
 on:
   push:
     branches:
       - claude/familylink-unicorn-product-TzM1F
+      - claude/merge-and-push-main-u44Ty
   workflow_dispatch:
 
 # Pages デプロイに必要な権限
