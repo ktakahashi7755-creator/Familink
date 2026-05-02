@@ -1354,5 +1354,94 @@ Wave 6：包括診断 → Hoku ガイダンス 5 カテゴリ追加 + 音声入�
 3. 音声入力ボタン + プレースホルダー + 空状態バッジを視認
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `6774e01`（push 済み、default branch = `8c3d0de`）
 - メッセージ: `wave 6: add 5 guidance categories + improve voice input discoverability + sync docs`
+
+---
+
+## 2026-05-02 06:52  env: 不明（Wave 7 自走セッション）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 7：Hoku 品質改善（スマート分類器 + 自然な提案応答 + 反映文言プロフェッショナル化）
+
+### 変更ファイル
+- `app-source/familink.html`（classifier 関数 + 応答 + 確認文言 + チップ刷新、+156 行）
+- `docs/index.html`（同期コピー、md5 一致）
+- `docs/hoku-quality-report-2026-05-02.md`（新規 / 詳細レポート）
+- `docs/worklog.md`（追記）
+
+### 主要実装
+
+#### 1. スマート分類器 `classifyHokuInput(q)`
+- 9 カテゴリ × 複数キーワードのスコア合計方式
+- 閾値 ≥ 3 で分類確定、それ以下は既存パターンへフォールバック
+- 重要な調整：
+  - 「光熱費」の「熱」を health 誤検出から除外（文脈付き regex）
+  - 「忘れない」を task → notification へ移動
+  - data-lookup 短文（「今日の予定」等）は classifier をスキップ
+  - help / premium を独立判定 + 順序固定で同点を回避
+
+#### 2. 自然な提案応答 `classifierGuidance(category, q, secondary)`
+9 カテゴリの提案文を、「保存先 + 次の行動」の構造で自然化。例：
+- calendar → 「予定として整理できそうな内容ですね。日時が分かる場合は、カレンダーに登録しておくと…」
+- health → 「体調メモに残しておくと安心です。…症状が強い場合は医療機関への相談も検討してください。」
+- budget → 「家計メモに残しておくと、あとで見直しやすくなります。食費・固定費・急な出費に分けて…」
+
+#### 3. handleAction 確認文言の自然化（5 箇所）
+- 「カレンダーに入れておく？」→「カレンダーに登録します。よろしいですか？」
+- 「タスクに入れておく？」→「タスクに追加します。よろしいですか？」
+- 「家計に入れておく？」→「家計メモに記録します。よろしいですか？」
+- 「完了にしておく？」→「完了にします。よろしいですか？」
+- 「消しておく？」→「削除します。元には戻せませんが、よろしいですか？」
+
+#### 4. executeAction 成功メッセージの構造化
+- 「・カテゴリ：○○ ・金額：○○ ・内容：○○」など箇条書き
+- 「○○画面で確認できます」と保存先の案内を追加
+
+#### 5. 音声入力後のトースト改善
+- 「聞き取りました：『○○』内容を確認して送信してください。」（旧「○○と認識しました。送信ボタンで送信できます。」）
+
+#### 6. おすすめチップを 9 個に刷新
+実利用シーンを意識：「明日の持ち物を整理したい」「小学校の準備を進めたい」「習い事の予定を整理したい」「忘れないように通知したい」など
+
+### Playwright QA テスト結果（35 パターン）
+- **33 PASS / 2 FAIL（94%）**
+- 失敗 2 件はいずれも「multi-intent 境界ケース」で応答自体は妥当
+- カテゴリ別：calendar 5/5, task 3/4, prep 4/4, budget 4/4, health 4/4, board 3/3, notification 2/3, help 2/2, premium 2/2, data-lookup 4/4
+
+### 静的検証
+- node --check JS 構文 OK
+- 行数 9,646（+156）
+- md5 一致（app-source ↔ docs/index.html）
+- 公開不可情報 0 件
+
+### エージェント別実施
+- **PO/PM**：Hoku の差別化価値として「文章理解 + 自然提案」が重要と判断
+- **Hoku AI Lead**：classifier + 9 カテゴリ提案 + 確認文言改善
+- **UX Writing Lead**：「○○反映」「入れておく？」のラフ表現を「○○に登録します。よろしいですか？」に統一
+- **Frontend**：JS 関数 2 つ追加（classifyHokuInput, classifierGuidance）+ 既存 5 箇所の文言調整
+- **QA Lead**：35 入力パターンで動的検証 → 94% PASS、failed cases は応答妥当
+- **Release Manager**：docs 同期 / レポート新設 / 両 branch コミット
+
+### 影響範囲
+- LocalStorage 構造：不変
+- 既存関数シグネチャ：不変
+- 既存応答（data-lookup / ガイダンス）：すべて維持
+- 既存 UI：チップ刷新 + プレースホルダー文言改善のみ
+
+### iPhone 確認ポイント（次回オーナー）
+1. キャッシュクリア + リロード
+2. チップ 9 個に刷新されているか
+3. 「明日15時に小児科」 → 自然な calendar 提案
+4. 「子どもが37.8度の熱」 → health 提案 + 医療機関相談誘導
+5. 「今月の食費が高い」 → budget 提案
+6. 「予定追加して」 → 「カレンダーに登録します。よろしいですか？」（旧「入れておく？」から変更）
+
+### 残課題
+- High：なし
+- Medium：iPhone Safari 実機検証 / multi-intent 入力の選択肢提示
+- Low：音声認識精度 / 連続入力 / L-01〜L-04 / App Store 申請 / H-01 ローカルプロフィール
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 7: Hoku quality - smart classifier + natural professional wording`
