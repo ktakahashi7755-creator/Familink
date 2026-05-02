@@ -1595,6 +1595,39 @@ select.input {
 }
 .post-card.pinned-card { border-color:var(--primary); border-width:2px; }
 .post-card:active { transform:scale(.98); }
+/* 家族ボード上の準備リスト クイックカード */
+.prep-quick-card {
+  margin: 0 16px 10px;
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+  border: 1px solid #BBF7D0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: var(--t-spring);
+}
+.prep-quick-card:active { transform: scale(.99); }
+.prep-quick-head {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 700; color: var(--text);
+  margin-bottom: 8px;
+}
+.prep-quick-title { flex: 1; font-size: 13px; }
+.prep-quick-arrow { color: var(--text-muted); font-size: 14px; line-height: 1; }
+.prep-quick-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prep-quick-cell { flex: 0 0 auto; min-width: 80px; }
+.prep-quick-lbl { font-size: 10px; color: var(--text-muted); margin-bottom: 1px; }
+.prep-quick-val { font-size: 13px; font-weight: 600; color: var(--text); }
+.prep-quick-val.pending { color: var(--orange, #D97706); }
+.prep-quick-val.done    { color: #16A34A; }
+.prep-quick-divider { width: 1px; height: 22px; background: #BBF7D0; }
+.prep-quick-add {
+  margin-left: auto;
+  font-size: 11px; font-weight: 700; padding: 7px 12px;
+  background: #fff; color: #16A34A;
+  border: 1px solid #BBF7D0; border-radius: 999px;
+  cursor: pointer; transition: var(--t-spring);
+}
+.prep-quick-add:active { transform: scale(.95); background: #16A34A; color: #fff; }
 .post-pin-bar {
   display:flex;align-items:center;gap:5px;
   font-size:10px;font-weight:700;color:var(--primary);
@@ -2673,16 +2706,8 @@ nav#tabbar.hidden { display: none !important; }
       </button>
     </div>
   </div>
-  <!-- フィルターバー -->
-  <div id="board-filter-bar" style="display:none;padding:8px 16px;border-bottom:1px solid var(--border-light);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;">
-    <button class="tk-filter-btn active" data-cat="" onclick="setBoardCat('')">すべて</button>
-    <button class="tk-filter-btn" data-cat="家事" onclick="setBoardCat('家事')">家事</button>
-    <button class="tk-filter-btn" data-cat="買い物" onclick="setBoardCat('買い物')">買い物</button>
-    <button class="tk-filter-btn" data-cat="習い事" onclick="setBoardCat('習い事')">習い事</button>
-    <button class="tk-filter-btn" data-cat="学校" onclick="setBoardCat('学校')">学校</button>
-    <button class="tk-filter-btn" data-cat="重要" onclick="setBoardCat('重要')">重要</button>
-    <button class="tk-filter-btn" data-cat="その他" onclick="setBoardCat('その他')">その他</button>
-  </div>
+  <!-- フィルターバー（動的構築） -->
+  <div id="board-filter-bar" style="display:none;padding:8px 16px;border-bottom:1px solid var(--border-light);gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center;"></div>
   <div class="scroll-area pb-tab" id="board-list" style="padding-top:8px;"></div>
 </div>
 
@@ -3412,7 +3437,7 @@ let S = {
   boardSections: [], // [{id,boardId,title,order}]
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
 
 function saveS() {
   const d = {};
@@ -5724,22 +5749,87 @@ function bindReactorLongPress() {}
 let _boardCat = '';
 let _boardFilterOpen = false;
 
+const BOARD_DEFAULT_TABS = ['家事','買い物','習い事','学校','重要','その他'];
+
+function getBoardTabs() {
+  // 既定タブ + ユーザー追加タブ（重複除外）
+  const custom = (S.boardCustomTabs || []).filter(t => t && !BOARD_DEFAULT_TABS.includes(t));
+  return [...BOARD_DEFAULT_TABS, ...custom];
+}
+
+function renderBoardFilterBar() {
+  const bar = document.getElementById('board-filter-bar');
+  if(!bar) return;
+  const tabs = getBoardTabs();
+  const customSet = new Set((S.boardCustomTabs || []).filter(t => !BOARD_DEFAULT_TABS.includes(t)));
+  let html = `<button class="tk-filter-btn ${_boardCat===''?'active':''}" data-cat="" onclick="setBoardCat('')">すべて</button>`;
+  html += tabs.map(t => {
+    const isCustom = customSet.has(t);
+    return `<button class="tk-filter-btn ${_boardCat===t?'active':''}" data-cat="${H(t)}" onclick="setBoardCat('${H(t)}')" oncontextmenu="${isCustom?`return removeBoardTab('${H(t)}')`:'return false'}">${H(t)}${isCustom?'<span style="opacity:.55;font-size:9px;margin-left:3px;">×</span>':''}</button>`;
+  }).join('');
+  html += `<button class="tk-filter-btn" style="border-style:dashed;color:var(--text-muted);padding:6px 10px;" onclick="addBoardTab()" title="タブを追加">＋ タブ</button>`;
+  bar.innerHTML = html;
+}
+
 function toggleBoardFilter() {
   _boardFilterOpen = !_boardFilterOpen;
   const bar = document.getElementById('board-filter-bar');
-  if(bar) bar.style.display = _boardFilterOpen ? 'flex' : 'none';
+  if(bar) {
+    bar.style.display = _boardFilterOpen ? 'flex' : 'none';
+    if(_boardFilterOpen) renderBoardFilterBar();
+  }
 }
 function setBoardCat(cat) {
   _boardCat = cat;
-  document.querySelectorAll('#board-filter-bar .tk-filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.cat === cat);
-  });
+  renderBoardFilterBar();
   renderBoard();
+}
+
+function addBoardTab() {
+  const name = (window.prompt('追加するタブ名（例：医療、おでかけ、PTA）','')||'').trim();
+  if(!name) return;
+  if(name.length > 8) { showToast('タブ名は 8 文字以内にしてください','error'); return; }
+  if(BOARD_DEFAULT_TABS.includes(name)) { showToast('既存タブと同じ名前です','error'); return; }
+  if(!S.boardCustomTabs) S.boardCustomTabs = [];
+  if(S.boardCustomTabs.includes(name)) { showToast('すでに追加されています','error'); return; }
+  if(S.boardCustomTabs.length >= 6) { showToast('カスタムタブは最大 6 個までです','error'); return; }
+  S.boardCustomTabs.push(name);
+  saveS();
+  _boardCat = name;
+  renderBoardFilterBar();
+  renderBoard();
+  showToast('タブを追加しました');
+}
+
+function removeBoardTab(name) {
+  if(!name) return false;
+  if(BOARD_DEFAULT_TABS.includes(name)) return false;
+  showConfirm('タブを削除',
+    `タブ「${name}」を削除しますか？このタブの投稿自体は残ります（カテゴリは保持）。`,
+    '削除する',
+    () => {
+      S.boardCustomTabs = (S.boardCustomTabs||[]).filter(t => t !== name);
+      saveS();
+      if(_boardCat === name) _boardCat = '';
+      renderBoardFilterBar();
+      renderBoard();
+      showToast('タブを削除しました');
+    },
+    ''
+  );
+  return false;
 }
 
 /* ── 一覧描画 ── */
 function renderBoard() {
   if(!(S.announces||[]).length) seedAnnounces(); // フォールバック
+  // フィルターバーを常に表示（タブ追加 UI を出すため）
+  const fbar = document.getElementById('board-filter-bar');
+  if(fbar) {
+    fbar.style.display = 'flex';
+    _boardFilterOpen = true;
+    renderBoardFilterBar();
+  }
   const el = document.getElementById('board-list');
   if(!el) return;
   const uid2 = userId();
@@ -5751,8 +5841,39 @@ function renderBoard() {
     return (b.createdAt||'').localeCompare(a.createdAt||'');
   });
 
+  // 準備リスト クイックサマリー（カテゴリ未選択時のみ）
+  let prepCard = '';
+  if(!_boardCat) {
+    const today = todayStr();
+    const tomorrow = (function(){ const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); })();
+    const prepAll = (S.prep || []);
+    const todayItems = prepAll.filter(p => !p.date || p.date === today);
+    const tomorrowItems = prepAll.filter(p => p.date === tomorrow);
+    const todayUndone = todayItems.filter(p => !p.done).length;
+    const tomorrowAll = tomorrowItems.length;
+    prepCard = `<div class="prep-quick-card" onclick="go('s-prep')">
+      <div class="prep-quick-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="prep-quick-title">準備リスト</span>
+        <span class="prep-quick-arrow">›</span>
+      </div>
+      <div class="prep-quick-row">
+        <div class="prep-quick-cell">
+          <div class="prep-quick-lbl">今日</div>
+          <div class="prep-quick-val ${todayUndone?'pending':'done'}">${todayUndone ? `${todayUndone}件 未完了` : `すべて完了`}</div>
+        </div>
+        <div class="prep-quick-divider"></div>
+        <div class="prep-quick-cell">
+          <div class="prep-quick-lbl">明日</div>
+          <div class="prep-quick-val">${tomorrowAll ? `${tomorrowAll}件 予定` : `登録なし`}</div>
+        </div>
+        <button class="prep-quick-add" onclick="event.stopPropagation();go('s-prep');setTimeout(()=>{setPrepTab('tomorrow');openPrepModal()},120)">＋ 明日の準備</button>
+      </div>
+    </div>`;
+  }
+
   if(!anns.length) {
-    el.innerHTML = `<div class="docs-empty" style="margin-top:40px;">
+    el.innerHTML = prepCard + `<div class="docs-empty" style="margin-top:40px;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <div class="docs-empty-title">${_boardCat?`「${_boardCat}」の投稿はありません`:'投稿がありません'}</div>
       <div class="docs-empty-sub">右上の＋から投稿できます</div>
@@ -5778,7 +5899,7 @@ function renderBoard() {
     if(pinned.length) html += `<div style="height:4px;"></div>`;
     html += regular.map(a => postCardHtml(a, uid2)).join('');
   }
-  el.innerHTML = html;
+  el.innerHTML = prepCard + html;
   // リアクション長押しバインド
   setTimeout(bindReactorLongPress, 50);
 }
@@ -6008,8 +6129,15 @@ function openPostModal(id) {
   document.getElementById('post-id').value      = id||'';
   document.getElementById('post-title').value   = a?.title||'';
   document.getElementById('post-body').value    = a?.body||'';
-  // 新規投稿：現在のカテゴリフィルターを自動セット（編集時は元の値を使用）
-  document.getElementById('post-cat').value     = isEdit ? (a?.cat||'') : (_boardCat||'');
+  // カスタムタブを cat ドロップダウンに反映
+  const catSel = document.getElementById('post-cat');
+  if(catSel) {
+    const tabs = getBoardTabs();
+    const current = isEdit ? (a?.cat||'') : (_boardCat||'');
+    catSel.innerHTML = '<option value="">なし</option>' +
+      tabs.map(t => `<option value="${H(t)}">${H(t)}</option>`).join('');
+    catSel.value = current;
+  }
   document.getElementById('post-expires').value = a?.expiresAt||'';
   document.getElementById('post-pin').checked   = a?.isPinned||false;
 
@@ -8003,9 +8131,11 @@ function classifyHokuInput(q) {
   // 「○○までに〜動詞」は明確な期限付きタスク
   if(q.match(/まで(に|の|).{0,12}(洗う|書く|提出|確認|終わらせる|やる|やっておく|準備)/)) scores.task += 2;
 
-  // ─── prep: 持ち物 ───
+  // ─── prep: 持ち物 / 明日の準備 / ルーティン ───
   if(q.match(/持ち物|準備物|準備したい|準備.*進め|忘れ物/)) scores.prep += 3;
-  if(q.match(/ランドセル|上履き|うわばき|水筒|体操着|体操服|給食|連絡帳|エプロン|筆箱|教科書|通学帽|名札|傘|レインコート|お弁当|タオル|歯ブラシ|コップ|布団|シーツ|お着替え/)) scores.prep += 2;
+  if(q.match(/ランドセル|上履き|うわばき|水筒|体操着|体操服|給食|連絡帳|エプロン|筆箱|教科書|通学帽|名札|傘|レインコート|お弁当|タオル|歯ブラシ|コップ|布団|シーツ|お着替え|プールバッグ|プール.*持|図工|書道セット|絵の具|楽譜|楽器/)) scores.prep += 2;
+  if(q.match(/明日.*持|明日.*準備|今日.*準備|明日に回|繰り越|曜日.*準備|曜日.*持ち物|月曜.*持|火曜.*持|水曜.*持|木曜.*持|金曜.*持|土曜.*持|日曜.*持|ルーティン|時間割.*持|時間割.*準備/)) scores.prep += 3;
+  if(q.match(/未完了.*準備|終わらなかった.*準備|忘れない|忘れそう/)) scores.prep += 2;
 
   // ─── budget: お金 ───
   if(q.match(/円|¥|￥|[\d,]+万円|[\d,]+千円/)) scores.budget += 2;
@@ -8022,8 +8152,9 @@ function classifyHokuInput(q) {
   if(q.match(/体調|具合.*悪|食欲|水分|機嫌|薬を|処方|医療機関|予防接種|ワクチン|症状/)) scores.health += 2;
   if(q.match(/3[5-9]\.\d|3[5-9]度|3[5-9]\.\d度|4[0-2]度/)) scores.health += 3; // 体温
 
-  // ─── board: 家族共有 ───
+  // ─── board: 家族共有（習い事の様子・出来事の記録もここ） ───
   if(q.match(/家族.*共有|家族.*伝え|家族に伝え|みんなに知らせ|シェアしたい|残しておきたい|共有したい|報告したい/)) scores.board += 3;
+  if(q.match(/習い事.*様子|習い事.*記録|ピアノ.*様子|スイミング.*様子|スイミング.*記録|体操教室.*様子|塾.*様子|習い事.*整理|習い事.*メモ|レッスン.*記録|教室.*様子/)) scores.board += 3;
   if(q.match(/新記録|できるように|できた|成長|うれしい.*こと|楽しかった|転んだ|ケンカ|喧嘩|仲直り|出来事|エピソード/)) scores.board += 3;
   if(q.match(/先生から|園から|学校から|連絡があった|お知らせ.*届/)) scores.board += 2;
 
@@ -8077,9 +8208,11 @@ function classifierGuidance(category, q, secondary) {
     case 'prep':
       return '準備リストにまとめておくと安心です。'+NL+
         '今日必要なものと明日必要なものを分けておくと、朝のバタつきを減らせます。'+NL+
-        '未完了の準備は「明日に回す」で翌日に持ち越せます。'+NL+NL+
-        '「準備リスト」画面から登録できます。'+
+        '未完了の準備は「明日に回す」で翌日に持ち越せます。'+NL+
+        '曜日ごとの持ち物（月曜：体操着、金曜：上履き持ち帰り など）は、項目を登録しておくと毎週確認しやすくなります。'+NL+NL+
+        '「準備リスト」画面の「今日 / 明日」タブから登録できます。'+
         (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも登録しておくと安心です。）' : '')+
+        (secondary === 'board' ? NL+NL+'（補足：習い事の様子や記録は、家族ボードの「習い事」タブに残すと振り返りやすくなります。）' : '')+
         ACTION('prep');
     case 'budget':
       return '家計メモに残しておくと、あとで見直しやすくなります。'+NL+
@@ -8094,7 +8227,8 @@ function classifierGuidance(category, q, secondary) {
         ACTION('health');
     case 'board':
       return '家族ボードに共有するとよさそうです。'+NL+
-        'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+NL+
+        'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+
+        '習い事の様子や記録は「習い事」タブにまとめると、一覧で振り返りやすくなります。'+NL+NL+
         '「家族ボード」画面から投稿できます。'+
         ACTION('board');
     case 'notification':
