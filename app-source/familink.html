@@ -899,11 +899,36 @@ select.input {
    BUDGET SCREEN
    ============================================================ */
 .budget-header-bar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 16px; background: #fff;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: #fff;
   border-bottom: 1px solid var(--border-light); flex-shrink: 0;
 }
-.budget-month-lbl { flex: 1; text-align: center; font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+.budget-nav-btn {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--bg-muted); border: 1px solid var(--border-light);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-sub);
+  transition: var(--t-spring); flex-shrink: 0;
+}
+.budget-nav-btn:active { transform: scale(.92); background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.budget-nav-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.budget-month-lbl {
+  flex: 1; text-align: center;
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  cursor: pointer; padding: 8px 4px; border-radius: 10px;
+  transition: var(--t-spring);
+}
+.budget-month-lbl:active { background: var(--bg-muted); }
+.budget-member-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 6px; padding: 10px 16px 4px;
+}
+.budget-member-cell {
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: 10px; padding: 8px 6px; text-align: center;
+}
+.budget-member-cell .name { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.budget-member-cell .amt  { font-size: 13px; font-weight: 700; color: var(--text); }
 .budget-hero {
   margin: 16px; border-radius: var(--r-xl);
   background: var(--grad-primary); color: #fff; padding: 22px 22px 18px;
@@ -1563,26 +1588,26 @@ select.input {
 }
 
 .post-card {
-  background:var(--bg-card); border-radius:16px;
-  margin:0 16px 10px; padding:16px;
+  background:var(--bg-card); border-radius:14px;
+  margin:0 16px 8px; padding:12px 14px;
   box-shadow:var(--s-sm); border:1.5px solid var(--border-light);
   cursor:pointer; transition:var(--t-spring);
 }
 .post-card.pinned-card { border-color:var(--primary); border-width:2px; }
 .post-card:active { transform:scale(.98); }
 .post-pin-bar {
-  display:flex;align-items:center;gap:6px;
-  font-size:11px;font-weight:700;color:var(--primary);
-  margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;color:var(--primary);
+  margin-bottom:5px;
 }
-.post-head { display:flex;align-items:flex-start;gap:10px;margin-bottom:10px; }
+.post-head { display:flex;align-items:flex-start;gap:9px;margin-bottom:6px; }
 .post-head-info { flex:1;min-width:0; }
-.post-title { font-size:15px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:2px; }
+.post-title { font-size:14px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:1px; }
 .post-meta  { font-size:11px;color:var(--text-muted); }
-.post-body  { font-size:13px;color:var(--text-sub);line-height:1.65;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
+.post-body  { font-size:12.5px;color:var(--text-sub);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 .post-body.expanded { -webkit-line-clamp:unset; }
-.post-footer { display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-light); }
+.post-footer { display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border-light); }
 /* カテゴリ */
 .post-cat {
   display:inline-flex;font-size:10px;font-weight:700;padding:2px 8px;
@@ -1590,6 +1615,7 @@ select.input {
 }
 .post-cat.家事   { background:#DCFCE7;color:#16A34A; }
 .post-cat.買い物 { background:#DBEAFE;color:#2563EB; }
+.post-cat.習い事 { background:#FCE7F3;color:#EC4899; }
 .post-cat.配送   { background:#FEF3C7;color:#D97706; }
 .post-cat.学校   { background:#EDE9FE;color:#7C3AED; }
 .post-cat.重要   { background:#FFE8E8;color:#DC2626; }
@@ -1655,6 +1681,15 @@ select.input {
 }
 .tk-card.dragging { opacity:.5; transform:scale(.98); }
 .tk-card.drag-over { border-color:var(--primary); background:var(--primary-light); }
+.tk-card.done-card { background:rgba(248,250,252,.7); border-color:var(--border-light); opacity:.78; }
+.tk-del-btn {
+  background:transparent; border:1px solid var(--border-light);
+  border-radius:8px; padding:6px 8px; cursor:pointer;
+  color:var(--text-muted); display:flex; align-items:center; justify-content:center;
+  transition:var(--t-spring); flex-shrink:0; align-self:center;
+}
+.tk-del-btn:active { transform:scale(.92); color:var(--red); border-color:var(--red); }
+.tk-del-btn:hover { color:var(--red); border-color:var(--red); }
 .tk-chk {
   width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
   flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -2009,6 +2044,13 @@ nav#tabbar.hidden { display: none !important; }
 }
 .bc-type-btn.selected { border-color:var(--primary); background:var(--primary-light); }
 .bc-type-btn:active { transform:scale(.97); }
+.bc-tpl-chip {
+  background:var(--bg-muted); border:1px solid var(--border-light);
+  border-radius:var(--r-full); padding:5px 11px;
+  font-size:11px; color:var(--text-sub); cursor:pointer;
+  transition:var(--t-spring);
+}
+.bc-tpl-chip:active { transform:scale(.95); background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
 .cb-item-row {
   display:flex; align-items:flex-start; gap:10px;
   padding:9px 0; border-bottom:1px solid var(--border-light);
@@ -2456,6 +2498,9 @@ nav#tabbar.hidden { display: none !important; }
   <!-- チャット -->
   <div class="hoku-chat" id="hoku-msgs"></div>
 
+  <!-- 音声入力ステータスバナー（音声中・非対応案内・エラーで表示） -->
+  <div id="hoku-voice-status" style="display:none;font-size:12px;text-align:center;padding:8px 14px;color:var(--text-sub);background:rgba(74,144,226,.08);border-top:1px solid var(--border-light);"></div>
+
   <!-- 入力バー -->
   <div class="hoku-bar">
     <button class="hoku-mic" id="hoku-mic" onclick="hokuVoiceToggle()" title="音声で相談">
@@ -2633,7 +2678,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="tk-filter-btn active" data-cat="" onclick="setBoardCat('')">すべて</button>
     <button class="tk-filter-btn" data-cat="家事" onclick="setBoardCat('家事')">家事</button>
     <button class="tk-filter-btn" data-cat="買い物" onclick="setBoardCat('買い物')">買い物</button>
-    <button class="tk-filter-btn" data-cat="配送" onclick="setBoardCat('配送')">配送</button>
+    <button class="tk-filter-btn" data-cat="習い事" onclick="setBoardCat('習い事')">習い事</button>
     <button class="tk-filter-btn" data-cat="学校" onclick="setBoardCat('学校')">学校</button>
     <button class="tk-filter-btn" data-cat="重要" onclick="setBoardCat('重要')">重要</button>
     <button class="tk-filter-btn" data-cat="その他" onclick="setBoardCat('その他')">その他</button>
@@ -2677,7 +2722,7 @@ nav#tabbar.hidden { display: none !important; }
             <option value="">なし</option>
             <option value="家事">家事</option>
             <option value="買い物">買い物</option>
-            <option value="配送">配送</option>
+            <option value="習い事">習い事</option>
             <option value="学校">学校</option>
             <option value="重要">重要</option>
             <option value="その他">その他</option>
@@ -2735,11 +2780,16 @@ nav#tabbar.hidden { display: none !important; }
   </div>
   <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
     <div class="budget-header-bar">
-      <button class="cal-nav" onclick="budgetChangeMonth(-1)">‹</button>
-      <div class="budget-month-lbl" id="budget-month"></div>
-      <button class="cal-nav" onclick="budgetChangeMonth(1)">›</button>
+      <button class="budget-nav-btn" onclick="budgetChangeMonth(-1)" title="前の月">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="budget-month-lbl" id="budget-month" onclick="budgetGoToToday()"></div>
+      <button class="budget-nav-btn" onclick="budgetChangeMonth(1)" title="次の月">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
     <div class="budget-hero" id="budget-hero"></div>
+    <div class="budget-member-strip" id="budget-member-strip"></div>
     <div class="type-toggle">
       <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
       <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
@@ -2769,7 +2819,13 @@ nav#tabbar.hidden { display: none !important; }
     <div class="header-title">持ち物・準備リスト</div>
     <button class="header-icon-btn" onclick="openPrepModal()">＋</button>
   </div>
-  <div class="scroll-area" id="prep-list" style="padding:16px 0 calc(20px + env(safe-area-inset-bottom));"></div>
+  <!-- 今日 / 明日 / すべて タブ -->
+  <div id="prep-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
+    <button class="tk-filter-btn active" data-prep-tab="today" onclick="setPrepTab('today')">今日</button>
+    <button class="tk-filter-btn" data-prep-tab="tomorrow" onclick="setPrepTab('tomorrow')">明日</button>
+    <button class="tk-filter-btn" data-prep-tab="all" onclick="setPrepTab('all')">すべて</button>
+  </div>
+  <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(20px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== CHILDREN ===== -->
@@ -3285,8 +3341,8 @@ const EV_COLORS = ['#4A90E2','#52C47A','#FF9B4E','#F07CB3','#9B7EDE','#FF6B6B','
 const CATS_EX = ['食費','教育費','医療費','光熱費','通信費','娯楽費','交通費','被服費','日用品','その他'];
 
 // 家族ボード カテゴリ色（renderHome でも使用するため早期定義）
-const CAT_COLOR = {家事:'#16A34A',買い物:'#2563EB',配送:'#D97706',学校:'#7C3AED',重要:'#DC2626',その他:'#8A9ABE'};
-const CAT_BG    = {家事:'#DCFCE7',買い物:'#DBEAFE',配送:'#FEF3C7',学校:'#EDE9FE',重要:'#FFE8E8',その他:'var(--bg-muted)'};
+const CAT_COLOR = {家事:'#16A34A',買い物:'#2563EB',習い事:'#EC4899',配送:'#D97706',学校:'#7C3AED',重要:'#DC2626',その他:'#8A9ABE'};
+const CAT_BG    = {家事:'#DCFCE7',買い物:'#DBEAFE',習い事:'#FCE7F3',配送:'#FEF3C7',学校:'#EDE9FE',重要:'#FFE8E8',その他:'var(--bg-muted)'};
 const CATS_IN   = ['給与','ボーナス','副業','お小遣い','その他'];
 
 /* タスク期日ユーティリティ（renderHomeより前に定義必須） */
@@ -3847,7 +3903,7 @@ function seedDemo() {
         comments:[], createdAt:t, updatedAt:t},
       {id:uid(), title:'Amazonの荷物が届きます',
         body:'今日の午後にAmazonの荷物が届く予定です。宅配ボックスに入らない場合は駐車場の隅に置いてもらうよう伝えてあります。',
-        author:'kenya', cat:'配送', isPinned:false, targets:'all', expiresAt:t,
+        author:'kenya', cat:'重要', isPinned:false, targets:'all', expiresAt:t,
         reads:['kenya'],
         reactions:{}, reactMap:{seiai:'thanks'},
         comments:[], createdAt:addDays(t,-1), updatedAt:addDays(t,-1)},
@@ -3982,7 +4038,7 @@ function renderHome() {
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
-  // ── 習い事・予定コンテンツ ──
+  // ── 今週の予定コンテンツ ──
   const td = todayStr();
   const upcoming = (S.events||[]).filter(e=>e.date>=td)
     .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,4);
@@ -4070,7 +4126,7 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
   } else if(bid === 'b_cal') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FCE7F3;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
-      + '<div class="bc-title">習い事・予定</div>'
+      + '<div class="bc-title">今週の予定</div>'
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+evHTML+'</div><img class="bc-bg" src="'+IMGS.bg_green1+'" alt=""></div>';
   } else if(bid.startsWith('cb_')) {
@@ -4502,8 +4558,14 @@ function applyTkFilters(tasks){
   else if(_tkFilter==='week')    r=r.filter(t=>isThisWeek(t.dueDate)&&t.status!=='done');
   else if(_tkFilter==='overdue') r=r.filter(t=>t.dueDate&&t.dueDate<today&&t.status!=='done');
   else if(_tkFilter==='done')    r=r.filter(t=>t.status==='done');
-  else                           r=r.filter(t=>t.status!=='done');
-  return r.sort((a,b)=>(a.order||0)-(b.order||0));
+  // 'all' は完了済みも残し、ユーザーが明示的に削除するまで一覧に保持する
+  // 完了済みは末尾にまとめ、視覚的に薄く表示する
+  return r.sort((a,b)=>{
+    const ad = a.status==='done' ? 1 : 0;
+    const bd = b.status==='done' ? 1 : 0;
+    if(ad !== bd) return ad - bd;
+    return (a.order||0)-(b.order||0);
+  });
 }
 
 function getKanbanCols() {
@@ -4718,6 +4780,11 @@ function tkCardHtml(t){
   const dc=tkDueClass(t.dueDate),dl=tkDueLabel(t.dueDate);
   const isDone=t.status==='done';
   const cat=TK_CATS[t.category||'']||'';
+  const deleteBtn = isDone
+    ? `<button class="tk-del-btn" title="削除" onclick="event.stopPropagation();confirmDeleteTaskInline('${H(t.id)}')">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+       </button>`
+    : '';
   return`<div class="tk-card ${isDone?'done-card':''}" data-id="${H(t.id)}" onclick="openTaskModal('${H(t.id)}')">
     <div class="tk-pbar ${t.priority||'none'}" style="background:${TK_PRIORITY_COLOR[t.priority||'none']};min-height:40px;"></div>
     <div class="tk-chk ${isDone?'done':''}" onclick="event.stopPropagation();toggleTaskDone('${H(t.id)}')">${isDone?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:''}</div>
@@ -4727,10 +4794,29 @@ function tkCardHtml(t){
         ${dl?`<span class="tk-due ${dc}">${dl}</span>`:''}
         ${cat?`<span class="tk-cat">${cat}</span>`:''}
         ${t.memo?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-top:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}
+        ${isDone?`<span style="font-size:10px;color:var(--text-muted);">完了</span>`:''}
       </div>
     </div>
-    ${t.assignedTo?`<div class="av" style="background:${H(mem.grad)};width:26px;height:26px;font-size:10px;flex-shrink:0;">${H(mem.av)}</div>`:''}
+    ${t.assignedTo?`<div class="av" style="background:${H(mem.grad)};width:26px;height:26px;font-size:10px;flex-shrink:0;opacity:${isDone?'.55':'1'};">${H(mem.av)}</div>`:''}
+    ${deleteBtn}
   </div>`;
+}
+
+function confirmDeleteTaskInline(id) {
+  const t = (S.tasks||[]).find(t=>t.id===id);
+  if(!t) return;
+  showConfirm(
+    'タスクを削除',
+    `「${t.title}」を削除しますか？この操作は取り消せません。`,
+    '削除する',
+    () => {
+      S.tasks = S.tasks.filter(x => x.id !== id);
+      saveS();
+      renderTasks();
+      showToast('タスクを削除しました');
+    },
+    ''
+  );
 }
 
 function tkKanbanCard(t){
@@ -5262,6 +5348,34 @@ function renderBudget() {
     </div>
     <div class="budget-bal">${bal>=0?'＋':''}${fmtAmt(bal)} の収支</div>`;
 
+  // メンバー別支出（今月）— 各メンバー id で集計、未割当は「家族共通」
+  const memStrip = document.getElementById('budget-member-strip');
+  if(memStrip) {
+    const memExp = {};
+    mt.filter(t=>t.type==='expense').forEach(t => {
+      const id = t.member || 'common';
+      memExp[id] = (memExp[id] || 0) + (t.amount || 0);
+    });
+    const cells = [];
+    MEMBERS.forEach(mem => {
+      if(memExp[mem.id]) {
+        cells.push(`<div class="budget-member-cell" title="${H(mem.name)}の支出">
+          <div class="name">${H(mem.name)}</div>
+          <div class="amt">${fmtAmt(memExp[mem.id])}</div>
+        </div>`);
+      }
+    });
+    if(memExp.common) {
+      cells.push(`<div class="budget-member-cell" style="background:var(--primary-light);">
+        <div class="name">家族共通</div>
+        <div class="amt">${fmtAmt(memExp.common)}</div>
+      </div>`);
+    }
+    memStrip.innerHTML = cells.length
+      ? cells.join('')
+      : `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--text-muted);padding:6px 0;">支出を追加するとメンバー別に集計されます</div>`;
+  }
+
   const type = S.budgetType;
   document.getElementById('btx-ex').classList.toggle('on', type==='expense');
   document.getElementById('btx-in').classList.toggle('on', type==='income');
@@ -5313,6 +5427,14 @@ function budgetChangeMonth(dir) {
   if(S.budgetM>11){S.budgetM=0;S.budgetY++;}
   if(S.budgetM<0) {S.budgetM=11;S.budgetY--;}
   saveS(); renderBudget();
+}
+
+function budgetGoToToday() {
+  const now = new Date();
+  S.budgetY = now.getFullYear();
+  S.budgetM = now.getMonth();
+  saveS(); renderBudget();
+  showToast('今月へ戻りました');
 }
 
 function openTxModal() {
@@ -5409,7 +5531,7 @@ const REACT_MORE = [
   {key:'care',   label:'心配',   emoji:'🙁'},
 ];
 
-const BOARD_CATS = ['','家事','買い物','配送','学校','重要','その他'];
+const BOARD_CATS = ['','家事','買い物','習い事','学校','重要','その他'];
 
 /* デモ投稿の追加 */
 function seedAnnounces() {
@@ -5417,7 +5539,7 @@ function seedAnnounces() {
   const t = todayStr();
   S.announces = [
     {id:uid(), title:'金魚の水槽掃除をお願い', body:'今日の夜に金魚の水槽掃除をしておいてください。道具は洗面所の棚にあります。', author:'seiai', cat:'家事', isPinned:true, targets:'all', expiresAt:'', reads:['seiai'], reactions:{}, reactMap:{}, comments:[], createdAt:t, updatedAt:t},
-    {id:uid(), title:'Amazonの荷物が届きます', body:'今日の午後にAmazonの荷物が届く予定です。宅配ボックスに入らない場合は駐車場の隅に置いてもらうよう伝えてあります。', author:'kenya', cat:'配送', isPinned:false, targets:'all', expiresAt:t, reads:['kenya'], reactions:{}, reactMap:{}, comments:[], createdAt:addDays(t,-1), updatedAt:addDays(t,-1)},
+    {id:uid(), title:'Amazonの荷物が届きます', body:'今日の午後にAmazonの荷物が届く予定です。宅配ボックスに入らない場合は駐車場の隅に置いてもらうよう伝えてあります。', author:'kenya', cat:'重要', isPinned:false, targets:'all', expiresAt:t, reads:['kenya'], reactions:{}, reactMap:{}, comments:[], createdAt:addDays(t,-1), updatedAt:addDays(t,-1)},
     {id:uid(), title:'お風呂掃除の担当', body:'今週は礼子がお風呂掃除担当です。月・水・金でお願いします。', author:'kenya', cat:'家事', isPinned:false, targets:'all', expiresAt:'', reads:['kenya'], reactions:{}, reactMap:{}, comments:[], createdAt:addDays(t,-2), updatedAt:addDays(t,-2)},
   ];
 }
@@ -6086,20 +6208,68 @@ function deleteHealthRec(id) {
 /* ============================================================
    PREP
    ============================================================ */
+let _prepTab = 'today';
+
+function setPrepTab(tab) {
+  _prepTab = tab;
+  document.querySelectorAll('#prep-tabs [data-prep-tab]').forEach(b => {
+    b.classList.toggle('active', b.dataset.prepTab === tab);
+  });
+  renderPrep();
+}
+
+function _prepDateMatchesTab(date) {
+  if(_prepTab === 'all') return true;
+  const today = todayStr();
+  if(_prepTab === 'today') {
+    // 今日 = 日付未設定 or 今日
+    return !date || date === today;
+  }
+  if(_prepTab === 'tomorrow') {
+    const t = new Date(); t.setDate(t.getDate()+1);
+    return date === t.toISOString().slice(0,10);
+  }
+  return true;
+}
+
 function renderPrep() {
   const el = document.getElementById('prep-list');
-  const items = S.prep||[];
-  if(!items.length) {
-    el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.wave}" style="width:64px;height:64px;object-fit:contain">
-      <div class="empty-title">持ち物がありません</div>
+  const all = S.prep||[];
+  const items = all.filter(p => _prepDateMatchesTab(p.date));
+
+  // 今日タブ：未完了の繰り越し候補（昨日以前で未完了）
+  const today = todayStr();
+  const carryCandidates = (_prepTab === 'today')
+    ? all.filter(p => p.date && p.date < today && !p.done)
+    : [];
+
+  if(!items.length && !carryCandidates.length) {
+    const hint = _prepTab === 'today' ? '今日の準備'
+              : _prepTab === 'tomorrow' ? '明日の準備'
+              : '準備リスト';
+    el.innerHTML = `<div class="empty" style="padding:42px 24px">
+      <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
+      <div class="empty-title">${hint}はまだありません</div>
       <div class="empty-desc">右上の＋ボタンで追加できます</div>
     </div>`;
     return;
   }
-  const cats = [...new Set(items.map(p=>p.cat))];
-  el.innerHTML = cats.map(cat => {
-    const catItems = items.filter(p=>p.cat===cat);
+
+  let html = '';
+  if(carryCandidates.length) {
+    html += `<div style="margin:0 16px 10px;padding:10px 12px;background:var(--orange-light, #FFF7ED);border:1px solid var(--orange, #F59E0B);border-radius:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--orange, #D97706);margin-bottom:6px;">⏳ 昨日以前で未完了 ${carryCandidates.length} 件</div>
+      ${carryCandidates.map(p => `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);padding:4px 0;">
+        <span style="flex:1;${p.done?'text-decoration:line-through;opacity:.5':''}">${H(p.text)}<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">(${H(p.date||'')})</span></span>
+        <button onclick="carryPrepToToday('${H(p.id)}')" style="font-size:11px;padding:4px 10px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;">今日に回す</button>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // カテゴリ別表示
+  const cats = [...new Set(items.map(p=>p.cat||'その他'))];
+  html += cats.map(cat => {
+    const catItems = items.filter(p=>(p.cat||'その他')===cat);
     return `<div class="prep-section">
       <div class="prep-sec-title">${H(cat)}</div>
       ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
@@ -6108,15 +6278,28 @@ function renderPrep() {
           <div class="prep-txt ${p.done?'done':''}">${H(p.text)}</div>
           ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
         </div>
+        ${(_prepTab==='today' && !p.done) ? `<button onclick="event.stopPropagation();carryPrepToTomorrow('${H(p.id)}')" title="明日に回す" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;margin-right:4px;">明日に回す</button>` : ''}
         <button onclick="deletePrep('${H(p.id)}')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
       </div>`).join('')}
     </div>`;
   }).join('');
+
+  el.innerHTML = html;
 }
 
 function openPrepModal() {
   document.getElementById('pm-text').value='';
-  document.getElementById('pm-date').value='';
+  // 現在のタブに応じて日付プリセット
+  const dateInput = document.getElementById('pm-date');
+  if(dateInput) {
+    if(_prepTab === 'today') dateInput.value = todayStr();
+    else if(_prepTab === 'tomorrow') {
+      const t = new Date(); t.setDate(t.getDate()+1);
+      dateInput.value = t.toISOString().slice(0,10);
+    } else {
+      dateInput.value = '';
+    }
+  }
   openModal('m-prep');
 }
 
@@ -6138,6 +6321,27 @@ function togglePrep(id) {
 function deletePrep(id) {
   S.prep = (S.prep||[]).filter(p=>p.id!==id);
   saveS(); renderPrep(); showToast('削除しました','error');
+}
+
+/* 明日に回す（今日 → 明日） */
+function carryPrepToTomorrow(id) {
+  const p = (S.prep||[]).find(p=>p.id===id);
+  if(!p) return;
+  const t = new Date(); t.setDate(t.getDate()+1);
+  p.date = t.toISOString().slice(0,10);
+  p.done = false;
+  saveS(); renderPrep();
+  showToast('明日の準備に移しました');
+}
+
+/* 今日に回す（過去未完了 → 今日） */
+function carryPrepToToday(id) {
+  const p = (S.prep||[]).find(p=>p.id===id);
+  if(!p) return;
+  p.date = todayStr();
+  p.done = false;
+  saveS(); renderPrep();
+  showToast('今日の準備に移しました');
 }
 
 /* ============================================================
@@ -6739,6 +6943,11 @@ function selectBoardType(type) {
   _bcType = type;
   document.querySelectorAll('.bc-type-btn').forEach(b=>b.classList.remove('selected'));
   document.querySelector(`[data-type="${type}"]`)?.classList.add('selected');
+}
+
+function bcSetName(name) {
+  const el = document.getElementById('bc-name');
+  if(el) { el.value = name; try { el.focus(); } catch(e) {} }
 }
 
 function saveBoardCreate() {
@@ -7625,9 +7834,22 @@ function resetHoku() {
 let _hokuRec = null;
 let _hokuRecListening = false;
 let _hokuRecSupportChecked = false;
+let _hokuRecStartTimer = null;
 
 function hokuVoiceSupport() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function hokuVoiceStatusEl() {
+  return document.getElementById('hoku-voice-status');
+}
+
+function hokuVoiceShowStatus(text, kind) {
+  const el = hokuVoiceStatusEl();
+  if(!el) return;
+  el.textContent = text || '';
+  el.dataset.kind = kind || '';
+  el.style.display = text ? 'block' : 'none';
 }
 
 function hokuMicSetState(state) {
@@ -7638,6 +7860,9 @@ function hokuMicSetState(state) {
   btn.title = state === 'listening' ? '聞き取り中（タップで停止）'
             : state === 'unsupported' ? '音声入力に対応していない端末です'
             : '音声で相談';
+  if(state === 'listening')   hokuVoiceShowStatus('🎙 聞き取り中… 話しかけてください','listening');
+  else if(state === 'unsupported') hokuVoiceShowStatus('音声入力はこの端末では使えないため、テキストで相談してください','warn');
+  else hokuVoiceShowStatus('','');
 }
 
 /* 起動時にサポート状態を反映 */
@@ -7647,11 +7872,17 @@ function hokuVoiceInit() {
   if(!hokuVoiceSupport()) hokuMicSetState('unsupported');
 }
 
+function _hokuVoiceFocusInput() {
+  const inp = document.getElementById('hoku-input');
+  if(inp) try { inp.focus(); } catch(e) {}
+}
+
 function hokuVoiceToggle() {
-  // 非対応：案内のみ
+  // 非対応：案内 + テキスト入力にフォーカス
   if(!hokuVoiceSupport()) {
-    showToast('この端末では音声入力に対応していません。テキストで相談してください。','error');
     hokuMicSetState('unsupported');
+    showToast('この端末では音声入力に対応していません。テキストで相談してください。','error');
+    _hokuVoiceFocusInput();
     return;
   }
   // 既に聞き取り中なら停止
@@ -7659,6 +7890,7 @@ function hokuVoiceToggle() {
     try { _hokuRec.stop(); } catch(e) {}
     return;
   }
+  let started = false;
   try {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     _hokuRec = new SR();
@@ -7668,8 +7900,10 @@ function hokuVoiceToggle() {
     _hokuRec.maxAlternatives = 1;
 
     _hokuRec.onstart = function() {
+      started = true;
       _hokuRecListening = true;
       hokuMicSetState('listening');
+      if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
     };
     _hokuRec.onresult = function(ev) {
       let text = '';
@@ -7681,42 +7915,59 @@ function hokuVoiceToggle() {
       const inp = document.getElementById('hoku-input');
       if(inp && text) {
         inp.value = (inp.value ? inp.value + ' ' : '') + text;
-        // textarea の高さを再計算
         try { inp.dispatchEvent(new Event('input')); } catch(e) {}
-        // 認識成功 → 自動送信せずユーザー確認に委ねる（誤認識対策）
+        try { inp.focus(); } catch(e) {}
         const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
         showToast('聞き取りました：「' + preview + '」内容を確認して送信してください。');
+      } else if(inp && !text) {
+        showToast('音声を聞き取れませんでした。もう一度お試しください。','error');
       }
     };
     _hokuRec.onerror = function(ev) {
       _hokuRecListening = false;
       hokuMicSetState('idle');
+      if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
       const code = ev && ev.error;
-      let msg = '音声入力でエラーが発生しました。';
+      let msg = '音声入力でエラーが発生しました。テキストで相談してください。';
       if(code === 'not-allowed' || code === 'service-not-allowed') {
-        msg = 'マイクの許可が必要です。Safari の設定からマイクを許可してください。';
+        msg = 'マイクの使用が許可されていません。ブラウザ設定からマイクを許可してください（iPhone Safari の場合：設定 > Safari > マイク）。';
       } else if(code === 'no-speech') {
         msg = '音声を聞き取れませんでした。もう一度お試しください。';
       } else if(code === 'audio-capture') {
         msg = 'マイクが見つかりません。端末のマイクを確認してください。';
       } else if(code === 'network') {
-        msg = '通信エラーで音声認識ができませんでした。';
+        msg = '通信エラーで音声認識ができませんでした。電波状況をご確認ください。';
       } else if(code === 'aborted') {
-        // ユーザーが停止 → 通知不要
-        return;
+        return; // ユーザー停止 → 通知不要
       }
       showToast(msg,'error');
+      _hokuVoiceFocusInput();
     };
     _hokuRec.onend = function() {
       _hokuRecListening = false;
       hokuMicSetState('idle');
+      if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
     };
 
     _hokuRec.start();
+
+    // セーフティ：3 秒以内に onstart が呼ばれない場合は失敗扱い
+    if(_hokuRecStartTimer) clearTimeout(_hokuRecStartTimer);
+    _hokuRecStartTimer = setTimeout(function(){
+      if(!started) {
+        _hokuRecListening = false;
+        hokuMicSetState('idle');
+        try { _hokuRec && _hokuRec.abort && _hokuRec.abort(); } catch(e) {}
+        showToast('音声入力を開始できませんでした。テキストで相談してください。','error');
+        _hokuVoiceFocusInput();
+      }
+    }, 3000);
   } catch(err) {
     _hokuRecListening = false;
     hokuMicSetState('idle');
-    showToast('音声入力を開始できませんでした。','error');
+    if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
+    showToast('音声入力を開始できませんでした。テキストで相談してください。','error');
+    _hokuVoiceFocusInput();
   }
 }
 
@@ -7824,8 +8075,9 @@ function classifierGuidance(category, q, secondary) {
         '「タスク追加して」で登録を始められます。'+
         ACTION('task');
     case 'prep':
-      return '持ち物の準備リストに残しておくと安心です。'+NL+
-        '前日までに用意するもの、朝に最終確認するものに分けると使いやすくなります。'+NL+NL+
+      return '準備リストにまとめておくと安心です。'+NL+
+        '今日必要なものと明日必要なものを分けておくと、朝のバタつきを減らせます。'+NL+
+        '未完了の準備は「明日に回す」で翌日に持ち越せます。'+NL+NL+
         '「準備リスト」画面から登録できます。'+
         (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも登録しておくと安心です。）' : '')+
         ACTION('prep');
@@ -9913,22 +10165,30 @@ window.addEventListener('DOMContentLoaded', init);
     <div class="modal-form">
       <div class="field">
         <div class="field-label">ボード名 <span style="color:var(--red)">*</span></div>
-        <input class="input" id="bc-name" placeholder="例：準備リスト、家族共有" maxlength="20">
+        <input class="input" id="bc-name" placeholder="例：小学校準備、習い事メモ、体調管理、買い物メモ" maxlength="24">
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;">
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('小学校準備')">小学校準備</button>
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('習い事メモ')">習い事メモ</button>
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('体調管理')">体調管理</button>
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('家族への共有事項')">家族への共有事項</button>
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('買い物メモ')">買い物メモ</button>
+          <button type="button" class="bc-tpl-chip" onclick="bcSetName('提出物チェック')">提出物チェック</button>
+        </div>
       </div>
       <div class="field">
-        <div class="field-label">種類</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="field-label">用途タイプ <span style="font-size:11px;color:var(--text-muted);font-weight:400;">（あとで変更可）</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
           <div class="bc-type-btn selected" data-type="prep" onclick="selectBoardType('prep')">
-            <div style="font-weight:700;font-size:13px;">準備リスト</div>
-            <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">セクション＋チェックリスト</div>
+            <div style="font-weight:700;font-size:12px;">準備リスト</div>
+            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">チェック式</div>
           </div>
           <div class="bc-type-btn" data-type="share" onclick="selectBoardType('share')">
-            <div style="font-weight:700;font-size:13px;">家族共有</div>
-            <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">カテゴリ付き短文投稿</div>
+            <div style="font-weight:700;font-size:12px;">投稿型</div>
+            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">カテゴリ付き</div>
           </div>
           <div class="bc-type-btn" data-type="memo" onclick="selectBoardType('memo')">
-            <div style="font-weight:700;font-size:13px;">汎用メモ</div>
-            <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">自由入力</div>
+            <div style="font-weight:700;font-size:12px;">自由メモ</div>
+            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">フリー入力</div>
           </div>
         </div>
       </div>
