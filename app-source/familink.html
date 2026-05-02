@@ -535,6 +535,15 @@ select.input {
   border-radius: 1px; background: var(--text); transition: var(--t);
 }
 .home-header-mid { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-left: 4px; }
+.home-camera-btn {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--bg-muted); border: 1px solid var(--border-light);
+  color: var(--text-sub); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--t-spring); flex-shrink: 0;
+}
+.home-camera-btn:active { transform: scale(.93); background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.home-camera-btn:hover  { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
 .home-board-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 16px 16px calc(98px + env(safe-area-inset-bottom));
@@ -919,16 +928,34 @@ select.input {
   transition: var(--t-spring);
 }
 .budget-month-lbl:active { background: var(--bg-muted); }
-.budget-member-strip {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
-  gap: 6px; padding: 10px 16px 4px;
+/* 担当者切替タブ（家計画面） */
+.budget-member-tabs {
+  display: flex; gap: 6px; padding: 10px 16px 4px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.budget-member-cell {
-  background: var(--bg-card); border: 1px solid var(--border-light);
-  border-radius: 10px; padding: 8px 6px; text-align: center;
+.budget-member-tabs::-webkit-scrollbar { display: none; }
+.bm-tab {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  background: #fff; border: 1.5px solid var(--border-light);
+  border-radius: var(--r-full); padding: 7px 13px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-sub);
+  cursor: pointer; transition: var(--t-spring);
+  line-height: 1; white-space: nowrap;
 }
-.budget-member-cell .name { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
-.budget-member-cell .amt  { font-size: 13px; font-weight: 700; color: var(--text); }
+.bm-tab:active { transform: scale(.96); }
+.bm-tab.active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+  box-shadow: 0 3px 10px rgba(74,144,226,.25);
+}
+.bm-tab .bm-amt { font-size: 11px; opacity: .85; font-weight: 700; }
+.bm-tab.active .bm-amt { opacity: 1; }
+.bm-tab.all { font-weight: 700; }
+.bm-tab .bm-av {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+}
 .budget-hero {
   margin: 16px; border-radius: var(--r-xl);
   background: var(--grad-primary); color: #fff; padding: 22px 22px 18px;
@@ -2328,6 +2355,12 @@ nav#tabbar.hidden { display: none !important; }
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid"></span>
+    <button class="home-camera-btn" onclick="openPostModal(null)" title="家族にシェア" aria-label="家族にシェア">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </button>
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
@@ -2637,7 +2670,6 @@ nav#tabbar.hidden { display: none !important; }
 <div id="s-budget" class="screen hidden">
   <div class="header">
     <div class="header-title">家計管理</div>
-    <button class="header-icon-btn" onclick="exportAllCSV()" style="font-size:13px;font-weight:700;width:auto;padding:0 12px;border-radius:var(--r-full);">CSV</button>
   </div>
   <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
     <div class="budget-header-bar">
@@ -2649,8 +2681,9 @@ nav#tabbar.hidden { display: none !important; }
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
+    <!-- 担当者切替タブ（家族全体 / パパ / ママ / etc） -->
+    <div class="budget-member-tabs" id="budget-member-tabs"></div>
     <div class="budget-hero" id="budget-hero"></div>
-    <div class="budget-member-strip" id="budget-member-strip"></div>
     <div class="type-toggle">
       <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
       <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
@@ -2814,6 +2847,11 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">日付 <span style="color:var(--red)">*</span></div>
         <input class="input" id="bm-date" type="date">
+      </div>
+      <div class="field">
+        <div class="field-label">担当者</div>
+        <div id="bm-member-btns" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="bm-member" value="">
       </div>
       <button class="btn btn-primary btn-block" onclick="saveTx()">保存する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-budget')">キャンセル</button>
@@ -4685,6 +4723,13 @@ function renderTaskList(){renderTaskScreen();}
 /* ============================================================
    BUDGET
    ============================================================ */
+let _budgetMember = 'all'; // 'all' = 家族全体 / 'common' = 家族共通 / または MEMBER.id
+
+function setBudgetMember(id) {
+  _budgetMember = id || 'all';
+  renderBudget();
+}
+
 function renderBudget() {
   const now = new Date();
   if(S.budgetY === null) S.budgetY = now.getFullYear();
@@ -4692,15 +4737,66 @@ function renderBudget() {
   const y=S.budgetY, m=S.budgetM;
   document.getElementById('budget-month').textContent = jpMonth(y,m);
 
+  // その月の取引を抽出
   const mt = (S.txs||[]).filter(t=>{
     const d = new Date(t.date+'T00:00:00');
     return d.getFullYear()===y && d.getMonth()===m;
   });
-  const inc = mt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp = mt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+
+  // メンバー別集計（タブ表示用）
+  const memTotals = {}; // {memberId: {inc, exp}}
+  let totalCommonExp = 0, totalCommonInc = 0;
+  mt.forEach(t => {
+    const memId = t.member || 'common';
+    if(!memTotals[memId]) memTotals[memId] = {inc:0, exp:0};
+    if(t.type === 'expense') memTotals[memId].exp += (t.amount||0);
+    else                     memTotals[memId].inc += (t.amount||0);
+  });
+
+  // メンバー切替タブを描画
+  const tabsEl = document.getElementById('budget-member-tabs');
+  if(tabsEl) {
+    const totalExpAll = Object.values(memTotals).reduce((s,v)=>s+v.exp,0);
+    let tabsHtml = `<button class="bm-tab all ${_budgetMember==='all'?'active':''}" onclick="setBudgetMember('all')">
+      <span>👨‍👩‍👧‍👦 家族全体</span>
+      <span class="bm-amt">${fmtAmt(totalExpAll)}</span>
+    </button>`;
+    MEMBERS.forEach(mem => {
+      const t = memTotals[mem.id];
+      // メンバー固有の支出/収入が無くても全員ボタンは出す（押せる導線）
+      const amt = t ? t.exp : 0;
+      tabsHtml += `<button class="bm-tab ${_budgetMember===mem.id?'active':''}" onclick="setBudgetMember('${H(mem.id)}')">
+        <span class="bm-av" style="background:${H(mem.grad)};">${H(mem.av)}</span>
+        <span>${H(mem.name)}</span>
+        <span class="bm-amt">${fmtAmt(amt)}</span>
+      </button>`;
+    });
+    // 家族共通タブ（未割当の支出があれば、または常時表示）
+    const commonAmt = (memTotals.common ? memTotals.common.exp : 0);
+    tabsHtml += `<button class="bm-tab ${_budgetMember==='common'?'active':''}" onclick="setBudgetMember('common')">
+      <span>🏠 家族共通</span>
+      <span class="bm-amt">${fmtAmt(commonAmt)}</span>
+    </button>`;
+    tabsEl.innerHTML = tabsHtml;
+  }
+
+  // 現在の選択メンバーで取引をフィルター
+  const memberFilter = (t) => {
+    if(_budgetMember === 'all') return true;
+    const id = t.member || 'common';
+    return id === _budgetMember;
+  };
+  const memMt = mt.filter(memberFilter);
+  const inc = memMt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp = memMt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const bal = inc - exp;
 
+  // ヒーローカード（選択ビューに合わせたタイトル）
+  const heroTitle = _budgetMember === 'all' ? '家族全体' :
+                    _budgetMember === 'common' ? '家族共通' :
+                    (getMem(_budgetMember).name + 'さん');
   document.getElementById('budget-hero').innerHTML = `
+    <div style="font-size:11px;font-weight:600;opacity:.85;letter-spacing:.5px;margin-bottom:6px;">${H(heroTitle)} の今月</div>
     <div class="budget-row">
       <div class="budget-item">
         <label>収入</label>
@@ -4713,39 +4809,11 @@ function renderBudget() {
     </div>
     <div class="budget-bal">${bal>=0?'＋':''}${fmtAmt(bal)} の収支</div>`;
 
-  // メンバー別支出（今月）— 各メンバー id で集計、未割当は「家族共通」
-  const memStrip = document.getElementById('budget-member-strip');
-  if(memStrip) {
-    const memExp = {};
-    mt.filter(t=>t.type==='expense').forEach(t => {
-      const id = t.member || 'common';
-      memExp[id] = (memExp[id] || 0) + (t.amount || 0);
-    });
-    const cells = [];
-    MEMBERS.forEach(mem => {
-      if(memExp[mem.id]) {
-        cells.push(`<div class="budget-member-cell" title="${H(mem.name)}の支出">
-          <div class="name">${H(mem.name)}</div>
-          <div class="amt">${fmtAmt(memExp[mem.id])}</div>
-        </div>`);
-      }
-    });
-    if(memExp.common) {
-      cells.push(`<div class="budget-member-cell" style="background:var(--primary-light);">
-        <div class="name">家族共通</div>
-        <div class="amt">${fmtAmt(memExp.common)}</div>
-      </div>`);
-    }
-    memStrip.innerHTML = cells.length
-      ? cells.join('')
-      : `<div style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--text-muted);padding:6px 0;">支出を追加するとメンバー別に集計されます</div>`;
-  }
-
   const type = S.budgetType;
   document.getElementById('btx-ex').classList.toggle('on', type==='expense');
   document.getElementById('btx-in').classList.toggle('on', type==='income');
 
-  const filtered = mt.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
+  const filtered = memMt.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
   const listEl = document.getElementById('budget-list');
   if(!listEl) return;
   if(!filtered.length) {
@@ -4757,14 +4825,14 @@ function renderBudget() {
     return;
   }
   listEl.innerHTML = filtered.map(t => {
-    const mem = getMem(t.member);
+    const memName = (!t.member || t.member === 'common') ? '家族共通' : getMem(t.member).name;
     const ico = CAT_ICO[t.cat]||'📦';
     const clr = CAT_CLR[t.cat]||'var(--bg-muted)';
     return `<div class="tx-item" onclick="deleteTxConfirm('${H(t.id)}')">
       <div class="tx-cat-icon" style="background:${clr}">${ico}</div>
       <div style="flex:1">
         <div class="tx-desc">${H(t.desc||t.cat)}</div>
-        <div class="tx-meta">${H(jpDate(t.date))} • ${H(mem.name)} • ${H(t.cat)}</div>
+        <div class="tx-meta">${H(jpDate(t.date))} • ${H(memName)} • ${H(t.cat)}</div>
       </div>
       <div class="tx-amount ${t.type==='expense'?'ex':'in'}">${t.type==='expense'?'−':'+'}${fmtAmt(t.amount)}</div>
     </div>`;
@@ -4802,7 +4870,31 @@ function openTxModal() {
   document.getElementById('bm-date').value   = todayStr();
   document.getElementById('bm-ex').classList.toggle('on', type==='expense');
   document.getElementById('bm-in').classList.toggle('on', type==='income');
+  // 担当者初期値：家計画面で選択中のメンバー（'all' の場合はログインユーザー / 'common' は家族共通）
+  let initialMember = (S.user && S.user.id) || MEMBERS[0].id;
+  if(_budgetMember && _budgetMember !== 'all') initialMember = _budgetMember;
+  document.getElementById('bm-member').value = initialMember;
+  renderBmMemberBtns(initialMember);
   openModal('m-budget');
+}
+
+function renderBmMemberBtns(selected) {
+  const wrap = document.getElementById('bm-member-btns');
+  if(!wrap) return;
+  const choices = [
+    ...MEMBERS.map(m => ({id:m.id, name:m.name, av:m.av, grad:m.grad})),
+    {id:'common', name:'家族共通', av:'家', grad:'linear-gradient(135deg,#9CA3AF,#D1D5DB)'}
+  ];
+  wrap.innerHTML = choices.map(c => `<button type="button" class="te-mem-btn ${selected===c.id?'selected':''}"
+    onclick="selectBmMember('${H(c.id)}')">
+    <span class="av" style="background:${H(c.grad)};width:20px;height:20px;font-size:9px;">${H(c.av)}</span>
+    ${H(c.name)}
+  </button>`).join('');
+}
+
+function selectBmMember(id) {
+  document.getElementById('bm-member').value = id;
+  renderBmMemberBtns(id);
 }
 
 function setBudgetModalType(type) {
@@ -4821,7 +4913,8 @@ function saveTx() {
   const date   = document.getElementById('bm-date').value;
   if(!amount||amount<=0) { showToast('金額を入力してください','error'); return; }
   if(!date) { showToast('日付を入力してください','error'); return; }
-  S.txs.push({id:uid(),type,amount,cat,desc:desc||cat,date,member:S.user?.id||'kenya'});
+  const member = (document.getElementById('bm-member')?.value) || S.user?.id || 'kenya';
+  S.txs.push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
   saveS(); closeModal('m-budget'); renderBudget();
   showToast('記録しました');
 }
@@ -4838,18 +4931,6 @@ function deleteTxConfirm(id) {
     }, '');
 }
 
-function exportAllCSV() {
-  const rows = [['日付','種別','カテゴリ','内容','金額','メンバー']];
-  (S.txs||[]).forEach(t => {
-    rows.push([t.date, t.type==='expense'?'支出':'収入', t.cat, t.desc||'', t.amount, getMem(t.member).name]);
-  });
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='familink_budget.csv'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('CSVをダウンロードしました');
-}
 
 /* ── 通知追加ヘルパー ── */
 function addNotif(title, desc, icon) {
