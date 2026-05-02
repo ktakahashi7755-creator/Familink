@@ -1443,5 +1443,80 @@ Wave 7：Hoku 品質改善（スマート分類器 + 自然な提案応答 + 反
 - Low：音声認識精度 / 連続入力 / L-01〜L-04 / App Store 申請 / H-01 ローカルプロフィール
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `d715fb3`（push 済み、default branch = `24c422f`）
 - メッセージ: `wave 7: Hoku quality - smart classifier + natural professional wording`
+
+---
+
+## 2026-05-02 07:03  env: 不明（Wave 8 自走セッション）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 8：Hoku 体験の実用性向上（アクションボタン導線 + 残機械的表現の完全除去）
+
+### 変更ファイル
+- `app-source/familink.html`（classifierActions 関数 + render 拡張 + CSS + 文言調整、+58 行）
+- `docs/index.html`（同期コピー、md5 一致）
+- `docs/hoku-quality-report-2026-05-02-wave8.md`（新規）
+- `docs/worklog.md`（追記）
+
+### 主要実装
+
+#### 1. アクションボタン導線追加
+- `classifierActions(category)` 関数を新設、8 カテゴリに 1〜2 ボタン
+- `classifierGuidance` の各 case 末尾に `[[ACTION_BUTTONS:カテゴリ]]` マーカー埋め込み
+- `renderHokuMsgs` がマーカーを検出してボタン HTML に置換
+- onclick で `switchTab/go/モーダル open` を実行（モーダル系は setTimeout 200ms 後）
+- CSS `.hoku-actions` / `.hoku-action-btn` 追加（pill 型ボタン）
+
+#### 2. 残機械的表現の完全除去
+- Hoku タスク data-lookup の絵文字 `⛔🔴📌🟡` を `【】` テキスト囲みに置換（2 箇所、計 8 個）
+- 「○○に入れておくと」 → 「○○に登録しておくと」（補足文 3 箇所）
+- 「期限が近いものまとめたよ」 → 「期限が近いものをまとめました」
+- 「タスク全部終わってるよ！お疲れさま」 → 「未完了のタスクはありません。お疲れさまです」
+- 「今やるべきことはこれかな：」 → 「今やるべきことの候補です。」
+
+### Playwright テスト結果
+
+#### ユーザー指定 12 入力パターン：12/12 PASS（100%）
+- calendar 2/2 / prep 3/3 / budget 2/2 / health 2/2 / board 1/1 / help 1/1 / premium 1/1
+- 各応答にカテゴリ別アクションボタン（カレンダーを開く / 予定を追加 等）が表示
+
+#### アクションボタン → 画面遷移
+- 「カレンダーを開く」タップ → s-cal 遷移：✅
+- 「予定を追加」タップ → s-cal 遷移 + 予定追加モーダル：✅
+
+#### LocalStorage 永続化（4 種類追加 → リロード → 保持確認）
+- tasks / events / txs / prep すべて保持：✅
+- ログイン状態保持：✅
+
+### 静的検証
+- `node --check` JS OK
+- HTTP 200（src/familink.html, docs/index.html）
+- md5 一致（app-source ↔ docs/index.html）
+- 公開不可情報・「○○反映」・「入れておく」・絵文字 すべて 0 件
+- 21 画面 ID すべて存在
+
+### 影響範囲
+- LocalStorage 構造：不変
+- 既存関数シグネチャ：不変
+- 既存応答パターン：すべて維持（追加のみ）
+- 既存 UI：Hoku 応答下にボタン追加（既存配置不変）
+
+### iPhone 確認ポイント
+1. キャッシュクリア + リロード
+2. 「明日15時に小児科」 → 応答下に「カレンダーを開く」「予定を追加」ボタン
+3. 「カレンダーを開く」タップ → カレンダー画面へ
+4. 「予定を追加」タップ → カレンダー画面 + 予定追加モーダル open
+5. タスクサマリ応答に「【期限切れ】」等の全角括弧（旧絵文字なし）
+
+### 残課題
+- High：なし
+- Medium：iPhone Safari 実機検証 / アクションボタンタップ後に Hoku 画面に戻る導線
+- Low：音声認識精度 / 連続入力 / L-01〜L-04 / App Store 申請 / H-01 ローカルプロフィール
+
+### 自動停止ルール 6 項目すべて回避
+- ❌ 外部 AI API / LS 構造変更 / 既存破壊 / 画面作り替え / 実機必須 / 4h 超
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 8: Hoku action buttons + remove residual emojis + sync docs`
