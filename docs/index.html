@@ -1161,6 +1161,16 @@ select.input {
   background: var(--grad-primary); color: #fff;
   border-radius: 18px 18px 4px 18px; font-weight: 500;
 }
+/* Hoku 応答下のアクションボタン群（カテゴリ別の次の操作導線） */
+.hoku-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.hoku-action-btn {
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--primary); color: #fff;
+  border: none; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: var(--t-spring);
+}
+.hoku-action-btn:active { transform: scale(.94); }
+.hoku-action-btn:hover { opacity: .9; }
 .hoku-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
 .hoku-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: .4; animation: hDot .9s ease-in-out infinite; }
 .hoku-dot:nth-child(2){animation-delay:.15s;} .hoku-dot:nth-child(3){animation-delay:.3s;}
@@ -7237,9 +7247,24 @@ function renderHokuMsgs() {
     if(m.role==='user') {
       return `<div class="hoku-row user"><div class="hoku-bubble user">${H(m.content)}</div></div>`;
     }
-    const html = H(m.content).replace(/\n/g,'<br>');
+    // [[ACTION_BUTTONS:カテゴリ]] マーカーを抽出してアクションボタン群に置換
+    let content = m.content || '';
+    let actionsHTML = '';
+    const actionMatch = content.match(/\[\[ACTION_BUTTONS:(\w+)\]\]/);
+    if(actionMatch) {
+      const cat = actionMatch[1];
+      content = content.replace(actionMatch[0], '').replace(/\n+$/, '');
+      const actions = (typeof classifierActions === 'function') ? classifierActions(cat) : [];
+      if(actions.length) {
+        actionsHTML = '<div class="hoku-actions">' +
+          actions.map(a =>
+            `<button class="hoku-action-btn" onclick="${H(a.onclick)}">${H(a.label)}</button>`
+          ).join('') + '</div>';
+      }
+    }
+    const html = H(content).replace(/\n/g,'<br>');
     return `<div class="hoku-row"><img src="${IMGS.happy}" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;">
-      <div class="hoku-bubble ai">${html}</div></div>`;
+      <div class="hoku-bubble ai">${html}${actionsHTML}</div></div>`;
   }).join('');
 
   setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
@@ -7455,50 +7480,97 @@ function classifyHokuInput(q) {
    ────────────────────────────────────────────────── */
 function classifierGuidance(category, q, secondary) {
   const NL = '\n';
-  const sub = (cat) => secondary ? NL + NL + `（補足：${cat}にも関係がありそうです。両方に記録するのも 1 つの方法です。）` : '';
+  const ACTION = (cat) => NL + NL + `[[ACTION_BUTTONS:${cat}]]`;
 
   switch(category) {
     case 'calendar':
       return '予定として整理できそうな内容ですね。'+NL+
         '日時が分かる場合は、カレンダーに登録しておくと家族全員で確認しやすくなります。'+NL+NL+
         '「予定追加して」と続けて話しかけると、カレンダーへの登録を進められます。'+
-        (secondary === 'health' ? NL+NL+'（補足：通院・健診の場合は、体調メモにも記録しておくと、あとで振り返りやすくなります。）' : '');
+        (secondary === 'health' ? NL+NL+'（補足：通院・健診の場合は、体調メモにも記録しておくと、あとで振り返りやすくなります。）' : '')+
+        ACTION('calendar');
     case 'task':
       return 'やることとして管理するのに向いていそうです。'+NL+
         '担当者と期限を決めてタスクに追加すると、家族内で抜け漏れを防ぎやすくなります。'+NL+NL+
-        '「タスク追加して」で登録を始められます。';
+        '「タスク追加して」で登録を始められます。'+
+        ACTION('task');
     case 'prep':
       return '持ち物の準備リストに残しておくと安心です。'+NL+
         '前日までに用意するもの、朝に最終確認するものに分けると使いやすくなります。'+NL+NL+
         '「準備リスト」画面から登録できます。'+
-        (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも入れておくと安心です。）' : '');
+        (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも登録しておくと安心です。）' : '')+
+        ACTION('prep');
     case 'budget':
       return '家計メモに残しておくと、あとで見直しやすくなります。'+NL+
         '食費・固定費・急な出費のどれに近いかを分けて記録するのがおすすめです。'+NL+NL+
-        '金額が分かれば「○○円使った」と話しかけると、家計に登録できます。';
+        '金額が分かれば「○○円使った」と話しかけると、家計に登録できます。'+
+        ACTION('budget');
     case 'health':
       return '体調メモに残しておくと安心です。'+NL+
         '体温・食欲・水分・機嫌を一緒に記録しておくと、あとで状況を振り返りやすくなります。'+NL+NL+
         '症状が強い場合や不安がある場合は、医療機関への相談も検討してください。'+
-        (secondary === 'calendar' ? NL+NL+'（補足：受診予定が決まったら、カレンダーにも入れておくと安心です。）' : '');
+        (secondary === 'calendar' ? NL+NL+'（補足：受診予定が決まったら、カレンダーにも登録しておくと安心です。）' : '')+
+        ACTION('health');
     case 'board':
       return '家族ボードに共有するとよさそうです。'+NL+
         'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+NL+
-        '「家族ボード」画面から投稿できます。';
+        '「家族ボード」画面から投稿できます。'+
+        ACTION('board');
     case 'notification':
       return 'リマインドの設定に向いている内容ですね。'+NL+
         '忘れたくない時間が決まっている場合は、通知に登録しておくと安心です。'+NL+NL+
-        '通知の高度設定（時間指定など）は今後のプレミアム機能として検討中です。';
+        '通知の高度設定（時間指定など）は今後のプレミアム機能として検討中です。'+
+        ACTION('notification');
     case 'help':
       return 'Hoku は、家族の予定・タスク・持ち物・体調・家計・家族共有の整理をお手伝いするアシスタントです。'+NL+
         '話しかけた内容をもとに、どの機能に記録するとよいかを提案します。'+NL+NL+
         '入力欄左のマイクボタンで音声入力もできます。';
     case 'premium':
       return 'プレミアムでは、家族ボードの追加・カスタムボード作成・準備リストの拡張・Hoku の高度な提案など、家族運営をより細かく管理できる機能を予定しています。'+NL+NL+
-        '無料版でも基本機能はそのままお使いいただけます。';
+        '無料版でも基本機能はそのままお使いいただけます。'+
+        ACTION('premium');
     default:
       return null;
   }
+}
+
+/* ──────────────────────────────────────────────────
+   classifierActions — Hoku 応答後のアクションボタン群
+   onclick 文字列で表現（switchTab/go/モーダル open）
+   ────────────────────────────────────────────────── */
+function classifierActions(category) {
+  const a = {
+    calendar: [
+      { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" },
+      { label: '予定を追加', onclick: "switchTab('s-cal');setTimeout(()=>openEventModal(),200)" }
+    ],
+    task: [
+      { label: 'タスクを開く', onclick: "switchTab('s-task')" },
+      { label: 'タスクを追加', onclick: "switchTab('s-task');setTimeout(()=>openTaskModal(null),200)" }
+    ],
+    prep: [
+      { label: '準備リストを開く', onclick: "go('s-prep')" },
+      { label: '持ち物を追加', onclick: "go('s-prep');setTimeout(()=>openPrepModal(),200)" }
+    ],
+    budget: [
+      { label: '家計を開く', onclick: "switchTab('s-budget')" },
+      { label: '記録を追加', onclick: "switchTab('s-budget');setTimeout(()=>openTxModal(),200)" }
+    ],
+    health: [
+      { label: '体調メモを開く', onclick: "go('s-health')" }
+    ],
+    board: [
+      { label: '家族ボードを開く', onclick: "switchTab('s-board')" },
+      { label: '投稿する', onclick: "switchTab('s-board');setTimeout(()=>openPostModal(null),200)" }
+    ],
+    notification: [
+      { label: '通知一覧を開く', onclick: "go('s-notif')" }
+    ],
+    premium: [
+      { label: 'プレミアムを見る', onclick: "showPremiumGate()" }
+    ]
+  };
+  return a[category] || [];
 }
 
 
@@ -7611,7 +7683,7 @@ function hokuLocalAnswer(q) {
     return '朝の段取りは「夜のうちに済ませる」「朝の必須リスト」の 2 軸で考えると楽になります。'+NL+NL+
       '・前夜：服・カバン・水筒の準備、明日の予定確認'+NL+
       '・朝：起床 → 朝食 → 着替え → 持ち物最終チェック'+NL+
-      '・「準備リスト」に毎日のチェック項目を入れておくと、家族で同じ手順を回せます';
+      '・「準備リスト」に毎日のチェック項目を登録しておくと、家族で同じ手順を回せます';
   }
 
   /* ガイダンス：登園・登校 */
@@ -7683,12 +7755,12 @@ function hokuLocalAnswer(q) {
   /* タスク */
   if(ql.match(/タスク|やること|todo|仕事|作業|宿題/i) && !ql.match(/追加|入れ|登録|消|削除|完了/)) {
     const t=ctx.tasks;
-    if(!t.total) return 'タスクは全部終わってるよ！お疲れさま。';
+    if(!t.total) return '未完了のタスクはありません。お疲れさまです。';
     let r=`タスク（未完了 ${t.total}件）${NL+NL}`;
-    if(t.overdue.length) r+='⛔ 期限切れ'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
-    if(t.today.length)   r+='🔴 今日まで'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
-    if(t.soon.length)    r+='📌 今週中'+NL+list(t.soon,x=>`・${x.title} [${x.due}]`)+NL+NL;
-    if(t.high_priority.length) r+='🟡 優先高'+NL+list(t.high_priority,x=>`・${x.title}`);
+    if(t.overdue.length) r+='【期限切れ】'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
+    if(t.today.length)   r+='【今日まで】'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
+    if(t.soon.length)    r+='【今週中】'+NL+list(t.soon,x=>`・${x.title} [${x.due}]`)+NL+NL;
+    if(t.high_priority.length) r+='【優先：高】'+NL+list(t.high_priority,x=>`・${x.title}`);
     return r.trim();
   }
 
@@ -7698,7 +7770,7 @@ function hokuLocalAnswer(q) {
     const all=[...t.overdue,...t.today,...t.soon,...t.high_priority];
     const u=[...new Map(all.map(x=>[x.title,x])).values()].slice(0,3);
     if(!u.length) return '急ぎのことは今のところなさそうです。';
-    return '今やるべきことはこれかな：'+NL+NL+u.map((x,i)=>`${i+1}. ${x.title}${x.due&&x.due!=='期日なし'?' ['+x.due+']':''}`).join(NL);
+    return '今やるべきことの候補です。'+NL+NL+u.map((x,i)=>`${i+1}. ${x.title}${x.due&&x.due!=='期日なし'?' ['+x.due+']':''}`).join(NL);
   }
 
   /* 家計 */
@@ -7724,11 +7796,11 @@ function hokuLocalAnswer(q) {
   /* 期限 */
   if(ql.match(/期限|締め切り|提出|〆切/)) {
     const t=ctx.tasks;
-    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところなさそうです。';
-    let r='期限が近いものまとめたよ。'+NL+NL;
-    if(t.overdue.length) r+='⛔ 期限切れ：'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
-    if(t.today.length)   r+='🔴 今日まで：'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
-    if(t.soon.length)    r+='📌 今週中：'+NL+list(t.soon,x=>`・${x.title} [${x.due}]`);
+    if(!t.overdue.length&&!t.today.length&&!t.soon.length) return '期限が近いタスクは今のところありません。';
+    let r='期限が近いものをまとめました。'+NL+NL;
+    if(t.overdue.length) r+='【期限切れ】'+NL+list(t.overdue,x=>`・${x.title} [${x.due}]`)+NL+NL;
+    if(t.today.length)   r+='【今日まで】'+NL+list(t.today,x=>`・${x.title}`)+NL+NL;
+    if(t.soon.length)    r+='【今週中】'+NL+list(t.soon,x=>`・${x.title} [${x.due}]`);
     return r.trim();
   }
 
