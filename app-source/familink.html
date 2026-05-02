@@ -1171,6 +1171,10 @@ select.input {
 }
 .hoku-action-btn:active { transform: scale(.94); }
 .hoku-action-btn:hover { opacity: .9; }
+.hoku-action-btn.secondary {
+  background: var(--bg-muted); color: var(--text-sub);
+  border: 1px solid var(--border);
+}
 .hoku-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
 .hoku-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: .4; animation: hDot .9s ease-in-out infinite; }
 .hoku-dot:nth-child(2){animation-delay:.15s;} .hoku-dot:nth-child(3){animation-delay:.3s;}
@@ -7247,18 +7251,19 @@ function renderHokuMsgs() {
     if(m.role==='user') {
       return `<div class="hoku-row user"><div class="hoku-bubble user">${H(m.content)}</div></div>`;
     }
-    // [[ACTION_BUTTONS:カテゴリ]] マーカーを抽出してアクションボタン群に置換
+    // [[ACTION_BUTTONS:カテゴリ]] または [[ACTION_BUTTONS:cat:secondary]] マーカー
     let content = m.content || '';
     let actionsHTML = '';
-    const actionMatch = content.match(/\[\[ACTION_BUTTONS:(\w+)\]\]/);
+    const actionMatch = content.match(/\[\[ACTION_BUTTONS:(\w+)(?::(\w+))?\]\]/);
     if(actionMatch) {
       const cat = actionMatch[1];
+      const sec = actionMatch[2] || null;
       content = content.replace(actionMatch[0], '').replace(/\n+$/, '');
-      const actions = (typeof classifierActions === 'function') ? classifierActions(cat) : [];
+      const actions = (typeof classifierActions === 'function') ? classifierActions(cat, sec) : [];
       if(actions.length) {
         actionsHTML = '<div class="hoku-actions">' +
           actions.map(a =>
-            `<button class="hoku-action-btn" onclick="${H(a.onclick)}">${H(a.label)}</button>`
+            `<button class="hoku-action-btn ${a.secondary?'secondary':''}" onclick="${H(a.onclick)}">${H(a.label)}</button>`
           ).join('') + '</div>';
       }
     }
@@ -7470,7 +7475,7 @@ function classifyHokuInput(q) {
   return {
     category: bestScore >= 3 ? bestCat : null,
     score: bestScore,
-    secondary: secondScore >= 3 ? second : null,
+    secondary: (secondScore >= 2 && secondScore >= bestScore - 3) ? second : null,
     allScores: scores
   };
 }
@@ -7480,7 +7485,9 @@ function classifyHokuInput(q) {
    ────────────────────────────────────────────────── */
 function classifierGuidance(category, q, secondary) {
   const NL = '\n';
-  const ACTION = (cat) => NL + NL + `[[ACTION_BUTTONS:${cat}]]`;
+  const ACTION = (cat) => NL + NL + (secondary && secondary !== cat
+    ? `[[ACTION_BUTTONS:${cat}:${secondary}]]`
+    : `[[ACTION_BUTTONS:${cat}]]`);
 
   switch(category) {
     case 'calendar':
@@ -7538,8 +7545,8 @@ function classifierGuidance(category, q, secondary) {
    classifierActions — Hoku 応答後のアクションボタン群
    onclick 文字列で表現（switchTab/go/モーダル open）
    ────────────────────────────────────────────────── */
-function classifierActions(category) {
-  const a = {
+function classifierActions(category, secondary) {
+  const map = {
     calendar: [
       { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" },
       { label: '予定を追加', onclick: "switchTab('s-cal');setTimeout(()=>openEventModal(),200)" }
@@ -7570,7 +7577,13 @@ function classifierActions(category) {
       { label: 'プレミアムを見る', onclick: "showPremiumGate()" }
     ]
   };
-  return a[category] || [];
+  // 主カテゴリのアクション
+  let actions = (map[category] || []).slice();
+  // 補助カテゴリ：先頭ボタンのみ追加（multi-intent な質問への補助選択肢）
+  if(secondary && secondary !== category && map[secondary] && map[secondary][0]) {
+    actions.push({ ...map[secondary][0], secondary: true });
+  }
+  return actions;
 }
 
 
