@@ -945,5 +945,68 @@ Wave 4：実機 QA に出せる安定版への深掘り検証 + 軽微改善
 3. 問題なければ第 2 弾（H-01 ローカルプロフィール）の設計開始
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `c65700b`（push 済み）
 - メッセージ: `wave 4: deep QA verification + remove residual Hoku emojis + polite empty-state messages`
+
+---
+
+## 2026-05-02 00:14  env: 不明（実機 QA 投入準備）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+実機 QA 投入版マーキング + オーナー向けチェックリスト整備
+
+### 変更ファイル
+- `docs/qa-owner-checklist.md`（新規 / 携帯閲覧前提のオーナー向け 10 項目チェック）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+- **本体 HTML は変更なし**（実機 QA 投入フェーズのため修正凍結）
+- 実機 QA 投入版を **コミット `c65700b` / ブランチ `claude/familylink-unicorn-product-TzM1F`** として正式マーキング
+- オーナーが iPhone から読みやすい簡潔な 10 項目チェックリストを新設：
+  1. ウェルカム画面のブランド表示
+  2. ログイン欄の空欄状態（H-03）
+  3. デモデータ確認モーダル（H-04）
+  4. ホーム挨拶のサンプル名（H-02）
+  5. **タスク画面のタイトル表示**（Wave 2 BUG-FIX 検証 ⭐）
+  6. 「家族ボード」用語統一（M-04）
+  7. **Hoku の応答品質**（タスク単発 / 追加 / ヘルプ / 今日のまとめ ⭐）
+  8. プレミアムゲート（H-05/06）
+  9. データ保存と再読み込み
+  10. Hoku FAB（常駐 / ドラッグ / タップ）
+
+### 実機 QA 投入版のコミット情報
+- コミット ハッシュ：`c65700b`
+- ブランチ：`claude/familylink-unicorn-product-TzM1F`
+- 同等のバックアップタグ：`backup-005-wave4`
+- 行数：9,213 行（約 1.3 MB）
+- 致命バグ：0 件
+- 21 画面 ID 全存在
+- 個人名 / 固定パスワード / 旧用語：0 件
+
+### URL / 配信整合性確認
+- `src/familink.html` → `app-source/familink.html` の symlink、HTTP 200 / 1,298,894 bytes
+- `app-source/familink.html` 直接配信、HTTP 200 / 1,298,894 bytes
+- `README.md` の URL 記述 6 箇所すべて整合
+- `docs/iphone-qa-guide.md` の URL 記述すべて整合
+
+### テスト結果
+- 静的サーバ HTTP 200 確認 ✅
+- ファイル存在 / symlink 整合性 ✅
+- 本体無修正 ✅
+
+### 未確認事項
+- iPhone 実機での 21 画面動作（オーナーが本ドキュメントに従って実走）
+
+### iPhone 確認ポイント
+- まず `docs/qa-owner-checklist.md` の 10 項目を確認（30 分目安）
+- 詳細は `docs/iphone-qa-guide.md` §4-4 / §4-5 / §5〜§8
+
+### 次にやること
+1. **オーナー側で iPhone 実機 QA 実行**（`docs/qa-owner-checklist.md`）
+2. 結果を `docs/qa-results-YYYY-MM-DD.md` に記録
+3. High 級バグ発生時のみ次セッションで最小差分修正
+4. 一次合格 → 第 2 弾（H-01 ローカルプロフィール）の設計開始
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `mark stable for iPhone QA: add owner checklist (mobile-friendly)`
