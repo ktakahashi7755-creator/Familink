@@ -64,45 +64,58 @@ OS 別の起動手順 / 21 画面チェックリスト / バグ報告テンプ�
 
 PC を立ち上げずに iPhone から URL で開きたい場合は、GitHub Pages を使って一時公開できます。
 
-### 公開後の URL（想定）
+### ⚠️ 前提：リポジトリを Public にする必要があります
+
+**現在このリポジトリは Private**です。GitHub Free プランでは **Private リポジトリで Pages が使えません**ので、まず Public に変更する必要があります（公開不可な情報は Wave 1〜4 で 0 件確認済みなので Public 化しても安全）。
+
+### Step A：リポジトリを Public に変更（オーナー側、1 回だけ）
+
+1. `https://github.com/ktakahashi7755-creator/Familink` を開く
+2. **`Settings`** タブをクリック
+3. ページを一番下までスクロール → **`Danger Zone`**（赤枠）
+4. **`Change repository visibility`** → **`Change to public`** をクリック
+5. 確認画面でリポジトリ名 `ktakahashi7755-creator/Familink` を入力
+6. **`I understand, change repository visibility`** をクリック
+
+### Step B：Pages を有効化（オーナー側、1 回だけ）
+
+公開ワークフロー `.github/workflows/pages.yml` を **追加済み**なので、Settings の操作は **1 つだけ**：
+
+1. Settings → 左サイドバー **`Pages`**
+2. **`Build and deployment`** → **`Source`** ドロップダウン：
+   - **`GitHub Actions`** を選択（`Deploy from a branch` ではない）
+3. 自動的にワークフローが走り、数分後に `https://ktakahashi7755-creator.github.io/Familink/` が有効になる
+
+### 公開後の URL
 
 ```
 https://ktakahashi7755-creator.github.io/Familink/
 ```
 
-このページが自動的に `app-source/familink.html` にリダイレクトします（リポジトリ直下の `index.html` がリダイレクト用）。
+このページが自動的に `app-source/familink.html` にリダイレクトします。
 
-### GitHub での設定手順（オーナー側で 1 回だけ）
+### 動作確認の流れ
 
-1. GitHub の `https://github.com/ktakahashi7755-creator/Familink` を開く
-2. **Settings** タブ → 左サイドバー **Pages**
-3. **Source** を以下に設定：
-   - **Branch**：`claude/familylink-unicorn-product-TzM1F`
-   - **Folder**：`/ (root)`
-4. **Save** をクリック
-5. 数分待つと上部に「Your site is live at ...」が表示される
-6. その URL（または `https://ktakahashi7755-creator.github.io/Familink/`）を iPhone Safari で開く
+1. Step A → Step B を実施
+2. リポジトリの **`Actions`** タブで `Deploy to GitHub Pages` ワークフローが緑色（成功）になっていることを確認
+3. iPhone Safari で上記 URL を開く
+4. Familink のウェルカム画面が表示される
 
-### Pages 設定のポイント
+### 終了後（推奨）
 
-| 項目 | 推奨値 | 補足 |
-|---|---|---|
-| Branch | `claude/familylink-unicorn-product-TzM1F` | 現在の安定版コミット (`eae3233`) を含むブランチ |
-| Folder | `/ (root)` | リポジトリ直下の `index.html` でリダイレクト |
-| カスタムドメイン | 不要 | 一時 QA 用途のためデフォルトの `*.github.io` で十分 |
-
-### 注意事項
-
-- このブランチに push するたびに数十秒〜数分で自動再デプロイされます
-- **実機 QA が終わったら Pages を無効化推奨**（Settings → Pages → Branch を `None` に戻す）
-- 公開不可な情報（個人名 / 固定パスワード等）は Wave 4 までに 0 件確認済み（worklog 参照）
-- ホーム画面に追加すれば PWA 風にフルスクリーン起動
+実機 QA が完了したら：
+- Settings → Pages → Source を `Disable` または `None` に
+- Settings → 必要なら Public → Private に戻す（Public のままでも公開不可情報は 0 件確認済み）
 
 ### キャッシュの罠
 
 - iPhone Safari は前回読み込んだバージョンをキャッシュしがちです
 - 最新版が反映されないと感じたら：**Safari 設定 → 詳細 → Web サイトデータ → このサイトのデータを削除** → 再読み込み
 - 開発中は **プライベートブラウズ** で開くとキャッシュ問題を回避しやすい
+
+### Public に変更したくない場合
+
+Public 化が難しい場合は、**PC + 同一 LAN の iPhone** 方式が確実です（前述の §同一 LAN の iPhone から確認 を参照）。
 
 ---
 

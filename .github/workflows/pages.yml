@@ -1,0 +1,43 @@
+name: Deploy to GitHub Pages
+
+# トリガー：QA 投入ブランチへの push、または手動実行
+on:
+  push:
+    branches:
+      - claude/familylink-unicorn-product-TzM1F
+  workflow_dispatch:
+
+# Pages デプロイに必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行は最新だけを保持
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # リポジトリ全体をそのままアップロード
+          # ルートの index.html がリダイレクト → app-source/familink.html
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1082,5 +1082,89 @@ GitHub Pages による実機 QA 一時公開：ルート `index.html` リダイ�
 5. 一次合格後、Pages を無効化推奨
 
 ### コミット
-- ハッシュ: 本エントリを含むコミットで記録
+- ハッシュ: `b102524`（push 済み）
 - メッセージ: `add GitHub Pages redirect index.html and setup instructions`
+
+---
+
+## 2026-05-02 00:46  env: 不明（GitHub Pages 404 対応）  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+GitHub Pages 404 の根本原因対応：Private 制約の明示 + Actions ワークフロー追加
+
+### 背景
+- iPhone Safari から `https://ktakahashi7755-creator.github.io/Familink/` を開くと 404
+- mcp__github__search_repositories でリポジトリ情報を確認した結果：
+  - `"private": true`
+  - `"has_pages": false`
+  - `"default_branch": "claude/merge-and-push-main-u44Ty"`（古いブランチ）
+- **GitHub Free プランでは Private リポジトリで Pages が使えない** → これが 404 の根本原因
+
+### 変更ファイル
+- `.github/workflows/pages.yml`（新規 / GitHub Actions による Pages デプロイワークフロー）
+- `.nojekyll`（先に追加済 / Jekyll 処理を無効化）
+- `README.md`（GitHub Pages セクションを書き直し：Private 問題と 2-step 手順を明記）
+- `docs/worklog.md`（追記）
+
+### 変更内容
+
+#### `.github/workflows/pages.yml` 新規
+- トリガー：`claude/familylink-unicorn-product-TzM1F` ブランチへの push、または手動実行
+- 権限：`contents: read` / `pages: write` / `id-token: write`
+- リポジトリ全体を Pages にアップロード
+- `actions/configure-pages@v5` + `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` の標準フロー
+
+このワークフローを使うことで、ユーザーが Settings → Pages → Source = **`GitHub Actions`** を選ぶだけで自動デプロイが走る（Branch 選択不要）。
+
+#### README 「出先の iPhone から確認したい」セクション書き直し
+- ⚠️ Private リポジトリの制約を冒頭に明記
+- **Step A**：リポジトリを Public に変更（Settings → Danger Zone）
+- **Step B**：Settings → Pages → Source = `GitHub Actions`
+- 動作確認の流れ（Actions タブで成功確認 → iPhone Safari）
+- 終了後の Pages 無効化推奨を追加
+- 「Public に変更したくない場合は LAN 方式」のフォールバック明記
+
+### Claude Code 側でできなかったこと（オーナー依頼）
+
+| 項目 | 理由 |
+|---|---|
+| リポジトリの Public 化 | リポジトリ可視性変更の MCP ツールが提供されていない |
+| Settings → Pages の Source 選択 | Pages 設定変更の MCP ツールが提供されていない |
+| Default branch の変更 | リポジトリ設定変更の MCP ツールが提供されていない |
+
+### 公開不可情報の最終確認
+- 個人名（賢弥/星愛/星斗/星旺/星汰）：0 件
+- `kenya@familink.app`：0 件
+- `value="password"`：0 件
+- 「掲示板」（UI 上）：0 件
+- → Public 化しても問題なし
+
+### テスト結果
+- ローカル `python3 -m http.server` 動作 OK（既存の起動方法は変わらず動作）
+- GitHub Actions ワークフローの YAML 構文：手動目視で問題なし
+- 本体 HTML：未変更
+
+### 影響範囲
+- Pages 公開のための準備ファイル追加のみ（`.github/workflows/pages.yml` + `.nojekyll`）
+- 本体機能・既存 docs・LocalStorage：すべて不変
+
+### iPhone QA の進め方（Public 化後）
+
+**オーナー作業（PC または iPhone）**：
+1. GitHub → Settings → Danger Zone → Change to **Public**
+2. GitHub → Settings → Pages → Source = **GitHub Actions**
+3. GitHub → Actions タブで `Deploy to GitHub Pages` の緑色チェックを確認（数分）
+4. iPhone Safari で `https://ktakahashi7755-creator.github.io/Familink/` を開く
+5. `docs/qa-owner-checklist.md` の 10 項目を確認
+
+### 残課題
+- Public 化と Source 選択はオーナー側で実施待ち
+- 一度 Pages が動けば、以降の push は自動再デプロイ（ワークフローによる）
+
+### 次にやること
+1. オーナーが Public 化 + Source 選択
+2. iPhone から実機 QA 開始
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `add GitHub Actions Pages workflow + clarify private repo prerequisite`
