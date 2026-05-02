@@ -6772,22 +6772,17 @@ function saveBoardSection() {
    HOKU v3 — ラフ口調 + エージェント機能
    ============================================================ */
 
-/* ── サジェスト質問（常時表示） ── */
+/* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
 const HOKU_SUGGESTIONS = [
-  '今日の予定教えて',
-  '明日の準備ある？',
-  '今週のタスクまとめて',
-  '期限近いものある？',
-  '今月の家計どう？',
-  '持ち物を整理したい',
-  '子どもが熱っぽい',
-  '節約したい',
-  '朝の準備が大変',
-  '習い事の管理',
-  '家族にどう共有？',
-  '予定を追加したい',
-  'タスク追加したい',
-  '家計を登録したい',
+  '明日の持ち物を整理したい',
+  '今週の予定を確認したい',
+  '子どもの体調をメモしたい',
+  '今月の出費を見直したい',
+  '家族に共有したいことがある',
+  '小学校の準備を進めたい',
+  '習い事の予定を整理したい',
+  '忘れないように通知したい',
+  '何ができる？',
 ];
 
 let _hokuMsgs       = [];
@@ -7049,29 +7044,29 @@ function handleAction(intent, q) {
   switch(intent.action) {
     case 'create_budget': {
       const p = parseExpense(q);
-      if(!p.amount) return '金額がわからなかった。いくら？';
-      const catNote = p.confidence === 'low' ? `（${p.cat}でいい？）` : '';
-      const confirm = `${p.cat}${catNote}で¥${p.amount.toLocaleString()}、内容「${p.title}」で入れておく？`;
+      if(!p.amount) return '金額が読み取れませんでした。「○○円」のように金額を含めて教えてください。';
+      const catNote = p.confidence === 'low' ? `（カテゴリは「${p.cat}」でよろしいですか？）` : '';
+      const confirm = `${p.cat}${catNote}で ¥${p.amount.toLocaleString()}、内容「${p.title}」を家計メモに記録します。よろしいですか？`;
       _pendingAction = {type:'create_budget', params:p};
       return confirm;
     }
 
     case 'create_event': {
       const p = parseEvent(q);
-      if(!p.title) return 'どんな予定？';
-      const timeStr = p.time ? p.time+'の' : '';
+      if(!p.title) return 'どんな予定でしょうか？日時とタイトルを教えてください。';
+      const timeStr = p.time ? p.time+' の' : '';
       const memberStr = p.member ? `（${p.member}）` : '';
-      const confirm = `${p.dateLabel}${timeStr ? ' '+timeStr : ''}「${p.title}」${memberStr}、カレンダーに入れておく？`;
+      const confirm = `${p.dateLabel}${timeStr?' '+timeStr:''}「${p.title}」${memberStr}をカレンダーに登録します。よろしいですか？`;
       _pendingAction = {type:'create_event', params:p};
       return confirm;
     }
 
     case 'create_task': {
       const p = parseTask(q);
-      if(!p.title || p.title === 'タスク') return 'どんなタスクを入れる？';
-      const assigneeStr = p.assignee ? `${p.assignee}担当で` : '';
+      if(!p.title || p.title === 'タスク') return 'どんなタスクでしょうか？タイトルを教えてください。';
+      const assigneeStr = p.assignee ? `${p.assignee}さんの担当で` : '';
       const dueStr = p.dueDate ? `[${p.dueDateLabel}まで] ` : '';
-      const confirm = `${assigneeStr}「${p.title}」${dueStr}、タスクに入れておく？`;
+      const confirm = `${assigneeStr}「${p.title}」${dueStr}をタスクに追加します。よろしいですか？`;
       _pendingAction = {type:'create_task', params:p};
       return confirm;
     }
@@ -7082,11 +7077,11 @@ function handleAction(intent, q) {
       const matched = tasks.filter(t=>raw&&(t.title.includes(raw)||raw.includes(t.title)));
       if(!matched.length) {
         if(!tasks.length) return '未完了のタスクはありません。';
-        return `「${raw||'?'}」が見つからなかった。${NL}未完了タスク：${NL}`+tasks.slice(0,4).map(t=>`・${t.title}`).join(NL);
+        return `「${raw||'?'}」に該当するタスクが見つかりませんでした。${NL}未完了タスク：${NL}`+tasks.slice(0,4).map(t=>`・${t.title}`).join(NL);
       }
-      if(matched.length>1) return 'どれを完了にする？'+NL+matched.map(t=>`・${t.title}`).join(NL);
+      if(matched.length>1) return 'どのタスクを完了にしますか？'+NL+matched.map(t=>`・${t.title}`).join(NL);
       _pendingAction = {type:'complete_task', params:{id:matched[0].id, title:matched[0].title}};
-      return `「${matched[0].title}」を完了にしておく？`;
+      return `「${matched[0].title}」を完了にします。よろしいですか？`;
     }
 
     case 'delete_task': {
@@ -7096,21 +7091,21 @@ function handleAction(intent, q) {
       if(isLast && tasks.length) {
         const last = tasks[tasks.length-1];
         _pendingAction = {type:'delete_task', params:{id:last.id, title:last.title}};
-        return `「${last.title}」を消しておく？`;
+        return `「${last.title}」を削除します。元には戻せませんが、よろしいですか？`;
       }
       const raw = q.replace(/消して|削除して|タスク/g,'').trim();
       const matched = tasks.filter(t=>raw&&(t.title.includes(raw)||raw.includes(t.title)));
-      if(!matched.length) return `「${raw||'?'}」が見つからなかった。`;
-      if(matched.length>1) return 'どれを消す？'+NL+matched.map(t=>`・${t.title}`).join(NL);
+      if(!matched.length) return `「${raw||'?'}」に該当するタスクが見つかりませんでした。`;
+      if(matched.length>1) return 'どのタスクを削除しますか？'+NL+matched.map(t=>`・${t.title}`).join(NL);
       _pendingAction = {type:'delete_task', params:{id:matched[0].id, title:matched[0].title}};
-      return `「${matched[0].title}」を消しておく？`;
+      return `「${matched[0].title}」を削除します。元には戻せませんが、よろしいですか？`;
     }
 
     case 'create_prep': {
       const text = q.replace(/持ち物|準備|提出|追加して|登録して|入れて/g,'').trim();
-      if(!text) return '何を準備リストに入れる？';
+      if(!text) return '準備リストに追加したい持ち物を教えてください。';
       _pendingAction = {type:'create_prep', params:{text}};
-      return `「${text}」を準備リストに追加しておく？`;
+      return `「${text}」を準備リストに追加します。よろしいですか？`;
     }
 
     default: return hokuLocalAnswer(q);
@@ -7137,10 +7132,10 @@ function continueAction(action, text) {
   if(action.type==='create_budget' && action.params.confidence==='low') {
     const {cat} = guessCategory(text);
     action.params.cat = cat; _pendingAction=action;
-    return `${cat}で¥${action.params.amount.toLocaleString()}、「${action.params.title}」で入れておく？`;
+    return `${cat}で ¥${action.params.amount.toLocaleString()}、「${action.params.title}」を家計メモに記録します。よろしいですか？`;
   }
   _pendingAction=null;
-  return 'よくわからなかった。もう一回教えてもらえる？';
+  return '内容が読み取れませんでした。もう一度、別の言い方で教えていただけますか？';
 }
 
 /* ── アクション実行 ── */
@@ -7155,7 +7150,7 @@ function executeAction(action) {
       saveS(); refresh('s-budget');
       const now=new Date();
       const monthExp=(S.txs||[]).filter(t=>{const d=new Date(t.date+'T00:00:00');return t.type==='expense'&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();}).reduce((s,t)=>s+t.amount,0);
-      return `${p.cat}で¥${p.amount.toLocaleString()}、「${p.title}」で登録しておいたよ。${NL}今月の支出合計：¥${monthExp.toLocaleString()}`;
+      return `家計メモに記録しました。${NL}・カテゴリ：${p.cat}${NL}・金額：¥${p.amount.toLocaleString()}${NL}・内容：${p.title}${NL+NL}今月の支出合計：¥${monthExp.toLocaleString()}`;
     }
 
     case 'create_event': {
@@ -7164,9 +7159,9 @@ function executeAction(action) {
       const colM = (mem?.grad||'#4A90E2').match(/#[0-9A-Fa-f]{6}/);
       S.events.push({id:uid(), title:p.title, date:p.date, time:p.time||'09:00', color:colM?colM[0]:'#4A90E2', member:mem?.id||S.user?.id||'kenya', note:''});
       saveS(); refresh('s-cal');
-      const timeStr = p.time ? p.time+'の' : '';
+      const timeStr = p.time ? p.time+' の' : '';
       const memberStr = p.member ? `（${p.member}）` : '';
-      return `${p.dateLabel}${timeStr?timeStr:''}「${p.title}」${memberStr}カレンダーに入れておいたよ。`;
+      return `カレンダーに登録しました。${NL}・日付：${p.dateLabel}${NL}${timeStr?'・時刻：'+p.time+NL:''}・予定：${p.title}${memberStr}${NL+NL}「カレンダー」画面で確認できます。`;
     }
 
     case 'create_task': {
@@ -7175,30 +7170,31 @@ function executeAction(action) {
       S.tasks = S.tasks||[];
       S.tasks.push({id:uid(), title:p.title, status:'todo', assignedTo:mem?.id||'', priority:'med', dueDate:p.dueDate||'', memo:'', category:'', createdAt:todayStr(), updatedAt:todayStr()});
       saveS(); refresh('s-task');
-      const assigneeStr = p.assignee ? p.assignee+'のタスクに' : 'タスクに';
-      return `「${p.title}」を${assigneeStr}追加しておいたよ。`;
+      const assigneeStr = p.assignee ? `${NL}・担当：${p.assignee}` : '';
+      const dueStr = p.dueDate ? `${NL}・期限：${p.dueDateLabel || p.dueDate}` : '';
+      return `タスクに追加しました。${NL}・内容：${p.title}${assigneeStr}${dueStr}${NL+NL}「タスク」画面で確認できます。`;
     }
 
     case 'complete_task': {
       const t=(S.tasks||[]).find(t=>t.id===action.params.id);
       if(t){t.status='done';t.completedAt=todayStr();saveS();refresh('s-task');}
-      return `「${action.params.title}」、完了にしておいたよ。お疲れ！`;
+      return `「${action.params.title}」を完了にしました。お疲れさまでした。`;
     }
 
     case 'delete_task': {
       S.tasks=(S.tasks||[]).filter(t=>t.id!==action.params.id);
       saveS(); refresh('s-task');
-      return `「${action.params.title}」、消しておいたよ。`;
+      return `「${action.params.title}」を削除しました。`;
     }
 
     case 'create_prep': {
       S.prep=S.prep||[];
       S.prep.push({id:uid(), text:action.params.text, done:false, date:''});
       saveS(); refresh('s-prep');
-      return `「${action.params.text}」を準備リストに追加しておいたよ。`;
+      return `準備リストに追加しました。${NL}・内容：${action.params.text}${NL+NL}「準備リスト」画面で確認できます。`;
     }
 
-    default: return 'うまくいかなかった。もう一回試してみて。';
+    default: return '処理が完了できませんでした。お手数ですが、もう一度お試しください。';
   }
 }
 
@@ -7336,7 +7332,8 @@ function hokuVoiceToggle() {
         // textarea の高さを再計算
         try { inp.dispatchEvent(new Event('input')); } catch(e) {}
         // 認識成功 → 自動送信せずユーザー確認に委ねる（誤認識対策）
-        showToast('「' + text.substring(0, 40) + '」と認識しました。送信ボタンで送信できます。');
+        const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
+        showToast('聞き取りました：「' + preview + '」内容を確認して送信してください。');
       }
     };
     _hokuRec.onerror = function(ev) {
@@ -7375,6 +7372,136 @@ function hokuVoiceToggle() {
 function hokuVoiceRefresh() { hokuVoiceInit(); }
 
 
+/* ──────────────────────────────────────────────────
+   classifyHokuInput — 文章のスマート分類（複数シグナル）
+   外部 AI 不使用。スコア合計 ≥ 3 で分類確定とみなす。
+   ────────────────────────────────────────────────── */
+function classifyHokuInput(q) {
+  const scores = {
+    calendar: 0, task: 0, prep: 0, budget: 0,
+    health: 0, board: 0, notification: 0, help: 0, premium: 0
+  };
+
+  // ─── premium / help は単独で強シグナル（先に評価して同点を回避） ───
+  if(q.match(/プレミアム|有料プラン|月額|480円|サブスク|無料.*違い|無料.*差/)) scores.premium = 6;
+  if(q.match(/Hoku.*何|Hokuって|Hokuは何|使い方|どう使う|ヘルプ|^help$/i)) scores.help = 5;
+  if(q.match(/^(何ができる|なにができる|何ができ.+\?$)/)) scores.help = 5;
+
+  // ─── calendar: 日時 + 予定/場所のシグナル ───
+  if(q.match(/明日|今日|来週|来月|今度|今週|あさって|明後日|来年|再来週/)) scores.calendar += 2;
+  if(q.match(/\d{1,2}\/\d{1,2}|\d{1,2}日|\d{1,2}時|時から|時に|\d{1,2}月\d{1,2}|月曜|火曜|水曜|木曜|金曜|土曜|日曜|平日|週末/)) scores.calendar += 2;
+  if(q.match(/予定|スケジュール|集合|面談|行事|参観|発表会|遠足|入学式|卒園|卒業|健診|検診|診察|歯科|小児科|内科|眼科|耳鼻科|皮膚科|病院|医院|クリニック/)) scores.calendar += 2;
+  if(q.match(/学校|幼稚園|保育園|園|塾|習い事|レッスン|ピアノ|スイミング|サッカー|英会話|そろばん|ダンス|空手|柔道|公文/)) scores.calendar += 1;
+
+  // ─── task: 動詞+目的のやること（「忘れない」系は notification に渡す）───
+  if(q.match(/やること|タスク|todo|ToDo/i)) scores.task += 3;
+  if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える/)) scores.task += 2;
+  if(q.match(/書類|プリント|アンケート|申込|申し込み|提出物|宿題|課題/)) scores.task += 2;
+  // 「○○までに〜動詞」は明確な期限付きタスク
+  if(q.match(/まで(に|の|).{0,12}(洗う|書く|提出|確認|終わらせる|やる|やっておく|準備)/)) scores.task += 2;
+
+  // ─── prep: 持ち物 ───
+  if(q.match(/持ち物|準備物|準備したい|準備.*進め|忘れ物/)) scores.prep += 3;
+  if(q.match(/ランドセル|上履き|うわばき|水筒|体操着|体操服|給食|連絡帳|エプロン|筆箱|教科書|通学帽|名札|傘|レインコート|お弁当|タオル|歯ブラシ|コップ|布団|シーツ|お着替え/)) scores.prep += 2;
+
+  // ─── budget: お金 ───
+  if(q.match(/円|¥|￥|[\d,]+万円|[\d,]+千円/)) scores.budget += 2;
+  if(q.match(/家計|お金|支出|出費|食費|固定費|電気代|水道代|ガス代|光熱費|通信費|教育費|医療費|娯楽費|交通費|被服費|日用品|レシート|支払い|予算|節約|貯金|請求書/)) scores.budget += 3;
+  if(q.match(/買った|使った|払った|かかった|引き落とし|請求|出費.*増|食費.*高/)) scores.budget += 2;
+  if(q.match(/今月|先月|月.*高|月.*抑え/)) scores.budget += 1;
+
+  // ─── health: 体調 ─── (「光熱費」と区別、「食欲」は症状性で +3)
+  if(q.match(/発熱|微熱|高熱|風邪|インフル|嘔吐|吐い|下痢|湿疹|発疹|じんましん|怪我|けが|やけど|ぐったり|だるい/)) scores.health += 3;
+  // 「熱」単独は誤検出多発（光熱費）→ 文脈付きでのみカウント
+  if(q.match(/熱(?:っぽい|が出|が下|が上|が続|を測|っぽ|を出)/)) scores.health += 3;
+  if(q.match(/咳が|咳と|咳をしている|せきが|鼻水が|鼻づまり|腹痛|頭痛|喉が|のどが|アレルギー/)) scores.health += 3;
+  if(q.match(/食欲.*(ない|なく|落ち)|食欲が(ない|なく|落ち)/)) scores.health += 3;
+  if(q.match(/体調|具合.*悪|食欲|水分|機嫌|薬を|処方|医療機関|予防接種|ワクチン|症状/)) scores.health += 2;
+  if(q.match(/3[5-9]\.\d|3[5-9]度|3[5-9]\.\d度|4[0-2]度/)) scores.health += 3; // 体温
+
+  // ─── board: 家族共有 ───
+  if(q.match(/家族.*共有|家族.*伝え|家族に伝え|みんなに知らせ|シェアしたい|残しておきたい|共有したい|報告したい/)) scores.board += 3;
+  if(q.match(/新記録|できるように|できた|成長|うれしい.*こと|楽しかった|転んだ|ケンカ|喧嘩|仲直り|出来事|エピソード/)) scores.board += 3;
+  if(q.match(/先生から|園から|学校から|連絡があった|お知らせ.*届/)) scores.board += 2;
+
+  // ─── notification: リマインド ───
+  if(q.match(/通知|リマインド|アラーム|思い出させて|教えて欲しい|教えてほしい/)) scores.notification += 3;
+  // 「忘れない」系は notification 寄り
+  if(q.match(/忘れない|忘れずに/)) scores.notification += 2;
+  // 「朝/夜/前日 + 確認/教えて」など時間 + 想起の組み合わせは強シグナル
+  if(q.match(/(朝に|夜に|前日に|当日に|寝る前に|出かける前に).{0,12}(確認|教えて|思い出|知らせ|忘れ|薬|飲ま|起こ)/)) scores.notification += 3;
+  if(q.match(/(忘れないように|忘れずに).{0,15}(朝|夜|前日|当日|寝る前|出かける前|時|分|に)/)) scores.notification += 2;
+
+  // ─── 最大スコアのカテゴリを返す ───
+  let bestCat = null, bestScore = 0, second = null, secondScore = 0;
+  for(const cat in scores) {
+    if(scores[cat] > bestScore) {
+      second = bestCat; secondScore = bestScore;
+      bestCat = cat; bestScore = scores[cat];
+    } else if(scores[cat] > secondScore) {
+      second = cat; secondScore = scores[cat];
+    }
+  }
+  return {
+    category: bestScore >= 3 ? bestCat : null,
+    score: bestScore,
+    secondary: secondScore >= 3 ? second : null,
+    allScores: scores
+  };
+}
+
+/* ──────────────────────────────────────────────────
+   classifierGuidance — カテゴリ別の自然な提案文
+   ────────────────────────────────────────────────── */
+function classifierGuidance(category, q, secondary) {
+  const NL = '\n';
+  const sub = (cat) => secondary ? NL + NL + `（補足：${cat}にも関係がありそうです。両方に記録するのも 1 つの方法です。）` : '';
+
+  switch(category) {
+    case 'calendar':
+      return '予定として整理できそうな内容ですね。'+NL+
+        '日時が分かる場合は、カレンダーに登録しておくと家族全員で確認しやすくなります。'+NL+NL+
+        '「予定追加して」と続けて話しかけると、カレンダーへの登録を進められます。'+
+        (secondary === 'health' ? NL+NL+'（補足：通院・健診の場合は、体調メモにも記録しておくと、あとで振り返りやすくなります。）' : '');
+    case 'task':
+      return 'やることとして管理するのに向いていそうです。'+NL+
+        '担当者と期限を決めてタスクに追加すると、家族内で抜け漏れを防ぎやすくなります。'+NL+NL+
+        '「タスク追加して」で登録を始められます。';
+    case 'prep':
+      return '持ち物の準備リストに残しておくと安心です。'+NL+
+        '前日までに用意するもの、朝に最終確認するものに分けると使いやすくなります。'+NL+NL+
+        '「準備リスト」画面から登録できます。'+
+        (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも入れておくと安心です。）' : '');
+    case 'budget':
+      return '家計メモに残しておくと、あとで見直しやすくなります。'+NL+
+        '食費・固定費・急な出費のどれに近いかを分けて記録するのがおすすめです。'+NL+NL+
+        '金額が分かれば「○○円使った」と話しかけると、家計に登録できます。';
+    case 'health':
+      return '体調メモに残しておくと安心です。'+NL+
+        '体温・食欲・水分・機嫌を一緒に記録しておくと、あとで状況を振り返りやすくなります。'+NL+NL+
+        '症状が強い場合や不安がある場合は、医療機関への相談も検討してください。'+
+        (secondary === 'calendar' ? NL+NL+'（補足：受診予定が決まったら、カレンダーにも入れておくと安心です。）' : '');
+    case 'board':
+      return '家族ボードに共有するとよさそうです。'+NL+
+        'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+NL+
+        '「家族ボード」画面から投稿できます。';
+    case 'notification':
+      return 'リマインドの設定に向いている内容ですね。'+NL+
+        '忘れたくない時間が決まっている場合は、通知に登録しておくと安心です。'+NL+NL+
+        '通知の高度設定（時間指定など）は今後のプレミアム機能として検討中です。';
+    case 'help':
+      return 'Hoku は、家族の予定・タスク・持ち物・体調・家計・家族共有の整理をお手伝いするアシスタントです。'+NL+
+        '話しかけた内容をもとに、どの機能に記録するとよいかを提案します。'+NL+NL+
+        '入力欄左のマイクボタンで音声入力もできます。';
+    case 'premium':
+      return 'プレミアムでは、家族ボードの追加・カスタムボード作成・準備リストの拡張・Hoku の高度な提案など、家族運営をより細かく管理できる機能を予定しています。'+NL+NL+
+        '無料版でも基本機能はそのままお使いいただけます。';
+    default:
+      return null;
+  }
+}
+
+
 /* ── hokuLocalAnswer — ラフ口調版 ── */
 function hokuLocalAnswer(q) {
   const ctx = buildHokuContext();
@@ -7399,7 +7526,22 @@ function hokuLocalAnswer(q) {
   }
 
   /* ありがとう */
-  if(q.match(/ありがとう|助かった|さんきゅ/)) return 'どういたしまして！他にも何かあれば言ってね。';
+  if(q.match(/ありがとう|助かった|さんきゅ/)) return 'どういたしまして。他にも気になることがあれば、いつでも話しかけてください。';
+
+  /* ─────── スマート分類（暗黙的な内容を理解）── 既存ルールより優先、スコア閾値で安全 ─────── */
+  const cls = classifyHokuInput(q);
+  if(cls.category) {
+    // 単純な data-lookup 系の短文は既存の data-lookup に任せる
+    const isPureLookup =
+      // 短い単語クエリ（4 文字以下）
+      (q.length <= 4 && q.match(/^(今日|明日|今週|来週|タスク|家計|体調|準備|家族ボード)$/)) ||
+      // 「○○の予定/タスク/家計/体調/準備」の短文照会パターン（10 文字以下）
+      (q.length <= 12 && q.match(/^(今日|明日|今週|来週|今月)の?(予定|タスク|家計|体調|準備|家族ボード|まとめ).{0,3}$/));
+    if(!isPureLookup) {
+      const reply = classifierGuidance(cls.category, q, cls.secondary);
+      if(reply) return reply;
+    }
+  }
 
   /* ─────── ガイダンス系（家族向けアドバイス）── 既存 data-lookup より優先 ─────── */
 
