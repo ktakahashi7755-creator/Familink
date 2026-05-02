@@ -2147,3 +2147,101 @@ Wave 14B：未完了項目の徹底完了（タブ追加削除 / 家族ボード
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 14b: complete remaining items - custom tabs + prep quick card + hoku classifier + voice debug doc`
+
+---
+
+## 2026-05-02 14:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 15：シンプル化（ホームスクロール誤遷移修正 + 書類保管庫削除 + カンバン撤廃）
+
+### 変更ファイル
+- `app-source/familink.html`（-1976 行 / 10433 → 8457）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-02-wave15.md`（新規）
+- `docs/release-score-2026-05-02-wave15.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+
+#### Wave 15-1：ホームスクロール誤遷移バグ修正
+- `_ho.scrolled` フラグ追加 / 移動検知 14px → 10px
+- `_hoTouchEnd` から hoCardClick 呼び出しを削除（click 一元化）
+- 長押しタイマー内でも scroll 中は drag 起動しない
+- click ハンドラでも _ho.scrolled チェック
+- Playwright で「カード上で 60px 移動 → 遷移しない」を検証 PASS
+
+#### Wave 15-2：書類保管庫機能の完全削除
+- 5 画面削除：s-docs-receipt / s-docs / s-docs-folder / s-scan / s-scan-confirm
+- 3 モーダル削除：m-folder / m-folder-menu / m-doc
+- 約 1,287 行の JS 関数群を削除（folderSvg〜stopScanCamera）
+- ホーム b_docs カード削除 / HO_FIXED から除去 / 既存ユーザーマイグレ
+- ヘッダー右上の書類スキャンボタン削除
+- 設定メニューのエントリ 2 個削除
+- 家計の rcptBadge / viewReceiptFromTx 削除
+- migrateData / receipts_root 関連ロジック削除
+- LocalStorage：S.folders / S.docs はフィールド残置（互換のため）
+
+#### Wave 15-3：カンバン機能撤廃
+- HTML：タスク画面のリスト/カンバン切替 UI 削除
+- JS：getKanbanCols / renderKanbanView / setTaskView / tkKanbanCard / bindKanbanDrag / bindColumnDrag / KANBAN_COL_DEF 削除（約 220 行）
+- CSS：.kanban-* 11 ルール削除
+- _tkView は 'list' 固定で互換維持
+
+### テスト結果
+- md5 一致：8b33429165d2696c6ddbcbf0c0a0508f
+- 行数：8457（-1976 / 約 19% スリム化）
+- 画面 ID：17（22 → 17）
+- JS 構文：OK
+- HTTP 200（src / docs）：両方 OK
+- 個人名 / 固定パスワード grep：なし
+- Playwright（iPhone 13 vp / hasTouch）：
+  - 17 画面 ✅
+  - s-docs / s-scan 要素なし ✅
+  - ホーム b_docs カードなし ✅
+  - ヘッダー scan ボタンなし ✅
+  - task-view-kanban ボタンなし ✅
+  - タスク完了 4→4 維持 ✅
+  - スクロール（60px移動）→ 遷移しない ✅
+  - タップ → 正常遷移 ✅
+  - 既存ユーザー homeOrder の b_docs マイグレ ✅
+  - エラー 0 件
+
+### 評点（Wave 15）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| ホーム操作品質 | 15 | 14 |
+| タスク体験 | 15 | 15 |
+| 家族ボード体験 | 20 | 19 |
+| 準備リスト体験 | 20 | 19 |
+| 家計 UI/UX | 10 | 9 |
+| カレンダー拡張性 | 8 | 3 |
+| Hoku 連携品質 | 12 | 11 |
+| **合計** | 100 | **90** |
+
+事業視点スコア：88 (Wave 14 Final) → **90 (Wave 15)**（+2 / A+ 判定）
+
+### 残課題
+- HIGH-1：iPhone Safari 実機での音声認識テスト
+- HIGH-2：実機でのホームスクロール最終確認
+- MED-1：繰り返し予定（設計案あり）
+- MED-2：曜日ルーティン準備（設計案あり）
+- MED-3：プロフィール編集画面
+- LOW-1〜3：時間割 / 子ども別ログ / 通知
+
+### iPhone 確認ポイント
+1. ホーム：上下スクロールでカードに誤遷移しない
+2. ホーム：書類保管庫カード消失、ヘッダー右上スキャン消失
+3. タスク：リスト/カンバン切替消失、リスト型のみ
+4. 設定：書類保管庫・予定表スキャンエントリ消失
+5. 家計：領収証リンクバッジ消失
+6. 既存予定 / タスク / 投稿 / 家計 / 準備データ無事
+
+### 次にやること
+- Wave 16 候補：プロフィール編集画面（MED-3）
+- Wave 16 候補：繰り返し予定 Step 1（MED-1）
+- 公開前必須：iOS 実機検証 / 法務 / WKWebView ラッパー
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 15: simplify - fix home scroll false-tap + remove docs/scan + kanban`
