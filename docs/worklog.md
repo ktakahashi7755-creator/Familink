@@ -1832,3 +1832,88 @@ Wave 12：事業視点 100 点診断 + 90 日ロードマップ + セールス�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 12: business growth diagnosis 78/100 + 90-day roadmap + sales pitch materials`
+
+---
+
+## 2026-05-02 09:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 13：初回体験オンボーディング第 1 弾実装（s-onboard 4 ステップ + ローカルプロフィール + 最初の 1 件登録 + Hoku 紹介）
+
+### 変更ファイル
+- `app-source/familink.html`（s-onboard 画面 + CSS + JS 追加）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-02-wave13.md`（新規）
+- `docs/release-score-2026-05-02-wave13.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+- 新規画面 `s-onboard`（22 画面目）：4 ステップの初回オンボーディング
+  - Step 1：価値説明（Familink + Hoku の 3 ポイント）
+  - Step 2：ローカルプロフィール作成（表示名 / 役割 9 択 / 家族名）
+  - Step 3：最初の 1 件登録（予定追加：タイトル / 日付 / 時刻）
+  - Step 4：Hoku 紹介（家族運営 AI + 自然文例 + 音声入力案内）
+- PERSIST に `userProfile` `onboardCompleted` を追加（**追加のみ・既存構造変更なし**）
+- doLogin / doQuickDemo を改修：`!S.onboardCompleted` のとき startOnboarding() 経由
+- renderHome 挨拶を `userProfile.displayName || S.user.name` で表示
+- 設定画面に「はじめての方ガイドを見る」を追加（reopenOnboarding）
+- noTab に s-onboard を追加（タブバー非表示）
+- CSS：ob2-* クラス（プログレスバー / ステップ / ロールグリッド / ボタン）
+
+### テスト結果
+- md5 一致：32ad84340af3f6b653911727f50c1880（src ↔ docs）
+- 行数：10037 行（src / docs 一致）
+- 画面 ID：22（既存 21 + s-onboard）
+- node --check（JS 抽出）：エラーなし
+- HTTP 200（src / docs）：両方 OK
+- 個人名 / 固定パスワード grep：該当なし
+- Playwright（iPhone 13 viewport 390×844）：
+  - 通常フロー（4 ステップ完走）：全 PASS
+  - スキップフロー：PASS
+  - LS 保存：onboardCompleted / userProfile / イベント全 OK
+  - リロード後の挙動：完了済みは s-home 直行 OK
+  - ホーム挨拶：登録した表示名が反映 OK
+  - pageerror：0 件 / Wave 13 関連 console.error：0 件
+  - 4 件の ERR_CERT_AUTHORITY_INVALID は外部 CDN（フォント）取得失敗で機能と無関係
+
+### 評点（Wave 13）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| 初回体験 | 10 | 9 |
+| プロフィール作成 | 10 | 9 |
+| Hoku 紹介 | 10 | 8 |
+| 既存機能への影響 | 10 | 10 |
+| **小計** | 40 | 36 |
+
+### MVP v0.1 完成度
+Wave 12: 78/100 → Wave 13: **82/100**（+4 底上げ）
+判定：A-（良作 MVP）
+
+### 残課題
+- OB-1 既存ユーザーへの onboardingCompleted 判定追加検討
+- OB-2 プロフィール編集画面（Wave 14 候補）
+- OB-3 役割→既存メンバーマッピング（Wave 14 候補）
+- OB-4 完了率計測（v0.2 / プライバシー配慮型）
+- OB-5 スクリーンショット撮影（実機・公開前）
+- v0.1 残：H-01（実装済 ✅）/ 法務確認 / WKWebView ラッパー
+
+### iPhone 確認ポイント
+1. キャッシュクリア + リロード
+2. ウェルカム → ログイン →「デモデータで試してみる」→ s-onboard が表示される
+3. Step 1〜4 の遷移と進捗バー（25%→50%→75%→100%）
+4. 役割ボタン 9 択（パパ/ママ/息子/娘/祖父/祖母/パートナー/兄弟姉妹/その他）
+5. 表示名未入力でエラートースト
+6. 「保育園のお迎え」を明日に登録 → カレンダーで反映確認
+7. ホーム挨拶が「テストパパさん」など登録した名前に
+8. 設定 →「はじめての方ガイドを見る」で再表示
+9. スキップフローで s-home に直行
+10. リロードで再表示されない
+
+### 次にやること
+- v0.2 着手：F-01 家族 2 端末同期（QR コード共有）
+- Wave 14 候補：プロフィール編集画面 + 役割→メンバーマッピング
+- 公開前残：法務確認 + WKWebView ラッパー + スクリーンショット
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 13: onboarding step1 - 4-step flow + local profile + first item + hoku intro`
