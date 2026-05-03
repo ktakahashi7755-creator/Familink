@@ -1981,8 +1981,8 @@ nav#tabbar.hidden { display: none !important; }
 /* 外側: 位置管理のみ（CSS right/bottomで初期配置） */
 #hoku-fab {
   position: fixed;
-  right: 20px;
-  bottom: 100px;
+  right: 14px;
+  top: calc(env(safe-area-inset-top) + 72px);
   width: 68px;
   height: 68px;
   cursor: pointer;
@@ -2685,6 +2685,7 @@ nav#tabbar.hidden { display: none !important; }
         <button class="type-btn" id="bm-in" onclick="setBudgetModalType('income')" style="flex:1;height:36px;">💰 収入</button>
       </div>
       <input type="hidden" id="bm-type" value="expense">
+      <input type="hidden" id="bm-id" value="">
       <div class="field">
         <div class="field-label">金額（円）<span style="color:var(--red)">*</span></div>
         <input class="input" id="bm-amount" type="number" placeholder="0" inputmode="numeric" min="1">
@@ -2707,6 +2708,7 @@ nav#tabbar.hidden { display: none !important; }
         <input type="hidden" id="bm-member" value="">
       </div>
       <button class="btn btn-primary btn-block" onclick="saveTx()">保存する</button>
+      <button id="bm-delete-btn" class="btn btn-outline btn-block" style="display:none;color:var(--red);border-color:var(--red);" onclick="deleteCurrentTx()">削除する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-budget')">キャンセル</button>
     </div>
   </div>
@@ -4857,7 +4859,7 @@ function renderBudget() {
     const memName = (!t.member || t.member === 'common') ? '家族共通' : getMem(t.member).name;
     const ico = CAT_ICO[t.cat]||'📦';
     const clr = CAT_CLR[t.cat]||'var(--bg-muted)';
-    return `<div class="tx-item" onclick="deleteTxConfirm('${H(t.id)}')">
+    return `<div class="tx-item" onclick="openTxModal('${H(t.id)}')">
       <div class="tx-cat-icon" style="background:${clr}">${ico}</div>
       <div style="flex:1">
         <div class="tx-desc">${H(t.desc||t.cat)}</div>
@@ -4889,22 +4891,46 @@ function budgetGoToToday() {
   showToast('今月へ戻りました');
 }
 
-function openTxModal() {
-  const type = S.budgetType;
+function openTxModal(id) {
+  const tx = id ? (S.txs||[]).find(t => t.id === id) : null;
+  const isEdit = !!tx;
+  const type = isEdit ? tx.type : S.budgetType;
+  document.getElementById('bm-id').value = isEdit ? tx.id : '';
   document.getElementById('bm-type').value = type;
   const cats = type==='expense'?CATS_EX:CATS_IN;
   document.getElementById('bm-cat').innerHTML = cats.map(c=>`<option value="${H(c)}">${H(c)}</option>`).join('');
-  document.getElementById('bm-amount').value = '';
-  document.getElementById('bm-desc').value   = '';
-  document.getElementById('bm-date').value   = todayStr();
+  if(isEdit) document.getElementById('bm-cat').value = tx.cat || cats[0];
+  document.getElementById('bm-amount').value = isEdit ? tx.amount : '';
+  document.getElementById('bm-desc').value   = isEdit ? (tx.desc||'') : '';
+  document.getElementById('bm-date').value   = isEdit ? (tx.date||todayStr()) : todayStr();
   document.getElementById('bm-ex').classList.toggle('on', type==='expense');
   document.getElementById('bm-in').classList.toggle('on', type==='income');
-  // 担当者初期値：家計画面で選択中のメンバー（'all' の場合はログインユーザー / 'common' は家族共通）
-  let initialMember = (S.user && S.user.id) || MEMBERS[0].id;
-  if(_budgetMember && _budgetMember !== 'all') initialMember = _budgetMember;
+  // 担当者：編集なら tx の member、それ以外は選択中メンバー
+  let initialMember;
+  if(isEdit) {
+    initialMember = tx.member || (S.user && S.user.id) || MEMBERS[0].id;
+  } else {
+    initialMember = (S.user && S.user.id) || MEMBERS[0].id;
+    if(_budgetMember && _budgetMember !== 'all') initialMember = _budgetMember;
+  }
   document.getElementById('bm-member').value = initialMember;
   renderBmMemberBtns(initialMember);
+  // タイトル + 削除ボタン表示切替
+  const titleEl = document.querySelector('#m-budget .modal-title');
+  if(titleEl) titleEl.textContent = isEdit ? '収支を編集' : '収支を記録';
+  const delBtn = document.getElementById('bm-delete-btn');
+  if(delBtn) delBtn.style.display = isEdit ? 'block' : 'none';
   openModal('m-budget');
+}
+
+function deleteCurrentTx() {
+  const id = document.getElementById('bm-id').value;
+  if(!id) return;
+  S.txs = (S.txs||[]).filter(t => t.id !== id);
+  saveS();
+  closeModal('m-budget');
+  renderBudget();
+  showToast('削除しました');
 }
 
 function renderBmMemberBtns(selected) {
@@ -4935,6 +4961,7 @@ function setBudgetModalType(type) {
 }
 
 function saveTx() {
+  const id     = document.getElementById('bm-id').value;
   const type   = document.getElementById('bm-type').value;
   const amount = parseFloat(document.getElementById('bm-amount').value);
   const cat    = document.getElementById('bm-cat').value;
@@ -4943,9 +4970,16 @@ function saveTx() {
   if(!amount||amount<=0) { showToast('金額を入力してください','error'); return; }
   if(!date) { showToast('日付を入力してください','error'); return; }
   const member = (document.getElementById('bm-member')?.value) || S.user?.id || 'kenya';
-  S.txs.push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
-  saveS(); closeModal('m-budget'); renderBudget();
-  showToast('記録しました');
+  if(id) {
+    const tx = (S.txs||[]).find(t => t.id === id);
+    if(tx) Object.assign(tx, {type, amount, cat, desc: desc||cat, date, member});
+    saveS(); closeModal('m-budget'); renderBudget();
+    showToast('保存しました');
+  } else {
+    S.txs.push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
+    saveS(); closeModal('m-budget'); renderBudget();
+    showToast('記録しました');
+  }
 }
 
 function deleteTxConfirm(id) {
@@ -8761,7 +8795,7 @@ window.addEventListener('DOMContentLoaded', init);
 (function() {
   'use strict';
 
-  var FAB_KEY   = 'hoku_fab_pos_v2';  // v2: 旧位置データ無視
+  var FAB_KEY   = 'hoku_fab_pos_v3';  // v3: 右上スタートに変更（旧位置データ無視）
   var FAB_SIZE  = 68;
   var DRAG_THR  = 8;
   var AUTH_HIDE = ['s-ob', 's-login', 's-hoku'];
