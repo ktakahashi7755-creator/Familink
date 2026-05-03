@@ -1534,7 +1534,12 @@ select.input {
   margin:0 16px 8px; padding:12px 14px;
   box-shadow:var(--s-sm); border:1.5px solid var(--border-light);
   cursor:pointer; transition:var(--t-spring);
+  /* iOS Safari の長押しテキスト選択 / コールアウトを抑止（カード本体のみ）*/
+  -webkit-user-select:none; user-select:none;
+  -webkit-touch-callout:none;
 }
+/* 入力欄では選択を許可 */
+.post-card .card-comment-input { -webkit-user-select:text; user-select:text; }
 .post-card.pinned-card { border-color:var(--primary); border-width:2px; }
 .post-card:active { transform:scale(.98); }
 .post-pin-bar {
@@ -5630,6 +5635,8 @@ function togglePostPin(id) {
 /* カードへの長押しバインド（renderBoard 後に呼ぶ） */
 let _pinPressTimer = null;
 let _pinPressFired = false;
+let _pinPressStart = null;
+const PIN_MOVE_THRESHOLD = 12; // この距離以上の移動でキャンセル（スクロール検出）
 function _bindPinLongPress() {
   document.querySelectorAll('.post-card[data-id]').forEach(card => {
     if(card._pinBound) return;
@@ -5638,22 +5645,35 @@ function _bindPinLongPress() {
     const start = (e) => {
       _pinPressFired = false;
       if(_pinPressTimer) clearTimeout(_pinPressTimer);
+      const t = (e.touches && e.touches[0]) || e;
+      _pinPressStart = (typeof t.clientX === 'number') ? { x: t.clientX, y: t.clientY } : { x: 0, y: 0 };
       _pinPressTimer = setTimeout(() => {
         _pinPressFired = true;
         togglePostPin(id);
-      }, 600);
+      }, 550);
     };
     const cancel = () => {
       if(_pinPressTimer) { clearTimeout(_pinPressTimer); _pinPressTimer = null; }
+      _pinPressStart = null;
+    };
+    const onMove = (e) => {
+      if(!_pinPressStart || !_pinPressTimer) return;
+      const t = e.touches ? e.touches[0] : e;
+      const dx = t.clientX - _pinPressStart.x;
+      const dy = t.clientY - _pinPressStart.y;
+      if(Math.hypot(dx, dy) > PIN_MOVE_THRESHOLD) cancel();
     };
     card.addEventListener('touchstart', start, { passive: true });
     card.addEventListener('touchend', cancel);
-    card.addEventListener('touchmove', cancel, { passive: true });
+    card.addEventListener('touchmove', onMove, { passive: true });
     card.addEventListener('touchcancel', cancel);
     card.addEventListener('mousedown', start);
     card.addEventListener('mouseup', cancel);
     card.addEventListener('mouseleave', cancel);
-    // 長押し発火後の click は抑止
+    card.addEventListener('mousemove', onMove);
+    // iOS の context menu（コールアウト）を抑止
+    card.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
+    // 長押し発火後の click は抑止（誤って詳細を開かない）
     card.addEventListener('click', (e) => {
       if(_pinPressFired) {
         e.stopPropagation();
