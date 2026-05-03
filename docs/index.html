@@ -6576,7 +6576,8 @@ function openBoardCreateModal(boardId) {
   const isEdit = !!boardId;
   document.getElementById('m-board-create-title').textContent = isEdit ? 'ボードを編集' : 'ボードを作成';
   document.getElementById('bc-id').value = boardId || '';
-  document.getElementById('bc-name').value = '';
+  // 作成モードでは選択中の用途名をボード名の初期値にする
+  document.getElementById('bc-name').value = isEdit ? '' : (INTENT_META[_bcIntent].label || '');
   if(isEdit) {
     const b = (S.customBoards||[]).find(b=>b.id===boardId);
     if(b) {
@@ -6615,6 +6616,20 @@ function renderBcIntentGrid() {
 
 function selectBcIntent(key) {
   if(!INTENT_META[key]) return;
+  // 作成モード（編集ではない）かつ、現在のボード名が空 or 既存の用途名と一致している場合のみ自動反映
+  // → ユーザーが独自に編集した名前は保持する
+  const isEdit = !!document.getElementById('bc-id').value;
+  if(!isEdit) {
+    const nameInp = document.getElementById('bc-name');
+    if(nameInp) {
+      const cur = (nameInp.value || '').trim();
+      const intentLabels = Object.values(INTENT_META).map(m => m.label);
+      const isAutoFromIntent = !cur || intentLabels.indexOf(cur) >= 0;
+      if(isAutoFromIntent) {
+        nameInp.value = INTENT_META[key].label;
+      }
+    }
+  }
   _bcIntent = key;
   _bcType = INTENT_META[key].baseType;
   renderBcIntentGrid();
