@@ -5605,17 +5605,25 @@ function toggleCurrentPostPin() {
   showToast(a.isPinned?'ピン留めしました':'ピン留めを解除しました');
 }
 
-/* カードからのピン留めトグル（長押し用）*/
+/* カードからのピン留めトグル（長押しで確認 → 実行）*/
 function togglePostPin(id) {
   const a = getAnn(id);
   if(!a) return;
-  a.isPinned = !a.isPinned;
-  a.updatedAt = todayStr();
-  saveS();
-  renderBoard();
-  if(S.screen === 's-board-detail') renderBoardDetail();
-  showToast(a.isPinned?'ピン留めしました':'ピン留めを解除しました');
-  // 触覚フィードバック（対応端末のみ）
+  const willPin = !a.isPinned;
+  showConfirm(
+    willPin ? 'ピン留めしますか？' : 'ピン留めを解除しますか？',
+    `「${a.title || '(無題)'}」を${willPin ? 'ピン留めします' : 'ピン留めから外します'}。`,
+    willPin ? 'ピン留めする' : '解除する',
+    () => {
+      a.isPinned = willPin;
+      a.updatedAt = todayStr();
+      saveS();
+      renderBoard();
+      if(S.screen === 's-board-detail') renderBoardDetail();
+      showToast(willPin ? 'ピン留めしました' : 'ピン留めを解除しました');
+    },
+    willPin ? '📌' : '📍'
+  );
   if(navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
 }
 
