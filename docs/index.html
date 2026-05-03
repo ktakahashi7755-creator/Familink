@@ -5528,15 +5528,9 @@ function openPostModal(id) {
   document.getElementById('post-id').value      = id||'';
   document.getElementById('post-title').value   = a?.title||'';
   document.getElementById('post-body').value    = a?.body||'';
-  // カスタムタブを cat ドロップダウンに反映
-  const catSel = document.getElementById('post-cat');
-  if(catSel) {
-    const tabs = getBoardTabs();
-    const current = isEdit ? (a?.cat||'') : (_boardCat||'');
-    catSel.innerHTML = '<option value="">なし</option>' +
-      tabs.map(t => `<option value="${H(t)}">${H(t)}</option>`).join('');
-    catSel.value = current;
-  }
+  // タブ撤廃済み（Wave 28）。cat フィールドは既存データの後方互換のため hidden で保持。
+  const catInp = document.getElementById('post-cat');
+  if(catInp) catInp.value = isEdit ? (a?.cat||'') : '';
   document.getElementById('post-expires').value = a?.expiresAt||'';
   document.getElementById('post-pin').checked   = a?.isPinned||false;
 
@@ -7985,7 +7979,13 @@ function voiceConfirmSave() {
       S.events.push({ id:uid(), title, date, time, color:'#4A90E2', member: member||'kenya', note });
       saved = true;
     } else if(cat === 'task') {
-      S.tasks.push({ id:uid(), text:title, member: member||'kenya', done:false, at:todayStr() });
+      S.tasks.push({
+        id:uid(), title, memo:'', assignedTo: member||'',
+        dueDate: date && date !== todayStr() ? date : '',
+        status:'todo', priority:'none', category:'',
+        order:(S.tasks||[]).length,
+        completedAt:'', createdAt:todayStr(), updatedAt:todayStr()
+      });
       saved = true;
     } else if(cat === 'prep') {
       const prepText = title || (note || '持ち物');
