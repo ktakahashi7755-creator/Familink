@@ -403,12 +403,6 @@ select.input {
   color: var(--primary); line-height: 1.1;
   letter-spacing: -.5px;
 }
-.ob-brand-name-jp {
-  font-family: var(--font);
-  font-size: 13px; font-weight: 500;
-  color: var(--text-muted); margin-top: 4px;
-  letter-spacing: .5px;
-}
 .ob-brand-sub {
   font-size: 11px; font-weight: 500;
   color: var(--text-muted); margin-top: 2px;
@@ -444,11 +438,6 @@ select.input {
   font-size: 14px; color: var(--text-sub); line-height: 1.85; margin-bottom: 24px;
 }
 /* Feature chips: text-forward, minimal, refined */
-.ob-features { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 30px; }
-.ob-feat {
-  padding: 7px 16px; border-radius: var(--r-full);
-  font-size: 12px; font-weight: 700; letter-spacing: .2px;
-}
 .ob-cta { display: flex; flex-direction: column; gap: 12px; }
 .ob-btn-start {
   height: 56px; border-radius: var(--r-full);
@@ -862,11 +851,6 @@ select.input {
 /* ============================================================
    BOARD SCREEN
    ============================================================ */
-.board-tabs {
-  display: flex; background: #fff;
-  border-bottom: 1px solid var(--border-light); flex-shrink: 0;
-  padding: 0 16px;
-}
 .board-tab {
   flex: 1; height: 44px; border: none; background: transparent;
   font-size: 14px; font-weight: 600; color: var(--text-muted);
@@ -891,10 +875,6 @@ select.input {
 .post-title { font-size: 15px; font-weight: 700; line-height: 1.3; }
 .post-meta  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .post-body  { padding: 0 14px 10px; font-size: 14px; color: var(--text-sub); line-height: 1.65; }
-.post-foot  {
-  padding: 10px 14px; border-top: 1px solid var(--border-light);
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-}
 .reaction {
   padding: 4px 9px; background: var(--bg-muted);
   border-radius: var(--r-full); font-size: 12px; cursor: pointer;
@@ -902,8 +882,6 @@ select.input {
 }
 .reaction.on { background: var(--primary-light); color: var(--primary); font-weight: 700; }
 .reaction:active { transform: scale(.88); }
-.post-comments { font-size: 12px; color: var(--text-muted); cursor: pointer; margin-left: auto; }
-
 /* ============================================================
    BUDGET SCREEN
    ============================================================ */
@@ -1129,11 +1107,6 @@ select.input {
   cursor: pointer; transition: var(--t);
 }
 .scan-drop:active { background: var(--primary-light); border-color: var(--primary); }
-.scan-result {
-  margin: 0 16px 16px; background: #fff; border-radius: var(--r-lg);
-  padding: 18px; box-shadow: var(--s-card);
-}
-
 /* ============================================================
    CHILD DETAIL
    ============================================================ */
@@ -1191,16 +1164,8 @@ select.input {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 16px;
 }
-.hoku-intro {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 14px; padding: 28px 20px 4px; text-align: center;
-}
-.hoku-intro-av { width: 80px; height: 80px; object-fit: contain; }
-.hoku-intro-name { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: .3px; }
-.hoku-intro-desc { font-size: 14px; color: var(--text-sub); line-height: 1.8; }
 .hoku-row { display: flex; gap: 8px; align-items: flex-end; }
 .hoku-row.u { flex-direction: row-reverse; }
-.hoku-row-av { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
 .hoku-bubble {
   max-width: 82%; padding: 12px 15px; line-height: 1.7; font-size: 14px;
 }
@@ -1227,7 +1192,6 @@ select.input {
   background: var(--bg-muted); color: var(--text-sub);
   border: 1px solid var(--border);
 }
-.hoku-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
 .hoku-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: .4; animation: hDot .9s ease-in-out infinite; }
 .hoku-dot:nth-child(2){animation-delay:.15s;} .hoku-dot:nth-child(3){animation-delay:.3s;}
 @keyframes hDot{0%,80%,100%{opacity:.3;transform:scale(1);}40%{opacity:.9;transform:scale(1.3);}}
@@ -1306,16 +1270,6 @@ select.input {
 /* ============================================================
    DOCUMENT ARCHIVE — 書類保管庫
    ============================================================ */
-.docs-section-hd {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 16px 8px;
-}
-.docs-section-label {
-  font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: .7px;
-}
-.docs-pin-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px;
-}
 .docs-pin-card {
   background: #fff; border-radius: 14px; padding: 14px 14px 12px;
   box-shadow: var(--s-sm); cursor: pointer; transition: var(--t-spring);
@@ -1323,28 +1277,12 @@ select.input {
   border: 1.5px solid var(--primary-light);
 }
 .docs-pin-card:active { transform: scale(.96); }
-.docs-pin-icon {
-  width: 32px; height: 32px; border-radius: 10px; background: var(--primary-light);
-  display: flex; align-items: center; justify-content: center; color: var(--primary);
-}
-.docs-pin-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.docs-pin-count { font-size: 11px; color: var(--text-muted); }
-.docs-pin-badge { position: absolute; top: 8px; right: 10px; color: var(--primary); opacity: .5; }
-.docs-folder-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
 .docs-folder-item {
   display: flex; align-items: center; gap: 12px; background: #fff;
   border-radius: var(--r-sm); padding: 13px 14px;
   box-shadow: var(--s-sm); cursor: pointer; transition: var(--t-spring);
 }
 .docs-folder-item:active { transform: scale(.98); opacity: .85; }
-.docs-folder-item-icon {
-  width: 38px; height: 38px; border-radius: 11px; background: var(--bg-muted);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-sub); flex-shrink: 0;
-}
-.docs-folder-item-name { font-size: 14px; font-weight: 700; color: var(--text); }
-.docs-folder-item-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.docs-doc-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
 .docs-doc-item {
   display: flex; align-items: center; gap: 12px; background: #fff;
   border-radius: var(--r-sm); padding: 13px 14px;
@@ -1425,13 +1363,6 @@ select.input {
   background:var(--bg-card);
 }
 .scan-zone:active { background:var(--primary-light); border-color:var(--primary); transform:scale(.98); }
-.scan-type-chip {
-  background:var(--bg-card); border:1.5px solid var(--border-light);
-  border-radius:10px; padding:8px 6px;
-  font-size:10px; font-weight:600; color:var(--text-sub);
-  text-align:center; display:flex; flex-direction:column;
-  align-items:center; gap:5px;
-}
 /* confirm list */
 .scan-item-card {
   background:var(--bg-card); border-radius:14px;
@@ -1449,12 +1380,6 @@ select.input {
   cursor:pointer; transition:var(--t-spring); margin-top:1px;
 }
 .scan-check.checked { background:var(--primary); border-color:var(--primary); }
-.scan-item-date { font-size:11px; font-weight:700; color:var(--primary); min-width:52px; flex-shrink:0; margin-top:2px; }
-.scan-uncertainty { display:inline-flex; font-size:10px; font-weight:700; padding:2px 7px;
-  border-radius:var(--r-full); background:var(--accent-light); color:var(--accent-dark); margin-top:4px; }
-.scan-dup-badge { display:inline-flex; font-size:10px; font-weight:700; padding:2px 7px;
-  border-radius:var(--r-full); background:var(--orange-light); color:var(--orange); margin-top:4px; }
-
 /* ── リアクション（絵文字バッジ型）── */
 .card-react-bar {
   display:flex; align-items:center; gap:5px; flex-wrap:wrap;
@@ -1753,16 +1678,7 @@ select.input {
   color:var(--pc, var(--text)); filter:saturate(1.2);
   box-shadow:0 0 0 3px color-mix(in srgb, var(--pc,#ccc) 20%, transparent);
 }
-.tk-section-hd { font-size:11px; font-weight:700; color:var(--text-muted);
-  letter-spacing:.05em; padding:16px 20px 6px; }
 /* タッチD&D */
-.tk-ghost {
-  position:fixed; pointer-events:none; z-index:9999;
-  opacity:.85; transform:scale(1.04) rotate(1.5deg);
-  box-shadow:0 12px 32px rgba(0,0,0,.18);
-  transition:transform .1s, box-shadow .1s;
-  border-radius:14px; background:var(--bg-card);
-}
 .tk-drag-placeholder {
   border:2px dashed var(--primary);
   background:var(--primary-light);
@@ -1781,9 +1697,6 @@ select.input {
 .docs-doc-icon.type-ppt   { background:#FEF3C7; color:#D97706; }
 .docs-doc-icon.type-other { background:var(--bg-muted); color:var(--text-muted); }
 .docs-doc-icon img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
-.docs-doc-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.docs-doc-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.docs-doc-memo { font-size: 11px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .docs-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; padding: 48px 20px; color: var(--text-muted); text-align: center;
@@ -1800,39 +1713,13 @@ select.input {
 }
 .rcpt-zone:active { opacity: .8; }
 .rcpt-zone img { width: 100%; height: 100%; object-fit: contain; position: absolute; inset: 0; }
-.rcpt-zone-label { font-size: 13px; font-weight: 600; color: var(--text-sub); position: relative; z-index: 1; }
-.rcpt-zone-sub   { font-size: 12px; color: var(--text-muted); position: relative; z-index: 1; }
-.rcpt-note {
-  font-size: 11px; margin: 10px 16px 0; text-align: center;
-  background: var(--primary-light); border-radius: var(--r-sm);
-  padding: 8px 14px; color: var(--primary); font-weight: 600;
-}
-.rcpt-linked-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 10px; font-weight: 700; color: #16A34A;
-  background: #DCFCE7; padding: 2px 8px; border-radius: var(--r-full);
-  cursor: pointer; border: 1px solid #86EFAC;
-}
 /* 領収証サブフォルダカード（年/月） */
-.rcpt-sub-grid {
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 0 16px;
-}
 .rcpt-sub-card {
   background: #fff; border-radius: 12px; padding: 12px 8px 10px;
   box-shadow: var(--s-sm); cursor: pointer; text-align: center;
   transition: var(--t-spring); border: 1.5px solid var(--border-light);
 }
 .rcpt-sub-card:active { transform: scale(.95); }
-.rcpt-sub-card-name  { font-size: 14px; font-weight: 700; color: var(--text); }
-.rcpt-sub-card-count { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-.rcpt-flow-actions {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  /* タブバー（68px + 14px底間隔）+ safe area をクリア */
-  padding-bottom: calc(94px + env(safe-area-inset-bottom));
-  background: #fff; border-top: 1px solid var(--border-light);
-  display: flex; flex-direction: column; gap: 8px;
-}
 .docs-action-btn {
   height: 30px; padding: 0 12px; border-radius: var(--r-full);
   border: 1.5px solid var(--border); background: transparent;
@@ -1848,8 +1735,6 @@ select.input {
   gap: 6px; cursor: pointer; overflow: hidden; position: relative;
 }
 .docs-file-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
-.docs-file-label { font-size: 12px; color: var(--text-muted); position: relative; z-index: 1; }
-
 /* ============================================================
    UTILITIES
    ============================================================ */
@@ -2110,13 +1995,6 @@ nav#tabbar.hidden { display: none !important; }
 }
 .cb-check.done { background:var(--primary); border-color:var(--primary); }
 /* ── Custom board drag ── */
-.cb-drag-hl { outline:2.5px solid var(--primary)!important; outline-offset:3px; border-radius:var(--r-lg); }
-.cb-drop-hl {
-  outline: 2.5px solid var(--primary) !important;
-  outline-offset: 3px;
-  border-radius: var(--r-lg);
-}
-
 /* ── Hoku Floating Assistant ── */
 
 @keyframes hokuBreathing {
@@ -2765,7 +2643,6 @@ nav#tabbar.hidden { display: none !important; }
   <div class="scroll-area" id="settings-body" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
 </div>
   <!-- 写真変更用 hidden input -->
-  <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarFile(event)">
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -2924,20 +2801,6 @@ nav#tabbar.hidden { display: none !important; }
       <button class="btn btn-primary btn-block" onclick="savePrepItem()">追加する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-prep')">キャンセル</button>
     </div>
-  </div>
-</div>
-
-<!-- Comment Modal -->
-<div id="m-comment" class="modal-backdrop">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-comment-title">コメント</div>
-    <div id="comment-list" style="max-height:46vh;overflow-y:auto;margin-bottom:14px;"></div>
-    <div style="display:flex;gap:8px;">
-      <input class="input" id="comment-input" placeholder="コメントを入力…" style="flex:1;height:46px;">
-      <button class="btn btn-primary btn-sm" style="height:46px;" onclick="submitComment()">送信</button>
-    </div>
-    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeModal('m-comment')">閉じる</button>
   </div>
 </div>
 
@@ -4638,21 +4501,6 @@ function bindListDrag(card) {
     document.addEventListener('mouseup',   onUp);
   });
 }
-function reorderTask(dragId,targetId){
-  const tasks=S.tasks||[];
-  const di=tasks.findIndex(t=>t.id===dragId),ti=tasks.findIndex(t=>t.id===targetId);
-  if(di<0||ti<0)return;
-  const [d]=tasks.splice(di,1);tasks.splice(ti,0,d);
-  tasks.forEach((t,i)=>t.order=i);
-  saveS();renderTaskScreen();
-}
-function moveTaskStatus(id,status){
-  if(!id||!status)return;
-  const t=(S.tasks||[]).find(t=>t.id===id);
-  if(!t)return;
-  t.status=status;t.completedAt=status==='done'?todayStr():'';t.updatedAt=todayStr();
-  saveS();renderTaskScreen();renderHome();
-}
 function toggleTaskDone(id){
   const t=(S.tasks||[]).find(t=>t.id===id);
   if(!t)return;
@@ -5007,9 +4855,6 @@ function postExpiresLabel(expiresAt) {
   return `${expiresAt.replace(/^\d{4}-/,'').replace('-','/')}まで`;
 }
 
-function reactSvg(icon, size=12) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="${icon}"/></svg>`;
-}
 
 /* ══════════════════════════════════════════
    リアクション（1人1投稿につき1つ方式）
@@ -5158,9 +5003,7 @@ function showReactors(postId, key) {
 }
 
 /* 旧関数互換ラッパー */
-function cardToggleReaction(postId, key) { openReactPopup(postId); }
 function toggleReaction(postId, key) { selectReaction(postId, key); }
-function bindReactorLongPress() {}
 
 
 
@@ -5291,7 +5134,6 @@ function renderBoard() {
   }
   el.innerHTML = prepCard + html;
   // リアクション長押しバインド
-  setTimeout(bindReactorLongPress, 50);
 }
 
 function postCardHtml(a, uid2) {
@@ -5635,16 +5477,8 @@ function submitBoardComment(postId) {
 }
 
 /* ── 後方互換（旧関数）── */
-function switchBoardTab(tab) { renderBoard(); }
-function openCommentModal(id) { openBoardDetail(id); }
-function renderCommentList(id) {}
-function submitComment() {}
 
 /* ── ホーム用：未読アナウンス件数 ── */
-function getUnreadAnnCount() {
-  const uid2 = userId();
-  return (S.announces||[]).filter(a=>!(a.reads||[]).includes(uid2)).length;
-}
 
 
 
@@ -6050,74 +5884,9 @@ function renderSettings() {
    ============================================================ */
 
 /* 写真変更トリガー */
-let _avatarTargetId = null;
-function triggerAvatarUpload(memberId) {
-  _avatarTargetId = memberId;
-  document.getElementById('avatar-file-input').click();
-}
 
 /* 写真ファイル選択後 */
-function handleAvatarFile(event) {
-  const file = event.target.files[0];
-  if(!file) return;
-  event.target.value = '';
-
-  // サイズチェック（5MB以内）
-  if(file.size > 5 * 1024 * 1024) {
-    showToast('ファイルサイズは5MB以内にしてください','error');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    // 画像を正方形にリサイズ（最大200px）
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      const size = Math.min(img.width, img.height);
-      canvas.width = 200;
-      canvas.height = 200;
-      const ctx = canvas.getContext('2d');
-
-      // 円形クリップ
-      ctx.beginPath();
-      ctx.arc(100, 100, 100, 0, Math.PI * 2);
-      ctx.clip();
-
-      // 中央から正方形でトリミング
-      const sx = (img.width - size) / 2;
-      const sy = (img.height - size) / 2;
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-      // 保存（カスタム写真として保存、公式アバター設定をクリア）
-      if(!S.userPhotos)    S.userPhotos    = {};
-      if(!S.userAvatarType) S.userAvatarType = {};
-      if(!S.userAvatars)   S.userAvatars   = {};
-      S.userPhotos[_avatarTargetId]    = dataUrl;
-      S.userAvatarType[_avatarTargetId] = 'customPhoto';
-      delete S.userAvatars[_avatarTargetId];
-      saveS();
-      renderSettings();
-      renderHome();
-      showToast('写真を更新しました', 'success');
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
 /* 写真削除 */
-function deleteAvatarPhoto(memberId) {
-  if(!S.userPhotos) return;
-  delete S.userPhotos[memberId];
-  saveS();
-  renderSettings();
-  renderHome();
-  showToast('写真を削除しました');
-}
-
 /* ============================================================
    OFFICIAL AVATAR SELECTOR
    ============================================================ */
@@ -6202,19 +5971,6 @@ function selectAvatarItem(avatarId) {
   renderAvatarGrid();
   const btn = document.getElementById('avatar-confirm-btn');
   if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
-}
-
-function resetAvatar(memberId) {
-  if(!S.userPhotos) S.userPhotos = {};
-  if(!S.userAvatars) S.userAvatars = {};
-  if(!S.userAvatarType) S.userAvatarType = {};
-  delete S.userPhotos[memberId];
-  delete S.userAvatars[memberId];
-  delete S.userAvatarType[memberId];
-  saveS();
-  renderSettings();
-  renderHome();
-  showToast('プロフィール画像をリセットしました');
 }
 
 /* プレミアムゲートモーダルを表示 */
@@ -6593,17 +6349,7 @@ function selectBcIntent(key) {
 }
 
 /* 旧 API の互換ラッパー（呼ばれても安全にフォールバック） */
-function selectBoardType(type) {
-  _bcType = type;
-  if(type === 'prep')  selectBcIntent('prep');
-  else if(type === 'share') selectBcIntent('family-share');
-  else                 selectBcIntent('memo');
-}
 
-function bcSetName(name) {
-  const el = document.getElementById('bc-name');
-  if(el) { el.value = name; try { el.focus(); } catch(e) {} }
-}
 
 function saveBoardCreate() {
   const name = document.getElementById('bc-name').value.trim();
@@ -7503,9 +7249,6 @@ function hokuSend() {
   sendHokuMsg(text);
 }
 
-function hokuKeydown(e) {
-  if(e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); hokuSend(); }
-}
 
 function resetHoku() {
   _hokuMsgs = []; _hokuBusy = false; _pendingAction = null;
@@ -7660,7 +7403,6 @@ function hokuVoiceToggle() {
 }
 
 /* renderHoku の度にサポート状態を更新 */
-function hokuVoiceRefresh() { hokuVoiceInit(); }
 
 
 /* ──────────────────────────────────────────────────
@@ -8149,8 +7891,6 @@ function hokuLocalAnswer(q) {
   return `「${q.slice(0,20)}」についてはお答えできる情報がまだありません。${NL+NL}聞ける内容（例）：${NL}・予定／タスク／家計／準備の確認${NL}・「持ち物を整理したい」「子どもが熱っぽい」${NL}・「節約したい」「家事がまわらない」${NL}・「朝の準備が大変」「習い事の管理」${NL}・「家族にどう共有？」`;
 }
 
-/* ── validateHokuAnswer ── */
-function validateHokuAnswer(answer, ctx) { return answer; }
 
 /* ── buildHokuContextLite（後方互換） ── */
 /* ── 中間要約JSON生成 ── */

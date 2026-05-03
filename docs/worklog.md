@@ -2644,3 +2644,107 @@ Wave 18：全アプリ総点検 + ユニコーン視点レビュー（Wave A〜K
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 18: full-app QA review (251 tests / 100% PASS) + Hoku precision fixes + unicorn assessment (93/100)`
+
+---
+
+## 2026-05-03 15:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 19：コードクリーンアップ（死蔵コード削除 / 8,668 → 8,408 行 / -3.0%）
+
+### 変更ファイル
+- `app-source/familink.html`（-260 行 / 削除のみ）
+- `docs/index.html`（同期）
+- `docs/code-cleanup-report-2026-05-03.md`（新規 / 全分類記録）
+- `docs/worklog.md`（本エントリ）
+
+### 削除内容（Wave A〜C 分類済 → Wave D 安全削除のみ実施）
+
+#### JS 関数 14 件（呼び出し元なし / 撤廃機能の残骸）
+- bindReactorLongPress（空関数）
+- cardToggleReaction（ラッパー / 呼び出し元なし）
+- getUnreadAnnCount（呼び出し元なし）
+- hokuKeydown（呼び出し元なし）
+- moveTaskStatus（カンバン撤廃済）
+- openCommentModal（ラッパー / 呼び出し元なし）
+- renderCommentList（空関数）
+- reorderTask（カンバン撤廃済）
+- submitComment（空関数 / m-comment と共に削除）
+- switchBoardTab（ラッパー / 呼び出し元なし）
+- validateHokuAnswer（return answer のみのスタブ）
+- hokuVoiceRefresh（ラッパー / 呼び出し元なし）
+- bcSetName（Wave 17 で template chip 削除済）
+- selectBoardType（Wave 17 で selectBcIntent に置換）
+- reactSvg（呼び出し元なし）
+
+#### アバター系 4 関数 + 1 変数 + 1 HTML
+- triggerAvatarUpload, handleAvatarFile, deleteAvatarPhoto, resetAvatar
+- _avatarTargetId 変数
+- <input type="file" id="avatar-file-input"> （未接続）
+
+#### HTML モーダル 1 件
+- m-comment（オーファン / 開く処理なし）
+
+#### CSS ルール 45 件
+- 書類保管庫 / スキャン残骸（24 件）
+- カンバン残骸（2 件）
+- 旧 board UI / 旧 onboarding（6 件）
+- 未使用 Hoku 関連（6 件）
+- 未使用 post（2 件）
+- 他（5 件）
+
+### 削除しなかった候補（理由記録）
+- backward-compat ラッパー deletePost / deleteTask / toggleTask / renderTaskList → 安全マージン
+- buildHokuContextLite → 後方互換コメントあり、念のため保留
+- CSS compound selectors（.docs-pin-card / .rcpt-zone 等）→ 機械的削除リスク回避
+- .docs-empty 系 → 実は task / 家族ボードで使用中
+- S.kanbanCols / S.folders / S.docs PERSIST フィールド → 既存データ互換のため残置
+
+### 設計見直し候補（docs に記録 / 今後対応）
+- S.userPhotos UI 整理
+- BOARD_TYPE_META と INTENT_META の統合
+- 7 intent 名のリファクタ
+- m-confirm デザイン統一
+
+### テスト結果
+- md5 一致：ee47c243943ad9e2641588f7276dbeab
+- 行数：8,408（-260 / -3.0%）
+- 17 画面 ID：すべて存在
+- JS 構文：OK
+- HTTP 200（src / docs）：両方 OK
+- Wave 17C deep test 再実行：203/203 PASS（退化なし）
+- Wave 18 シナリオ + Hoku 26：48/48 PASS（退化なし）
+- pageerror 0 件 / console.error 0 件
+- LocalStorage 構造変更なし（フィールドは既存通り保持）
+
+### 評点（100 点満点）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| 不要コード削減 | 20 | 17 |
+| 安全性 | 20 | 20 |
+| 主要機能への影響なし | 20 | 20 |
+| 保守性向上 | 15 | 14 |
+| MVP 明確化 | 10 | 10 |
+| GitHub Pages 整合 | 10 | 10 |
+| ドキュメント記録 | 5 | 5 |
+| **合計** | 100 | **96** |
+
+判定：A++（保守性向上 + 品質維持）
+
+### 残課題
+- なし（High）
+- MED-CLEAN-1〜3：CSS compound 整理 / META 統合 / userPhotos 整理
+- LOW-CLEAN-1〜2：backward-compat ラッパー / buildHokuContextLite
+
+### iPhone 確認ポイント
+- 削除対象は全て未使用コードのため UI 上の変化なし
+- 念のため：ホーム / タスク / カレンダー / 家族ボード / 家計 / 準備 / 体調 / Hoku すべて動作確認
+- 既存予定 / タスク / 投稿 / 準備 / 取引データの後方互換動作
+
+### 次にやること
+- Wave 20 候補：iOS 実機検証
+- Wave 21 候補：BOARD_TYPE_META と INTENT_META の統合（MED-CLEAN-2）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 19: code cleanup (-260 lines / 14 dead JS fns + 4 avatar fns + 1 modal + 45 CSS rules)`
