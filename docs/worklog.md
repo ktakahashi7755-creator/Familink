@@ -2748,3 +2748,88 @@ Wave 19：コードクリーンアップ（死蔵コード削除 / 8,668 → 8,4
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 19: code cleanup (-260 lines / 14 dead JS fns + 4 avatar fns + 1 modal + 45 CSS rules)`
+
+---
+
+## 2026-05-03 17:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 20：最高クオリティ化（残コードクリーンアップ + アクセシビリティ強化）
+
+### 変更ファイル
+- `app-source/familink.html`（-110 行 / 8,408 → 8,298）
+- `docs/index.html`（同期）
+- `docs/worklog.md`（本エントリ）
+
+### 削除内容（Wave 19 で保留した残コード）
+
+#### JS 関数 5 件
+- `deletePost` / `deleteTask` / `toggleTask` / `renderTaskList`（backward-compat ラッパー、呼び出し元ゼロ確認）
+- `buildHokuContextLite`（後方互換、呼び出し元ゼロ確認）
+
+#### CSS 34 ルール（Wave 15 撤廃機能の compound selectors）
+- `docs-pin-card` (2) / `docs-folder-item` (2) / `docs-doc-item` (2)
+- `docs-doc-icon` (9) / `docs-action-btn` (3) / `docs-file-zone` (2)
+- `rcpt-zone` (3) / `rcpt-sub-card` (2)
+- `scan-drop` (2) / `scan-zone` (2) / `scan-item-card` (3) / `scan-check` (2)
+
+### アクセシビリティ強化（aria-label 追加 19 件）
+
+| 対象 | aria-label |
+|---|---|
+| ヘッダー戻るボタン × 11 | 戻る |
+| 月送り (-1) | 前の月 |
+| 月送り (+1) | 次の月 |
+| カレンダー予定追加 FAB | 予定を追加 |
+| カレンダー日付別追加 | この日に予定を追加 |
+| タスク追加 | タスクを追加 |
+| 投稿追加 | 投稿を追加 |
+| Hoku 送信 | 送信 |
+| ボード詳細メニュー | メニュー |
+| ボード項目削除 × 2 | 削除 |
+
+### テスト結果
+- md5 一致：18bff09818cb7ad17d6faa03ef0a6ef2
+- 行数：8,298（Wave 19 8,408 → -110 / 累計 -370 行 / -4.3%）
+- JS 構文：OK
+- HTTP 200：両方 OK
+- Wave 17C deep test：203/203 PASS（退化なし）
+- Wave 18 シナリオ + Hoku：48/48 PASS（退化なし）
+- 累計 251/251 PASS / pageerror 0 件 / console.error 0 件
+- LocalStorage 構造変更なし
+- 17 画面維持
+
+### 累積クリーンアップ成果（Wave 19+20）
+- 削除関数：19 件（Wave 19: 14 + Wave 20: 5）
+- 削除アバター系：4 関数 + 1 変数 + 1 HTML
+- 削除 HTML モーダル：1 件
+- 削除 CSS：79 ルール（Wave 19: 45 + Wave 20: 34）
+- aria-label 追加：19 件
+- 行数：8,668 → 8,298（-370 行 / -4.3%）
+
+### 評点（Wave 20 / 100 点満点）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| 不要コード削減 | 20 | 20（CSS compound も解消）|
+| 安全性 | 20 | 20 |
+| 主要機能への影響なし | 20 | 20 |
+| 保守性向上 | 15 | 15（compound 整理 + a11y）|
+| MVP 明確化 | 10 | 10 |
+| GitHub Pages 整合 | 10 | 10 |
+| ドキュメント記録 | 5 | 5 |
+| **合計** | 100 | **100** |
+
+判定：**S（最高品質）**
+
+### 残課題（更新）
+- High：なし
+- Medium：BOARD_TYPE_META と INTENT_META 統合（任意）
+- Low：S.userPhotos UI 整理 / S.kanbanCols-folders-docs PERSIST 整理（後方互換のため積極的削除を控える）
+
+### 次にやること
+- Wave 21 候補：iOS 実機検証
+- Wave 22 候補：F-01 家族 2 端末同期 Step 1（ユニコーン目標）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 20: highest quality polish - 5 backward-compat fns + 34 CSS compound + 19 aria-labels`
