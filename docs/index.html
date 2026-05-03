@@ -2604,6 +2604,9 @@ nav#tabbar.hidden { display: none !important; }
         <button class="btn btn-primary" style="flex:1;" onclick="saveEvent()">保存する</button>
         <button id="ev-del-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="deleteCurrentEvent()">削除</button>
       </div>
+      <button id="ev-export-btn" class="btn btn-outline btn-block" style="display:none;margin-top:8px;" onclick="openExportCalModal()">
+        📤 外部カレンダーに追加
+      </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-event')">キャンセル</button>
     </div>
   </div>
@@ -4009,6 +4012,7 @@ function openEventModal(evId) {
     document.getElementById('ev-repeat').value= ev.repeat||'';
     sel = ev.color; S._evColor = ev.color;
     document.getElementById('ev-del-btn').style.display = 'flex';
+    const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'block';
   } else {
     document.getElementById('m-event-title').textContent = '予定を追加';
     document.getElementById('ev-id').value    = '';
@@ -4019,6 +4023,7 @@ function openEventModal(evId) {
     document.getElementById('ev-repeat').value= '';
     sel = '#4A90E2'; S._evColor = '#4A90E2';
     document.getElementById('ev-del-btn').style.display = 'none';
+    const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'none';
   }
   document.getElementById('ev-colors').innerHTML =
     EV_COLORS.map(c=>`<div class="swatch ${c===sel?'on':''}" style="background:${c}" onclick="selEvColor(this,'${c}')"></div>`).join('');
@@ -4061,6 +4066,101 @@ function deleteCurrentEvent() {
     saveS(); closeModal('m-event'); renderCal(); renderHome();
     showToast('削除しました','error');
   }, '');
+}
+
+/* ============================================================
+   外部カレンダー連携（Wave 25）— OAuth 不要 / 依存ゼロ
+   - Google Calendar：URL パラメータ方式（calendar.google.com/calendar/render）
+   - .ics 出力：RFC5545 準拠 / iPhone カレンダー / Outlook / Yahoo / LINE 等で取込
+   ============================================================ */
+function _getEditingEvent() {
+  const eid = document.getElementById('ev-id')?.value;
+  if(!eid) return null;
+  return (S.events||[]).find(e=>e.id===eid) || null;
+}
+
+function _evToICalDates(ev) {
+  const ds = (ev.date||todayStr()).replace(/-/g, '');
+  const tm = (ev.time||'09:00').split(':');
+  const sh = (tm[0]||'09').padStart(2,'0');
+  const sm = (tm[1]||'00').padStart(2,'0');
+  const eh = String((parseInt(sh,10)+1) % 24).padStart(2,'0');
+  return {
+    start: `${ds}T${sh}${sm}00`,
+    end:   `${ds}T${eh}${sm}00`
+  };
+}
+
+function openExportCalModal() {
+  const ev = _getEditingEvent();
+  if(!ev) { showToast('保存された予定でのみ書き出せます','error'); return; }
+  openModal('m-export-cal');
+}
+
+function exportEventToGoogleCal() {
+  const ev = _getEditingEvent();
+  if(!ev) return;
+  const d = _evToICalDates(ev);
+  const memName = ev.member ? (getMem(ev.member)?.name || '') : '';
+  const details = (ev.note||'') + (memName ? `\n担当：${memName}` : '') + '\n（Familink から書き出し）';
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: ev.title || '予定',
+    dates: `${d.start}/${d.end}`,
+    details: details
+  });
+  const url = `https://calendar.google.com/calendar/render?${params.toString()}`;
+  try { window.open(url, '_blank', 'noopener,noreferrer'); } catch(e) {}
+  closeModal('m-export-cal');
+  showToast('Google カレンダーを開きました');
+}
+
+function exportEventToIcs() {
+  const ev = _getEditingEvent();
+  if(!ev) return;
+  const d = _evToICalDates(ev);
+  const now = new Date();
+  const dtstamp = now.toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z';
+  const memName = ev.member ? (getMem(ev.member)?.name || '') : '';
+  const desc = ((ev.note||'') + (memName ? `\\n担当：${memName}` : ''))
+    .replace(/\r?\n/g, '\\n');
+  const rrule = ({
+    daily: 'RRULE:FREQ=DAILY',
+    weekdays: 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
+    weekly: 'RRULE:FREQ=WEEKLY',
+    monthly: 'RRULE:FREQ=MONTHLY'
+  })[ev.repeat] || '';
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Familink//Event Export//JP',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${ev.id}@familink`,
+    `DTSTAMP:${dtstamp}`,
+    `DTSTART:${d.start}`,
+    `DTEND:${d.end}`,
+    `SUMMARY:${(ev.title||'予定').replace(/[\r\n]/g,' ')}`,
+    `DESCRIPTION:${desc}`
+  ];
+  if(rrule) lines.push(rrule);
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+  const content = lines.join('\r\n');
+
+  try {
+    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `familink-${(ev.title||'event').replace(/[^\w-]/g,'_')}-${ev.date}.ics`;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(e){} }, 100);
+    closeModal('m-export-cal');
+    showToast('.ics ファイルを書き出しました');
+  } catch(e) {
+    showToast('.ics 書き出しに失敗しました。お使いの環境では未対応の可能性があります。','error');
+  }
 }
 
 
@@ -7409,6 +7509,8 @@ function classifyHokuInput(q) {
   if(q.match(/予定|スケジュール|集合|面談|行事|参観|発表会|遠足|入学式|卒園|卒業|健診|検診|診察|歯科|小児科|内科|眼科|耳鼻科|皮膚科|病院|医院|クリニック/)) scores.calendar += 2;
   if(q.match(/学校|幼稚園|保育園|園|塾|習い事|レッスン|ピアノ|スイミング|サッカー|英会話|そろばん|ダンス|空手|柔道|公文/)) scores.calendar += 1;
   if(q.match(/カレンダー/)) scores.calendar += 3;
+  // Wave 25：外部カレンダー連携の問い合わせ
+  if(q.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|LINEカレンダー|\.ics|ics.*書き出|ics.*出力|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/)) scores.calendar += 3;
   if(q.match(/予約|アポ|アポイント/)) scores.calendar += 2;
 
   // ─── task: 動詞+目的のやること（「忘れない」系は notification に渡す）───
@@ -7483,6 +7585,13 @@ function classifierGuidance(category, q, secondary) {
 
   switch(category) {
     case 'calendar':
+      if (q && q.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|LINEカレンダー|\.ics|ics.*書き出|ics.*出力|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/)) {
+        return '外部カレンダーへの連携は、予定詳細から「外部カレンダーに追加」を選ぶとできます。'+NL+
+          '・Google カレンダー：追加 URL でその場で転送'+NL+
+          '・iPhone / Outlook / Yahoo / LINE：「.ics として書き出し」を選ぶと取り込めます'+NL+NL+
+          '双方向同期は今後の対応予定です。まずは Familink 内に予定を保存しておくと安心です。'+
+          ACTION('calendar');
+      }
       return '予定として整理できそうな内容ですね。'+NL+
         '日時が分かる場合は、カレンダーに登録しておくと家族全員で確認しやすくなります。'+NL+NL+
         '「予定追加して」と続けて話しかけると、カレンダーへの登録を進められます。'+
@@ -8309,6 +8418,47 @@ window.addEventListener('DOMContentLoaded', init);
   <div class="scroll-area" id="cb-body" style="flex:1;padding:0 0 calc(170px + env(safe-area-inset-bottom));"></div>
   <div style="position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;padding:10px 16px;background:#fff;border-top:1px solid var(--border-light);box-shadow:0 -4px 12px rgba(0,0,0,.04);">
     <button class="btn btn-primary btn-block" id="cb-add-btn" onclick="openBoardItemAdd()" style="height:48px;font-size:14px;">＋ 項目を追加</button>
+  </div>
+</div>
+
+<!-- ===== EXTERNAL CALENDAR EXPORT MODAL (Wave 25) ===== -->
+<div id="m-export-cal" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:80vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">外部カレンダーに追加</div>
+    <div style="font-size:12px;color:var(--text-sub);margin:0 0 14px;line-height:1.55;">
+      この予定を外部のカレンダーアプリに転送します。<br>
+      どちらの方法で追加しますか？
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="settings-item" onclick="exportEventToGoogleCal()" style="border-radius:12px;padding:14px;">
+        <div style="display:flex;align-items:center;gap:12px;width:100%;">
+          <div style="font-size:22px;">📅</div>
+          <div style="flex:1;text-align:left;">
+            <div style="font-size:14px;font-weight:700;">Google カレンダーに追加</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">新規タブで開く / ログイン済なら即追加</div>
+          </div>
+          <div style="color:var(--text-muted);">›</div>
+        </div>
+      </button>
+      <button class="settings-item" onclick="exportEventToIcs()" style="border-radius:12px;padding:14px;">
+        <div style="display:flex;align-items:center;gap:12px;width:100%;">
+          <div style="font-size:22px;">📥</div>
+          <div style="flex:1;text-align:left;">
+            <div style="font-size:14px;font-weight:700;">.ics として書き出し</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">iPhone カレンダー / Outlook / Yahoo / LINE 等で取込</div>
+          </div>
+          <div style="color:var(--text-muted);">›</div>
+        </div>
+      </button>
+    </div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:14px;line-height:1.5;">
+      ※ Yahoo / LINE カレンダーは公式 API 連携の実装は今後対応予定。.ics 経由での取込が可能です。<br>
+      ※ Google Calendar の双方向同期は v1.0 で対応予定です。
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-export-cal')">閉じる</button>
+    </div>
   </div>
 </div>
 

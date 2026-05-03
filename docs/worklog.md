@@ -3113,3 +3113,70 @@ Wave 24：プロダクト再構築ドキュメント群（要件定義 v2 + 設�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 24: redev docs - SPEC-v2 + ROADMAP + INDEX + IMPLEMENTATION-PROMPT-NEXT`
+
+---
+
+## 2026-05-03  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 25：外部カレンダー連携（Google Calendar Add URL + .ics 書き出し）最小実装
+
+### 変更ファイル
+- `app-source/familink.html`（+150 行）
+- `docs/index.html`（src と同期）
+- `docs/calendar-integration-plan.md`（新規・設計書）
+
+### 変更内容
+- 設計書 `calendar-integration-plan.md` を作成
+  - Google API（OAuth）/ Add URL / .ics / Yahoo / LINE / iPhone Calendar の比較
+  - MVP v0.1 / v0.2 / v1.0 の段階方針
+  - 最小実装の詳細設計（Google URL ビルダー / ICS ビルダーの疑似コード）
+  - Hoku 応答方針（5 入力パターン）
+  - iPhone 動作確認ポイント / 実装リスク
+- アプリ本体に最小実装を追加（OAuth ゼロ / 依存ゼロ）：
+  - 予定モーダル `m-event` に「外部カレンダーに追加」ボタン（編集モード時のみ表示）
+  - 新規モーダル `m-export-cal`（Google / .ics / キャンセル の 3 択）
+  - `openExportCalModal()` / `exportEventToGoogleCal()` / `exportEventToIcs()` 関数追加
+  - Google Calendar Add URL（`https://calendar.google.com/calendar/render?action=TEMPLATE&...`）
+  - RFC5545 準拠 ICS Blob → ダウンロード（iPhone / Outlook / Yahoo / LINE 取り込み可）
+  - 繰り返し予定の RRULE 変換（daily / weekdays / weekly / monthly）
+- Hoku 分類器に外部カレンダー認識スコアを追加（`Google.*カレンダー / iPhone.*カレンダー / Yahoo / LINE / .ics / 連携 / 同期 / エクスポート`）
+- Hoku `case 'calendar'` に外部カレンダー専用応答を追加（既存の予定追加応答とは別分岐）
+- LocalStorage 構造変更なし → 既存ユーザーデータ完全互換
+
+### テスト結果
+- Wave 17 deep：203/203 PASS（既存）
+- Wave 18 full：48/48 PASS（既存）
+- Wave 21 features：13/13 PASS（既存）
+- Wave 22 edge：37/37 PASS（既存）
+- Wave 25 calendar export（新規）：25/25 PASS
+  - モーダル / ボタンの DOM 存在
+  - 関数定義
+  - 編集モード時に「外部カレンダーに追加」ボタン表示
+  - openExportCalModal が m-export-cal を開く
+  - Google Cal URL が `action=TEMPLATE` / `dates=` / `calendar.google.com` を含む
+  - ICS が `BEGIN:VCALENDAR` / `BEGIN:VEVENT` / `DTSTART` / `DTEND` / `UID` / `SUMMARY` / `VERSION:2.0` / `END:VCALENDAR` を含む
+  - Hoku が 5 種類の外部カレンダー入力に対し正しく応答
+- 累計：301（既存）+ 25（新規）= 326/326 PASS
+
+### 未確認事項
+- iPhone Safari 実機での Google Calendar URL 起動 → 新規タブ → ログイン済なら追加画面表示
+- iPhone Safari 実機での .ics Blob ダウンロード → 「カレンダーで開く」プロンプト → 標準カレンダー追加
+- Outlook / Yahoo / LINE での .ics 取り込み動作
+
+### iPhone 確認ポイント
+- 予定タップ → 編集モーダル下部に「📤 外部カレンダーに追加」ボタンが表示されること
+- ボタン → 3 択モーダルが開くこと
+- 「📅 Google カレンダーに追加」→ Safari が新規タブで calendar.google.com を開くこと
+- 「📥 .ics として書き出し」→ ダウンロードバナー → カレンダー追加プロンプトが出ること
+- Hoku に「Google カレンダーに入れたい」と話しかけた時の応答が「外部カレンダーに追加」案内になること
+
+### 次にやること
+- iPhone 実機検証（外部カレンダー転送フロー）
+- v0.2：終了時刻 / 場所 / 終日フィールド追加 + 月単位 ICS 一括出力
+- v1.0：WKWebView + Google Calendar API（OAuth）双方向同期検討
+- LINE カレンダー API 公開待ち
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 25: external calendar integration - Google Add URL + ICS export + design doc`
