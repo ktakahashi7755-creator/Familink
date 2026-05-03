@@ -1359,23 +1359,25 @@ select.input {
 .react-chip-cnt { font-size:11px; font-weight:700; color:var(--text-sub); }
 .react-chip.mine .react-chip-cnt { color:var(--primary); }
 
-/* ── インラインリアクション（ワンタップ）── */
+/* ── インラインリアクション（ワンタップ・控えめ表示）── */
 .card-react-inline {
-  display:flex; align-items:center; gap:4px; flex-wrap:wrap;
-  padding:8px 0 6px; margin-top:8px;
-  border-top:1px solid var(--border-light);
+  display:flex; align-items:center; gap:2px; flex-wrap:wrap;
+  padding:6px 0 0; margin-top:6px;
 }
 .react-quick-btn {
   display:inline-flex; align-items:center; gap:3px;
-  min-width:34px; height:30px; padding:0 8px;
-  border:1.5px solid var(--border-light); border-radius:var(--r-full);
-  background:#fff; cursor:pointer; transition:var(--t-spring);
+  min-width:24px; height:24px; padding:0 4px;
+  border:none; border-radius:6px;
+  background:transparent; cursor:pointer; transition:background .12s, transform .12s;
   -webkit-tap-highlight-color:transparent; line-height:1;
-  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  opacity:.55;
 }
-.react-quick-btn:active { transform:scale(.9); }
-.react-quick-btn.mine { background:var(--primary-light); border-color:var(--primary); }
-.react-quick-cnt { font-size:11px; font-weight:700; color:var(--text-sub); }
+.react-quick-btn:hover { background:var(--bg-muted); opacity:1; }
+.react-quick-btn:active { transform:scale(.88); }
+.react-quick-btn.mine { background:var(--primary-light); opacity:1; }
+.react-quick-btn span:first-child { font-size:14px; line-height:1; filter:saturate(.9); }
+.react-quick-btn.mine span:first-child { filter:none; }
+.react-quick-cnt { font-size:10px; font-weight:700; color:var(--text-sub); }
 .react-quick-btn.mine .react-quick-cnt { color:var(--primary); }
 
 /* ── インラインコメント入力 ── */
@@ -2444,24 +2446,12 @@ nav#tabbar.hidden { display: none !important; }
         <div class="field-label">内容</div>
         <textarea class="input" id="post-body" rows="4" placeholder="内容を入力…" style="resize:none;line-height:1.6;"></textarea>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field">
-          <div class="field-label">カテゴリ</div>
-          <select class="input" id="post-cat">
-            <option value="">なし</option>
-            <option value="家事">家事</option>
-            <option value="買い物">買い物</option>
-            <option value="習い事">習い事</option>
-            <option value="学校">学校</option>
-            <option value="重要">重要</option>
-            <option value="その他">その他</option>
-          </select>
-        </div>
-        <div class="field">
-          <div class="field-label">期限</div>
-          <input class="input" id="post-expires" type="date">
-        </div>
+      <div class="field">
+        <div class="field-label">期限</div>
+        <input class="input" id="post-expires" type="date">
       </div>
+      <!-- カテゴリ select は Wave 28 で撤廃。既存データの cat フィールドは保持（後方互換）。-->
+      <input type="hidden" id="post-cat" value="">
       <div class="field">
         <div class="field-label">対象者</div>
         <div id="post-target-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;"></div>
@@ -5256,18 +5246,13 @@ function removeBoardTab(name) {
 /* ── 一覧描画 ── */
 function renderBoard() {
   if(!(S.announces||[]).length) seedAnnounces(); // フォールバック
-  // フィルターバーを常に表示（タブ追加 UI を出すため）
+  // タブ機能は Wave 28 で撤廃。フィルターバーは常に非表示。
   const fbar = document.getElementById('board-filter-bar');
-  if(fbar) {
-    fbar.style.display = 'flex';
-    _boardFilterOpen = true;
-    renderBoardFilterBar();
-  }
+  if(fbar) fbar.style.display = 'none';
   const el = document.getElementById('board-list');
   if(!el) return;
   const uid2 = userId();
   let anns = [...(S.announces||[])];
-  if(_boardCat) anns = anns.filter(a => a.cat === _boardCat);
   anns.sort((a,b) => {
     if(a.isPinned && !b.isPinned) return -1;
     if(!a.isPinned && b.isPinned) return 1;
@@ -5479,12 +5464,10 @@ function renderBoardDetail() {
     <!-- 本文 -->
     <div class="bdetail-body-text">${H(a.body)}</div>
 
-    <!-- リアクション -->
+    <!-- リアクション（控えめな絵文字バー） -->
     <div class="bdetail-section">
-      <div class="bdetail-section-title">リアクション</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">${reactHTML}</div>
-      <!-- リアクション詳細リスト -->
-      <div id="bdetail-react-detail" style="margin-top:12px;"></div>
+      ${reactHTML}
+      <div id="bdetail-react-detail" style="margin-top:8px;"></div>
     </div>
 
     <!-- 既読 -->
