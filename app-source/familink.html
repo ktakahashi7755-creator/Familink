@@ -2474,6 +2474,7 @@ nav#tabbar.hidden { display: none !important; }
     <!-- 担当者切替タブ（家族全体 / パパ / ママ / etc） -->
     <div class="budget-member-tabs" id="budget-member-tabs"></div>
     <div class="budget-hero" id="budget-hero"></div>
+    <div id="budget-cat-chart" style="margin: 6px 16px 0;"></div>
     <div class="type-toggle">
       <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
       <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
@@ -2577,6 +2578,19 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">メンバー</div>
         <select class="input" id="ev-member"></select>
+      </div>
+      <div class="field">
+        <div class="field-label">繰り返し</div>
+        <select class="input" id="ev-repeat">
+          <option value="">なし（単発）</option>
+          <option value="daily">毎日</option>
+          <option value="weekdays">平日（月〜金）</option>
+          <option value="weekly">毎週（同じ曜日）</option>
+          <option value="monthly">毎月（同じ日）</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
+          ※ 現在は記録のみ保存されます。実際の繰り返し展開は今後のアップデートで対応します。
+        </div>
       </div>
       <div class="field">
         <div class="field-label">カラー</div>
@@ -3318,6 +3332,42 @@ function reopenOnboarding() {
   startOnboarding();
 }
 
+/* プロフィール編集（Wave 21A） */
+let _peRoleId = null;
+function openProfileEdit() {
+  const p = S.userProfile || {};
+  _peRoleId = p.roleId || null;
+  document.getElementById('pe-displayName').value = p.displayName || '';
+  document.getElementById('pe-familyName').value  = p.familyName || '';
+  peRenderRoles();
+  openModal('m-profile-edit');
+}
+function peRenderRoles() {
+  const grid = document.getElementById('pe-role-grid');
+  if(!grid) return;
+  grid.innerHTML = OB2_ROLES.map(r =>
+    `<button class="ob2-role-btn ${r.id===_peRoleId?'selected':''}" onclick="peSelectRole('${H(r.id)}')">${H(r.label)}</button>`
+  ).join('');
+}
+function peSelectRole(id) {
+  _peRoleId = id;
+  peRenderRoles();
+}
+function saveProfileEdit() {
+  const dn = document.getElementById('pe-displayName').value.trim();
+  if(!dn) { showToast('表示名を入力してください','error'); return; }
+  const fn = document.getElementById('pe-familyName').value.trim();
+  if(!S.userProfile) S.userProfile = {};
+  S.userProfile.displayName = dn;
+  S.userProfile.roleId      = _peRoleId || S.userProfile.roleId || 'parent_pa';
+  S.userProfile.familyName  = fn || '';
+  saveS();
+  closeModal('m-profile-edit');
+  renderHome();
+  renderSettings();
+  showToast('プロフィールを更新しました');
+}
+
 function doLogout() {
   showConfirm('ログアウト','ログアウトしますか？','ログアウトする', () => {
     S.loggedIn = false; S.user = null;
@@ -3908,10 +3958,11 @@ function renderCalList() {
     evs.forEach(e => {
       const c = getMemberColor(e.member);
       const mem = getMem(e.member);
+      const repeatLabel = e.repeat ? ({daily:'毎日', weekdays:'平日', weekly:'毎週', monthly:'毎月'}[e.repeat] || '') : '';
       html += `<div class="cal-list-card" onclick="setCalView('month');S.calSel='${date}';S.calY=${parseInt(date)};S.calM=${parseInt(date.split('-')[1])-1};renderCal()">
         <div class="cal-list-bar" style="background:${c}"></div>
         <div class="cal-list-body">
-          <div class="cal-list-time">${e.time||'終日'}</div>
+          <div class="cal-list-time">${e.time||'終日'}${repeatLabel?` · <span style="color:var(--primary);font-weight:700;">↻ ${repeatLabel}</span>`:''}</div>
           <div class="cal-list-title">${H(e.title)}</div>
           <div class="cal-list-meta">${H(mem.name)}${e.note?' · '+H(e.note):''}</div>
         </div>
@@ -3955,6 +4006,7 @@ function openEventModal(evId) {
     document.getElementById('ev-time').value  = ev.time;
     document.getElementById('ev-member').value= ev.member;
     document.getElementById('ev-note').value  = ev.note||'';
+    document.getElementById('ev-repeat').value= ev.repeat||'';
     sel = ev.color; S._evColor = ev.color;
     document.getElementById('ev-del-btn').style.display = 'flex';
   } else {
@@ -3964,6 +4016,7 @@ function openEventModal(evId) {
     document.getElementById('ev-date').value  = S.calSel||todayStr();
     document.getElementById('ev-time').value  = '09:00';
     document.getElementById('ev-note').value  = '';
+    document.getElementById('ev-repeat').value= '';
     sel = '#4A90E2'; S._evColor = '#4A90E2';
     document.getElementById('ev-del-btn').style.display = 'none';
   }
@@ -3984,6 +4037,7 @@ function saveEvent() {
   const time   = document.getElementById('ev-time').value;
   const member = document.getElementById('ev-member').value;
   const note   = document.getElementById('ev-note').value.trim();
+  const repeat = document.getElementById('ev-repeat').value || '';
   const eid    = document.getElementById('ev-id').value;
 
   if(!title) { showToast('タイトルを入力してください','error'); return; }
@@ -3991,10 +4045,10 @@ function saveEvent() {
 
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
-    if(ev) Object.assign(ev, {title,date,time,member,note,color:S._evColor});
+    if(ev) Object.assign(ev, {title,date,time,member,note,repeat,color:S._evColor});
     showToast('予定を更新しました');
   } else {
-    S.events.push({id:uid(),title,date,time,member,note,color:S._evColor});
+    S.events.push({id:uid(),title,date,time,member,note,repeat,color:S._evColor});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -4565,6 +4619,37 @@ function renderBudget() {
       </div>
     </div>
     <div class="budget-bal">${bal>=0?'＋':''}${fmtAmt(bal)} の収支</div>`;
+
+  // カテゴリ別バーチャート（支出のみ・上位 6 件）
+  const chartEl = document.getElementById('budget-cat-chart');
+  if(chartEl) {
+    const expByCat = {};
+    memMt.filter(t=>t.type==='expense').forEach(t=>{
+      const c = t.cat || 'その他';
+      expByCat[c] = (expByCat[c]||0) + (t.amount||0);
+    });
+    const cats = Object.entries(expByCat).sort((a,c)=>c[1]-a[1]).slice(0,6);
+    const max = cats.length ? Math.max(...cats.map(([,v])=>v)) : 0;
+    if(cats.length && max > 0) {
+      chartEl.innerHTML = `<div style="background:#fff;border:1px solid var(--border-light);border-radius:14px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:.5px;margin-bottom:8px;">カテゴリ別 支出（上位${cats.length}）</div>
+        ${cats.map(([cat, amt]) => {
+          const w = Math.max(3, Math.round(amt/max*100));
+          const ico = (typeof CAT_ICO!=='undefined' && CAT_ICO[cat]) || '📦';
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:14px;width:18px;text-align:center;">${ico}</span>
+            <span style="font-size:12px;color:var(--text-sub);width:64px;flex-shrink:0;">${H(cat)}</span>
+            <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;position:relative;">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:${w}%;background:linear-gradient(90deg,#4A90E2,#7BB3F5);border-radius:4px;transition:width .3s ease;"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:var(--text);width:64px;text-align:right;">${fmtAmt(amt)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    } else {
+      chartEl.innerHTML = '';
+    }
+  }
 
   const type = S.budgetType;
   document.getElementById('btx-ex').classList.toggle('on', type==='expense');
@@ -5753,6 +5838,10 @@ function renderSettings() {
       <div class="settings-item" onclick="go('s-notif')">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>','#4A90E2')}</div>
         <div class="settings-item-label">通知</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openProfileEdit()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
+        <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" onclick="reopenOnboarding()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>','#4A90E2')}</div>
@@ -8170,6 +8259,32 @@ window.addEventListener('DOMContentLoaded', init);
   <div class="scroll-area" id="cb-body" style="flex:1;padding:0 0 calc(170px + env(safe-area-inset-bottom));"></div>
   <div style="position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;padding:10px 16px;background:#fff;border-top:1px solid var(--border-light);box-shadow:0 -4px 12px rgba(0,0,0,.04);">
     <button class="btn btn-primary btn-block" id="cb-add-btn" onclick="openBoardItemAdd()" style="height:48px;font-size:14px;">＋ 項目を追加</button>
+  </div>
+</div>
+
+<!-- ===== PROFILE EDIT MODAL ===== -->
+<div id="m-profile-edit" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">プロフィールを編集</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">表示名 <span style="color:var(--red)">*</span></div>
+        <input class="input" id="pe-displayName" placeholder="例：パパ、ママ、たろう" maxlength="12">
+      </div>
+      <div class="field">
+        <div class="field-label">あなたの役割</div>
+        <div class="ob2-role-grid" id="pe-role-grid"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">家族の呼び方（任意）</div>
+        <input class="input" id="pe-familyName" placeholder="例：山田家、ファミリンク家" maxlength="20">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-profile-edit')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveProfileEdit()">保存する</button>
+    </div>
   </div>
 </div>
 
