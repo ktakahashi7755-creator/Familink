@@ -2564,3 +2564,83 @@ Wave 17C：詳細体系テスト（203 項目 / 100% PASS）+ Hoku 分類器精�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 17c: deep 203-test QA + Hoku classifier precision fixes (calendar/prep/board)`
+
+---
+
+## 2026-05-03 14:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 18：全アプリ総点検 + ユニコーン視点レビュー（Wave A〜K 完全版）
+
+### 変更ファイル
+- `app-source/familink.html`（Hoku 分類器 +2 行）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-03-wave18-fullapp.md`（新規）
+- `docs/unicorn-quality-review-2026-05-03.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 実施内容（Wave A〜K）
+- Wave A：状況把握（17 画面 / md5 一致 / f503565 起点）
+- Wave B：全 onclick 関数（111 個）すべて定義済確認 / 全画面参照有効
+- Wave C：全保存系関数 saveS() 確認 / view state 系の意図的非保存確認
+- Wave D：10 ユーザーシナリオすべて PASS（初回利用 / Hoku→各機能 / ボード作成 / 設定）
+- Wave E：Hoku 23 入力 すべて PASS（calendar/task/prep/notification/budget/health/board/help）
+- Wave F：ユニコーン視点レビュー（強み 6 点 / 弱み 4 点 / 90 日目標）
+- Wave G：Hoku 分類器 2 件修正（家族でいくら使った / 先生から連絡があった）
+- Wave H：静的検証 全クリア（JS 構文 / HTTP 200 / grep / 17 画面）
+- Wave I：93/100 評点（A++ / MVP v0.1 完全合格）
+- Wave J：3 ドキュメント作成（QA / unicorn / worklog）
+- Wave K：commit + merge to default + push
+
+### Hoku 分類器精度向上 2 件
+1. 「家族でいくら使ったか見たい」→ budget
+   `if(q.match(/家族で.*使|いくら.*使|誰が.*使|誰がいくら|家族.*家計|家計.*家族/)) scores.budget += 2;` 追加
+2. 「先生から連絡があった」→ board
+   `先生から|園から|学校から|連絡があった|連絡が来た|お知らせ.*届|お知らせがあった` を +2 → +3 に昇格
+
+### テスト結果（合計 251 項目 100% PASS）
+- Wave 17C deep test 再実行：203/203 PASS（退化なし確認）
+- Wave 18 シナリオ + Hoku 26 入力：48/48 PASS
+- pageerror / console.error：0 件
+- md5 一致：85cd6293833fcf10afb57e8385665ed9
+- 17 画面維持
+
+### 評点（100 点満点）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| 全体安定性 | 15 | 15 |
+| データ反映/保存 | 15 | 15 |
+| ボタン/導線品質 | 15 | 15 |
+| Hoku 体験 | 15 | 13 |
+| 家族ボード/準備リスト | 15 | 14 |
+| 家計/タスク/カレンダー | 10 | 9 |
+| UI/UX | 10 | 9 |
+| ユニコーンポテンシャル | 5 | 3 |
+| **合計** | 100 | **93** |
+
+事業視点スコア：97 (Wave 17C) → **93 (Wave 18 / より厳しい 9 軸)**
+（前回は 7 軸 100 点換算、今回は 9 軸でユニコーンポテンシャルを別軸化したため数値変動）
+判定：A++（プロフェッショナル MVP / MVP v0.1 完全合格）
+
+### ユニコーン目標 残課題（90 日）
+- HIGH-3：家族 2 端末同期（QR コード共有）
+- HIGH-4：継続利用フック（通知 / 週次サマリー）
+- MED-1：Hoku 文脈応答
+- MED-2：プレミアム実体価値の追加
+
+### iPhone 確認ポイント
+1. Hoku マイクボタン → 音声 / フォールバック
+2. ホームスクロール → 誤遷移なし
+3. 家計メンバータブ 7 個
+4. カメラアイコン → 投稿モーダル
+5. ボード作成 7 用途 → 用途別初期状態
+6. 完了タスク → 薄表示 + 削除
+7. 準備リスト 今日/明日
+
+### 次にやること
+- Wave 19 候補：iPhone 実機検証（HIGH-1 / 2）
+- Wave 20 候補：F-01 家族 2 端末同期 Step 1（QR コード）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 18: full-app QA review (251 tests / 100% PASS) + Hoku precision fixes + unicorn assessment (93/100)`
