@@ -3180,3 +3180,94 @@ Wave 25：外部カレンダー連携（Google Calendar Add URL + .ics 書き出
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 25: external calendar integration - Google Add URL + ICS export + design doc`
+
+---
+
+## 2026-05-03  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 26：Familink 音声 UX を家族文脈理解レベルへ引き上げ（保存前確認 + 補正辞書 + 意図抽出）
+
+### 変更ファイル
+- `app-source/familink.html`（+約 470 行：voice intent module + 確認モーダル + サンプル例）
+- `docs/index.html`（src と md5 同期）
+- `docs/voice-recognition-roadmap.md`（新規・v0.2 → v1.0 → v1.5 戦略文書）
+
+### 変更内容
+- **音声補正辞書**を追加
+  - `VOICE_MEMBER_ALIASES`：家族メンバーの表記ゆれ吸収（パパ/お父さん/太郎/せいと/星斗 等）
+  - `VOICE_TERM_NORMALIZE`：子育て用語の正規化（たいそうふく → 体操服、しょうにか → 小児科 等）
+- **音声意図抽出器** `parseVoiceIntent`
+  - カテゴリ分類（カレンダー/タスク/準備/家計/体調/家族ボード）
+  - 日付（今日/明日/月曜/5月3日）
+  - 時刻（18時/18:30/朝/夕方）
+  - 金額（3200円/1万円）
+  - 体温（37.8度/37度8分）
+  - メンバー解決
+- **保存前確認モーダル** `m-voice-confirm`
+  - 認識テキスト + 補正後テキスト表示
+  - 登録先 / メンバー / タイトル / 日付 / 時刻 / 金額 / 体温 / メモ を編集可
+  - 「追加する / 手入力に切り替える / キャンセル」
+  - 即保存しない（誤認識による不正登録を防ぐ）
+- **6 状態の状態マシン**（idle / listening / thinking / confirming / saved / error）
+- **失敗 UX 改善**：マイク許可エラー / 無音 / ネットワークエラーごとに案内文
+- **サンプルコマンド表示**：マイク下に常時 4 例（「明日 太郎 体操服 準備」等）
+- **手入力フォールバック**：認識テキストを Hoku 入力欄へ転送
+- **5 種類の保存導線**：calendar / task / prep / budget / health / board → 既存 LocalStorage 構造を変更せず保存
+- 既存 `_hokuRec.onresult` を `hokuHandleVoiceText(text)` 経由に切替（フォールバック付き）
+- LocalStorage 構造変更なし（完全後方互換）
+- 設計書 `voice-recognition-roadmap.md` 作成
+  - v0.2（現在）/ v1.0（Apple Speech Framework）/ v1.5（OpenAI gpt-4o-transcribe）
+  - プライバシー設計（家族の声は商品ではない）
+  - プレミアム機能としての位置付け（無料/480円/上位プラン）
+  - 検証指標（精度 70% → 95%）
+
+### テスト結果
+- Wave 17 deep：203/203 PASS
+- Wave 18 full：48/48 PASS
+- Wave 21 features：13/13 PASS
+- Wave 22 edge：37/37 PASS
+- Wave 25 calendar export：25/25 PASS
+- Wave 26 voice（新規）：**67/67 PASS**
+  - DOM 要素 11
+  - 関数定義 12
+  - メンバー解決 7（パパ/ママ/太郎/花子/健太/せいと/星斗）
+  - 日付解決 5
+  - 時刻解決 4
+  - 金額解決 3
+  - 体温解決 3
+  - parseVoiceIntent E2E 5（4 例 + 外部カレンダー）
+  - 用語正規化 1
+  - モーダル表示 + 事前入力 5
+  - 5 種カテゴリ保存 5（event/health/budget/prep + cancel）
+  - 手入力フォールバック 1
+  - 状態マシン 3
+  - JS エラーなし
+- 累計：301（既存）+ 25（Wave 25）+ 67（Wave 26）= **393/393 PASS**
+
+### 未確認事項
+- iPhone Safari 実機での `SpeechRecognition` 動作（OS バージョン依存）
+- 騒音環境での認識精度
+- 連続発話の自動分割（Wave 28 で対応予定）
+
+### iPhone 確認ポイント
+- Hoku 画面のマイク下に「🎤 短く話すと正確です」と 4 サンプルが表示される
+- マイクをタップ → 「🎙 聞き取り中…」表示
+- 短文を話す（例：「明日 太郎 体操服 準備」）
+- 確認モーダルが開き、登録先・メンバー・タイトル・日付が事前入力されている
+- 「追加する」で準備リストに保存される
+- 「修正する」フィールドで全項目を編集できる
+- 「キャンセル」で保存されない
+- 認識失敗時に再試行 / 手入力切替の導線が出る
+- マイク権限なしの場合、設定案内文が表示される
+
+### 次にやること
+- iPhone 実機検証（音声 UX 5 ペルソナ別動作確認）
+- Wave 27：体調メモの症状語自動入力 / 家計カテゴリ自動推定強化
+- Wave 28：連続発話 → 複数項目自動分割
+- v1.0：WKWebView + Apple Speech Framework
+- v1.5：OpenAI gpt-4o-transcribe（プレミアム機能）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 26: voice UX - family-context confirm modal + correction dict + intent parser`

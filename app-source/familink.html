@@ -2325,6 +2325,17 @@ nav#tabbar.hidden { display: none !important; }
   <!-- 音声入力ステータスバナー（音声中・非対応案内・エラーで表示） -->
   <div id="hoku-voice-status" style="display:none;font-size:12px;text-align:center;padding:8px 14px;color:var(--text-sub);background:rgba(74,144,226,.08);border-top:1px solid var(--border-light);"></div>
 
+  <!-- Wave 26：音声サンプルコマンド（短文ガイド）-->
+  <div id="hoku-voice-hints" style="font-size:11px;line-height:1.6;color:var(--text-sub);padding:10px 14px 4px;background:linear-gradient(180deg,#fff 0%,rgba(74,144,226,.04) 100%);border-top:1px solid var(--border-light);">
+    <div style="font-weight:700;color:var(--text);margin-bottom:4px;">🎤 短く話すと正確です</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 10px;">
+      <span>・明日 太郎 体操服 準備</span>
+      <span>・金曜18時 花子 スイミング</span>
+      <span>・健太 37.8度 咳あり</span>
+      <span>・スーパー 食費 3200円</span>
+    </div>
+  </div>
+
   <!-- 入力バー -->
   <div class="hoku-bar">
     <button class="hoku-mic" id="hoku-mic" onclick="hokuVoiceToggle()" title="音声で相談">
@@ -7374,6 +7385,9 @@ function hokuMicSetState(state) {
   btn.title = state === 'listening' ? '聞き取り中（タップで停止）'
             : state === 'unsupported' ? '音声入力に対応していない端末です'
             : '音声で相談';
+  // ヒント帯：聞き取り中は隠す、それ以外は表示
+  const hints = document.getElementById('hoku-voice-hints');
+  if(hints) hints.style.display = (state === 'listening') ? 'none' : '';
   if(state === 'listening')   hokuVoiceShowStatus('🎙 聞き取り中… 話しかけてください','listening');
   else if(state === 'unsupported') hokuVoiceShowStatus('音声入力はこの端末では使えないため、テキストで相談してください','warn');
   else hokuVoiceShowStatus('','');
@@ -7426,15 +7440,22 @@ function hokuVoiceToggle() {
           text += ev.results[i][0].transcript;
         }
       } catch(e) { text = ''; }
-      const inp = document.getElementById('hoku-input');
-      if(inp && text) {
-        inp.value = (inp.value ? inp.value + ' ' : '') + text;
-        try { inp.dispatchEvent(new Event('input')); } catch(e) {}
-        try { inp.focus(); } catch(e) {}
-        const preview = text.length > 30 ? text.substring(0, 30) + '…' : text;
-        showToast('聞き取りました：「' + preview + '」内容を確認して送信してください。');
-      } else if(inp && !text) {
+      if(text) {
+        // Wave 26：認識テキストを Familink 文脈で解析し、保存前確認モーダルへ
+        try { hokuHandleVoiceText(text); }
+        catch(e) {
+          console.error('hokuHandleVoiceText failed', e);
+          // フォールバック：従来どおり Hoku 入力欄へ挿入
+          const inp = document.getElementById('hoku-input');
+          if(inp) {
+            inp.value = (inp.value ? inp.value + ' ' : '') + text;
+            try { inp.focus(); } catch(_e) {}
+          }
+          showToast('聞き取りました：「' + (text.length>30?text.substring(0,30)+'…':text) + '」', 'success');
+        }
+      } else {
         showToast('音声を聞き取れませんでした。もう一度お試しください。','error');
+        hokuVoiceSetPhase('error');
       }
     };
     _hokuRec.onerror = function(ev) {
@@ -7486,6 +7507,384 @@ function hokuVoiceToggle() {
 }
 
 /* renderHoku の度にサポート状態を更新 */
+
+
+/* ============================================================
+   Wave 26 — VOICE INTENT MODULE
+   家族文脈理解のための音声補正辞書 + 短文意図抽出 + 確認 UX
+   外部 API 不使用 / 既存 LocalStorage 構造を変更しない / 依存ゼロ
+   ============================================================ */
+
+/* 家族メンバーの音声エイリアス辞書（音声認識ゆれを吸収）。
+   id は MEMBERS の id と一致。表記ゆれは個別端末の家族名に応じて拡張可能。 */
+const VOICE_MEMBER_ALIASES = [
+  { id:'kenya',   aliases:['パパ','ぱぱ','お父さん','おとうさん','父','とうさん','ダディ','dad','papa'] },
+  { id:'seiai',   aliases:['ママ','まま','お母さん','おかあさん','母','かあさん','マミー','mom','mama','ほしあ','せいあ','星愛','聖愛','せいあい'] },
+  { id:'seito',   aliases:['太郎','たろう','たろー','せいと','ほしと','星斗','聖斗','星と','しょうた','長男'] },
+  { id:'seio',    aliases:['花子','はなこ','はなちゃん','せお','せいおう','ほしおう','星旺','聖旺','長女','はな'] },
+  { id:'seitaro', aliases:['健太','けんた','けんちゃん','せいた','ほした','星汰','聖汰','せいたろう','次男','三男'] }
+];
+
+/* 子育て用語の正規化辞書（音声認識のカタカナ誤認識を漢字に揃える） */
+const VOICE_TERM_NORMALIZE = [
+  // 学校系
+  [/たいそうふく|たいそう服|体操ふく/g, '体操服'],
+  [/れんらくちょう|連絡ちょう/g, '連絡帳'],
+  [/うわばき|うわ履き/g, '上履き'],
+  [/きゅうしょくぶくろ|給食ぶくろ/g, '給食袋'],
+  [/すいとう/g, '水筒'],
+  [/しゅくだい/g, '宿題'],
+  [/らんどせる/g, 'ランドセル'],
+  [/ぴあの|ピァノ/g, 'ピアノ'],
+  [/すいみんぐ|スイミィング/g, 'スイミング'],
+  [/さっかー|サッカ/g, 'サッカー'],
+  [/ほいくえん/g, '保育園'],
+  [/ようちえん/g, '幼稚園'],
+  [/しょうがっこう/g, '小学校'],
+  [/ほごしゃかい/g, '保護者会'],
+  [/めんだん/g, '面談'],
+  [/うんどうかい/g, '運動会'],
+  [/えんそく/g, '遠足'],
+  // 体調系
+  [/かぜ(?!ぐすり)/g, '風邪'],
+  [/はなみず/g, '鼻水'],
+  [/ずつう/g, '頭痛'],
+  [/ふくつう/g, '腹痛'],
+  [/はつねつ/g, '発熱'],
+  [/しょうにか/g, '小児科'],
+  // 家計系
+  [/しょくひ/g, '食費'],
+  [/こうつうひ/g, '交通費'],
+  [/にちようひん/g, '日用品'],
+  [/ほいくりょう|ほいく料/g, '保育料']
+];
+
+/* 入力テキストに辞書を適用して正規化 */
+function voiceCorrectText(raw) {
+  if(!raw) return '';
+  let t = String(raw).trim();
+  for(const [re, to] of VOICE_TERM_NORMALIZE) t = t.replace(re, to);
+  return t;
+}
+
+/* テキストから家族メンバー id を解決（複数 hit 時は最初の 1 件） */
+function voiceResolveMember(text) {
+  if(!text) return null;
+  const lc = text.toLowerCase();
+  // まず S.members（カスタム名）を優先
+  try {
+    const customMembers = (typeof MEMBERS !== 'undefined') ? MEMBERS : [];
+    for(const m of customMembers) {
+      if(!m || !m.name) continue;
+      if(text.indexOf(m.name) >= 0) return m.id;
+    }
+  } catch(e) {}
+  // エイリアス辞書
+  for(const ent of VOICE_MEMBER_ALIASES) {
+    for(const a of ent.aliases) {
+      if(!a) continue;
+      if(text.indexOf(a) >= 0 || lc.indexOf(a.toLowerCase()) >= 0) return ent.id;
+    }
+  }
+  return null;
+}
+
+/* 日付表現を ISO 文字列に解決 */
+function voiceResolveDate(text) {
+  const today = todayStr();
+  if(!text) return null;
+  if(text.match(/今日|本日|きょう/)) return today;
+  if(text.match(/明日|あした|あす/)) return addDays(today, 1);
+  if(text.match(/明後日|あさって/))   return addDays(today, 2);
+  if(text.match(/昨日|きのう/))       return addDays(today, -1);
+  // 曜日：直近のその曜日を返す（今日含めない / 1〜7 日後）
+  const wd = ['日','月','火','水','木','金','土'];
+  const m = text.match(/(月|火|水|木|金|土|日)曜/);
+  if(m) {
+    const target = wd.indexOf(m[1]);
+    const now = new Date(today + 'T00:00:00').getDay();
+    let diff = target - now; if(diff <= 0) diff += 7;
+    return addDays(today, diff);
+  }
+  // 「N月M日」
+  const md = text.match(/(\d{1,2})月(\d{1,2})日?/);
+  if(md) {
+    const y = new Date().getFullYear();
+    const mm = String(+md[1]).padStart(2,'0');
+    const dd = String(+md[2]).padStart(2,'0');
+    return `${y}-${mm}-${dd}`;
+  }
+  return null;
+}
+
+/* 時刻表現（HH:MM）を抽出 */
+function voiceResolveTime(text) {
+  if(!text) return null;
+  const m = text.match(/(\d{1,2})[時:](\d{0,2})分?/);
+  if(m) {
+    const h = Math.min(23, +m[1]);
+    const mi = m[2] ? Math.min(59, +m[2]) : 0;
+    return String(h).padStart(2,'0') + ':' + String(mi).padStart(2,'0');
+  }
+  if(text.match(/朝|午前/)) return '08:00';
+  if(text.match(/昼|正午/)) return '12:00';
+  if(text.match(/夕方/))    return '17:00';
+  if(text.match(/夜|晩/))   return '19:00';
+  return null;
+}
+
+/* 金額抽出（円） */
+function voiceResolveAmount(text) {
+  if(!text) return null;
+  // 「3200円」「1万円」「3,200円」
+  const man = text.match(/(\d{1,4})\s*万円?/);
+  if(man) return +man[1] * 10000;
+  const yen = text.match(/([\d,]+)\s*円/);
+  if(yen) return parseInt(yen[1].replace(/,/g,''), 10);
+  return null;
+}
+
+/* 体温抽出（37.8度 / 37.8℃ / 37度8分） */
+function voiceResolveTemp(text) {
+  if(!text) return null;
+  let m = text.match(/(3[5-9]|4[0-2])\.(\d)\s*(?:度|℃)?/);
+  if(m) return +(m[1] + '.' + m[2]);
+  m = text.match(/(3[5-9]|4[0-2])\s*度\s*(\d)\s*分?/);
+  if(m) return +(m[1] + '.' + m[2]);
+  m = text.match(/(3[5-9]|4[0-2])\s*(?:度|℃)/);
+  if(m) return +m[1];
+  return null;
+}
+
+/* 短文音声からカテゴリ + 主要フィールドを抽出 */
+function parseVoiceIntent(rawText) {
+  const text = voiceCorrectText(rawText);
+  const cls  = classifyHokuInput(text);
+  const member = voiceResolveMember(text);
+  const date   = voiceResolveDate(text);
+  const time   = voiceResolveTime(text);
+  const amount = voiceResolveAmount(text);
+  const temp   = voiceResolveTemp(text);
+
+  // タイトル / 内容の抽出：句読点・読点・スペースで分割した短い断片を中心に
+  const tokens = text.split(/[、,，\s　・]+/).filter(Boolean);
+  // メタトークン（既に拾ったもの）を除外して残りを title 候補に
+  const META = /^(明日|今日|明後日|昨日|本日|来週|今週|来月|月曜|火曜|水曜|木曜|金曜|土曜|日曜|朝|昼|夜|晩|夕方|午前|正午)$/;
+  const metaPicked = new Set();
+  for(const t of tokens) {
+    if(META.test(t)) metaPicked.add(t);
+    if(/^\d{1,2}[時:].*$/.test(t)) metaPicked.add(t);
+    if(/^\d/.test(t) && (t.match(/円|度/))) metaPicked.add(t);
+    if(member) {
+      for(const ent of VOICE_MEMBER_ALIASES) {
+        if(ent.aliases.indexOf(t) >= 0) metaPicked.add(t);
+      }
+      for(const m of MEMBERS) if(m.name === t) metaPicked.add(t);
+    }
+  }
+  const titleTokens = tokens.filter(t => !metaPicked.has(t));
+  const title = titleTokens.join(' ').trim();
+
+  // 不足判定
+  const missing = [];
+  if(!cls.category) missing.push('category');
+  if(['calendar','task','prep','health'].indexOf(cls.category) >= 0 && !member) missing.push('member');
+  if(cls.category === 'budget' && amount == null) missing.push('amount');
+  if(cls.category === 'health' && temp == null) missing.push('temp');
+
+  return {
+    raw: rawText,
+    text,
+    category: cls.category,
+    secondary: cls.secondary,
+    score: cls.score,
+    member, date, time, amount, temp,
+    title,
+    missing,
+    confidence: cls.score >= 5 ? 'high' : (cls.score >= 3 ? 'medium' : 'low')
+  };
+}
+
+/* カテゴリ別ラベル */
+const VOICE_CAT_LABEL = {
+  calendar:'カレンダー', task:'タスク', prep:'準備リスト',
+  budget:'家計', health:'体調管理', board:'家族ボード',
+  notification:'通知', help:'ヘルプ', premium:'プレミアム'
+};
+const VOICE_CAT_ICON = {
+  calendar:'📅', task:'✅', prep:'🎒', budget:'💰',
+  health:'🌡', board:'📋', notification:'🔔', help:'❓', premium:'⭐'
+};
+
+/* 音声マイク状態テキスト */
+const VOICE_STATE_TEXT = {
+  idle:        '🎤 マイクを押して短く話してください',
+  listening:   '🎙 聞き取り中… 話しかけてください',
+  thinking:    '🧠 Hoku が整理しています…',
+  confirming:  '✏️ 内容を確認してください',
+  saved:       '✅ 保存しました',
+  error:       '⚠ うまく聞き取れませんでした',
+  unsupported: '音声入力はこの端末では使えないため、テキストで相談してください'
+};
+function hokuVoiceSetPhase(phase) {
+  hokuVoiceShowStatus(VOICE_STATE_TEXT[phase] || '', phase);
+}
+
+/* 認識結果を確認モーダルへ流す（即保存しない） */
+let _voiceParsed = null;
+function hokuHandleVoiceText(text) {
+  if(!text) {
+    hokuVoiceSetPhase('error');
+    return;
+  }
+  hokuVoiceSetPhase('thinking');
+  _voiceParsed = parseVoiceIntent(text);
+  hokuVoiceSetPhase('confirming');
+  voiceConfirmRender();
+  openModal('m-voice-confirm');
+}
+
+/* 確認モーダルの描画 */
+function voiceConfirmRender() {
+  const p = _voiceParsed; if(!p) return;
+  const recEl = document.getElementById('vc-recognized');
+  if(recEl) recEl.textContent = p.raw || '';
+  const corrEl = document.getElementById('vc-corrected');
+  if(corrEl) corrEl.textContent = (p.text && p.text !== p.raw) ? '（補正：' + p.text + '）' : '';
+
+  // カテゴリ select
+  const catSel = document.getElementById('vc-cat');
+  if(catSel) {
+    catSel.innerHTML = ['calendar','task','prep','budget','health','board']
+      .map(c => `<option value="${c}"${c === (p.category||'')?' selected':''}>${VOICE_CAT_ICON[c]} ${VOICE_CAT_LABEL[c]}</option>`).join('');
+    if(!p.category) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = '— 登録先を選んでください —'; o.selected = true; o.disabled = true;
+      catSel.insertBefore(o, catSel.firstChild);
+    }
+  }
+  // メンバー select
+  const memSel = document.getElementById('vc-member');
+  if(memSel) {
+    const all = [{id:'',name:'（指定なし）'}].concat(MEMBERS.map(m => ({id:m.id, name:m.name})));
+    memSel.innerHTML = all.map(m => `<option value="${m.id}"${m.id === (p.member||'')?' selected':''}>${m.name}</option>`).join('');
+  }
+  // 各フィールド
+  const setVal = (id,v)=>{ const e=document.getElementById(id); if(e) e.value = v||''; };
+  setVal('vc-title', p.title || '');
+  setVal('vc-date',  p.date || todayStr());
+  setVal('vc-time',  p.time || '');
+  setVal('vc-amount', p.amount != null ? p.amount : '');
+  setVal('vc-temp',   p.temp != null ? p.temp : '');
+  setVal('vc-note',   '');
+
+  voiceConfirmToggleFields();
+
+  // ヘッダー文言
+  const header = document.getElementById('vc-summary');
+  if(header) {
+    if(p.category) {
+      const memName = p.member ? (getMem(p.member)?.name || '') : '';
+      header.innerHTML = `<b>${VOICE_CAT_ICON[p.category]} ${VOICE_CAT_LABEL[p.category]}</b> に追加します`
+        + (memName ? `（対象：${memName}）` : '');
+    } else {
+      header.innerHTML = '登録先を判定できませんでした。下から選んでください。';
+    }
+  }
+}
+
+/* カテゴリに応じてフィールドの表示切替 */
+function voiceConfirmToggleFields() {
+  const sel = document.getElementById('vc-cat');
+  const cat = sel ? sel.value : '';
+  const show = (id, on) => { const e = document.getElementById(id); if(e) e.style.display = on ? '' : 'none'; };
+  show('vc-row-time',   cat === 'calendar');
+  show('vc-row-amount', cat === 'budget');
+  show('vc-row-temp',   cat === 'health');
+  show('vc-row-date',   cat === 'calendar' || cat === 'prep' || cat === 'health' || cat === 'budget');
+  show('vc-row-member', cat !== 'board');
+  show('vc-row-note',   true);
+}
+
+/* 確認モーダル：保存実行 */
+function voiceConfirmSave() {
+  const cat = document.getElementById('vc-cat').value;
+  if(!cat) { showToast('登録先を選んでください','error'); return; }
+  const member = document.getElementById('vc-member').value || '';
+  const title  = (document.getElementById('vc-title').value || '').trim();
+  const date   = document.getElementById('vc-date').value   || todayStr();
+  const time   = document.getElementById('vc-time').value   || '';
+  const amount = parseInt(document.getElementById('vc-amount').value, 10);
+  const temp   = parseFloat(document.getElementById('vc-temp').value);
+  const note   = (document.getElementById('vc-note').value || '').trim();
+  if(!title && cat !== 'health' && cat !== 'budget') {
+    showToast('内容を入力してください','error'); return;
+  }
+  let saved = false;
+  try {
+    if(cat === 'calendar') {
+      S.events.push({ id:uid(), title, date, time, color:'#4A90E2', member: member||'kenya', note });
+      saved = true;
+    } else if(cat === 'task') {
+      S.tasks.push({ id:uid(), text:title, member: member||'kenya', done:false, at:todayStr() });
+      saved = true;
+    } else if(cat === 'prep') {
+      const prepText = title || (note || '持ち物');
+      S.prep.push({ id:uid(), text:prepText, cat:'学校', done:false, date, member: member||'' });
+      saved = true;
+    } else if(cat === 'budget') {
+      if(!isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
+      S.txs.push({ id:uid(), type:'expense', amount:amount, cat:'食費', desc: title || note || '音声入力', date, member: member||'kenya' });
+      saved = true;
+    } else if(cat === 'health') {
+      if(!isFinite(temp)) { showToast('体温を入力してください','error'); return; }
+      S.health.push({ id:uid(), child: member||'seito', date, temp, cond: title || '', note, meds:'' });
+      saved = true;
+    } else if(cat === 'board') {
+      S.announces = S.announces || [];
+      S.announces.push({ id:uid(), title: title || '音声メモ', body: note || title, author: S.user?.id || 'kenya',
+        cat:'共有', isPinned:false, targets:'all', expiresAt:'',
+        reads:[], reactions:{}, reactMap:{}, comments:[],
+        createdAt: todayStr(), updatedAt: todayStr() });
+      saved = true;
+    }
+  } catch(e) { console.error('voiceConfirmSave error', e); }
+
+  if(!saved) { showToast('保存に失敗しました','error'); return; }
+  saveS();
+  closeModal('m-voice-confirm');
+  hokuVoiceSetPhase('saved');
+  showToast(`${VOICE_CAT_ICON[cat]} ${VOICE_CAT_LABEL[cat]}に追加しました`);
+  // 入力欄クリア
+  const inp = document.getElementById('hoku-input'); if(inp) inp.value = '';
+  // 再描画
+  setTimeout(() => { try {
+    if(cat === 'calendar' && typeof renderCal === 'function') renderCal();
+    if(cat === 'task' && typeof renderTask === 'function') renderTask();
+    if(cat === 'prep' && typeof renderPrep === 'function') renderPrep();
+    if(cat === 'budget' && typeof renderBudget === 'function') renderBudget();
+    if(cat === 'health' && typeof renderHealth === 'function') renderHealth();
+    hokuVoiceSetPhase('idle');
+  } catch(e) {} }, 1200);
+}
+
+/* 確認モーダル：キャンセル */
+function voiceConfirmCancel() {
+  closeModal('m-voice-confirm');
+  hokuVoiceSetPhase('idle');
+  _voiceParsed = null;
+}
+
+/* 確認モーダル：手入力に切替（Hoku 入力欄に補正後テキストを残す） */
+function voiceConfirmManual() {
+  const inp = document.getElementById('hoku-input');
+  if(inp && _voiceParsed) {
+    inp.value = _voiceParsed.text || _voiceParsed.raw || '';
+    try { inp.focus(); } catch(e) {}
+  }
+  closeModal('m-voice-confirm');
+  hokuVoiceSetPhase('idle');
+}
 
 
 /* ──────────────────────────────────────────────────
@@ -8458,6 +8857,70 @@ window.addEventListener('DOMContentLoaded', init);
     </div>
     <div class="modal-actions" style="margin-top:14px;">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-export-cal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Wave 26: VOICE CONFIRM MODAL ===== -->
+<div id="m-voice-confirm" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">音声入力の内容を確認</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">聞き取った内容</div>
+    <div id="vc-recognized" style="background:rgba(74,144,226,.06);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);line-height:1.5;"></div>
+    <div id="vc-corrected" style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;"></div>
+    <div id="vc-summary" style="font-size:13px;color:var(--text-sub);margin:12px 0 4px;line-height:1.5;"></div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);">登録先</label>
+        <select id="vc-cat" onchange="voiceConfirmToggleFields()" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+      </div>
+      <div id="vc-row-member">
+        <label style="font-size:11px;color:var(--text-muted);">対象メンバー</label>
+        <select id="vc-member" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);">タイトル / 内容</label>
+        <input id="vc-title" type="text" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+      <div id="vc-row-date" style="display:none;">
+        <label style="font-size:11px;color:var(--text-muted);">日付</label>
+        <input id="vc-date" type="date" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+      <div id="vc-row-time" style="display:none;">
+        <label style="font-size:11px;color:var(--text-muted);">時刻</label>
+        <input id="vc-time" type="time" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+      <div id="vc-row-amount" style="display:none;">
+        <label style="font-size:11px;color:var(--text-muted);">金額（円）</label>
+        <input id="vc-amount" type="number" class="form-input" min="0"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+      <div id="vc-row-temp" style="display:none;">
+        <label style="font-size:11px;color:var(--text-muted);">体温（℃）</label>
+        <input id="vc-temp" type="number" step="0.1" min="34" max="42" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+      <div id="vc-row-note">
+        <label style="font-size:11px;color:var(--text-muted);">メモ（任意）</label>
+        <input id="vc-note" type="text" class="form-input"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-primary btn-block" onclick="voiceConfirmSave()">追加する</button>
+      <button class="btn btn-outline btn-block" onclick="voiceConfirmManual()">手入力に切り替える</button>
+      <button class="btn btn-ghost btn-block" onclick="voiceConfirmCancel()">キャンセル</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:10px;line-height:1.5;text-align:center;">
+      ※ 音声認識の結果は端末内で処理しています。外部送信はありません。
     </div>
   </div>
 </div>
