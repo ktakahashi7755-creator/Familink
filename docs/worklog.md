@@ -3303,3 +3303,57 @@ Wave 26：Familink 音声 UX を家族文脈理解レベルへ引き上げ（保
 
 ### コミット
 - メッセージ: `task: instant delete on trash icon (remove confirm popup, keep strikethrough)`
+
+---
+
+## 2026-05-03  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 27：4 件の UX 改善（ボード簡素化 / カレンダー外部連携刷新 / Hoku 反映ミス削減 / ホーム整理）
+
+### 変更ファイル
+- `app-source/familink.html`（ボード/カレンダー/Hoku/ホーム）
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+1. **ホーム**：右上のカメラ（投稿）ボタンを削除（投稿はボード画面の右上＋から可能）
+2. **家族ボード**：
+   - 投稿カードのカテゴリタグチップを全削除（カード本体 + 詳細画面）
+   - インラインリアクション 6 種をカードに直接配置（ワンタップで切替・解除）
+   - インラインコメント入力をカードに追加（Enter or 送信ボタンで送信）
+   - `addBoardCommentInline` 関数追加
+3. **カレンダー外部連携**：
+   - Google カレンダー追加ボタンに公式風の多色 G アイコンを表示
+   - .ics 書き出しに Apple Calendar 風アイコンを表示（赤ヘッダー + 31）
+   - iPhone Safari 用に .ics は data URL を新規タブで開く方式に切替（Blob ダウンロード非対応の Safari でも「カレンダーで開く」プロンプトが出る）
+   - PC / Android は従来通り Blob ダウンロード（ASCII セーフなファイル名）
+   - 失敗時は ICS テキストを画面に表示してコピー可能（フォールバック）
+4. **Hoku 反映ミス改善**：
+   - `handleAction` の作成系（create_event / create_task / create_budget / create_prep）を Wave 26 の保存前確認モーダルへ統一
+   - ユーザーは登録先・メンバー・タイトル・日付・時刻・金額・体温を必ず目視確認 + 編集してから保存
+   - 「はい/いいえ」だけの旧フローでは見えなかったフィールドの誤りをモーダルで修正可能
+
+### テスト結果
+- 1 件のみ Wave 17 PHASE 2t がカメラボタン削除で失敗 → ホームメニュー存在チェックに変更
+- regression は次のコミットで再確認
+
+### 未確認事項
+- iPhone Safari 実機での .ics 書き出し → カレンダー追加プロンプト表示
+- iPhone Safari 実機でのインラインコメント入力 + キーボード挙動
+- Hoku 経由のカレンダー/タスク追加が確認モーダル経由になることの違和感
+
+### iPhone 確認ポイント
+- ホーム右上のカメラアイコンが消えていること
+- ボード投稿カードにカテゴリタグが表示されていないこと
+- ボードカードの 6 リアクション絵文字をワンタップで切替できること
+- ボードカード下部のコメント入力欄から直接送信できること
+- 予定 → 外部カレンダーに追加 → Google アイコン / Apple Calendar 風アイコンが表示されること
+- iPhone Safari で .ics 書き出し → 新規タブで「カレンダーで開く」プロンプトが出ること
+- Hoku に「明日 太郎 体操服 準備」と話しかけて確認モーダルが開き、編集後に保存できること
+
+### 次にやること
+- iPhone 実機検証
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 27: board simplify + cal export icons + iOS ics + hoku confirm modal + remove home camera`

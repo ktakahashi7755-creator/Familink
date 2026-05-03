@@ -1359,6 +1359,46 @@ select.input {
 .react-chip-cnt { font-size:11px; font-weight:700; color:var(--text-sub); }
 .react-chip.mine .react-chip-cnt { color:var(--primary); }
 
+/* ── インラインリアクション（ワンタップ）── */
+.card-react-inline {
+  display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+  padding:8px 0 6px; margin-top:8px;
+  border-top:1px solid var(--border-light);
+}
+.react-quick-btn {
+  display:inline-flex; align-items:center; gap:3px;
+  min-width:34px; height:30px; padding:0 8px;
+  border:1.5px solid var(--border-light); border-radius:var(--r-full);
+  background:#fff; cursor:pointer; transition:var(--t-spring);
+  -webkit-tap-highlight-color:transparent; line-height:1;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.react-quick-btn:active { transform:scale(.9); }
+.react-quick-btn.mine { background:var(--primary-light); border-color:var(--primary); }
+.react-quick-cnt { font-size:11px; font-weight:700; color:var(--text-sub); }
+.react-quick-btn.mine .react-quick-cnt { color:var(--primary); }
+
+/* ── インラインコメント入力 ── */
+.card-comment-inline {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 0 0; margin-top:6px;
+}
+.card-comment-input {
+  flex:1; min-width:0; height:34px; padding:0 12px;
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  background:#fff; font-size:13px; color:var(--text);
+  outline:none; transition:border-color .15s;
+}
+.card-comment-input:focus { border-color:var(--primary); }
+.card-comment-send {
+  flex-shrink:0; width:34px; height:34px; border-radius:50%;
+  background:var(--primary); color:#fff; border:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:transform .12s;
+}
+.card-comment-send:active { transform:scale(.9); }
+
 /* ── リアクション選択ポップアップ ── */
 .react-popup-overlay {
   position:fixed; inset:0; z-index:9998;
@@ -2145,12 +2185,6 @@ nav#tabbar.hidden { display: none !important; }
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid"></span>
-    <button class="home-camera-btn" onclick="openPostModal(null)" title="家族にシェア" aria-label="家族にシェア">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-    </button>
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
@@ -4159,19 +4193,67 @@ function exportEventToIcs() {
   lines.push('END:VEVENT', 'END:VCALENDAR');
   const content = lines.join('\r\n');
 
+  // iPhone Safari でも開ける形で .ics を出力
+  // タイトルに日本語が含まれる場合はファイル名は ASCII セーフに（タイトル部分は省略）
+  const safeName = `familink-event-${ev.date || todayStr()}.ics`;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+
   try {
-    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `familink-${(ev.title||'event').replace(/[^\w-]/g,'_')}-${ev.date}.ics`;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(e){} }, 100);
-    closeModal('m-export-cal');
-    showToast('.ics ファイルを書き出しました');
+    if(isIOS) {
+      // iOS：data URL で別タブを開く → Safari が「カレンダーで開く」を提示
+      const dataUrl = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
+      const w = window.open(dataUrl, '_blank');
+      if(!w) {
+        // ポップアップブロック時はフォールバックで location 遷移
+        try { window.location.href = dataUrl; } catch(e2) {}
+      }
+      closeModal('m-export-cal');
+      showToast('カレンダーで開く画面を表示しました。「カレンダーに追加」を押してください。');
+    } else {
+      // PC / Android：Blob ダウンロード
+      const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = safeName;
+      a.rel = 'noopener';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(e){} }, 200);
+      closeModal('m-export-cal');
+      showToast('.ics ファイルを書き出しました');
+    }
   } catch(e) {
-    showToast('.ics 書き出しに失敗しました。お使いの環境では未対応の可能性があります。','error');
+    // 最終フォールバック：ICS テキストをモーダル内に表示してコピー可能にする
+    showIcsFallback(content);
+    showToast('お使いの環境ではダウンロードできなかったため、テキストで表示しました。','warn');
   }
+}
+
+/* ICS テキストを画面に表示（フォールバック） */
+function showIcsFallback(text) {
+  let modal = document.getElementById('m-ics-fallback');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'm-ics-fallback';
+    modal.className = 'modal-backdrop';
+    modal.innerHTML = `
+      <div class="modal" style="max-height:80vh;overflow-y:auto;">
+        <div class="modal-grip"></div>
+        <div class="modal-title">.ics 内容（手動コピー用）</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+          下のテキストを長押しして全選択 → コピーし、メモアプリ等から「カレンダーに追加」してください。
+        </div>
+        <textarea id="ics-fallback-text" readonly
+          style="width:100%;min-height:200px;font-family:monospace;font-size:11px;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff;"></textarea>
+        <div class="modal-actions" style="margin-top:10px;">
+          <button class="btn btn-primary btn-block" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('ics-fallback-text').value).then(()=>showToast('コピーしました'))">テキストをコピー</button>
+          <button class="btn btn-ghost btn-block" onclick="document.getElementById('m-ics-fallback').remove()">閉じる</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('ics-fallback-text').value = text;
 }
 
 
@@ -5233,35 +5315,26 @@ function postCardHtml(a, uid2) {
   const el_lbl   = postExpiresLabel(a.expiresAt);
   const readCnt    = (a.reads||[]).length;
   const commentCnt = (a.comments||[]).length;
-  const catBg    = a.cat ? CAT_BG[a.cat]   : '';
-  const catClr   = a.cat ? CAT_COLOR[a.cat] : '';
 
   // 1人1リアクション: {uid: key} 形式で管理
   const reactMap  = a.reactMap || {};
   const myReact   = reactMap[uid2] || null;
-  const myRt      = myReact ? [...REACT_TYPES,...REACT_MORE].find(r=>r.key===myReact) : null;
 
-  // 全リアクション定義（メイン＋拡張）集計
-  const allReacts = [...REACT_TYPES, ...REACT_MORE];
+  // 全リアクション集計
   const counts = {};
-  allReacts.forEach(r => counts[r.key] = 0);
+  REACT_TYPES.forEach(r => counts[r.key] = 0);
   Object.values(reactMap).forEach(key => { if(counts[key]!==undefined) counts[key]++; });
 
-  // 集計チップ（絵文字＋件数）
-  const chips = allReacts.filter(r=>counts[r.key]>0).map(r =>
-    `<button class="react-chip ${myReact===r.key?'mine':''}"
-      onclick="event.stopPropagation();showReactors('${H(a.id)}','${r.key}')">
-      <span class="react-chip-emoji">${r.emoji}</span>
-      <span class="react-chip-cnt">${counts[r.key]}</span>
-    </button>`
-  ).join('');
-
-  // トリガーボタン
-  const reactBtn = `<button class="card-react-trigger ${myReact?'reacted':''}"
-    onclick="event.stopPropagation();openReactPopup('${H(a.id)}')"
-    title="リアクション">
-    ${myReact ? `<span>${myRt?.emoji||'＋'}</span>` : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3"/></svg>`}
-  </button>`;
+  // インライン 6 リアクション（ワンタップで切替）
+  const reactInline = REACT_TYPES.map(r => {
+    const cnt = counts[r.key];
+    const mine = myReact === r.key;
+    return `<button class="react-quick-btn ${mine?'mine':''}"
+      onclick="event.stopPropagation();selectReaction('${H(a.id)}','${r.key}')"
+      title="${H(r.label)}">
+      <span style="font-size:15px;">${r.emoji}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
+    </button>`;
+  }).join('');
 
   return `<div class="post-card ${a.isPinned?'pinned-card':''}" onclick="openBoardDetail('${H(a.id)}')">
     ${a.isPinned?`<div class="post-pin-bar"><svg width="11" height="11" viewBox="0 0 24 24" fill="var(--primary)"><path d="m12 17.27 4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08L12 17.27z"/></svg>ピン留め</div>`:''}
@@ -5277,7 +5350,6 @@ function postCardHtml(a, uid2) {
     </div>
     <div class="post-body">${H(a.body)}</div>
     <div class="post-footer">
-      ${a.cat?`<span class="post-cat ${a.cat}" style="background:${catBg};color:${catClr};">${H(a.cat)}</span>`:''}
       ${el_lbl?`<span class="post-expires ${ec}">${el_lbl}</span>`:''}
       ${commentCnt>0?`<span class="post-comment-badge">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -5288,12 +5360,35 @@ function postCardHtml(a, uid2) {
         ${readCnt}
       </span>
     </div>
-    <!-- リアクションバー -->
-    <div class="card-react-bar" onclick="event.stopPropagation()">
-      ${reactBtn}
-      ${chips}
+    <!-- インラインリアクション（ワンタップで切替） -->
+    <div class="card-react-inline" onclick="event.stopPropagation()">${reactInline}</div>
+    <!-- インラインコメント入力 -->
+    <div class="card-comment-inline" onclick="event.stopPropagation()">
+      <input type="text" id="ci-${H(a.id)}" placeholder="コメントを書く…" maxlength="200"
+        class="card-comment-input"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addBoardCommentInline('${H(a.id)}')}">
+      <button class="card-comment-send" onclick="addBoardCommentInline('${H(a.id)}')" aria-label="送信">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
   </div>`;
+}
+
+/* インラインコメント送信 */
+function addBoardCommentInline(postId) {
+  const inp = document.getElementById('ci-' + postId);
+  const text = (inp?.value || '').trim();
+  if(!text) { showToast('コメントを入力してください','error'); return; }
+  const a = getAnn(postId);
+  if(!a) return;
+  if(!a.comments) a.comments = [];
+  a.comments.push({ id: uid(), author: userId(), text, time: todayStr() });
+  a.updatedAt = todayStr();
+  saveS();
+  if(inp) inp.value = '';
+  renderBoard();
+  if(S.screen === 's-board-detail') renderBoardDetail();
+  showToast('コメントを送信しました');
 }
 
 function openBoardDetail(id) {
@@ -5382,7 +5477,6 @@ function renderBoardDetail() {
           <span>${H(auth.name)}</span>
           <span>·</span>
           <span>${H(a.createdAt||'')}</span>
-          ${a.cat?`<span class="post-cat ${a.cat}" style="background:${catBg};color:${catClr};">${H(a.cat)}</span>`:''}
           ${el_lbl?`<span class="post-expires ${ec}">${el_lbl}</span>`:''}
         </div>
       </div>
@@ -7102,9 +7196,25 @@ function detectIntent(q) {
   return {type:'query', raw:q};
 }
 
-/* ── アクション処理 ── */
+/* ── アクション処理 ──
+   Wave 27：作成系（create_budget/event/task/prep）は Wave 26 の確認モーダルへ統一。
+   ユーザーが必ずフィールドを目視確認 + 編集してから保存する → 反映ミス防止。 */
 function handleAction(intent, q) {
   const NL = '\n';
+
+  // 作成系：保存前確認モーダルへ
+  if(intent.action === 'create_budget'
+    || intent.action === 'create_event'
+    || intent.action === 'create_task'
+    || intent.action === 'create_prep') {
+    try {
+      hokuHandleVoiceText(q);
+      return '内容を確認してください。修正があればその場で編集できます。';
+    } catch(e) {
+      // フォールバック：旧フローへ
+      console.error('hokuHandleVoiceText failed in handleAction', e);
+    }
+  }
 
   switch(intent.action) {
     case 'create_budget': {
@@ -8824,7 +8934,15 @@ window.addEventListener('DOMContentLoaded', init);
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="settings-item" onclick="exportEventToGoogleCal()" style="border-radius:12px;padding:14px;">
         <div style="display:flex;align-items:center;gap:12px;width:100%;">
-          <div style="font-size:22px;">📅</div>
+          <!-- Google カレンダー風アイコン（多色 G + 31）-->
+          <div style="width:34px;height:34px;border-radius:8px;background:#fff;border:1.5px solid #DADCE0;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;">
+            <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 20.4v6.95h9.66c-.4 2.1-1.6 3.88-3.4 5.07v4.2h5.5c3.22-2.96 5.08-7.34 5.08-12.55 0-1.21-.11-2.38-.31-3.5z"/>
+              <path fill="#34A853" d="M22.56 41c4.6 0 8.46-1.52 11.28-4.13l-5.5-4.2c-1.52 1.02-3.47 1.62-5.78 1.62-4.44 0-8.2-3-9.55-7.04H7.34v4.42C10.14 37.27 15.96 41 22.56 41z"/>
+              <path fill="#FBBC05" d="M13.01 27.25c-.34-1.02-.54-2.11-.54-3.25s.2-2.23.54-3.25v-4.42H7.34A18.94 18.94 0 0 0 5 24c0 3.06.74 5.95 2.04 8.5l5.97-5.25z"/>
+              <path fill="#EA4335" d="M22.56 13.7c2.5 0 4.75.86 6.52 2.55l4.88-4.88C30.99 8.6 27.16 7 22.56 7 15.96 7 10.14 10.73 7.34 16.13l5.97 4.62c1.36-4.04 5.11-7.05 9.55-7.05z"/>
+            </svg>
+          </div>
           <div style="flex:1;text-align:left;">
             <div style="font-size:14px;font-weight:700;">Google カレンダーに追加</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">新規タブで開く / ログイン済なら即追加</div>
@@ -8834,7 +8952,11 @@ window.addEventListener('DOMContentLoaded', init);
       </button>
       <button class="settings-item" onclick="exportEventToIcs()" style="border-radius:12px;padding:14px;">
         <div style="display:flex;align-items:center;gap:12px;width:100%;">
-          <div style="font-size:22px;">📥</div>
+          <!-- Apple Calendar 風アイコン -->
+          <div style="width:34px;height:34px;border-radius:8px;background:#fff;border:1.5px solid #DADCE0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;flex-shrink:0;overflow:hidden;">
+            <div style="height:9px;width:100%;background:#FF3B30;color:#fff;font-size:6px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;">CAL</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#1A2440;">31</div>
+          </div>
           <div style="flex:1;text-align:left;">
             <div style="font-size:14px;font-weight:700;">.ics として書き出し</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">iPhone カレンダー / Outlook / Yahoo / LINE 等で取込</div>
