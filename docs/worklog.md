@@ -3425,3 +3425,52 @@ Wave 35：体調管理ボードを家族ボードのメイン機能として強�
 
 ### コミット
 - メッセージ: `wave 35: health board - family-board summary card + enhanced screen + full add/edit modal + Hoku integration + disclaimer`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 36：UI/UX 公開品質改善（タグ削除・タイトル崩れ修正・viewport 固定）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+1. **ボードカードのタグチップ削除**：ホームの custom board card から intent ラベルの小チップを削除（line 3809 の `<div style="font-size:10px...padding:2px 8px...">${iMeta.label}</div>` を削除）。データ自体は保持（後方互換）
+2. **ボード名の文字崩れ修正**：
+   - `.bc-title`：`min-width:0` / `line-height:1.35` / `word-break:keep-all` / `overflow-wrap:anywhere` / `white-space:normal` / `-webkit-line-clamp:2` で 1〜2 行省略
+   - `.header-title`：`min-width:0` / `white-space:nowrap` / `text-overflow:ellipsis` で 1 行省略
+3. **viewport / 拡大縮小制御**：
+   - viewport meta に `maximum-scale=1` 追加（ピンチズーム抑止）
+   - `html` に `-webkit-text-size-adjust:100%`
+   - `html, body` に `max-width:100%; overflow-x:hidden`
+   - 全体に `box-sizing:border-box` 統一
+   - `.input` を `font-size:16px` に（iOS Safari の自動ズーム抑止）
+   - `.screen` `.scroll-area` に `max-width:100%; overflow-x:hidden`
+   - `.modal-backdrop .modal` に `max-width:calc(100vw - 24px)` 安全余白
+4. 縦スクロールは従来通り（`#app` 内 `.scroll-area` でスクロール継続）
+
+### テスト結果
+- Wave 36 UI polish smoke：30/30 PASS（viewport / 全画面横はみ出しゼロ / タグ削除 / タイトル 2 行 clamp / .input 16px / 4 ビューポート（SE/13/15Plus/Pro Max）× 3 画面で横はみ出しゼロ / JS エラーなし）
+- 既存 regression：493/493 PASS（17:203 + 18:48 + 21:13 + 22:37 + 25:25 + 26:67 + 29:10 + 30:26 + 31:12 + 32:12 + 33:11 + 34:4 + 35:25）
+- 累計：523/523 PASS
+
+### 未確認事項
+- iPhone Safari 実機での auto-zoom 抑止（maximum-scale=1 が効くか）
+- 既存ユーザーのアクセシビリティ設定（テキスト拡大）への影響
+- 旧サンプル iPad 等の大画面での見た目
+
+### iPhone 確認ポイント
+- 画面のピンチイン/アウトで拡大できないこと
+- 各画面で横スクロールが発生しないこと
+- ボード名が 1〜2 行で自然に表示され、縦書き化しないこと
+- ホームのカスタムボードカードに「家族共有」などのタグチップがないこと
+- 入力欄をタップしても自動ズームしないこと
+
+### 次にやること
+- iPhone 実機検証
+
+### コミット
+- メッセージ: `wave 36: ui polish - remove board tag chip + clamp titles + viewport fixed-zoom + global overflow-x hidden`

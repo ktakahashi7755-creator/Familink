@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#4A90E2">
@@ -76,10 +76,21 @@
    RESET & BASE
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; background: #E8EEF8; }
+/* グローバル：box-sizing 統一 + 横はみ出し防止 + iOS テキストサイズ自動調整抑止 */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body {
+  height: 100%; max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden; /* #app 内でスクロールするため body はロック */
+  background: #E8EEF8;
+}
 body { font-family: var(--font); color: var(--text); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 button { font-family: var(--font); cursor: pointer; }
-input, select, textarea { font-family: var(--font); }
+input, select, textarea {
+  font-family: var(--font);
+  max-width: 100%;
+}
 img { max-width: 100%; display: block; }
 
 /* ============================================================
@@ -101,9 +112,14 @@ body {
   height: 100%;
   max-height: 100vh;
   overflow: hidden;
+  /* スマホ画面で水平方向にはみ出す要素があってもアプリ全体は崩れないように */
+  overflow-x: hidden;
   background: var(--bg);
   box-shadow: 0 0 60px rgba(0,0,0,.18);
 }
+.screen { max-width: 100%; overflow-x: hidden; }
+.scroll-area { max-width: 100%; }
+.modal-backdrop .modal { max-width: calc(100vw - 24px); }
 
 /* スマホ（480px以下）はフル画面 */
 @media (max-width: 480px) {
@@ -138,7 +154,16 @@ body {
   position: relative;
   z-index: 10;
 }
-.header-title { flex: 1; font-size: 17px; font-weight: 700; color: var(--text); }
+.header-title {
+  flex: 1; min-width: 0;
+  font-size: 17px; font-weight: 700; color: var(--text);
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .header-icon-btn {
   width: 36px; height: 36px; border-radius: var(--r-full);
   background: var(--bg-muted); border: none;
@@ -248,7 +273,7 @@ body {
 .input {
   height: 50px; border-radius: var(--r);
   background: var(--bg-muted); border: 2px solid transparent;
-  padding: 0 16px; font-size: 15px; color: var(--text);
+  padding: 0 16px; font-size: 16px; color: var(--text);
   width: 100%; outline: none; transition: var(--t);
 }
 .input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(74,144,226,.15); }
@@ -562,7 +587,19 @@ select.input {
   display: flex; align-items: center; justify-content: center;
   font-size: 17px; flex-shrink: 0;
 }
-.bc-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+.bc-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  flex: 1; min-width: 0;
+  /* 1〜2 行で省略・縦書き化を防ぐ */
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 /* Card body: relative で背景画像を絶対配置 */
 .bc-body {
   flex: 1; padding: 9px 12px 0; overflow: hidden;
@@ -3806,7 +3843,6 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:'+meta.color+';">'+boardTypeIcon(b.type,meta.iconColor)+'</div>'
       + '<div class="bc-title">'+H(b.name)+'</div>'
-      + '<div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--r-full);background:'+meta.color+';color:'+meta.iconColor+';">'+H(iMeta.label)+'</div>'
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+prev+'</div><img class="bc-bg" src="'+(IMGS[meta.bgKey]||'')+'" alt=""></div>';
   }
