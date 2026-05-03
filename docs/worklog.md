@@ -2450,3 +2450,60 @@ Wave 17：ボード機能 大改善（家族ボード/準備リスト分離 + 7 
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 17: board UX overhaul - separate prep + 7-intent + auto-init templates + fixed add btn`
+
+---
+
+## 2026-05-03 11:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 17B：体系的テスト（98 項目）+ Hoku 分類器の細部修正
+
+### 変更ファイル
+- `app-source/familink.html`（Hoku 分類器 +2 行）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-03-wave17b-systematic.md`（新規 / 98 項目テスト結果）
+- `docs/worklog.md`（本エントリ）
+
+### 実施内容
+
+#### 体系的テスト（13 セクション × 98 項目）
+- Section 1：構造的整合性（10/10）
+- Section 2：オンボーディングフロー（8/8）
+- Section 3：ホーム画面（8/8）
+- Section 4：タスク（10/10）
+- Section 5：家計（10/10）
+- Section 6：家族ボード（8/8）
+- Section 7：準備リスト（6/6）
+- Section 8：ボード作成（10/10）
+- Section 9：ボード項目追加（6/6）
+- Section 10：Hoku（12/12）
+- Section 11：ホームスクロール（3/3）
+- Section 12：既存データ後方互換（3/3）
+- Section 13：LocalStorage 永続化（4/4）
+- 合計：98/98 PASS（100%）
+
+#### テスト中に発見・修正した実機能不具合
+1. Hoku 分類器：「カレンダーに登録したい」が分類されない問題
+   → `if(q.match(/カレンダー/)) scores.calendar += 3;` を追加
+2. Hoku 分類器：「プールバッグを準備」「明日の準備」が分類されない問題
+   → prep キーワードに `を準備|の準備` を追加
+
+### テスト結果
+- md5 一致：e0664738c1db0c75a9f984b4e615967c
+- 98/98 PASS（100%）
+- pageerror 0 件
+- console.error（Wave 17 関連）0 件
+- LocalStorage 構造変更なし
+- 既存 17 画面すべて維持
+
+### 残課題
+- HIGH-1：iPhone Safari 実機での音声認識テスト
+- HIGH-2：iPhone Safari 実機での操作感最終確認
+- MED-1〜6 / LOW-1〜5（既出）
+
+### 次にやること
+- Wave 18 候補：iOS 実機検証 / Hoku 音声安定化 / 曜日ルーティン準備
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 17b: systematic 98-test QA + Hoku classifier fixes (calendar / prep)`
