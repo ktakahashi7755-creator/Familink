@@ -7975,6 +7975,56 @@ function init() {
     document.getElementById('tabbar').classList.add('hidden');
     showScreen('s-ob');
   }
+  // QA デバッグパネル（URL hash #qa-debug で起動 / iPhone 実機検証用）
+  if(location.hash === '#qa-debug') showQaDebugPanel();
+}
+
+/* QA デバッグパネル — DevTools なしで実機検証時に状態確認できる薄い overlay
+   起動：URL に #qa-debug を付けて開く
+   閉じる：パネル右上の × タップ */
+function showQaDebugPanel() {
+  if(document.getElementById('qa-debug-panel')) return;
+  const p = document.createElement('div');
+  p.id = 'qa-debug-panel';
+  p.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(20,20,30,.92);color:#9CFFB8;font-family:monospace;font-size:10px;padding:8px 10px;border-radius:8px;max-width:calc(100% - 16px);max-height:35vh;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);';
+  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">QA Debug</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#4A90E2;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
+  document.body.appendChild(p);
+  qaDebugRefresh();
+}
+function qaDebugRefresh() {
+  const body = document.getElementById('qa-debug-body');
+  if(!body) return;
+  const SR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const httpsOK = location.protocol === 'https:' || location.hostname === 'localhost';
+  const dataLen = (localStorage.getItem('familink_v3')||'').length;
+  body.innerHTML = `
+    画面: ${(document.querySelector('.screen:not(.hidden)')||{}).id || '-'}<br>
+    UA: ${navigator.userAgent.slice(0,60)}<br>
+    HTTPS: ${httpsOK ? 'OK' : 'NG'}<br>
+    SpeechRecognition: ${SR ? 'あり' : 'なし'}<br>
+    LS バイト: ${dataLen}<br>
+    user: ${(S.user||{}).name || '-'} (${(S.userProfile||{}).displayName||'-'})<br>
+    events: ${(S.events||[]).length} / tasks: ${(S.tasks||[]).length} / posts: ${(S.announces||[]).length}<br>
+    txs: ${(S.txs||[]).length} / prep: ${(S.prep||[]).length} / customBoards: ${(S.customBoards||[]).length}<br>
+    onboardCompleted: ${!!S.onboardCompleted}
+  `;
+}
+function qaDebugTestHoku() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) { alert('SpeechRecognition: 非対応\nテキスト相談を使ってください'); return; }
+  try {
+    const r = new SR();
+    r.lang = 'ja-JP';
+    let started = false;
+    r.onstart = () => { started = true; };
+    r.onerror = (e) => { alert('音声テスト ERROR: ' + (e.error||'unknown')); };
+    r.onend = () => { if(!started) alert('音声テスト：onstart 未到達（iOS Safari 既知の制約の可能性）'); };
+    r.start();
+    setTimeout(() => {
+      try { r.stop(); } catch(e){}
+      if(started) alert('音声テスト：onstart OK ✓');
+    }, 1500);
+  } catch(e) { alert('音声テスト：例外 ' + e.message); }
 }
 
 window.addEventListener('DOMContentLoaded', init);
