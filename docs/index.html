@@ -5426,21 +5426,15 @@ function renderBoardDetail() {
   const titleEl = document.getElementById('bdetail-title');
   if(titleEl) titleEl.textContent = a.title;
 
-  // リアクションHTML（詳細画面）
-  const reactHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-    <button class="card-react-trigger ${myReact?'reacted':''}"
-      onclick="openReactPopup('${H(id)}')" title="リアクション" style="flex-shrink:0;">
-      ${myReact ? `<span style="font-size:15px;">${REACT_TYPES.find(r=>r.key===myReact)?.emoji||''}</span>`
-                : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3"/></svg>`}
-    </button>
+  // リアクションHTML（詳細画面）— カードと同じ 6 ボタンインライン
+  const reactHTML = `<div class="card-react-inline" style="border-top:none;padding-top:0;margin-top:0;">
     ${REACT_TYPES.map(r => {
-      const cnt    = Object.values(a.reactMap).filter(k=>k===r.key).length;
-      if(!cnt) return '';
-      const active = myReact === r.key;
-      return `<button class="react-chip ${active?'mine':''}"
-        onclick="showReactors('${H(id)}','${r.key}')">
-        <span class="react-chip-emoji">${r.emoji}</span>
-        <span class="react-chip-cnt">${cnt}</span>
+      const cnt = Object.values(a.reactMap).filter(k=>k===r.key).length;
+      const mine = myReact === r.key;
+      return `<button class="react-quick-btn ${mine?'mine':''}"
+        onclick="selectReaction('${H(id)}','${r.key}')"
+        title="${H(r.label)}">
+        <span style="font-size:15px;">${r.emoji}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
       </button>`;
     }).join('')}
   </div>`;
