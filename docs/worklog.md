@@ -2942,3 +2942,69 @@ Wave 22：最終検証（既存 264 + エッジケース 37 = 301 項目）
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 22: final verification 301/301 PASS (Wave 17C/18/21 regression + 37 edge cases)`
+
+---
+
+## 2026-05-03 20:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 23：実機検証フェーズ準備（プレイブック + QA デバッグパネル）
+
+### 変更ファイル
+- `app-source/familink.html`（QA デバッグパネル追加 +50 行）
+- `docs/index.html`（同期）
+- `docs/iphone-verification-playbook-2026-05-03.md`（新規 / 実機チェックリスト）
+- `docs/worklog.md`（本エントリ）
+
+### 実装内容
+
+#### 1. iPhone 実機検証プレイブック
+- Quick 10 分（Q1〜Q6 / 24 項目）：起動 / ホーム / 家計 / タスク / ボード / Hoku
+- Full 30 分（F1〜F6）：プロフィール / 繰り返し / 準備リスト / カスタムタブ / オンボ再表示 / リロード
+- DevTools コンソール用デバッグコマンド集
+- 不具合報告フォーマット
+- PASS 基準（Critical 5 / Important 6 / Nice-to-have）
+
+#### 2. QA デバッグパネル（実機 DevTools 不要）
+- URL に `#qa-debug` を付けると右下に診断パネル表示
+- 表示内容：
+  - 現在の画面 ID
+  - User Agent
+  - HTTPS 判定
+  - SpeechRecognition 対応判定
+  - LocalStorage バイト数
+  - 各データ件数（events / tasks / posts / txs / prep / customBoards）
+- ボタン：
+  - 更新（再描画）
+  - Hoku 音声 API 判定（onstart/onerror テスト）
+  - リセット（LS クリア + リロード）
+- 起動 URL：`https://ktakahashi7755-creator.github.io/Familink/#qa-debug`
+
+### テスト結果
+- md5 一致：5a231d0a341f854b8e828d56a44373d3
+- 行数：8,463（+50）
+- 17 画面維持 / JS 構文 OK
+- Wave 17C deep test：203/203 PASS
+- Wave 18 シナリオ：48/48 PASS
+- Wave 21 機能：13/13 PASS
+- 累計 264/264 PASS / pageerror 0 件
+- LocalStorage 構造変更なし
+
+### iPhone 実機検証 URL
+通常：`https://ktakahashi7755-creator.github.io/Familink/`
+診断パネル付き：`https://ktakahashi7755-creator.github.io/Familink/#qa-debug`
+
+### Critical（公開ブロッカー）5 項目
+- Q2-1：ホームスクロールで誤遷移しない
+- Q3-2〜Q3-3：メンバータブが押せて切り替わる
+- Q4-1：タスク完了で消えない
+- Q5-5：ボード追加ボタンが押せる
+- Q6-2：マイクボタンが何らかの反応を返す
+
+### 次にやること
+- ユーザーが iPhone で Quick 10 分テストを実行
+- 不具合報告を受けて Wave 24 で修正
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 23: iphone verification playbook + #qa-debug panel`
