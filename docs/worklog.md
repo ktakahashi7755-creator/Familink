@@ -2903,3 +2903,42 @@ Wave 21：3 機能追加（プロフィール編集 + 繰り返し予定 Step 1 
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 21: 3 features - profile edit + recurring events step1 + budget category chart`
+
+---
+
+## 2026-05-03 19:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 22：最終検証（既存 264 + エッジケース 37 = 301 項目）
+
+### 変更ファイル
+- `docs/qa-results-2026-05-03-wave22-verification.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 実施内容
+1. 既存 3 スイート再実行：Wave 17C (203) + Wave 18 (48) + Wave 21 (13) すべて PASS
+2. 新規エッジケース検証（37 項目）：
+   - G1：繰り返し予定 5 種ライフサイクル（保存・読込・編集・バッジ表示）10 項目
+   - G2：プロフィール編集 境界値（9 役割 + maxLength）10 項目
+   - G3：家計カテゴリチャート 実反映（メンバー別・月別連動）8 項目
+   - G4：マルチ viewport 横はみ出し（iPhone SE/13/15 Plus × 3 画面）9 項目
+
+### 結果
+- 累計 **301/301 PASS（100.00%）**
+- pageerror 0 件 / console.error 0 件
+- 17 画面維持 / md5 一致 / JS 構文 OK
+- LocalStorage 構造変更なし
+- 既存データ後方互換維持
+
+### 累積成果（Wave 19-22）
+削除：JS 19 関数 + 4 アバター + 1 モーダル + 1 input + 79 CSS = -255 行
+追加：プロフィール編集 / 繰り返し予定 5 種 / 家計カテゴリチャート / aria-label 19 件
+検証：301 項目 100% PASS / 4 viewport / pageerror 0
+
+### 次にやること
+- iPhone 実機検証（HIGH-1 / HIGH-2）
+- Wave 23：MED-6 曜日ルーティン or MED-1 Hoku 文脈応答
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 22: final verification 301/301 PASS (Wave 17C/18/21 regression + 37 edge cases)`
