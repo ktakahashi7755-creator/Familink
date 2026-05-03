@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4A90E2">
+<title>Familink ドキュメント</title>
+<style>
+:root {
+  --primary: #4A90E2;
+  --primary-light: #EBF4FF;
+  --text: #1A2440;
+  --text-sub: #5A6788;
+  --text-muted: #8A9ABE;
+  --bg: #F4F7FD;
+  --card: #fff;
+  --border: #E5EAF3;
+  --gold: #C8A95B;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  padding: 0 0 60px;
+}
+
+/* Header */
+.hd {
+  position: sticky; top: 0; z-index: 10;
+  background: linear-gradient(135deg, #fff 0%, #F8FAFE 100%);
+  padding: env(safe-area-inset-top) 18px 14px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,.03);
+}
+.hd-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
+.hd-logo { width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--primary), #7BB3F5);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 15px; flex-shrink: 0;
+}
+.hd-title { font-size: 17px; font-weight: 800; flex: 1; letter-spacing: -.2px; }
+.hd-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Quick stats */
+.stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px; padding: 12px 18px 0;
+}
+.stat { background: var(--card); border-radius: 10px; padding: 10px 8px;
+  text-align: center; border: 1px solid var(--border); }
+.stat-num { font-size: 17px; font-weight: 800; color: var(--primary); line-height: 1.2; }
+.stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; line-height: 1.3; }
+
+/* App Link Card */
+.app-link {
+  margin: 14px 18px 6px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--primary), #7BB3F5);
+  color: #fff; border-radius: 14px;
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(74,144,226,.25);
+}
+.app-link-icon { font-size: 22px; }
+.app-link-body { flex: 1; min-width: 0; }
+.app-link-title { font-size: 14px; font-weight: 700; }
+.app-link-sub { font-size: 11px; opacity: .85; margin-top: 2px; }
+.app-link-arrow { font-size: 16px; opacity: .8; }
+
+/* Section */
+.sec { margin: 16px 18px 0; }
+.sec-title {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  letter-spacing: .8px; text-transform: uppercase;
+  margin-bottom: 8px; padding-left: 4px;
+}
+
+/* Doc card */
+.doc {
+  display: block; padding: 14px 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; margin-bottom: 8px;
+  text-decoration: none; color: var(--text);
+  transition: transform .15s, box-shadow .15s;
+}
+.doc:active { transform: scale(.98); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+.doc-row { display: flex; align-items: center; gap: 11px; }
+.doc-icon { font-size: 19px; flex-shrink: 0; width: 30px; text-align: center; }
+.doc-body { flex: 1; min-width: 0; }
+.doc-title { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.doc-desc { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.45; }
+.doc-arrow { color: var(--text-muted); font-size: 14px; }
+.doc.featured { border-color: var(--primary); background: var(--primary-light); }
+.doc.featured .doc-title { color: var(--primary); }
+
+.badge {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; vertical-align: middle;
+  margin-left: 6px;
+}
+.badge-new { background: #FF6B9D; color: #fff; }
+.badge-must { background: var(--gold); color: #fff; }
+
+/* Footer */
+.ft {
+  text-align: center; padding: 30px 18px 20px;
+  font-size: 11px; color: var(--text-muted); line-height: 1.7;
+}
+.ft a { color: var(--text-sub); text-decoration: none; }
+.ft a:active { color: var(--primary); }
+
+/* Floating "Top" button */
+.totop {
+  position: fixed; right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(74,144,226,.92); color: #fff;
+  border: none; font-size: 18px; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(74,144,226,.35);
+  display: none; align-items: center; justify-content: center;
+}
+.totop.show { display: flex; }
+
+@media (prefers-color-scheme: dark) {
+  body { background: #14181F; color: #E8ECF5; }
+  .hd { background: linear-gradient(135deg, #1A1F2A 0%, #14181F 100%); border-color: #232A38; }
+  .hd-title { color: #E8ECF5; }
+  .stat, .doc { background: #1A1F2A; border-color: #232A38; color: #E8ECF5; }
+  .doc.featured { background: rgba(74,144,226,.15); }
+  .doc-title { color: #E8ECF5; }
+  .doc.featured .doc-title { color: #7BB3F5; }
+}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-row">
+    <div class="hd-logo">F</div>
+    <div>
+      <div class="hd-title">Familink ドキュメント</div>
+      <div class="hd-sub">MVP v0.1 / Wave 24 / 2026-05-03</div>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num">17</div><div class="stat-lbl">画面</div></div>
+  <div class="stat"><div class="stat-num">301</div><div class="stat-lbl">テスト PASS</div></div>
+  <div class="stat"><div class="stat-num">53</div><div class="stat-lbl">ドキュメント</div></div>
+</div>
+
+<a class="app-link" href="https://ktakahashi7755-creator.github.io/Familink/">
+  <div class="app-link-icon">📱</div>
+  <div class="app-link-body">
+    <div class="app-link-title">Familink を開く</div>
+    <div class="app-link-sub">MVP v0.1 公開版</div>
+  </div>
+  <div class="app-link-arrow">→</div>
+</a>
+
+<a class="app-link" style="background:linear-gradient(135deg,#52C47A,#86EFAC);" href="https://ktakahashi7755-creator.github.io/Familink/#qa-debug">
+  <div class="app-link-icon">🔬</div>
+  <div class="app-link-body">
+    <div class="app-link-title">診断モードで開く</div>
+    <div class="app-link-sub">QA Debug Panel 表示 / 実機検証用</div>
+  </div>
+  <div class="app-link-arrow">→</div>
+</a>
+
+<!-- ⭐ Quick Start -->
+<div class="sec">
+  <div class="sec-title">⭐ Quick Start（必読）</div>
+  <a class="doc featured" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/RELEASE-NOTES-MVP-v0.1.md">
+    <div class="doc-row">
+      <div class="doc-icon">🚀</div>
+      <div class="doc-body">
+        <div class="doc-title">MVP v0.1 リリースノート<span class="badge badge-must">必読</span></div>
+        <div class="doc-desc">10 機能 / 品質指標 / 公開判定</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/CURRENT-STATE-ANALYSIS-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">📊</div>
+      <div class="doc-body">
+        <div class="doc-title">現状分析レポート<span class="badge badge-new">NEW</span></div>
+        <div class="doc-desc">10 視点棚卸し / 優先課題</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/TOP10-SUMMARY-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">🎯</div>
+      <div class="doc-body">
+        <div class="doc-title">最重要 TOP10 サマリー<span class="badge badge-new">NEW</span></div>
+        <div class="doc-desc">8 項目で全体俯瞰</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 📋 設計仕様 v2 -->
+<div class="sec">
+  <div class="sec-title">📋 設計仕様 v2（Wave 24 新規）</div>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/SPEC-v2-REQUIREMENTS-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">📝</div>
+      <div class="doc-body">
+        <div class="doc-title">統合要件定義 v2</div>
+        <div class="doc-desc">5 ペルソナ / 10 コア機能 / MVP 範囲</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/SPEC-v2-SCREENS-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">📱</div>
+      <div class="doc-body">
+        <div class="doc-title">画面一覧 + 遷移図</div>
+        <div class="doc-desc">17 画面 + モーダル 14 種</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/SPEC-v2-USE-CASES-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">👨‍👩‍👧‍👦</div>
+      <div class="doc-body">
+        <div class="doc-title">ユースケース + ストーリー</div>
+        <div class="doc-desc">10 シナリオ / ペルソナ別ジャーニー</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/SPEC-v2-DATA-MODEL-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">🗂</div>
+      <div class="doc-body">
+        <div class="doc-title">データモデル設計</div>
+        <div class="doc-desc">26 PERSIST フィールド / マイグレ戦略</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🗺 ロードマップ -->
+<div class="sec">
+  <div class="sec-title">🗺 戦略・ロードマップ</div>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/REDEV-ROADMAP-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">🛤</div>
+      <div class="doc-body">
+        <div class="doc-title">再開発ロードマップ<span class="badge badge-new">NEW</span></div>
+        <div class="doc-desc">v0.1 → v0.2 → v1.0 → v2.0</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/unicorn-quality-review-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">🦄</div>
+      <div class="doc-body">
+        <div class="doc-title">ユニコーン品質レビュー</div>
+        <div class="doc-desc">9 軸評価 / 90 日目標</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/roadmap-to-mvp-v1.md">
+    <div class="doc-row">
+      <div class="doc-icon">📅</div>
+      <div class="doc-body">
+        <div class="doc-title">90 日工程表</div>
+        <div class="doc-desc">v0.2 / v1.0 マイルストーン</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/sales-pitch-materials.md">
+    <div class="doc-row">
+      <div class="doc-icon">💼</div>
+      <div class="doc-body">
+        <div class="doc-title">セールスピッチ素材</div>
+        <div class="doc-desc">App Store / LP / SNS / 投資家向け</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🔬 QA / 検証 -->
+<div class="sec">
+  <div class="sec-title">🔬 QA / 検証</div>
+  <a class="doc featured" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/iphone-verification-playbook-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">✅</div>
+      <div class="doc-body">
+        <div class="doc-title">iPhone 検証プレイブック<span class="badge badge-must">必読</span></div>
+        <div class="doc-desc">Quick 10 分 + Full 30 分テスト</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/qa-results-2026-05-03-wave22-verification.md">
+    <div class="doc-row">
+      <div class="doc-icon">🧪</div>
+      <div class="doc-body">
+        <div class="doc-title">最終検証 301/301 PASS</div>
+        <div class="doc-desc">Wave 22 / 4 viewport / エッジケース</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🎨 設計 -->
+<div class="sec">
+  <div class="sec-title">🎨 設計（既存）</div>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/architecture-overview.md">
+    <div class="doc-row">
+      <div class="doc-icon">🏗</div>
+      <div class="doc-body">
+        <div class="doc-title">アーキテクチャ概要</div>
+        <div class="doc-desc">関数索引 / 改修影響範囲</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/board-experience-design.md">
+    <div class="doc-row">
+      <div class="doc-icon">📋</div>
+      <div class="doc-body">
+        <div class="doc-title">ボード体験設計</div>
+        <div class="doc-desc">7 intent カスタムボード</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/hoku-guideline.md">
+    <div class="doc-row">
+      <div class="doc-icon">⭐</div>
+      <div class="doc-body">
+        <div class="doc-title">Hoku ガイドライン</div>
+        <div class="doc-desc">人格 / 役割 / UI 方針</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/hoku-voice-notes-2026-05-02.md">
+    <div class="doc-row">
+      <div class="doc-icon">🎙</div>
+      <div class="doc-body">
+        <div class="doc-title">Hoku 音声デバッグノート</div>
+        <div class="doc-desc">iOS Safari 制約 / トラブルシュート</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/ui-ux-guideline.md">
+    <div class="doc-row">
+      <div class="doc-icon">✨</div>
+      <div class="doc-body">
+        <div class="doc-title">UI/UX ガイドライン</div>
+        <div class="doc-desc">品質基準 / カラー / 余白</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/priority3-design-2026-05-02.md">
+    <div class="doc-row">
+      <div class="doc-icon">🔮</div>
+      <div class="doc-body">
+        <div class="doc-title">Priority 3 段階設計案</div>
+        <div class="doc-desc">繰り返し / ルーティン / 時間割</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🚀 公開準備 -->
+<div class="sec">
+  <div class="sec-title">🚀 公開準備</div>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/app-store-metadata.md">
+    <div class="doc-row">
+      <div class="doc-icon">🏪</div>
+      <div class="doc-body">
+        <div class="doc-title">App Store メタデータ</div>
+        <div class="doc-desc">アプリ名 / 説明文 / 年齢区分</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/iap-integration-plan.md">
+    <div class="doc-row">
+      <div class="doc-icon">💰</div>
+      <div class="doc-body">
+        <div class="doc-title">IAP 統合計画</div>
+        <div class="doc-desc">StoreKit 2 + Google Play Billing</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/premium-strategy.md">
+    <div class="doc-row">
+      <div class="doc-icon">⭐</div>
+      <div class="doc-body">
+        <div class="doc-title">プレミアム戦略</div>
+        <div class="doc-desc">月 480 円 / 段階導入</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/privacy-policy.md">
+    <div class="doc-row">
+      <div class="doc-icon">🔒</div>
+      <div class="doc-body">
+        <div class="doc-title">プライバシーポリシー</div>
+        <div class="doc-desc">草案 / 法務確認前</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/terms-of-use.md">
+    <div class="doc-row">
+      <div class="doc-icon">📜</div>
+      <div class="doc-body">
+        <div class="doc-title">利用規約</div>
+        <div class="doc-desc">13 条構成 / 草案</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🔧 開発・運用 -->
+<div class="sec">
+  <div class="sec-title">🔧 開発・運用</div>
+  <a class="doc featured" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/IMPLEMENTATION-PROMPT-NEXT.md">
+    <div class="doc-row">
+      <div class="doc-icon">🤖</div>
+      <div class="doc-body">
+        <div class="doc-title">次セッション用プロンプト<span class="badge badge-new">NEW</span></div>
+        <div class="doc-desc">Top 10 タスク実装テンプレ</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/BACKUP-MANIFEST.md">
+    <div class="doc-row">
+      <div class="doc-icon">💾</div>
+      <div class="doc-body">
+        <div class="doc-title">バックアップ参照表</div>
+        <div class="doc-desc">全 Wave コミット / snapshot 12 件</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/worklog.md">
+    <div class="doc-row">
+      <div class="doc-icon">📓</div>
+      <div class="doc-body">
+        <div class="doc-title">作業ログ（Wave 1〜24）</div>
+        <div class="doc-desc">時系列の全変更履歴</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/code-cleanup-report-2026-05-03.md">
+    <div class="doc-row">
+      <div class="doc-icon">🧹</div>
+      <div class="doc-body">
+        <div class="doc-title">コードクリーンアップ詳細</div>
+        <div class="doc-desc">Wave 19-20 / -370 行削除</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/blob/claude/merge-and-push-main-u44Ty/docs/DOCS-INDEX.md">
+    <div class="doc-row">
+      <div class="doc-icon">📚</div>
+      <div class="doc-body">
+        <div class="doc-title">全ドキュメント INDEX</div>
+        <div class="doc-desc">53 ファイル / 役割別読書順</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<!-- 🔗 GitHub -->
+<div class="sec">
+  <div class="sec-title">🔗 GitHub</div>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink">
+    <div class="doc-row">
+      <div class="doc-icon">📦</div>
+      <div class="doc-body">
+        <div class="doc-title">リポジトリ</div>
+        <div class="doc-desc">ktakahashi7755-creator/Familink</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/tree/claude/merge-and-push-main-u44Ty/docs">
+    <div class="doc-row">
+      <div class="doc-icon">📁</div>
+      <div class="doc-body">
+        <div class="doc-title">docs フォルダ</div>
+        <div class="doc-desc">全 53 ドキュメントを GitHub で閲覧</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+  <a class="doc" href="https://github.com/ktakahashi7755-creator/Familink/branches">
+    <div class="doc-row">
+      <div class="doc-icon">🌿</div>
+      <div class="doc-body">
+        <div class="doc-title">ブランチ一覧</div>
+        <div class="doc-desc">snapshot/* で過去状態に復元可能</div>
+      </div>
+      <div class="doc-arrow">›</div>
+    </div>
+  </a>
+</div>
+
+<div class="ft">
+  Familink MVP v0.1<br>
+  © 2026 ktakahashi7755-creator<br>
+  <a href="https://github.com/ktakahashi7755-creator/Familink/issues">Issues / フィードバック</a>
+</div>
+
+<button class="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="トップへ">↑</button>
+
+<script>
+const totop = document.querySelector('.totop');
+window.addEventListener('scroll', () => {
+  totop.classList.toggle('show', window.scrollY > 400);
+}, {passive:true});
+</script>
+
+</body>
+</html>
