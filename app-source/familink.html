@@ -5290,7 +5290,8 @@ function renderBoard() {
     html += regular.map(a => postCardHtml(a, uid2)).join('');
   }
   el.innerHTML = prepCard + html;
-  // リアクション長押しバインド
+  // 長押しでピン留めトグル
+  _bindPinLongPress();
 }
 
 function postCardHtml(a, uid2) {
@@ -5321,7 +5322,7 @@ function postCardHtml(a, uid2) {
     </button>`;
   }).join('');
 
-  return `<div class="post-card ${a.isPinned?'pinned-card':''}" onclick="openBoardDetail('${H(a.id)}')">
+  return `<div class="post-card ${a.isPinned?'pinned-card':''}" data-id="${H(a.id)}" onclick="openBoardDetail('${H(a.id)}')">
     ${a.isPinned?`<div class="post-pin-bar"><svg width="11" height="11" viewBox="0 0 24 24" fill="var(--primary)"><path d="m12 17.27 4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08L12 17.27z"/></svg>ピン留め</div>`:''}
     <div class="post-head">
       ${avHtml(auth.id, 36, 14, "flex-shrink:0;")}
@@ -5602,6 +5603,57 @@ function toggleCurrentPostPin() {
   a.isPinned = !a.isPinned;
   saveS(); renderBoardDetail(); renderBoard();
   showToast(a.isPinned?'ピン留めしました':'ピン留めを解除しました');
+}
+
+/* カードからのピン留めトグル（長押し用）*/
+function togglePostPin(id) {
+  const a = getAnn(id);
+  if(!a) return;
+  a.isPinned = !a.isPinned;
+  a.updatedAt = todayStr();
+  saveS();
+  renderBoard();
+  if(S.screen === 's-board-detail') renderBoardDetail();
+  showToast(a.isPinned?'ピン留めしました':'ピン留めを解除しました');
+  // 触覚フィードバック（対応端末のみ）
+  if(navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
+}
+
+/* カードへの長押しバインド（renderBoard 後に呼ぶ） */
+let _pinPressTimer = null;
+let _pinPressFired = false;
+function _bindPinLongPress() {
+  document.querySelectorAll('.post-card[data-id]').forEach(card => {
+    if(card._pinBound) return;
+    card._pinBound = true;
+    const id = card.getAttribute('data-id');
+    const start = (e) => {
+      _pinPressFired = false;
+      if(_pinPressTimer) clearTimeout(_pinPressTimer);
+      _pinPressTimer = setTimeout(() => {
+        _pinPressFired = true;
+        togglePostPin(id);
+      }, 600);
+    };
+    const cancel = () => {
+      if(_pinPressTimer) { clearTimeout(_pinPressTimer); _pinPressTimer = null; }
+    };
+    card.addEventListener('touchstart', start, { passive: true });
+    card.addEventListener('touchend', cancel);
+    card.addEventListener('touchmove', cancel, { passive: true });
+    card.addEventListener('touchcancel', cancel);
+    card.addEventListener('mousedown', start);
+    card.addEventListener('mouseup', cancel);
+    card.addEventListener('mouseleave', cancel);
+    // 長押し発火後の click は抑止
+    card.addEventListener('click', (e) => {
+      if(_pinPressFired) {
+        e.stopPropagation();
+        e.preventDefault();
+        _pinPressFired = false;
+      }
+    }, true);
+  });
 }
 function deleteCurrentPost() {
   const a = getAnn(S._boardPostId);
