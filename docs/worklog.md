@@ -2507,3 +2507,60 @@ Wave 17B：体系的テスト（98 項目）+ Hoku 分類器の細部修正
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 17b: systematic 98-test QA + Hoku classifier fixes (calendar / prep)`
+
+---
+
+## 2026-05-03 12:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 17C：詳細体系テスト（203 項目 / 100% PASS）+ Hoku 分類器精度向上 4 件
+
+### 変更ファイル
+- `app-source/familink.html`（Hoku 分類器 4 行修正）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-03-wave17c-deep.md`（新規 / 203 項目テスト結果）
+- `docs/worklog.md`（本エントリ）
+
+### 実施内容（203 項目）
+- PHASE 1：マルチ viewport 構造的整合性（40 項目 / 4 vp × 10 画面）
+- PHASE 2a：7 intent 完全ライフサイクル（70 項目 / 7 intent × 10 step）
+- PHASE 2b：Hoku 分類器 30 入力
+- PHASE 2c：7 intent 説明動的更新（8 項目）
+- PHASE 2d：主要モーダル open/close（10 項目）
+- PHASE 2e：フォームバリデーション（5 項目）
+- PHASE 2f：タスクフィルター 5 種（5 項目）
+- PHASE 2g：タスクメンバーフィルター（1 項目）
+- PHASE 2h：カレンダー ビュー切替 + 月送り（5 項目）
+- PHASE 2i：家族ボード カスタムタブ追加・削除（3 項目）
+- PHASE 2j：家計 全 7 メンバータブ動作（7 項目）
+- PHASE 2k：準備リスト 全タブ + 操作（7 項目）
+- PHASE 2l：設定画面（2 項目）
+- PHASE 2m〜2v：通知 / こども / 体調 / Hoku 状態 / 入力応答 / 順序 / 破損 LS / a11y / リロード / 100件ストレス
+- 合計：203/203 PASS（100.00%）/ pageerror 0 件
+
+### Hoku 分類器精度向上（4 件修正）
+1. calendar：「歯科の予約」→ 新 signal `予約|アポ|アポイント` 追加
+2. prep：「給食袋を用意」→ `を用意|の用意` 追加
+3. board：「ピアノで25m達成」→ 出来事 signal に `達成` 追加
+4. board：「家族にシェア」→ `シェアする|家族.*シェア|シェアしておく` 追加
+
+### テスト結果
+- md5 一致：610d28d42bf11c803069687e5a78aaa6
+- 203/203 PASS / Pass rate 100.00%
+- 4 viewport × 10 画面 overflow チェック ✅
+- 7 intent 完全ライフサイクル ✅
+- 100 タスクストレス ✅
+- 破損 LS 耐性 ✅
+- リロード復元 ✅
+
+### 残課題
+- HIGH-1：iPhone Safari 実機 音声認識
+- HIGH-2：iPhone Safari 実機 操作感
+- MED-1〜6 / LOW-1〜5（既出）
+
+### 次にやること
+- Wave 18 候補：iOS 実機検証
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 17c: deep 203-test QA + Hoku classifier precision fixes (calendar/prep/board)`
