@@ -3008,3 +3008,50 @@ Wave 23：実機検証フェーズ準備（プレイブック + QA デバッグ�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 23: iphone verification playbook + #qa-debug panel`
+
+---
+
+## 2026-05-03 21:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+MVP v0.1 リリース — 正式タグ付け + リリースノート
+
+### 変更ファイル
+- `docs/RELEASE-NOTES-MVP-v0.1.md`（新規 / リリースノート）
+- `docs/worklog.md`（本エントリ）
+
+### MVP v0.1 リリース内容
+- リリースタグ：mvp-v0.1
+- ベースコミット：8db4785（Wave 23）
+- 公開 URL：https://ktakahashi7755-creator.github.io/Familink/
+- 診断 URL：https://ktakahashi7755-creator.github.io/Familink/#qa-debug
+
+### 同梱機能（10 領域）
+1. ホーム / 2. 家族ボード / 3. タスク管理
+4. カレンダー（繰り返し予定 5 種）/ 5. 家計管理（メンバータブ + チャート）
+6. 準備リスト（今日/明日/双方向繰越）/ 7. 体調管理 / 8. 通知
+9. 設定（プロフィール編集）/ 10. Hoku AI（9 カテゴリ分類 + 音声入力）
+
+### 品質指標
+- コードサイズ：8,463 行 / 単一 HTML / 依存ゼロ
+- 画面数：17
+- 自動テスト：301/301 PASS（100.00%）
+- pageerror / console.error：0 件
+- 4 viewport 整合（iPhone SE/13/15 Plus/Pro Max）
+- アクセシビリティ：aria-label 19 件
+- 外部 API：ゼロ / クラウド：ゼロ / 認証：ゼロ
+
+### 公開判定
+✅ Code Quality：公開可能水準
+☐ 実機検証：iPhone Safari Hoku 音声 / 操作感（家族ベータで実施）
+☐ 法務：弁護士による草案確認
+☐ App Store：スクリーンショット + WKWebView ラッパー
+
+### 次にやること
+- iPhone 実機検証（Wave 24 / プレイブックで案内済）
+- 不具合発見時 → 即修正対応
+- 公開準備（法務 + WKWebView）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `MVP v0.1 release - notes + git tag mvp-v0.1`
