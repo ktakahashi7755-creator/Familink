@@ -1380,6 +1380,13 @@ select.input {
 .react-quick-cnt { font-size:10px; font-weight:700; color:var(--text-sub); }
 .react-quick-btn.mine .react-quick-cnt { color:var(--primary); }
 
+/* ── ボード項目プレビューのメタチップ ── */
+.biv-meta-chip {
+  font-size:11px; padding:3px 9px; border-radius:var(--r-full);
+  background:var(--bg-muted); color:var(--text-sub); font-weight:600;
+  border:1px solid var(--border-light);
+}
+
 /* ── インラインコメント入力 ── */
 .card-comment-inline {
   display:flex; align-items:center; gap:6px;
@@ -6472,7 +6479,7 @@ function renderPrepItem(i) {
     <div class="cb-check ${done?'done':''}" onclick="toggleBoardItem('${H(i.id)}')">
       ${done ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
     </div>
-    <div style="flex:1;min-width:0;" onclick="openBoardItemEdit('${H(i.id)}')">
+    <div style="flex:1;min-width:0;cursor:pointer;" onclick="openBoardItemView('${H(i.id)}')">
       <div style="font-size:13px;${done?'text-decoration:line-through;color:var(--text-muted);':''}">${H(i.title)}</div>
       ${i.body ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${H(i.body)}</div>` : ''}
     </div>
@@ -6493,7 +6500,7 @@ function renderShareDetail(b, intentMeta) {
   return `<div style="padding:0 16px;">` + items.map(i => {
     const mem = i.childId ? getMem(i.childId) : null;
     const author = getMem(i.createdBy || S.user?.id || 'kenya');
-    return `<div style="padding:12px 0;border-bottom:1px solid var(--border-light);">
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border-light);cursor:pointer;" onclick="openBoardItemView('${H(i.id)}')">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-full);background:var(--bg-muted);color:var(--text-sub);">${H(i.category||'その他')}</span>
         ${mem ? `${avHtml(mem.id,16,6,'flex-shrink:0;')}<span style="font-size:11px;color:var(--text-sub);">${H(mem.name)}</span>` : ''}
@@ -6501,9 +6508,9 @@ function renderShareDetail(b, intentMeta) {
       </div>
       <div style="font-size:13px;color:var(--text);line-height:1.6;">${H(i.title)}</div>
       ${i.body ? `<div style="font-size:11px;color:var(--text-sub);margin-top:4px;">${H(i.body)}</div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:6px;gap:10px;">
-        <button onclick="openBoardItemEdit('${H(i.id)}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-muted);">編集</button>
-        <button onclick="deleteBoardItem('${H(i.id)}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--red);" aria-label="削除">削除</button>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px;gap:10px;" onclick="event.stopPropagation()">
+        <button onclick="event.stopPropagation();openBoardItemEdit('${H(i.id)}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-muted);">編集</button>
+        <button onclick="event.stopPropagation();deleteBoardItem('${H(i.id)}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--red);" aria-label="削除">削除</button>
       </div>
     </div>`;
   }).join('') + `</div>`;
@@ -6515,12 +6522,12 @@ function renderMemoDetail(b, intentMeta) {
   const items = (S.boardItems||[]).filter(i=>i.boardId===b.id)
     .sort((a,c)=>(a.order||0)-(c.order||0));
   if(!items.length) return renderCbEmptyState(intentMeta);
-  return `<div style="padding:0 16px;">` + items.map(i => `<div class="cb-item-row">
+  return `<div style="padding:0 16px;">` + items.map(i => `<div class="cb-item-row" style="cursor:pointer;" onclick="openBoardItemView('${H(i.id)}')">
     <div style="flex:1;">
       <div style="font-size:13px;">${H(i.title)}</div>
       ${i.body ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${H(i.body)}</div>` : ''}
     </div>
-    <button onclick="deleteBoardItem('${H(i.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;" aria-label="削除">
+    <button onclick="event.stopPropagation();deleteBoardItem('${H(i.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;" aria-label="削除">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>`).join('') + `</div>`;
@@ -6659,6 +6666,56 @@ function openBoardItemAdd() {
     MEMBERS.map(m=>`<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
   openModal('m-board-item');
   setTimeout(()=>{ try { titleInp.focus(); } catch(e){} }, 200);
+}
+
+/* ボード項目の詳細プレビュー（タップで開く・編集/削除へ繋ぐ）*/
+let _viewingBoardItemId = null;
+function openBoardItemView(itemId) {
+  const item = (S.boardItems||[]).find(i=>i.id===itemId);
+  if(!item) return;
+  const b = (S.customBoards||[]).find(b=>b.id===item.boardId);
+  if(!b) return;
+  _viewingBoardItemId = itemId;
+  const titleEl = document.getElementById('biv-title');
+  const bodyEl = document.getElementById('biv-body');
+  const metaEl = document.getElementById('biv-meta');
+  if(titleEl) titleEl.textContent = item.title || '(無題)';
+  if(bodyEl) {
+    if(item.body) {
+      bodyEl.textContent = item.body;
+      bodyEl.style.display = '';
+    } else {
+      bodyEl.textContent = '';
+      bodyEl.style.display = 'none';
+    }
+  }
+  if(metaEl) {
+    const parts = [];
+    if(item.category) parts.push(`カテゴリ：${item.category}`);
+    if(item.childId) {
+      const m = getMem(item.childId);
+      if(m) parts.push(`対象：${m.name}`);
+    }
+    if(item.sectionId) {
+      const sec = (S.boardSections||[]).find(s=>s.id===item.sectionId);
+      if(sec) parts.push(`セクション：${sec.title}`);
+    }
+    if(item.createdAt) parts.push(`作成：${(item.createdAt||'').replace(/^20\d{2}-/,'').replace('-','/')}`);
+    metaEl.innerHTML = parts.map(p=>`<span class="biv-meta-chip">${H(p)}</span>`).join('');
+    metaEl.style.display = parts.length ? '' : 'none';
+  }
+  openModal('m-board-item-view');
+}
+function editFromBoardItemView() {
+  const id = _viewingBoardItemId;
+  closeModal('m-board-item-view');
+  if(id) setTimeout(() => openBoardItemEdit(id), 150);
+}
+function deleteFromBoardItemView() {
+  const id = _viewingBoardItemId;
+  if(!id) return;
+  closeModal('m-board-item-view');
+  setTimeout(() => deleteBoardItem(id), 150);
 }
 
 function openBoardItemEdit(itemId) {
@@ -9149,6 +9206,21 @@ window.addEventListener('DOMContentLoaded', init);
 </div>
 
 <!-- ===== BOARD ITEM ADD MODAL ===== -->
+<!-- ===== ボード項目 詳細プレビュー ===== -->
+<div id="m-board-item-view" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:80vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="biv-title" style="margin-bottom:8px;line-height:1.4;"></div>
+    <div id="biv-meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+    <div id="biv-body" style="font-size:13px;line-height:1.7;color:var(--text-sub);white-space:pre-wrap;background:var(--bg-muted);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <div class="modal-actions" style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-primary btn-block" onclick="editFromBoardItemView()">編集する</button>
+      <button class="btn btn-outline btn-block" style="color:var(--red);border-color:var(--red);" onclick="deleteFromBoardItemView()">削除する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-board-item-view')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <div id="m-board-item" class="modal-backdrop hidden">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="modal-grip"></div>
