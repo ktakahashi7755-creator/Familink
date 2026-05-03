@@ -4389,18 +4389,10 @@ function tkCardHtml(t){
 function confirmDeleteTaskInline(id) {
   const t = (S.tasks||[]).find(t=>t.id===id);
   if(!t) return;
-  showConfirm(
-    'タスクを削除',
-    `「${t.title}」を削除しますか？この操作は取り消せません。`,
-    '削除する',
-    () => {
-      S.tasks = S.tasks.filter(x => x.id !== id);
-      saveS();
-      renderTasks();
-      showToast('タスクを削除しました');
-    },
-    ''
-  );
+  S.tasks = S.tasks.filter(x => x.id !== id);
+  saveS();
+  renderTasks();
+  showToast('タスクを削除しました');
 }
 
 function toggleTkMemberVisible(id) {

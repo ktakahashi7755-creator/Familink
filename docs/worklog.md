@@ -3271,3 +3271,35 @@ Wave 26：Familink 音声 UX を家族文脈理解レベルへ引き上げ（保
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 26: voice UX - family-context confirm modal + correction dict + intent parser`
+
+---
+
+## 2026-05-03  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+タスク削除：完了タスクのゴミ箱マーク → 確認ポップアップなしで即削除
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+- `confirmDeleteTaskInline(id)` から `showConfirm` を削除し、即削除に変更
+- 取り消し線（line-through）はそのまま維持
+- 完了タスク右側のゴミ箱アイコン押下 → ワンタップで削除 + トースト「タスクを削除しました」
+
+### テスト結果
+- Wave 17:203 + 18:48 + 21:13 + 22:37 + 25:25 + 26:67 = 393/393 PASS
+
+### 未確認事項
+なし
+
+### iPhone 確認ポイント
+- タスク完了 → 取り消し線表示 → ゴミ箱マーク押下で即消える
+- ポップアップ確認ダイアログが出ないこと
+
+### 次にやること
+- iPhone 実機検証
+
+### コミット
+- メッセージ: `task: instant delete on trash icon (remove confirm popup, keep strikethrough)`
