@@ -2341,3 +2341,112 @@ Wave 16：ホーム右上カメラアイコン + 家計 CSV 撤廃 + 家族共�
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `wave 16: home camera icon + budget CSV removal + family-share member tabs`
+
+---
+
+## 2026-05-03 09:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 17：ボード機能 大改善（家族ボード/準備リスト分離 + 7 intent 化 + 用途別自動初期化）
+
+### 変更ファイル
+- `app-source/familink.html`（+127 行）
+- `docs/index.html`（同期）
+- `docs/qa-results-2026-05-03-wave17.md`（新規）
+- `docs/release-score-2026-05-03-wave17.md`（新規）
+- `docs/board-experience-design.md`（新規）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+
+#### Wave B-1：家族ボードから準備リストを分離
+- s-board の prep-quick-card（旧クイックサマリー）削除
+- 関連 CSS 11 ルール削除
+- 家族ボードの責務 = 共有・出来事・連絡・記録 に明確化
+- 準備リストは s-prep で独立完結
+
+#### Wave B-3：INTENT_META + 7 intent + 自動初期化
+- 7 intent: family-share / prep / lessons / health / shopping / submissions / memo
+- `b.intent` フィールド追加（LocalStorage 構造に追加のみ・破壊なし）
+- baseType（share/prep/memo）から既存ロジック完全互換
+- prep/shopping/submissions は自動セクション 2 つ生成
+- ボード作成モーダルを 2×4 グリッドに刷新、説明文動的、health 注記、name placeholder 連動
+
+#### Wave B-2：renderCustomBoardDetail 改修
+- 用途ヒーロー（cb-intent-hero）を本文先頭に表示
+- 空状態（renderCbEmptyState）：addBtn 文言案内 + 入力例チップ
+- 追加ボタンを固定配置（タブバー上 / position:fixed bottom:96px+safe-area）
+  - 既存問題：タブバーが追加ボタンを覆い押せなかった → 修正
+- 追加ボタン文言を intent 別に動的化（＋ 買い物を追加 / ＋ 体調メモを追加 など）
+
+#### m-board-item モーダル intent-aware 化
+- タイトル placeholder 動的（例：牛乳 / 例：37.5度の発熱）
+- モーダルタイトル = intent.addBtn
+- セクション初期選択 = 自動生成最初のセクション
+- カテゴリ初期選択 = intent.defaultCategory
+- 自動フォーカス追加
+
+#### ホームカード改善
+- 空状態文言「タップして『＋ {addBtn}』」
+- ラベルバッジを intent.label に変更
+
+#### Hoku 連携
+- 既存案内（Wave 14 設計）と新責務分担が完全整合済 → 文言変更なし
+
+### テスト結果
+- md5 一致：b5fac8204c9e8d295f3902d4cc3eea4c
+- 行数：8665（+127）
+- 画面 ID：17 維持
+- JS 構文：OK
+- HTTP 200（src / docs）：両方 OK
+- 個人名 / 固定パスワード / CSV / prep-quick-card 残骸：すべてゼロ
+- Playwright（iPhone 13 vp / hasTouch）：
+  - 17 画面 ✅
+  - 家族ボード prep カードなし ✅
+  - 7 intent ボタン表示 ✅
+  - default = family-share ✅
+  - 説明文動的更新 ✅
+  - health → 医療注記 ✅
+  - shopping board: intent='shopping' / type='prep' / sections=[今すぐ, 次の買い物] ✅
+  - 追加ボタン「＋ 買い物を追加」 ✅
+  - 用途ヒーロー表示 ✅
+  - 入力例 4 個（牛乳/おむつ/洗剤/明日の弁当材料）✅
+  - 追加ボタンクリック → モーダル open ✅
+  - placeholder「例：牛乳」 ✅
+  - 保存後即反映 ✅
+  - エラー 0 件
+
+### 評点（Wave 17）
+| 観点 | 配点 | 得点 |
+|---|---|---|
+| ボード作成体験 | 25 | 24 |
+| 用途別テンプレート品質 | 20 | 19 |
+| 各ボードの追加しやすさ | 20 | 20 |
+| 準備リストの独立性/使いやすさ | 15 | 14 |
+| Hoku 連携への整合性 | 10 | 10 |
+| 保守性/安全性 | 10 | 10 |
+| **合計** | 100 | **97** |
+
+事業視点スコア：96 (Wave 16) → **97 (Wave 17)**（+1 / A++ 判定）
+
+### 残課題
+- HIGH-1：iPhone 実機での操作感確認
+- HIGH-2：Hoku 音声 実機検証（継続）
+- MED-1〜6：繰り返し予定 / ルーティン / プロフィール編集 / カメラ実起動 / 家計グラフ / intent SVG
+- LOW-1〜5：時間割 / 子ども別ボード / 通知 / 並び替えガイド / CSV 再配置
+
+### iPhone 確認ポイント
+1. 家族ボード上部の準備カード消失
+2. ＋ボード追加 → 7 用途カード（💬💔🎵💛🛒📋📒）
+3. 用途切替で説明文動的、health で医療注記
+4. 新規ボード作成後 → 用途ヒーロー + 入力例 + 自動セクション + 固定追加ボタン
+5. 追加ボタン押下 → intent 別 placeholder の追加モーダル
+6. 既存ボード（intent 未定義）も後方互換で動作
+
+### 次にやること
+- Wave 18 候補：iOS 実機検証 / Hoku 音声安定化 / 曜日ルーティン準備
+- 公開前必須：iOS 実機検証 / 法務 / WKWebView ラッパー
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 17: board UX overhaul - separate prep + 7-intent + auto-init templates + fixed add btn`

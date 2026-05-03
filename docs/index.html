@@ -1622,39 +1622,6 @@ select.input {
 }
 .post-card.pinned-card { border-color:var(--primary); border-width:2px; }
 .post-card:active { transform:scale(.98); }
-/* 家族ボード上の準備リスト クイックカード */
-.prep-quick-card {
-  margin: 0 16px 10px;
-  background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
-  border: 1px solid #BBF7D0;
-  border-radius: 14px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: var(--t-spring);
-}
-.prep-quick-card:active { transform: scale(.99); }
-.prep-quick-head {
-  display: flex; align-items: center; gap: 6px;
-  font-weight: 700; color: var(--text);
-  margin-bottom: 8px;
-}
-.prep-quick-title { flex: 1; font-size: 13px; }
-.prep-quick-arrow { color: var(--text-muted); font-size: 14px; line-height: 1; }
-.prep-quick-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.prep-quick-cell { flex: 0 0 auto; min-width: 80px; }
-.prep-quick-lbl { font-size: 10px; color: var(--text-muted); margin-bottom: 1px; }
-.prep-quick-val { font-size: 13px; font-weight: 600; color: var(--text); }
-.prep-quick-val.pending { color: var(--orange, #D97706); }
-.prep-quick-val.done    { color: #16A34A; }
-.prep-quick-divider { width: 1px; height: 22px; background: #BBF7D0; }
-.prep-quick-add {
-  margin-left: auto;
-  font-size: 11px; font-weight: 700; padding: 7px 12px;
-  background: #fff; color: #16A34A;
-  border: 1px solid #BBF7D0; border-radius: 999px;
-  cursor: pointer; transition: var(--t-spring);
-}
-.prep-quick-add:active { transform: scale(.95); background: #16A34A; color: #fff; }
 .post-pin-bar {
   display:flex;align-items:center;gap:5px;
   font-size:10px;font-weight:700;color:var(--primary);
@@ -2092,6 +2059,45 @@ nav#tabbar.hidden { display: none !important; }
   transition:var(--t-spring);
 }
 .bc-tpl-chip:active { transform:scale(.95); background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
+/* Wave 17: ボード作成 用途選択ボタン */
+.bc-intent-btn {
+  background:#fff; border:1.5px solid var(--border-light);
+  border-radius:14px; padding:12px 8px;
+  cursor:pointer; transition:var(--t-spring);
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-family:inherit;
+}
+.bc-intent-btn:active { transform:scale(.96); }
+.bc-intent-btn.selected {
+  border-color:var(--primary); background:var(--primary-light);
+  box-shadow:0 4px 12px rgba(74,144,226,.15);
+}
+.bc-intent-icon { font-size:22px; line-height:1; }
+.bc-intent-label { font-size:12px; font-weight:700; color:var(--text); }
+.bc-intent-btn.selected .bc-intent-label { color:var(--primary); }
+/* Wave 17: ボード詳細 用途別ヒーローカード */
+.cb-intent-hero {
+  margin:14px 16px 8px; padding:14px 16px;
+  background:linear-gradient(135deg, var(--primary-light) 0%, #FFFDF5 100%);
+  border:1px solid rgba(74,144,226,.15); border-radius:14px;
+}
+.cb-intent-hero-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.cb-intent-hero-icon { font-size:18px; line-height:1; }
+.cb-intent-hero-label { font-size:12px; font-weight:700; color:var(--primary); }
+.cb-intent-hero-desc  { font-size:12px; color:var(--text-sub); line-height:1.55; }
+.cb-intent-hero-note  { font-size:10px; color:var(--text-muted); margin-top:5px; }
+.cb-intent-examples {
+  display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;
+}
+.cb-intent-example {
+  font-size:11px; color:var(--text-sub);
+  background:#fff; border:1px dashed rgba(74,144,226,.35);
+  border-radius:var(--r-full); padding:3px 9px;
+}
+.cb-empty-illust {
+  text-align:center; padding:28px 20px 4px;
+  color:var(--text-muted); font-size:13px; line-height:1.65;
+}
 .cb-item-row {
   display:flex; align-items:flex-start; gap:10px;
   padding:9px 0; border-bottom:1px solid var(--border-light);
@@ -3821,12 +3827,13 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
     var b = (S.customBoards||[]).find(function(x){ return x.id===customId; });
     if(!b) return '';
     var meta  = BOARD_TYPE_META[b.type]||BOARD_TYPE_META.memo;
+    var iMeta = getIntentMeta(b);
     var items = (S.boardItems||[]).filter(function(x){ return x.boardId===b.id; });
     var prev  = renderBoardCardPreview(b, items, meta);
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:'+meta.color+';">'+boardTypeIcon(b.type,meta.iconColor)+'</div>'
       + '<div class="bc-title">'+H(b.name)+'</div>'
-      + '<div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--r-full);background:'+meta.color+';color:'+meta.iconColor+';">'+meta.label+'</div>'
+      + '<div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--r-full);background:'+meta.color+';color:'+meta.iconColor+';">'+H(iMeta.label)+'</div>'
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+prev+'</div><img class="bc-bg" src="'+(IMGS[meta.bgKey]||'')+'" alt=""></div>';
   }
@@ -5252,36 +5259,8 @@ function renderBoard() {
     return (b.createdAt||'').localeCompare(a.createdAt||'');
   });
 
-  // 準備リスト クイックサマリー（カテゴリ未選択時のみ）
+  // 準備リストは独立機能として s-prep に分離（Wave 17：家族ボードからは削除）
   let prepCard = '';
-  if(!_boardCat) {
-    const today = todayStr();
-    const tomorrow = (function(){ const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); })();
-    const prepAll = (S.prep || []);
-    const todayItems = prepAll.filter(p => !p.date || p.date === today);
-    const tomorrowItems = prepAll.filter(p => p.date === tomorrow);
-    const todayUndone = todayItems.filter(p => !p.done).length;
-    const tomorrowAll = tomorrowItems.length;
-    prepCard = `<div class="prep-quick-card" onclick="go('s-prep')">
-      <div class="prep-quick-head">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span class="prep-quick-title">準備リスト</span>
-        <span class="prep-quick-arrow">›</span>
-      </div>
-      <div class="prep-quick-row">
-        <div class="prep-quick-cell">
-          <div class="prep-quick-lbl">今日</div>
-          <div class="prep-quick-val ${todayUndone?'pending':'done'}">${todayUndone ? `${todayUndone}件 未完了` : `すべて完了`}</div>
-        </div>
-        <div class="prep-quick-divider"></div>
-        <div class="prep-quick-cell">
-          <div class="prep-quick-lbl">明日</div>
-          <div class="prep-quick-val">${tomorrowAll ? `${tomorrowAll}件 予定` : `登録なし`}</div>
-        </div>
-        <button class="prep-quick-add" onclick="event.stopPropagation();go('s-prep');setTimeout(()=>{setPrepTab('tomorrow');openPrepModal()},120)">＋ 明日の準備</button>
-      </div>
-    </div>`;
-  }
 
   if(!anns.length) {
     el.innerHTML = prepCard + `<div class="docs-empty" style="margin-top:40px;">
@@ -6296,8 +6275,77 @@ const BOARD_TYPE_META = {
 
 const SHARE_CATS = ['体調面','習い事','学校・園','連絡','その他'];
 
+/* 用途別ボードメタ（Wave 17：白紙感解消） */
+const INTENT_META = {
+  'family-share': {
+    label: '家族共有', baseType: 'share', icon: '💬',
+    addBtn: '共有を追加',
+    desc: '家族に共有したい出来事や連絡を残せます。',
+    titlePh: '例：今日の連絡メモ',
+    examples: ['園/学校での出来事', '家族に伝えたいこと', '今日の連絡メモ'],
+    defaultCategory: '連絡'
+  },
+  'lessons': {
+    label: '習い事', baseType: 'share', icon: '🎵',
+    addBtn: '記録を追加',
+    desc: '習い事の予定、記録、成長メモをまとめられます。',
+    titlePh: '例：プールで25m達成',
+    examples: ['プールで25m達成', '次回の持ち物', 'コーチからの連絡'],
+    defaultCategory: '習い事'
+  },
+  'health': {
+    label: '体調管理', baseType: 'share', icon: '💛',
+    addBtn: '体調メモを追加',
+    desc: '体温・症状・食欲・服薬などを家族で共有できます。',
+    note: '※ 医療判断ではなく、家族での記録としてご利用ください。',
+    titlePh: '例：37.5度の発熱',
+    examples: ['37.5度の発熱', '咳・鼻水', '食欲・水分の様子', '服薬メモ'],
+    defaultCategory: '体調面'
+  },
+  'prep': {
+    label: '準備リスト', baseType: 'prep', icon: '📝',
+    addBtn: '準備を追加',
+    desc: '今日/明日の持ち物や準備をチェックできます。',
+    titlePh: '例：水筒',
+    examples: ['水筒', '連絡帳', '上履き', '体操着', '提出物'],
+    sections: ['今日の準備', '明日の準備']
+  },
+  'shopping': {
+    label: '買い物メモ', baseType: 'prep', icon: '🛒',
+    addBtn: '買い物を追加',
+    desc: '家族で必要な買い物をまとめられます。',
+    titlePh: '例：牛乳',
+    examples: ['牛乳', 'おむつ', '洗剤', '明日の弁当材料'],
+    sections: ['今すぐ', '次の買い物']
+  },
+  'submissions': {
+    label: '提出物チェック', baseType: 'prep', icon: '📋',
+    addBtn: '提出物を追加',
+    desc: '園/学校/習い事の提出物を忘れず管理できます。',
+    titlePh: '例：同意書',
+    examples: ['同意書', '集金袋', '連絡帳', '申込書'],
+    sections: ['今週', '来週以降']
+  },
+  'memo': {
+    label: '汎用メモ', baseType: 'memo', icon: '📒',
+    addBtn: 'メモを追加',
+    desc: '自由にメモや記録を残せます。',
+    titlePh: '例：あとで確認すること',
+    examples: ['家族メモ', 'あとで確認すること', '相談したいこと']
+  }
+};
+function getIntentMeta(b) {
+  if(!b) return INTENT_META.memo;
+  if(b.intent && INTENT_META[b.intent]) return INTENT_META[b.intent];
+  // 旧データ：type から intent を推定
+  if(b.type === 'prep')  return INTENT_META.prep;
+  if(b.type === 'share') return INTENT_META['family-share'];
+  return INTENT_META.memo;
+}
+
 let _activeBoardId = null;
 let _bcType = 'prep';
+let _bcIntent = 'family-share'; // Wave 17：用途
 
 /* ── ホームカード描画 ── */
 /* renderCustomBoardCards → hoRenderCard に統合済み */
@@ -6310,7 +6358,10 @@ function boardTypeIcon(type, color) {
 }
 
 function renderBoardCardPreview(b, items, meta) {
-  if(!items.length) return `<div class="empty" style="padding:10px 0"><div style="font-size:11px;color:var(--text-muted)">まだ項目がありません</div></div>`;
+  if(!items.length) {
+    const iMeta = getIntentMeta(b);
+    return `<div class="empty" style="padding:10px 0"><div style="font-size:11px;color:var(--text-muted)">タップして「${H(iMeta.addBtn)}」</div></div>`;
+  }
   if(b.type==='prep') {
     const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));
     const show = sections.length ? sections.slice(0,2).map(sec => {
@@ -6341,31 +6392,65 @@ function openCustomBoard(boardId) {
 function renderCustomBoardDetail() {
   const b = (S.customBoards||[]).find(b=>b.id===_activeBoardId);
   if(!b) { go('s-home'); return; }
-  const meta = BOARD_TYPE_META[b.type] || BOARD_TYPE_META.memo;
+  const intentMeta = getIntentMeta(b);
   const titleEl = document.getElementById('cb-screen-title');
   if(titleEl) titleEl.textContent = b.name;
+  // 追加ボタン文言は intent に応じて動的（押せないボタン解消）
   const addBtn = document.getElementById('cb-add-btn');
-  if(addBtn) addBtn.textContent = b.type==='share' ? '投稿する' : '項目を追加';
+  if(addBtn) addBtn.textContent = '＋ ' + intentMeta.addBtn;
   const body = document.getElementById('cb-body');
   if(!body) return;
 
-  if(b.type==='prep') body.innerHTML = renderPrepDetail(b);
-  else if(b.type==='share') body.innerHTML = renderShareDetail(b);
-  else body.innerHTML = renderMemoDetail(b);
+  // 用途別ヒーロー（ボード冒頭：用途・説明・注意・入力例）
+  const heroHtml = `<div class="cb-intent-hero">
+    <div class="cb-intent-hero-row">
+      <span class="cb-intent-hero-icon">${intentMeta.icon}</span>
+      <span class="cb-intent-hero-label">${H(intentMeta.label)}</span>
+    </div>
+    <div class="cb-intent-hero-desc">${H(intentMeta.desc)}</div>
+    ${intentMeta.note ? `<div class="cb-intent-hero-note">${H(intentMeta.note)}</div>` : ''}
+  </div>`;
+
+  let detailHtml = '';
+  if(b.type==='prep') detailHtml = renderPrepDetail(b, intentMeta);
+  else if(b.type==='share') detailHtml = renderShareDetail(b, intentMeta);
+  else detailHtml = renderMemoDetail(b, intentMeta);
+
+  body.innerHTML = heroHtml + detailHtml;
+}
+
+/* 用途別の空状態（入力例チップ + 案内） */
+function renderCbEmptyState(intentMeta) {
+  const examples = (intentMeta.examples || []).slice(0, 5);
+  return `<div class="cb-empty-illust">
+    <div style="font-weight:600;color:var(--text);margin-bottom:6px;">まだ項目がありません</div>
+    <div style="font-size:12px;color:var(--text-muted);">下の「＋ ${H(intentMeta.addBtn)}」から始めましょう</div>
+    ${examples.length ? `<div style="margin-top:14px;font-size:11px;color:var(--text-muted);margin-bottom:6px;">入力例</div>
+      <div class="cb-intent-examples" style="justify-content:center;">${examples.map(e=>`<span class="cb-intent-example">${H(e)}</span>`).join('')}</div>` : ''}
+  </div>`;
 }
 
 /* 準備リスト詳細 */
-function renderPrepDetail(b) {
+function renderPrepDetail(b, intentMeta) {
+  intentMeta = intentMeta || getIntentMeta(b);
   const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));
   const items = (S.boardItems||[]).filter(i=>i.boardId===b.id);
   const noSection = items.filter(i=>!i.sectionId);
   let html = '';
   // セクションがない場合
   if(!sections.length && !items.length) {
-    html = `<div style="padding:40px 20px;text-align:center;">
-      <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">まだ項目がありません。<br>「項目を追加」から始めましょう。</div>
-      <button class="btn btn-outline btn-sm" style="margin-top:16px;" onclick="openSectionManagerDirect()">セクションを追加</button>
-    </div>`;
+    html = renderCbEmptyState(intentMeta) +
+      `<div style="text-align:center;margin-top:14px;"><button class="btn btn-outline btn-sm" onclick="openSectionManagerDirect()">セクションを追加</button></div>`;
+  } else if(sections.length && !items.length) {
+    // セクションだけ自動生成された直後
+    html = renderCbEmptyState(intentMeta) +
+      `<div style="margin-top:18px;">` + sections.map(sec => `<div style="padding:0 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 6px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">${H(sec.title)}</div>
+          <span style="font-size:11px;color:var(--text-muted);">0/0</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);padding:8px 0;">項目なし</div>
+      </div>`).join('') + `</div>`;
   } else {
     if(sections.length) {
       html = sections.map(sec => {
@@ -6411,11 +6496,12 @@ function renderPrepItem(i) {
 }
 
 /* 家族共有詳細 */
-function renderShareDetail(b) {
+function renderShareDetail(b, intentMeta) {
+  intentMeta = intentMeta || getIntentMeta(b);
   const items = (S.boardItems||[]).filter(i=>i.boardId===b.id)
     .sort((a,c)=>(c.createdAt||'').localeCompare(a.createdAt||''));
   if(!items.length) {
-    return `<div style="padding:40px 20px;text-align:center;"><div style="font-size:13px;color:var(--text-muted);">まだ投稿がありません。<br>「投稿する」から共有しましょう。</div></div>`;
+    return renderCbEmptyState(intentMeta);
   }
   return `<div style="padding:0 16px;">` + items.map(i => {
     const mem = i.childId ? getMem(i.childId) : null;
@@ -6437,10 +6523,11 @@ function renderShareDetail(b) {
 }
 
 /* 汎用メモ詳細 */
-function renderMemoDetail(b) {
+function renderMemoDetail(b, intentMeta) {
+  intentMeta = intentMeta || getIntentMeta(b);
   const items = (S.boardItems||[]).filter(i=>i.boardId===b.id)
     .sort((a,c)=>(a.order||0)-(c.order||0));
-  if(!items.length) return `<div style="padding:40px 20px;text-align:center;"><div style="font-size:13px;color:var(--text-muted);">まだ項目がありません。</div></div>`;
+  if(!items.length) return renderCbEmptyState(intentMeta);
   return `<div style="padding:0 16px;">` + items.map(i => `<div class="cb-item-row">
     <div style="flex:1;">
       <div style="font-size:13px;">${H(i.title)}</div>
@@ -6456,30 +6543,61 @@ function renderMemoDetail(b) {
 
 /* ボード作成モーダルを開く */
 function openBoardCreateModal(boardId) {
-  _bcType = 'prep';
+  _bcIntent = 'family-share';
+  _bcType = INTENT_META[_bcIntent].baseType;
   const isEdit = !!boardId;
   document.getElementById('m-board-create-title').textContent = isEdit ? 'ボードを編集' : 'ボードを作成';
   document.getElementById('bc-id').value = boardId || '';
   document.getElementById('bc-name').value = '';
-  // type grid
-  document.querySelectorAll('.bc-type-btn').forEach(b => b.classList.remove('selected'));
-  document.querySelector('[data-type="prep"]')?.classList.add('selected');
   if(isEdit) {
     const b = (S.customBoards||[]).find(b=>b.id===boardId);
     if(b) {
       document.getElementById('bc-name').value = b.name;
-      _bcType = b.type || 'prep';
-      document.querySelectorAll('.bc-type-btn').forEach(btn=>btn.classList.remove('selected'));
-      document.querySelector(`[data-type="${b.type}"]`)?.classList.add('selected');
+      _bcIntent = b.intent || (b.type === 'prep' ? 'prep' : b.type === 'share' ? 'family-share' : 'memo');
+      _bcType = INTENT_META[_bcIntent] ? INTENT_META[_bcIntent].baseType : (b.type || 'memo');
     }
   }
+  renderBcIntentGrid();
   openModal('m-board-create');
 }
 
+function renderBcIntentGrid() {
+  const grid = document.getElementById('bc-intent-grid');
+  if(!grid) return;
+  const order = ['family-share','prep','lessons','health','shopping','submissions','memo'];
+  grid.innerHTML = order.map(key => {
+    const m = INTENT_META[key];
+    return `<button type="button" class="bc-intent-btn ${_bcIntent===key?'selected':''}" data-intent="${H(key)}" onclick="selectBcIntent('${H(key)}')">
+      <div class="bc-intent-icon">${m.icon}</div>
+      <div class="bc-intent-label">${H(m.label)}</div>
+    </button>`;
+  }).join('');
+  // 説明テキスト更新
+  const descEl = document.getElementById('bc-intent-desc');
+  if(descEl) {
+    const m = INTENT_META[_bcIntent];
+    descEl.innerHTML = H(m.desc) + (m.note ? `<br><span style="color:var(--text-muted);font-size:10px;">${H(m.note)}</span>` : '');
+  }
+  // ボード名プレースホルダーを intent に応じて
+  const nameInp = document.getElementById('bc-name');
+  if(nameInp && !nameInp.value) {
+    nameInp.placeholder = '例：' + INTENT_META[_bcIntent].label;
+  }
+}
+
+function selectBcIntent(key) {
+  if(!INTENT_META[key]) return;
+  _bcIntent = key;
+  _bcType = INTENT_META[key].baseType;
+  renderBcIntentGrid();
+}
+
+/* 旧 API の互換ラッパー（呼ばれても安全にフォールバック） */
 function selectBoardType(type) {
   _bcType = type;
-  document.querySelectorAll('.bc-type-btn').forEach(b=>b.classList.remove('selected'));
-  document.querySelector(`[data-type="${type}"]`)?.classList.add('selected');
+  if(type === 'prep')  selectBcIntent('prep');
+  else if(type === 'share') selectBcIntent('family-share');
+  else                 selectBcIntent('memo');
 }
 
 function bcSetName(name) {
@@ -6494,15 +6612,32 @@ function saveBoardCreate() {
   if(!S.customBoards) S.customBoards = [];
   if(id) {
     const b = S.customBoards.find(b=>b.id===id);
-    if(b) { b.name = name; b.type = _bcType; }
+    if(b) {
+      b.name = name;
+      b.intent = _bcIntent;
+      b.type = INTENT_META[_bcIntent].baseType;
+    }
   } else {
-    S.customBoards.push({
-      id: uid(), name, type: _bcType,
+    const newBoard = {
+      id: uid(), name,
+      intent: _bcIntent,
+      type: INTENT_META[_bcIntent].baseType,
       order: S.customBoards.length, visible: true,
       createdAt: todayStr()
-    });
+    };
+    S.customBoards.push(newBoard);
+    // 用途別の初期セクションを自動生成（prep/shopping/submissions のみ）
+    const meta = INTENT_META[_bcIntent];
+    if(meta.sections && meta.sections.length) {
+      if(!S.boardSections) S.boardSections = [];
+      meta.sections.forEach((title, idx) => {
+        S.boardSections.push({
+          id: uid(), boardId: newBoard.id, title, order: idx, createdAt: todayStr()
+        });
+      });
+    }
+    hoAddCustomBoard(newBoard.id);
   }
-  if(!id) hoAddCustomBoard(S.customBoards[S.customBoards.length-1].id);
   saveS(); closeModal('m-board-create'); renderHome();
   showToast(id ? 'ボードを更新しました' : 'ボードを作成しました', 'success');
 }
@@ -6511,11 +6646,14 @@ function saveBoardCreate() {
 function openBoardItemAdd() {
   const b = (S.customBoards||[]).find(b=>b.id===_activeBoardId);
   if(!b) return;
+  const intentMeta = getIntentMeta(b);
   document.getElementById('bi-id').value = '';
   document.getElementById('bi-board-id').value = b.id;
-  document.getElementById('bi-title').value = '';
+  const titleInp = document.getElementById('bi-title');
+  titleInp.value = '';
+  titleInp.placeholder = intentMeta.titlePh || '内容を入力';
   document.getElementById('bi-body').value = '';
-  document.getElementById('m-board-item-title').textContent = b.type==='share'?'投稿する':'項目を追加';
+  document.getElementById('m-board-item-title').textContent = intentMeta.addBtn;
   // Show/hide fields by type
   const secField = document.getElementById('bi-section-field');
   const catField = document.getElementById('bi-cat-field');
@@ -6531,12 +6669,19 @@ function openBoardItemAdd() {
     const sel = document.getElementById('bi-section');
     sel.innerHTML = `<option value="">セクションなし</option>` +
       sections.map(s=>`<option value="${H(s.id)}">${H(s.title)}</option>`).join('');
+    // 自動生成された最初のセクション（今日 / 今すぐ / 今週）を初期選択
+    if(sections.length) sel.value = sections[0].id;
+  }
+  // カテゴリ初期値
+  if(b.type==='share' && intentMeta.defaultCategory) {
+    document.getElementById('bi-cat').value = intentMeta.defaultCategory;
   }
   // Populate member select
   const memberSel = document.getElementById('bi-child');
   memberSel.innerHTML = `<option value="">指定なし</option>` +
     MEMBERS.map(m=>`<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
   openModal('m-board-item');
+  setTimeout(()=>{ try { titleInp.focus(); } catch(e){} }, 200);
 }
 
 function openBoardItemEdit(itemId) {
@@ -8389,9 +8534,9 @@ window.addEventListener('DOMContentLoaded', init);
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
     </button>
   </div>
-  <div class="scroll-area" id="cb-body" style="flex:1;padding:0 0 16px;"></div>
-  <div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--border-light);">
-    <button class="btn btn-primary btn-block" id="cb-add-btn" onclick="openBoardItemAdd()">項目を追加</button>
+  <div class="scroll-area" id="cb-body" style="flex:1;padding:0 0 calc(170px + env(safe-area-inset-bottom));"></div>
+  <div style="position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;padding:10px 16px;background:#fff;border-top:1px solid var(--border-light);box-shadow:0 -4px 12px rgba(0,0,0,.04);">
+    <button class="btn btn-primary btn-block" id="cb-add-btn" onclick="openBoardItemAdd()" style="height:48px;font-size:14px;">＋ 項目を追加</button>
   </div>
 </div>
 
@@ -8403,33 +8548,15 @@ window.addEventListener('DOMContentLoaded', init);
     <input type="hidden" id="bc-id">
     <div class="modal-form">
       <div class="field">
-        <div class="field-label">ボード名 <span style="color:var(--red)">*</span></div>
-        <input class="input" id="bc-name" placeholder="例：小学校準備、習い事メモ、体調管理、買い物メモ" maxlength="24">
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;">
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('小学校準備')">小学校準備</button>
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('習い事メモ')">習い事メモ</button>
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('体調管理')">体調管理</button>
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('家族への共有事項')">家族への共有事項</button>
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('買い物メモ')">買い物メモ</button>
-          <button type="button" class="bc-tpl-chip" onclick="bcSetName('提出物チェック')">提出物チェック</button>
-        </div>
+        <div class="field-label">用途を選ぶ</div>
+        <div id="bc-intent-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
+      </div>
+      <div class="field" id="bc-intent-desc-field" style="font-size:11px;color:var(--text-sub);background:var(--bg-muted);padding:10px 12px;border-radius:10px;line-height:1.55;">
+        <span id="bc-intent-desc"></span>
       </div>
       <div class="field">
-        <div class="field-label">用途タイプ <span style="font-size:11px;color:var(--text-muted);font-weight:400;">（あとで変更可）</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-          <div class="bc-type-btn selected" data-type="prep" onclick="selectBoardType('prep')">
-            <div style="font-weight:700;font-size:12px;">準備リスト</div>
-            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">チェック式</div>
-          </div>
-          <div class="bc-type-btn" data-type="share" onclick="selectBoardType('share')">
-            <div style="font-weight:700;font-size:12px;">投稿型</div>
-            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">カテゴリ付き</div>
-          </div>
-          <div class="bc-type-btn" data-type="memo" onclick="selectBoardType('memo')">
-            <div style="font-weight:700;font-size:12px;">自由メモ</div>
-            <div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;">フリー入力</div>
-          </div>
-        </div>
+        <div class="field-label">ボード名 <span style="color:var(--red)">*</span></div>
+        <input class="input" id="bc-name" placeholder="例：小学校準備、習い事メモ、体調管理" maxlength="24">
       </div>
     </div>
     <div class="modal-actions">
