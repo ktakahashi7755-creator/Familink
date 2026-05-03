@@ -1981,8 +1981,9 @@ nav#tabbar.hidden { display: none !important; }
 /* 外側: 位置管理のみ（CSS right/bottomで初期配置） */
 #hoku-fab {
   position: fixed;
-  right: 14px;
-  top: calc(env(safe-area-inset-top) + 72px);
+  right: 10px;
+  /* ヘッダーの行にあわせる：左上メニューと同じ高さに来るよう調整 */
+  top: calc(env(safe-area-inset-top) - 6px);
   width: 68px;
   height: 68px;
   cursor: pointer;
@@ -8810,7 +8811,7 @@ window.addEventListener('DOMContentLoaded', init);
 (function() {
   'use strict';
 
-  var FAB_KEY   = 'hoku_fab_pos_v3';  // v3: 右上スタートに変更（旧位置データ無視）
+  var FAB_KEY   = 'hoku_fab_pos_v4';  // v4: ヘッダー行（最上段右）にスタート位置変更
   var FAB_SIZE  = 68;
   var DRAG_THR  = 8;
   var AUTH_HIDE = ['s-ob', 's-login', 's-hoku'];
