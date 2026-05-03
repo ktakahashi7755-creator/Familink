@@ -1387,6 +1387,54 @@ select.input {
   border:1px solid var(--border-light);
 }
 
+/* ── 体調管理の選択チップ ── */
+.hm-chip {
+  display:inline-flex; align-items:center; padding:7px 12px;
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  background:#fff; color:var(--text-sub); font-size:12px; font-weight:600;
+  cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent;
+}
+.hm-chip:active { transform:scale(.94); }
+.hm-chip.selected {
+  background:var(--primary); color:#fff; border-color:var(--primary);
+}
+.hm-chip.fever.selected { background:var(--red); border-color:var(--red); }
+.hm-chip.medicine.selected { background:var(--orange); border-color:var(--orange); }
+.hm-bin-btn {
+  height:38px; padding:0 14px;
+  border:1.5px solid var(--border); border-radius:10px;
+  background:#fff; color:var(--text-sub); font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent;
+}
+.hm-bin-btn.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+.hm-mem-btn {
+  display:inline-flex; align-items:center; gap:5px; padding:6px 10px;
+  border:1.5px solid var(--border); border-radius:var(--r-full);
+  background:#fff; color:var(--text); font-size:12px; font-weight:600;
+  cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent;
+}
+.hm-mem-btn:active { transform:scale(.94); }
+.hm-mem-btn.selected { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+
+/* 体調管理の今日セクション */
+.health-today-card {
+  margin:0 16px 8px; padding:14px 16px;
+  background:linear-gradient(135deg,#fff,#FFF8F8);
+  border:1.5px solid #FFD4D4; border-radius:14px;
+  box-shadow:0 2px 8px rgba(255,107,107,.08);
+}
+.health-today-card.normal {
+  background:linear-gradient(135deg,#fff,#F0FDF4);
+  border-color:#BBF7D0;
+  box-shadow:0 2px 8px rgba(82,196,122,.08);
+}
+.health-rec-row {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 16px; border-bottom:1px solid var(--border-light);
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.health-rec-row:active { background:var(--bg-muted); }
+
 /* ── インラインコメント入力 ── */
 .card-comment-inline {
   display:flex; align-items:center; gap:6px;
@@ -2717,31 +2765,84 @@ nav#tabbar.hidden { display: none !important; }
 
 <!-- Health Modal -->
 <div id="m-health" class="modal-backdrop">
-  <div class="modal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title">体調を記録</div>
+    <div class="modal-title" id="hm-title">体調を記録</div>
     <div class="modal-form">
+      <input type="hidden" id="hm-id" value="">
       <div class="field">
-        <div class="field-label">日付</div>
-        <input class="input" id="hm-date" type="date">
+        <div class="field-label">対象メンバー <span style="color:var(--red)">*</span></div>
+        <div id="hm-member-btns" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="hm-member" value="">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <div class="field-label">日付 <span style="color:var(--red)">*</span></div>
+          <input class="input" id="hm-date" type="date">
+        </div>
+        <div class="field">
+          <div class="field-label">時刻</div>
+          <input class="input" id="hm-time" type="time">
+        </div>
       </div>
       <div class="field">
-        <div class="field-label">体温（℃）<span style="color:var(--red)">*</span></div>
-        <input class="input" id="hm-temp" type="number" step="0.1" placeholder="36.5" inputmode="decimal">
+        <div class="field-label">体温（℃）</div>
+        <input class="input" id="hm-temp" type="number" step="0.1" placeholder="36.5" inputmode="decimal" min="34" max="42">
       </div>
       <div class="field">
-        <div class="field-label">症状（「・」区切り）</div>
-        <input class="input" id="hm-cond" placeholder="例：発熱・咳・鼻水">
+        <div class="field-label">体調ステータス <span style="color:var(--red)">*</span></div>
+        <div id="hm-status-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="hm-status" value="元気">
       </div>
       <div class="field">
-        <div class="field-label">服薬</div>
-        <input class="input" id="hm-meds" placeholder="例：カロナール200mg">
+        <div class="field-label">症状（複数選択可）</div>
+        <div id="hm-symptom-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
+        <input class="input" id="hm-symptoms-extra" placeholder="その他の症状を自由入力" style="font-size:13px;">
+      </div>
+      <div class="field">
+        <div class="field-label">飲んだ薬</div>
+        <input class="input" id="hm-medicine" placeholder="例：カロナール / 咳止め / 抗生剤">
+      </div>
+      <div class="field">
+        <div class="field-label">薬の時間</div>
+        <input class="input" id="hm-medicine-time" type="time">
+      </div>
+      <div class="field">
+        <div class="field-label">病院受診</div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="hm-bin-btn" data-val="false" onclick="setHealthHospital(false)" style="flex:1;">なし</button>
+          <button type="button" class="hm-bin-btn" data-val="true" onclick="setHealthHospital(true)" style="flex:1;">あり</button>
+        </div>
+        <input type="hidden" id="hm-hospital" value="false">
+      </div>
+      <div class="field" id="hm-hospital-name-field" style="display:none;">
+        <div class="field-label">病院名</div>
+        <input class="input" id="hm-hospital-name" placeholder="例：◯◯小児科">
+      </div>
+      <div class="field">
+        <div class="field-label">食欲</div>
+        <div id="hm-appetite-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="hm-appetite" value="">
+      </div>
+      <div class="field">
+        <div class="field-label">睡眠</div>
+        <div id="hm-sleep-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="hm-sleep" value="">
+      </div>
+      <div class="field">
+        <div class="field-label">便の状態</div>
+        <div id="hm-stool-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="hm-stool" value="">
       </div>
       <div class="field">
         <div class="field-label">メモ</div>
-        <textarea class="input" id="hm-note" rows="2" placeholder="様子など自由記述…"></textarea>
+        <textarea class="input" id="hm-note" rows="2" placeholder="様子など自由記述（例：水分は取れている / 夕方から熱が上がった）"></textarea>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin:6px 0 10px;line-height:1.55;background:var(--bg-muted);padding:8px 10px;border-radius:8px;">
+        ※ Familink の体調管理は家族内の記録・共有を目的とした機能です。診断や医療判断を行うものではありません。症状が強い場合や不安がある場合は、医療機関へご相談ください。
       </div>
       <button class="btn btn-primary btn-block" onclick="saveHealth()">保存する</button>
+      <button id="hm-delete-btn" class="btn btn-outline btn-block" style="display:none;color:var(--red);border-color:var(--red);" onclick="deleteCurrentHealth()">削除する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-health')">キャンセル</button>
     </div>
   </div>
@@ -5309,8 +5410,11 @@ function renderBoard() {
   // 準備リストは独立機能として s-prep に分離（Wave 17：家族ボードからは削除）
   let prepCard = '';
 
+  // Wave 35：体調管理サマリーカード（家族ボードのメイン機能）
+  const healthCard = renderHealthSummaryCard();
+
   if(!anns.length) {
-    el.innerHTML = prepCard + `<div class="docs-empty" style="margin-top:40px;">
+    el.innerHTML = healthCard + prepCard + `<div class="docs-empty" style="margin-top:40px;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <div class="docs-empty-title">${_boardCat?`「${_boardCat}」の投稿はありません`:'投稿がありません'}</div>
       <div class="docs-empty-sub">右上の＋から投稿できます</div>
@@ -5336,9 +5440,57 @@ function renderBoard() {
     if(pinned.length) html += `<div style="height:4px;"></div>`;
     html += regular.map(a => postCardHtml(a, uid2)).join('');
   }
-  el.innerHTML = prepCard + html;
+  el.innerHTML = healthCard + prepCard + html;
   // 長押しでピン留めトグル
   _bindPinLongPress();
+}
+
+/* Wave 35：家族ボードに体調管理サマリーを表示 */
+function renderHealthSummaryCard() {
+  const today = todayStr();
+  const allRecs = (S.health || []);
+  const todayRecs = allRecs.filter(r => (r.date || '') === today);
+  const lastRec = allRecs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||''))[0];
+  const fevered = todayRecs.filter(r => parseFloat(r.temp) >= 37.5);
+  const onMeds = todayRecs.filter(r => (r.medicine || r.meds || '').trim());
+  const total = allRecs.length;
+
+  // 一行サマリー
+  let summary = '';
+  if(todayRecs.length === 0) {
+    summary = total === 0
+      ? '体調・薬・症状をまとめて記録できます。'
+      : `今日の記録はまだありません（過去 ${total} 件保存中）`;
+  } else {
+    const parts = [];
+    if(fevered.length) parts.push(`<span style="color:var(--red);font-weight:700;">🌡 発熱中 ${fevered.length}人</span>`);
+    if(onMeds.length)  parts.push(`<span style="color:var(--orange);font-weight:700;">💊 薬の記録 ${onMeds.length}件</span>`);
+    if(!parts.length)  parts.push(`<span style="color:var(--secondary-dark);font-weight:700;">✓ 元気な記録 ${todayRecs.length}件</span>`);
+    summary = parts.join(' / ');
+  }
+
+  // 直近メンバープレビュー
+  let preview = '';
+  if(lastRec) {
+    const m = getMem(lastRec.child || lastRec.memberId || 'seito');
+    const mname = (m && m.name) || (lastRec.memberName || '');
+    const dateStr = (lastRec.date||'').slice(5).replace('-','/');
+    preview = `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">最新：${H(dateStr)} ${H(mname)} ${lastRec.temp?lastRec.temp+'℃':''} ${H(lastRec.cond||lastRec.status||'')}</div>`;
+  }
+
+  return `<div onclick="go('s-health')" style="margin:10px 16px 12px;padding:14px 16px;background:linear-gradient(135deg,#FFF5F5 0%,#FFE8E8 100%);border:1px solid #FFD4D4;border-radius:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(255,107,107,.12);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:38px;height:38px;border-radius:12px;background:#FF6B6B;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">体調管理</div>
+        <div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${summary}</div>
+      </div>
+      <div style="color:var(--text-muted);font-size:18px;flex-shrink:0;">›</div>
+    </div>
+    ${preview}
+  </div>`;
 }
 
 function postCardHtml(a, uid2) {
@@ -5754,75 +5906,413 @@ function submitBoardComment(postId) {
 /* ============================================================
    HEALTH
    ============================================================ */
+/* Wave 35：体調管理の選択肢定義 */
+const HEALTH_STATUSES = ['元気','少し不調','発熱','咳','鼻水','腹痛','頭痛','嘔吐','下痢','病院','薬あり','様子見'];
+const HEALTH_SYMPTOMS = ['咳','鼻水','発熱','喉の痛み','頭痛','腹痛','嘔吐','下痢','発疹','じんましん','倦怠感','寒気'];
+const HEALTH_APPETITES = ['普通','少ない','なし','多い'];
+const HEALTH_SLEEPS = ['よく寝た','途中で起きた','寝不足','昼寝多め'];
+const HEALTH_STOOLS = ['普通','やわらかい','下痢','便秘','未記録'];
+
+/* レコードを正規化して読む（旧スキーマ {child,temp,cond,meds,note} と新スキーマ両対応） */
+function normalizeHealthRec(r) {
+  if(!r) return r;
+  return {
+    id: r.id,
+    memberId: r.memberId || r.child || 'seito',
+    date: r.date || todayStr(),
+    time: r.time || '',
+    temp: r.temp != null ? r.temp : (r.temperature || ''),
+    status: r.status || (r.cond ? r.cond.split('・')[0] : '元気'),
+    symptoms: Array.isArray(r.symptoms) ? r.symptoms : (r.cond ? r.cond.split('・').filter(Boolean) : []),
+    medicine: r.medicine || r.meds || '',
+    medicineTime: r.medicineTime || '',
+    visitedHospital: !!r.visitedHospital,
+    hospitalName: r.hospitalName || '',
+    appetite: r.appetite || '',
+    sleep: r.sleep || '',
+    stool: r.stool || '',
+    note: r.note || '',
+    createdAt: r.createdAt || '',
+    updatedAt: r.updatedAt || ''
+  };
+}
+
+/* メンバー別タブ：'all' + MEMBERS */
+let _healthMemberFilter = 'all';
+function setHealthMemberFilter(id) { _healthMemberFilter = id; renderHealth(); }
+
 function renderHealth() {
+  // メンバータブ：家族全員 + 全 MEMBERS
   const tabEl = document.getElementById('health-child-tabs');
   if(tabEl) {
-    tabEl.innerHTML = CHILDREN.map((c,i)=>`<div class="child-tab ${i===S.healthChild?'on':''}" onclick="setHealthChild(${i})">
-      ${avHtml(c.id, 38, 16)}
-      <div class="child-tab-name">${H(c.name)}</div>
+    const tabs = [{id:'all', name:'家族全員', av:'家', grad:'linear-gradient(135deg,#9CA3AF,#D1D5DB)'}]
+      .concat(MEMBERS.map(m => ({id:m.id, name:m.name, av:m.av, grad:m.grad})));
+    tabEl.innerHTML = tabs.map(t => `<div class="child-tab ${_healthMemberFilter===t.id?'on':''}" onclick="setHealthMemberFilter('${H(t.id)}')">
+      <div class="av" style="background:${H(t.grad)};width:38px;height:38px;font-size:14px;">${H(t.av)}</div>
+      <div class="child-tab-name">${H(t.name)}</div>
     </div>`).join('');
   }
 
-  const child = CHILDREN[S.healthChild];
-  if(!child) return;
-  const recs = (S.health||[]).filter(r=>r.child===child.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const today = todayStr();
+  let recs = (S.health||[]).map(normalizeHealthRec);
+  if(_healthMemberFilter !== 'all') recs = recs.filter(r => r.memberId === _healthMemberFilter);
+  recs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||''));
+
+  const todayRecs = recs.filter(r => r.date === today);
+  const pastRecs = recs.filter(r => r.date !== today);
+
   const el = document.getElementById('health-list');
+  if(!el) return;
+
+  // 空状態
   if(!recs.length) {
-    el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.smile}" style="width:64px;height:64px;object-fit:contain">
-      <div class="empty-title">${H(child.name)}の記録がありません</div>
-      <div class="empty-desc">右上の＋ボタンで記録できます</div>
-    </div>`;
+    el.innerHTML = `<div style="padding:32px 24px;text-align:center;">
+      <div style="font-size:38px;margin-bottom:8px;">🌡</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">まだ体調記録がありません</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:16px;">発熱・薬・病院メモを残しておくと、<br>あとから家族で振り返りやすくなります。</div>
+      <button class="btn btn-primary" onclick="openHealthModal()" style="padding:10px 22px;">＋ 最初の記録を追加</button>
+    </div>` + healthDisclaimerHtml();
     return;
   }
-  el.innerHTML = recs.map(r => {
-    const fever = r.temp>=37.5;
-    const conds = (r.cond||'普通').split('・').map(c=>
-      `<span class="chip" style="background:${fever?'var(--red-light)':'var(--green-light)'};color:${fever?'var(--red)':'var(--secondary-dark)'}">${H(c)}</span>`
-    ).join('');
-    return `<div class="health-item">
-      <div style="min-width:52px">
-        <div style="font-size:11px;color:var(--text-muted)">${H(r.date.slice(5).replace('-','/'))}</div>
-        <div style="font-size:11px;color:var(--text-muted)">${r.date===todayStr()?'今日':jpDate(r.date).split('(')[0]}</div>
-      </div>
-      <div style="flex:1">
-        <div class="health-temp ${fever?'fever':'normal'}">${r.temp}℃</div>
-        <div class="health-conds">${conds}${r.meds?`<span class="chip" style="background:var(--orange-light);color:var(--orange)">${H(r.meds)}</span>`:''}</div>
-        ${r.note?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">${H(r.note)}</div>`:''}
-      </div>
-      <button onclick="deleteHealthRec('${H(r.id)}')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+
+  let html = '';
+
+  // 本日の体調セクション
+  html += `<div style="padding:14px 16px 6px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">本日の体調</div>`;
+  if(todayRecs.length) {
+    html += todayRecs.map(r => healthTodayCard(r)).join('');
+  } else {
+    html += `<div style="margin:0 16px 12px;padding:14px 16px;background:var(--bg-muted);border-radius:14px;text-align:center;">
+      <div style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">今日の体調記録はまだありません</div>
+      <button class="btn btn-outline btn-sm" onclick="openHealthModal()" style="padding:8px 16px;">＋ 今日の体調を記録する</button>
     </div>`;
-  }).join('');
+  }
+
+  // 過去の記録セクション
+  if(pastRecs.length) {
+    html += `<div style="padding:18px 16px 6px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">過去の記録</div>`;
+    // 日付グループ
+    const byDate = {};
+    pastRecs.forEach(r => {
+      const k = r.date || '';
+      (byDate[k] = byDate[k] || []).push(r);
+    });
+    const sortedDates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
+    html += sortedDates.map(d => {
+      const items = byDate[d];
+      return `<div style="padding:8px 16px 4px;font-size:12px;font-weight:700;color:var(--text-sub);">${H(jpDate(d))}</div>` +
+        items.map(r => healthPastRow(r)).join('');
+    }).join('');
+  }
+
+  // 免責
+  html += healthDisclaimerHtml();
+
+  el.innerHTML = html;
 }
 
-function setHealthChild(idx) { S.healthChild=idx; renderHealth(); }
+function healthTodayCard(r) {
+  const fever = parseFloat(r.temp) >= 37.5;
+  const m = getMem(r.memberId);
+  const symptoms = (r.symptoms || []).filter(Boolean);
+  const symptomsHtml = symptoms.length ? symptoms.map(s => `<span class="chip" style="background:${fever?'var(--red-light)':'var(--green-light)'};color:${fever?'var(--red)':'var(--secondary-dark)'};">${H(s)}</span>`).join('') : '';
+  const medChip = r.medicine ? `<span class="chip" style="background:var(--orange-light);color:var(--orange);">💊 ${H(r.medicine)}</span>` : '';
+  const hospChip = r.visitedHospital ? `<span class="chip" style="background:#EDE9FE;color:#7C3AED;">🏥 ${H(r.hospitalName||'病院受診')}</span>` : '';
+  return `<div class="health-today-card ${fever?'':'normal'}" onclick="openHealthEditModal('${H(r.id)}')" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      ${m ? `<div class="av" style="background:${H(m.grad)};width:32px;height:32px;font-size:13px;flex-shrink:0;">${H(m.av)}</div>` : ''}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">${m?H(m.name):'メンバー未指定'}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${r.time?H(r.time):'今日'}${r.status?' ・ '+H(r.status):''}</div>
+      </div>
+      ${r.temp?`<div style="font-size:22px;font-weight:800;color:${fever?'var(--red)':'var(--secondary-dark)'};flex-shrink:0;">${H(r.temp)}<span style="font-size:13px;font-weight:600;">℃</span></div>`:''}
+    </div>
+    ${symptomsHtml || medChip || hospChip ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">${symptomsHtml}${medChip}${hospChip}</div>` : ''}
+    ${r.note?`<div style="font-size:12px;color:var(--text-sub);line-height:1.55;background:rgba(255,255,255,.7);padding:6px 8px;border-radius:8px;">${H(r.note)}</div>`:''}
+  </div>`;
+}
 
+function healthPastRow(r) {
+  const fever = parseFloat(r.temp) >= 37.5;
+  const m = getMem(r.memberId);
+  const symptoms = (r.symptoms || []).filter(Boolean).join('・');
+  const meta = [];
+  if(r.temp) meta.push(`${r.temp}℃`);
+  if(symptoms) meta.push(symptoms);
+  else if(r.status) meta.push(r.status);
+  if(r.medicine) meta.push(`💊 ${r.medicine}`);
+  if(r.visitedHospital) meta.push(`🏥 ${r.hospitalName||'病院'}`);
+  return `<div class="health-rec-row" onclick="openHealthEditModal('${H(r.id)}')">
+    ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : ''}
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} ${r.time?`<span style="font-weight:500;color:var(--text-muted);font-size:11px;margin-left:4px;">${H(r.time)}</span>`:''}</div>
+      <div style="font-size:12px;color:${fever?'var(--red)':'var(--text-sub)'};margin-top:3px;line-height:1.5;">${H(meta.join(' / '))}</div>
+      ${r.note?`<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${H(r.note)}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function healthDisclaimerHtml() {
+  return `<div style="font-size:10px;color:var(--text-muted);margin:18px 16px 12px;line-height:1.6;background:var(--bg-muted);padding:10px 12px;border-radius:10px;text-align:left;">
+    ※ Familink の体調管理は、家族内の記録・共有を目的とした機能です。<br>診断や医療判断を行うものではありません。症状が強い場合や不安がある場合は、医療機関へご相談ください。
+  </div>`;
+}
+
+/* 旧 setHealthChild 互換（CHILDREN ベースの呼び出しが残っていた場合） */
+function setHealthChild(idx) {
+  const c = CHILDREN[idx];
+  _healthMemberFilter = c ? c.id : 'all';
+  S.healthChild = idx;
+  renderHealth();
+}
+
+/* 体調記録モーダル：新規・編集対応 */
 function openHealthModal() {
-  document.getElementById('hm-date').value=todayStr();
-  document.getElementById('hm-temp').value='';
-  document.getElementById('hm-cond').value='';
-  document.getElementById('hm-meds').value='';
-  document.getElementById('hm-note').value='';
+  _openHealthModalCore(null);
+}
+function openHealthEditModal(id) {
+  _openHealthModalCore(id);
+}
+
+function _openHealthModalCore(id) {
+  const isEdit = !!id;
+  const r = isEdit ? normalizeHealthRec((S.health||[]).find(x => x.id === id)) : null;
+
+  document.getElementById('hm-id').value = isEdit ? id : '';
+  document.querySelector('#m-health .modal-title').textContent = isEdit ? '体調記録を編集' : '体調を記録';
+  const delBtn = document.getElementById('hm-delete-btn');
+  if(delBtn) delBtn.style.display = isEdit ? 'block' : 'none';
+
+  // メンバー選択
+  const initialMember = (r && r.memberId) || (_healthMemberFilter !== 'all' ? _healthMemberFilter : 'seito');
+  document.getElementById('hm-member').value = initialMember;
+  renderHealthMemberBtns(initialMember);
+
+  // 日付・時刻
+  document.getElementById('hm-date').value = (r && r.date) || todayStr();
+  const now = new Date();
+  const defaultTime = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('hm-time').value = (r && r.time) || defaultTime;
+
+  // 体温
+  document.getElementById('hm-temp').value = (r && r.temp) || '';
+
+  // 体調ステータス
+  const initStatus = (r && r.status) || '元気';
+  document.getElementById('hm-status').value = initStatus;
+  renderHealthStatusChips(initStatus);
+
+  // 症状（複数選択）
+  _hmSelectedSymptoms = (r && r.symptoms) ? r.symptoms.slice() : [];
+  renderHealthSymptomChips();
+  document.getElementById('hm-symptoms-extra').value = '';
+
+  // 薬
+  document.getElementById('hm-medicine').value = (r && r.medicine) || '';
+  document.getElementById('hm-medicine-time').value = (r && r.medicineTime) || '';
+
+  // 病院
+  setHealthHospital(r ? !!r.visitedHospital : false);
+  document.getElementById('hm-hospital-name').value = (r && r.hospitalName) || '';
+
+  // 食欲・睡眠・便
+  const initApp = (r && r.appetite) || '';
+  document.getElementById('hm-appetite').value = initApp;
+  renderHealthAppetiteChips(initApp);
+  const initSleep = (r && r.sleep) || '';
+  document.getElementById('hm-sleep').value = initSleep;
+  renderHealthSleepChips(initSleep);
+  const initStool = (r && r.stool) || '';
+  document.getElementById('hm-stool').value = initStool;
+  renderHealthStoolChips(initStool);
+
+  // メモ
+  document.getElementById('hm-note').value = (r && r.note) || '';
+
   openModal('m-health');
 }
 
+function renderHealthMemberBtns(selected) {
+  const wrap = document.getElementById('hm-member-btns');
+  if(!wrap) return;
+  wrap.innerHTML = MEMBERS.map(m => `<button type="button" class="hm-mem-btn ${selected===m.id?'selected':''}" onclick="setHealthMember('${H(m.id)}')">
+    <span class="av" style="background:${H(m.grad)};width:20px;height:20px;font-size:9px;">${H(m.av)}</span>
+    ${H(m.name)}
+  </button>`).join('');
+}
+function setHealthMember(id) {
+  document.getElementById('hm-member').value = id;
+  renderHealthMemberBtns(id);
+}
+
+function renderHealthStatusChips(selected) {
+  const wrap = document.getElementById('hm-status-chips');
+  if(!wrap) return;
+  wrap.innerHTML = HEALTH_STATUSES.map(s => {
+    const cls = (s === '発熱' || s === '嘔吐' || s === '下痢' || s === '腹痛') ? 'fever' :
+                (s === '薬あり' || s === '病院') ? 'medicine' : '';
+    return `<button type="button" class="hm-chip ${cls} ${selected===s?'selected':''}" onclick="setHealthStatus('${H(s)}')">${H(s)}</button>`;
+  }).join('');
+}
+function setHealthStatus(s) {
+  document.getElementById('hm-status').value = s;
+  renderHealthStatusChips(s);
+}
+
+let _hmSelectedSymptoms = [];
+function renderHealthSymptomChips() {
+  const wrap = document.getElementById('hm-symptom-chips');
+  if(!wrap) return;
+  wrap.innerHTML = HEALTH_SYMPTOMS.map(s => `<button type="button" class="hm-chip ${_hmSelectedSymptoms.indexOf(s)>=0?'selected':''}" onclick="toggleHealthSymptom('${H(s)}')">${H(s)}</button>`).join('');
+}
+function toggleHealthSymptom(s) {
+  const i = _hmSelectedSymptoms.indexOf(s);
+  if(i >= 0) _hmSelectedSymptoms.splice(i, 1);
+  else _hmSelectedSymptoms.push(s);
+  renderHealthSymptomChips();
+}
+
+function setHealthHospital(visited) {
+  document.getElementById('hm-hospital').value = visited ? 'true' : 'false';
+  document.querySelectorAll('.hm-bin-btn').forEach(b => {
+    b.classList.toggle('on', (b.dataset.val === 'true') === !!visited);
+  });
+  const f = document.getElementById('hm-hospital-name-field');
+  if(f) f.style.display = visited ? '' : 'none';
+}
+
+function renderHealthAppetiteChips(selected) {
+  const wrap = document.getElementById('hm-appetite-chips');
+  if(!wrap) return;
+  wrap.innerHTML = HEALTH_APPETITES.map(s => `<button type="button" class="hm-chip ${selected===s?'selected':''}" onclick="setHealthAppetite('${H(s)}')">${H(s)}</button>`).join('');
+}
+function setHealthAppetite(s) {
+  const cur = document.getElementById('hm-appetite').value;
+  const next = cur === s ? '' : s;
+  document.getElementById('hm-appetite').value = next;
+  renderHealthAppetiteChips(next);
+}
+
+function renderHealthSleepChips(selected) {
+  const wrap = document.getElementById('hm-sleep-chips');
+  if(!wrap) return;
+  wrap.innerHTML = HEALTH_SLEEPS.map(s => `<button type="button" class="hm-chip ${selected===s?'selected':''}" onclick="setHealthSleep('${H(s)}')">${H(s)}</button>`).join('');
+}
+function setHealthSleep(s) {
+  const cur = document.getElementById('hm-sleep').value;
+  const next = cur === s ? '' : s;
+  document.getElementById('hm-sleep').value = next;
+  renderHealthSleepChips(next);
+}
+
+function renderHealthStoolChips(selected) {
+  const wrap = document.getElementById('hm-stool-chips');
+  if(!wrap) return;
+  wrap.innerHTML = HEALTH_STOOLS.map(s => `<button type="button" class="hm-chip ${selected===s?'selected':''}" onclick="setHealthStool('${H(s)}')">${H(s)}</button>`).join('');
+}
+function setHealthStool(s) {
+  const cur = document.getElementById('hm-stool').value;
+  const next = cur === s ? '' : s;
+  document.getElementById('hm-stool').value = next;
+  renderHealthStoolChips(next);
+}
+
 function saveHealth() {
+  const id = document.getElementById('hm-id').value;
+  const memberId = document.getElementById('hm-member').value || 'seito';
   const date = document.getElementById('hm-date').value;
-  const temp = parseFloat(document.getElementById('hm-temp').value);
-  const cond = document.getElementById('hm-cond').value.trim()||'普通';
-  const meds = document.getElementById('hm-meds').value.trim();
-  const note = document.getElementById('hm-note').value.trim();
-  if(!date||isNaN(temp)) { showToast('日付と体温を入力してください','error'); return; }
-  const child = CHILDREN[S.healthChild];
-  S.health.push({id:uid(),child:child?.id||'seito',date,temp,cond,note,meds});
-  saveS(); closeModal('m-health'); renderHealth();
-  showToast('体調を記録しました');
+  if(!date) { showToast('日付を入力してください','error'); return; }
+  const time = document.getElementById('hm-time').value || '';
+  const tempRaw = document.getElementById('hm-temp').value;
+  const temp = tempRaw ? parseFloat(tempRaw) : '';
+  if(tempRaw && (isNaN(temp) || temp < 34 || temp > 42)) { showToast('体温は 34〜42 ℃ の範囲で入力してください','error'); return; }
+  const status = document.getElementById('hm-status').value || '元気';
+  const symptoms = _hmSelectedSymptoms.slice();
+  const extra = (document.getElementById('hm-symptoms-extra').value || '').trim();
+  if(extra) symptoms.push(...extra.split(/[、,・\s]+/).filter(Boolean));
+  const medicine = (document.getElementById('hm-medicine').value || '').trim();
+  const medicineTime = document.getElementById('hm-medicine-time').value || '';
+  const visitedHospital = document.getElementById('hm-hospital').value === 'true';
+  const hospitalName = (document.getElementById('hm-hospital-name').value || '').trim();
+  const appetite = document.getElementById('hm-appetite').value || '';
+  const sleep = document.getElementById('hm-sleep').value || '';
+  const stool = document.getElementById('hm-stool').value || '';
+  const note = (document.getElementById('hm-note').value || '').trim();
+
+  const member = MEMBERS.find(m => m.id === memberId);
+  const memberName = (member && member.name) || '';
+
+  const now = new Date().toISOString();
+  if(!S.health) S.health = [];
+  try {
+    if(id) {
+      const r = S.health.find(x => x.id === id);
+      if(r) {
+        // 既存スキーマ互換のため両方のキーを更新
+        Object.assign(r, {
+          memberId, memberName, date, time,
+          temp: temp !== '' ? temp : '',
+          temperature: temp !== '' ? String(temp) : '',
+          status,
+          // 旧 cond は症状の '・' 連結で置換
+          cond: (symptoms.join('・')) || status,
+          symptoms,
+          medicine, meds: medicine,
+          medicineTime,
+          visitedHospital, hospitalName,
+          appetite, sleep, stool,
+          note,
+          updatedAt: now
+        });
+      }
+    } else {
+      S.health.push({
+        id: 'health_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+        // 旧スキーマ互換キー
+        child: memberId,
+        memberId, memberName, date, time,
+        temp: temp !== '' ? temp : '',
+        temperature: temp !== '' ? String(temp) : '',
+        status,
+        cond: (symptoms.join('・')) || status,
+        symptoms,
+        medicine, meds: medicine,
+        medicineTime,
+        visitedHospital, hospitalName,
+        appetite, sleep, stool,
+        note,
+        createdAt: now, updatedAt: now
+      });
+    }
+    saveS();
+  } catch(e) {
+    console.error('saveHealth failed', e);
+    showToast('保存に失敗しました。容量上限の可能性があります。','error');
+    return;
+  }
+  closeModal('m-health');
+  renderHealth();
+  if(typeof renderBoard === 'function' && S.screen === 's-board') renderBoard();
+  showToast(id ? '体調記録を更新しました' : '体調を記録しました');
+}
+
+function deleteCurrentHealth() {
+  const id = document.getElementById('hm-id').value;
+  if(!id) return;
+  showConfirm('記録を削除', 'この体調記録を削除しますか？この操作は元に戻せません。', '削除する', () => {
+    S.health = (S.health||[]).filter(r => r.id !== id);
+    saveS();
+    closeModal('m-health');
+    renderHealth();
+    if(typeof renderBoard === 'function' && S.screen === 's-board') renderBoard();
+    showToast('削除しました');
+  }, '');
 }
 
 function deleteHealthRec(id) {
-  showConfirm('記録を削除','この体調記録を削除しますか？','削除する', () => {
+  showConfirm('記録を削除','この体調記録を削除しますか？この操作は元に戻せません。','削除する', () => {
     S.health = (S.health||[]).filter(r=>r.id!==id);
-    saveS(); renderHealth(); showToast('削除しました','error');
+    saveS(); renderHealth(); showToast('削除しました');
   }, '');
 }
 
@@ -8103,8 +8593,30 @@ function voiceConfirmSave() {
       S.txs.push({ id:uid(), type:'expense', amount:amount, cat:'食費', desc: title || note || '音声入力', date, member: member||'kenya' });
       saved = true;
     } else if(cat === 'health') {
-      if(!isFinite(temp)) { showToast('体温を入力してください','error'); return; }
-      S.health.push({ id:uid(), child: member||'seito', date, temp, cond: title || '', note, meds:'' });
+      // 体温は任意（薬の記録だけのケースも許容）
+      const memberId = member || 'seito';
+      const mem = MEMBERS.find(m => m.id === memberId);
+      const symptoms = title ? title.split(/[、,・\s]+/).filter(Boolean) : [];
+      const status = isFinite(temp) && temp >= 37.5 ? '発熱' : (symptoms.length ? symptoms[0] : (title || '元気'));
+      const isoNow = new Date().toISOString();
+      const now = new Date();
+      S.health.push({
+        id: 'health_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+        child: memberId, memberId, memberName: (mem && mem.name) || '',
+        date,
+        time: String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'),
+        temp: isFinite(temp) ? temp : '',
+        temperature: isFinite(temp) ? String(temp) : '',
+        status,
+        cond: symptoms.join('・') || status,
+        symptoms,
+        medicine: '', meds: '',
+        medicineTime: '',
+        visitedHospital: false, hospitalName: '',
+        appetite: '', sleep: '', stool: '',
+        note: note || '',
+        createdAt: isoNow, updatedAt: isoNow
+      });
       saved = true;
     } else if(cat === 'board') {
       S.announces = S.announces || [];
