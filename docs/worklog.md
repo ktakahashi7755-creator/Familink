@@ -3055,3 +3055,61 @@ MVP v0.1 リリース — 正式タグ付け + リリースノート
 ### コミット
 - ハッシュ: 本エントリを含むコミットで記録
 - メッセージ: `MVP v0.1 release - notes + git tag mvp-v0.1`
+
+---
+
+## 2026-05-03 23:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 24：プロダクト再構築ドキュメント群（要件定義 v2 + 設計 v2 + ロードマップ + INDEX）
+
+### 変更ファイル（新規 7 件）
+- `docs/CURRENT-STATE-ANALYSIS-2026-05-03.md` — 現状分析（10 セクション）
+- `docs/SPEC-v2-REQUIREMENTS-2026-05-03.md` — 統合要件定義 v2
+- `docs/SPEC-v2-SCREENS-2026-05-03.md` — 17 画面 + 遷移図 + モーダル
+- `docs/SPEC-v2-USE-CASES-2026-05-03.md` — 7 ユーザーストーリー + 10 ユースケース
+- `docs/SPEC-v2-DATA-MODEL-2026-05-03.md` — 全データモデル + LS 構造
+- `docs/REDEV-ROADMAP-2026-05-03.md` — 6 Phase + v0.2/v1.0/v2.0 計画
+- `docs/IMPLEMENTATION-PROMPT-NEXT.md` — 次セッション用実装プロンプト 10 種
+- `docs/DOCS-INDEX.md` — 53 ドキュメント INDEX + 役割別推奨読書順
+- `docs/TOP10-SUMMARY-2026-05-03.md` — 8 項目 TOP サマリー
+
+### 目的
+「現在の混在した要件・実装・UI・未実装部分を一度すべて整理し、再開発できるレベルのドキュメント群を作成」
+（ユーザー指示）
+
+### 構造
+- Phase 1：現状分析 → CURRENT-STATE-ANALYSIS
+- Phase 2：要件再定義 → SPEC-v2-REQUIREMENTS / SCREENS / USE-CASES / DATA-MODEL
+- Phase 3：設計再構築 → 既存 architecture-overview / board-experience-design / hoku-guideline で充足
+- Phase 4：実装修正 → MVP v0.1 完了済（Wave 1-23）
+- Phase 5：テスト → 301/301 PASS（Wave 22）
+- Phase 6：リリース準備 → RELEASE-NOTES-MVP-v0.1 / app-store-metadata
+- Phase 7：継続改善 → REDEV-ROADMAP / IMPLEMENTATION-PROMPT-NEXT
+
+### コード変更
+なし（ドキュメントのみ追加）
+- app-source/familink.html：変更なし
+- docs/index.html：変更なし
+- 既存テスト 301/301 PASS 維持
+
+### Top 10 修正課題（残）
+1. iPhone 実機 音声検証（HIGH）
+2. iPhone 実機 操作感確認（HIGH）
+3. 法務確認（HIGH）
+4. App Store スクショ（HIGH）
+5. WKWebView ラッパー（HIGH）
+6. 家族 2 端末同期 QR（MED）
+7. 通知 / 週次サマリー（MED）
+8. プレミアム実体価値（MED）
+9. Hoku 文脈応答（MED）
+10. カメラ実起動（MED）
+
+### 次にやること
+- iPhone 実機検証（playbook で）
+- 不具合報告を待って Wave 25 で修正
+- 並行で v0.2 タスク着手（家族同期 / 通知）
+
+### コミット
+- ハッシュ: 本エントリを含むコミットで記録
+- メッセージ: `wave 24: redev docs - SPEC-v2 + ROADMAP + INDEX + IMPLEMENTATION-PROMPT-NEXT`
