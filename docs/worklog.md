@@ -3958,3 +3958,45 @@ Wave 44: スワイプナビゲーションを iOS / Android ネイティブ風�
 
 ### コミット
 - メッセージ: `wave 44: edge-based swipe navigation (iOS/Android native feel)`
+
+---
+
+## 2026-05-04 18:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 45: 上端から下スワイプで詳細画面を閉じる
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- Wave 44 の左右エッジスワイプに加え、**上端 40px 起点 → 下に 80px 以上スワイプで詳細画面を閉じる** ジェスチャを追加
+- 対象画面：`s-board-detail` / `s-cdetail` / `s-custom-board`（`SWIPE_DETAIL_SCREENS` 定数化）
+- メイン画面（s-home, s-cal, s-task 等）では上端→下スワイプは無反応（縦スクロール / プルリフレッシュとの誤解防止）
+- 縦スワイプ用の許容横ブレ：`SWIPE_MAX_X_FOR_VERTICAL = 60`（横より 60px 以上ぶれたら誤発火扱い）
+- `_swipeOnTouchMove` に edge='top' 用の分岐追加：横移動が主体になったらキャンセル
+- 新関数：`_swipeCloseDetail()`（詳細画面に居れば goBack）
+- 既存の左右エッジスワイプ・モーダル/入力ブロック・カレンダー除外などの仕様は維持
+
+### テスト結果
+- Wave 45 top swipe smoke：15/15 PASS（CDP `Input.dispatchTouchEvent`）
+  - 定数 / 関数定義 / 詳細→goBack / メインで無反応 / 上方向で無反応 /
+    中央起点で無反応 / 短距離無反応 / 横移動優位で無反応 / モーダル中ブロック /
+    カスタムボード詳細でも閉じる / Wave 44 regression
+- 既存 22 suites regression：全 PASS（564/564）
+
+### 未確認事項
+- iPhone Safari 実機での上端ジェスチャの操作感（OS のステータスバー領域との干渉確認）
+
+### iPhone 確認ポイント
+- ボード詳細画面で上端から下にスワイプ → 詳細を閉じて一覧へ戻る
+- カスタムボード詳細でも同様
+- メイン画面（ホーム / カレンダー等）では何も起きない（縦スクロールが普通に効く）
+- ボード詳細でモーダル開いている時は上端スワイプで反応しない
+
+### 次にやること
+- iPhone 実機での総合的な操作感確認（左右 + 上の 3 方向ジェスチャ）
+
+### コミット
+- メッセージ: `wave 45: top-edge swipe-down to close detail screens`

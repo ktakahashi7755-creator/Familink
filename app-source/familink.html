@@ -10197,18 +10197,23 @@ function qaDebugTestHoku() {
 window.addEventListener('DOMContentLoaded', init);
 
 /* ============================================================
-   Wave 44：iOS / Android ネイティブ風エッジスワイプによるページ遷移
+   Wave 44/45：iOS / Android ネイティブ風エッジスワイプによるページ遷移
    - 左端からスワイプ右 → 戻る（前のページ / 詳細画面なら goBack）
    - 右端からスワイプ左 → 次のページ
+   - 上端からスワイプ下 → 詳細画面を閉じる（goBack） ※ Wave 45
    - 中央でのスワイプは無効（横スクロール / カレンダー等と競合させない）
    - スクロール / 入力 / モーダルとは競合させない
    ============================================================ */
 const SWIPE_PAGE_ORDER = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
+const SWIPE_DETAIL_SCREENS = ['s-board-detail','s-cdetail','s-custom-board'];
 const SWIPE_THRESHOLD_X = 60;       // エッジ起点なので少し緩める
-const SWIPE_MAX_Y = 60;
+const SWIPE_THRESHOLD_Y = 80;       // 上端 → 下スワイプ用（横より大きめにして誤発火防止）
+const SWIPE_MAX_Y = 60;             // 横スワイプ時の許容垂直差
+const SWIPE_MAX_X_FOR_VERTICAL = 60;// 縦スワイプ時の許容水平差
 const SWIPE_MAX_DURATION_MS = 800;
 const SWIPE_MIN_DURATION_MS = 60;
 const SWIPE_EDGE_ZONE_PX = 40;      // 左右エッジ判定幅（iOS の interactive pop と同等）
+const SWIPE_TOP_EDGE_PX = 40;       // 上端エッジ判定幅
 const _swipeBlockSelectors = [
   'input', 'textarea', 'select',
   '[contenteditable="true"]',
@@ -10235,8 +10240,7 @@ function _swipeShouldBlock(target) {
 
 function _swipeGoBack() {
   const cur = S.screen;
-  const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
-  if(detailScreens.indexOf(cur) >= 0) { goBack(); return; }
+  if(SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0) { goBack(); return; }
   const idx = SWIPE_PAGE_ORDER.indexOf(cur);
   if(idx <= 0) return;
   const prev = SWIPE_PAGE_ORDER[idx - 1];
@@ -10247,14 +10251,19 @@ function _swipeGoBack() {
 
 function _swipeGoForward() {
   const cur = S.screen;
-  const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
-  if(detailScreens.indexOf(cur) >= 0) return;
+  if(SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0) return;
   const idx = SWIPE_PAGE_ORDER.indexOf(cur);
   if(idx < 0 || idx >= SWIPE_PAGE_ORDER.length - 1) return;
   const next = SWIPE_PAGE_ORDER[idx + 1];
   const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
   if(tabBar.indexOf(next) >= 0 && typeof switchTab === 'function') switchTab(next);
   else go(next);
+}
+
+// Wave 45：上端 → 下スワイプで詳細画面を閉じる
+function _swipeCloseDetail() {
+  const cur = S.screen;
+  if(SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0) { goBack(); }
 }
 
 // 後方互換：方向値を受け取って戻る/進むを呼ぶ
@@ -10268,8 +10277,10 @@ function _swipeOnTouchStart(e) {
   const t = e.touches[0];
   const w = window.innerWidth || document.documentElement.clientWidth || 0;
   // エッジ起点でなければスワイプ判定を開始しない
+  // 優先順位：上端（詳細画面のみ） > 左端 > 右端
   let edge = null;
-  if(t.clientX <= SWIPE_EDGE_ZONE_PX) edge = 'left';
+  if(t.clientY <= SWIPE_TOP_EDGE_PX && SWIPE_DETAIL_SCREENS.indexOf(S.screen) >= 0) edge = 'top';
+  else if(t.clientX <= SWIPE_EDGE_ZONE_PX) edge = 'left';
   else if(t.clientX >= w - SWIPE_EDGE_ZONE_PX) edge = 'right';
   if(!edge) { _swipeStart = null; _swipeBlocked = false; return; }
   if(_swipeShouldBlock(e.target)) { _swipeBlocked = true; _swipeStart = null; return; }
@@ -10283,6 +10294,14 @@ function _swipeOnTouchMove(e) {
   const t = e.touches[0];
   const dx = t.clientX - _swipeStart.x;
   const dy = t.clientY - _swipeStart.y;
+  // 上端起点なら縦移動が主体なので、横移動が主体になったら破棄
+  if(_swipeStart.edge === 'top') {
+    if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 24) {
+      _swipeStart = null;
+    }
+    return;
+  }
+  // 左右端起点なら、縦スクロール優先
   if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 24) {
     _swipeStart = null;
     return;
@@ -10299,6 +10318,13 @@ function _swipeOnTouchEnd(e) {
   const edge = _swipeStart.edge;
   _swipeStart = null;
   if(dt > SWIPE_MAX_DURATION_MS || dt < SWIPE_MIN_DURATION_MS) return;
+  if(edge === 'top') {
+    // 上端起点：下方向スワイプで詳細画面を閉じる
+    if(dy < SWIPE_THRESHOLD_Y) return;
+    if(Math.abs(dx) > SWIPE_MAX_X_FOR_VERTICAL) return;
+    _swipeCloseDetail();
+    return;
+  }
   if(Math.abs(dy) > SWIPE_MAX_Y) return;
   if(Math.abs(dx) < SWIPE_THRESHOLD_X) return;
   // 左端起点で右スワイプ → 戻る、右端起点で左スワイプ → 進む
