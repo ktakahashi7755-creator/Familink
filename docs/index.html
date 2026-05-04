@@ -843,9 +843,19 @@ select.input {
 .cal-week-slot:nth-child(4n) { border-bottom-color: #E0E8F5; }
 .cal-wk-ev {
   position: absolute; left: 1px; right: 1px;
-  border-radius: 3px; padding: 1px 3px; font-size: 9px; font-weight: 700;
-  overflow: hidden; cursor: pointer; line-height: 1.3; color: #fff;
+  border-radius: 4px; padding: 3px 4px; font-size: 10px; font-weight: 700;
+  overflow: hidden; cursor: pointer; line-height: 1.25; color: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: manipulation;
+  transition: transform .12s, box-shadow .12s, opacity .12s;
 }
+.cal-wk-ev:active { transform: scale(.96); }
+.cal-wk-ev.dragging { opacity: .55; box-shadow: 0 4px 12px rgba(0,0,0,.25); transform: scale(1.04); }
+.cal-wk-ev .wk-ev-time { font-size: 9px; font-weight: 600; opacity: .9; }
+.cal-wk-ev .wk-ev-title { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-wk-ev .wk-ev-mem { font-size: 9px; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── リスト表示 ── */
 .cal-list-view {
@@ -2296,7 +2306,7 @@ nav#tabbar.hidden { display: none !important; }
 <!-- ===== CALENDAR ===== -->
 <div id="s-cal" class="screen hidden">
 
-  <!-- ヘッダー：月ナビ + 今日ボタン -->
+  <!-- ヘッダー：月ナビ + 今日ボタン + 外部取り込み -->
   <div class="cal-hd">
     <div class="cal-hd-nav">
       <button class="cal-hd-btn" onclick="changeCalMonth(-1)" aria-label="前の月">
@@ -2307,7 +2317,13 @@ nav#tabbar.hidden { display: none !important; }
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
-    <button class="cal-today-pill" onclick="goToday()">今日</button>
+    <div style="display:flex;gap:6px;">
+      <button class="cal-today-pill" onclick="openIcsImportModal()" title="外部カレンダーから取り込み" aria-label="外部カレンダーから取り込み" style="background:var(--bg-muted);color:var(--text-sub);padding:0 10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        取込
+      </button>
+      <button class="cal-today-pill" onclick="goToday()">今日</button>
+    </div>
   </div>
 
   <!-- ビュー切替：月 / 週 / リスト -->
@@ -4097,10 +4113,26 @@ function renderCalWeek() {
       const c = getMemberColor(e.member);
       const [hh,mm] = e.time.split(':').map(Number);
       const startMin = (hh-7)*60 + mm;
-      const topPx = startMin / 60 * 44;
-      const heightPx = Math.max(22, 44); // 1時間分
-      return `<div class="cal-wk-ev" style="top:${topPx}px;height:${heightPx}px;background:${c};"
-        onclick="openEventModal('${H(e.id)}')">${H(e.title.slice(0,5))}</div>`;
+      const topPx = Math.max(0, startMin / 60 * 44);
+      // 所要時間：endTime があれば使用、なければデフォルト 60 分
+      let durMin = 60;
+      if(e.endTime) {
+        const [eh, em] = e.endTime.split(':').map(Number);
+        const endMin = eh * 60 + em;
+        const startTotalMin = hh * 60 + mm;
+        if(endMin > startTotalMin) durMin = endMin - startTotalMin;
+      }
+      const heightPx = Math.max(28, durMin / 60 * 44 - 1);
+      const mem = e.member ? getMem(e.member) : null;
+      const memName = (mem && mem.name) || '';
+      const showTitle = e.title && heightPx >= 36;
+      const showMember = memName && heightPx >= 50;
+      return `<div class="cal-wk-ev" data-evid="${H(e.id)}" style="top:${topPx}px;height:${heightPx}px;background:${c};"
+        onclick="openEventModal('${H(e.id)}')">
+        <div class="wk-ev-time">${H(e.time)}</div>
+        ${showTitle ? `<div class="wk-ev-title">${H(e.title)}</div>` : ''}
+        ${showMember ? `<div class="wk-ev-mem">${H(memName)}</div>` : ''}
+      </div>`;
     }).join('');
 
     dayCols.push(`<div class="cal-week-col-day">${slots}${evBoxes}</div>`);
@@ -4116,6 +4148,379 @@ function renderCalWeek() {
       </div>
     </div>
   </div>`;
+  // Wave 40：長押しで予定移動モーダル
+  _bindCalWeekLongPress();
+}
+
+/* Wave 40：週ビューの予定カードに長押しバインドを設定（移動モーダル起動） */
+let _calLpTimer = null;
+let _calLpStart = null;
+let _calLpFired = false;
+const CAL_LP_THRESHOLD_MS = 600;
+const CAL_LP_MOVE_THRESHOLD_PX = 12;
+function _bindCalWeekLongPress() {
+  document.querySelectorAll('.cal-wk-ev[data-evid]').forEach(el => {
+    if(el._lpBound) return;
+    el._lpBound = true;
+    const evid = el.getAttribute('data-evid');
+    const start = (e) => {
+      _calLpFired = false;
+      if(_calLpTimer) clearTimeout(_calLpTimer);
+      const t = (e.touches && e.touches[0]) || e;
+      _calLpStart = (typeof t.clientX === 'number') ? { x: t.clientX, y: t.clientY } : { x:0, y:0 };
+      _calLpTimer = setTimeout(() => {
+        _calLpFired = true;
+        el.classList.add('dragging');
+        if(navigator.vibrate) try { navigator.vibrate(15); } catch(_e) {}
+        openEventMoveModal(evid);
+        setTimeout(() => el.classList.remove('dragging'), 250);
+      }, CAL_LP_THRESHOLD_MS);
+    };
+    const cancel = () => {
+      if(_calLpTimer) { clearTimeout(_calLpTimer); _calLpTimer = null; }
+      _calLpStart = null;
+      el.classList.remove('dragging');
+    };
+    const move = (e) => {
+      if(!_calLpStart || !_calLpTimer) return;
+      const t = (e.touches && e.touches[0]) || e;
+      if(typeof t.clientX !== 'number') return;
+      const dx = t.clientX - _calLpStart.x, dy = t.clientY - _calLpStart.y;
+      if(Math.hypot(dx, dy) > CAL_LP_MOVE_THRESHOLD_PX) cancel();
+    };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchend', cancel);
+    el.addEventListener('touchmove', move, { passive: true });
+    el.addEventListener('touchcancel', cancel);
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', cancel);
+    el.addEventListener('mouseleave', cancel);
+    el.addEventListener('mousemove', move);
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
+    // 長押し発火後の click は抑止
+    el.addEventListener('click', (e) => {
+      if(_calLpFired) {
+        e.stopPropagation();
+        e.preventDefault();
+        _calLpFired = false;
+      }
+    }, true);
+  });
+}
+
+/* Wave 40：予定の移動モーダルを開く */
+let _moveTargetEvId = null;
+function openEventMoveModal(evid) {
+  const e = (S.events||[]).find(x => x.id === evid);
+  if(!e) return;
+  _moveTargetEvId = evid;
+  const titleEl = document.getElementById('mv-ev-title');
+  const curEl = document.getElementById('mv-current');
+  const dateInp = document.getElementById('mv-new-date');
+  const timeInp = document.getElementById('mv-new-time');
+  const endTimeInp = document.getElementById('mv-new-endtime');
+  if(titleEl) titleEl.textContent = e.title || '(無題)';
+  if(curEl) {
+    const dStr = (e.date||'').replace(/^\d{4}-/,'').replace('-','/');
+    curEl.textContent = `現在：${dStr} ${e.time||''}${e.endTime?'〜'+e.endTime:''}`;
+  }
+  if(dateInp) dateInp.value = e.date || todayStr();
+  if(timeInp) timeInp.value = e.time || '09:00';
+  if(endTimeInp) endTimeInp.value = e.endTime || '';
+  openModal('m-event-move');
+}
+
+function executeEventMove() {
+  const id = _moveTargetEvId; if(!id) return;
+  const e = (S.events||[]).find(x => x.id === id);
+  if(!e) return;
+  const newDate = document.getElementById('mv-new-date').value;
+  const newTime = document.getElementById('mv-new-time').value;
+  const newEndTime = document.getElementById('mv-new-endtime').value;
+  if(!newDate) { showToast('日付を入力してください','error'); return; }
+  if(!newTime) { showToast('時刻を入力してください','error'); return; }
+  // 終了時刻が開始より前ならエラー
+  if(newEndTime && newDate === e.date && newEndTime <= newTime) {
+    showToast('終了時刻は開始時刻より後にしてください','error'); return;
+  }
+  // 確認文言を一度組み立てる（モーダル下部に既に出している場合は不要）
+  e.date = newDate;
+  e.time = newTime;
+  if(newEndTime) e.endTime = newEndTime;
+  if(newDate !== e.date) e.endDate = newDate;
+  e.updatedAt = new Date().toISOString();
+  saveS();
+  closeModal('m-event-move');
+  renderCal();
+  // Toast
+  const dStr = newDate.replace(/^\d{4}-/,'').replace('-','/');
+  showToast(`予定を ${dStr} ${newTime} に移動しました`);
+  _moveTargetEvId = null;
+}
+
+function cancelEventMove() {
+  closeModal('m-event-move');
+  _moveTargetEvId = null;
+}
+
+/* ============================================================
+   Wave 40：ICS インポート（Vanilla JS パーサー）
+   外部 API / 依存ゼロ。BEGIN:VEVENT〜END:VEVENT を抽出し、
+   主要フィールド（UID/SUMMARY/DTSTART/DTEND/DESCRIPTION/LOCATION/RRULE）を
+   Familink の S.events 形式へ変換。
+   ============================================================ */
+let _icsPreviewItems = [];
+
+function openIcsImportModal() {
+  const fileInput = document.getElementById('ics-file-input');
+  const textInput = document.getElementById('ics-text-input');
+  const preview = document.getElementById('ics-preview');
+  if(fileInput) fileInput.value = '';
+  if(textInput) textInput.value = '';
+  if(preview) preview.style.display = 'none';
+  _icsPreviewItems = [];
+  openModal('m-ics-import');
+}
+
+function onIcsFileSelected(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result || '';
+    document.getElementById('ics-text-input').value = text;
+    parseIcsAndPreview();
+  };
+  reader.onerror = () => { showToast('ファイル読み込みに失敗しました','error'); };
+  reader.readAsText(file);
+}
+
+/* ICS パーサー：折返し（行頭スペースで継続）とプロパティパラメータに対応 */
+function parseIcsText(raw) {
+  if(!raw || typeof raw !== 'string') return { events: [], errors: ['空のデータです'] };
+  // CRLF / LF を統一
+  let text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // 折返し行（行頭がスペース or タブ）を前の行に連結
+  text = text.replace(/\n[ \t]/g, '');
+  const lines = text.split('\n');
+
+  const events = [];
+  const errors = [];
+  let cur = null;
+  let inEvent = false;
+  // PRODID を取り出してプロバイダ推定に使う
+  let prodid = '';
+  for(const line of lines) {
+    if(!line) continue;
+    const upperHead = line.split(':')[0].toUpperCase();
+    if(upperHead === 'PRODID') { prodid = (line.split(':')[1] || '').toLowerCase(); continue; }
+    if(line.toUpperCase() === 'BEGIN:VEVENT') { cur = {}; inEvent = true; continue; }
+    if(line.toUpperCase() === 'END:VEVENT') {
+      if(cur) {
+        try {
+          const ev = _icsToEvent(cur, prodid);
+          if(ev) events.push(ev);
+          else errors.push('解析できない予定が 1 件ありました（DTSTART/SUMMARY 不足）');
+        } catch(e) { errors.push('予定変換エラー：' + e.message); }
+      }
+      cur = null; inEvent = false; continue;
+    }
+    if(!inEvent || !cur) continue;
+    // プロパティ：name[;params]:value
+    const colonIdx = line.indexOf(':');
+    if(colonIdx < 0) continue;
+    const head = line.substring(0, colonIdx);
+    const value = line.substring(colonIdx + 1);
+    const semiIdx = head.indexOf(';');
+    const name = (semiIdx >= 0 ? head.substring(0, semiIdx) : head).toUpperCase();
+    const paramsStr = semiIdx >= 0 ? head.substring(semiIdx + 1) : '';
+    const params = {};
+    paramsStr.split(';').filter(Boolean).forEach(p => {
+      const eq = p.indexOf('=');
+      if(eq > 0) params[p.substring(0, eq).toUpperCase()] = p.substring(eq + 1);
+    });
+    cur[name] = { value: value, params: params };
+  }
+  return { events, errors };
+}
+
+/* ICS の単一 VEVENT を Familink の event オブジェクトへ変換 */
+function _icsToEvent(props, prodid) {
+  const summary = (props['SUMMARY'] && _icsUnescape(props['SUMMARY'].value)) || '';
+  const dtstart = props['DTSTART'];
+  if(!dtstart || !dtstart.value) return null;
+  const sd = _parseIcsDateTime(dtstart.value, dtstart.params);
+  if(!sd) return null;
+  const dtend = props['DTEND'];
+  let ed = null;
+  if(dtend && dtend.value) ed = _parseIcsDateTime(dtend.value, dtend.params);
+
+  const description = (props['DESCRIPTION'] && _icsUnescape(props['DESCRIPTION'].value)) || '';
+  const location = (props['LOCATION'] && _icsUnescape(props['LOCATION'].value)) || '';
+  const uid = (props['UID'] && props['UID'].value) || '';
+  const rrule = (props['RRULE'] && props['RRULE'].value) || '';
+
+  // RRULE → 簡易 repeat 変換
+  let repeat = '';
+  if(rrule) {
+    const u = rrule.toUpperCase();
+    if(/FREQ=DAILY/.test(u)) repeat = 'daily';
+    else if(/FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR/.test(u)) repeat = 'weekdays';
+    else if(/FREQ=WEEKLY/.test(u)) repeat = 'weekly';
+    else if(/FREQ=MONTHLY/.test(u)) repeat = 'monthly';
+  }
+
+  // プロバイダ推定
+  let provider = 'unknown';
+  if(/google/i.test(prodid)) provider = 'google';
+  else if(/apple|icloud|mac|cal/i.test(prodid)) provider = 'apple';
+  else if(/yahoo/i.test(prodid)) provider = 'yahoo';
+  else if(/outlook|microsoft/i.test(prodid)) provider = 'outlook';
+  else if(/familink/i.test(prodid)) provider = 'familink';
+
+  return {
+    title: summary || '(無題の予定)',
+    date: sd.date, time: sd.time,
+    endDate: ed ? ed.date : '',
+    endTime: ed ? ed.time : '',
+    note: description,
+    location: location,
+    repeat: repeat,
+    externalId: uid,
+    externalProvider: provider,
+    source: 'ics',
+    color: '#4A90E2',
+    member: ''
+  };
+}
+
+function _icsUnescape(s) {
+  return String(s||'')
+    .replace(/\\n/gi, '\n')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\\\/g, '\\');
+}
+
+/* ICS DATE / DATE-TIME 値をパース。Z 付きは UTC として日本時刻に変換 */
+function _parseIcsDateTime(val, params) {
+  if(!val) return null;
+  // VALUE=DATE 終日
+  const isDateOnly = (params && (params.VALUE||'').toUpperCase() === 'DATE') || /^\d{8}$/.test(val);
+  let m;
+  if(isDateOnly && (m = /^(\d{4})(\d{2})(\d{2})$/.exec(val))) {
+    return { date: `${m[1]}-${m[2]}-${m[3]}`, time: '' };
+  }
+  // YYYYMMDDTHHMMSSZ（UTC）
+  if((m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(val))) {
+    const utc = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+    // ローカル（端末タイムゾーン）に変換
+    const yyyy = utc.getFullYear();
+    const mm = String(utc.getMonth()+1).padStart(2,'0');
+    const dd = String(utc.getDate()).padStart(2,'0');
+    const hh = String(utc.getHours()).padStart(2,'0');
+    const mi = String(utc.getMinutes()).padStart(2,'0');
+    return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` };
+  }
+  // YYYYMMDDTHHMMSS（フローティング/TZID 指定）
+  if((m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/.exec(val))) {
+    return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` };
+  }
+  return null;
+}
+
+/* 解析 + プレビュー描画 */
+function parseIcsAndPreview() {
+  const text = (document.getElementById('ics-text-input').value || '').trim();
+  if(!text) { showToast('ICS ファイルまたはテキストを入力してください','error'); return; }
+  const { events, errors } = parseIcsText(text);
+  if(!events.length) {
+    showToast('予定が見つかりませんでした。形式をご確認ください。','error');
+    if(errors.length) console.warn('ICS parse errors:', errors);
+    return;
+  }
+  // 重複候補の判定（既存 S.events と externalId / title+date+time で照合）
+  const existing = (S.events || []);
+  _icsPreviewItems = events.map((e, i) => {
+    let dup = null;
+    if(e.externalId) {
+      dup = existing.find(x => x.externalId && x.externalId === e.externalId);
+    }
+    if(!dup) {
+      dup = existing.find(x => x.title === e.title && x.date === e.date && x.time === e.time);
+    }
+    return { idx: i, ev: e, isDup: !!dup, dupId: dup ? dup.id : null, selected: !dup };
+  });
+  // プレビュー描画
+  const sumEl = document.getElementById('ics-preview-summary');
+  const listEl = document.getElementById('ics-preview-list');
+  const wrap = document.getElementById('ics-preview');
+  if(sumEl) {
+    const dupCount = _icsPreviewItems.filter(x => x.isDup).length;
+    let s = `取り込み候補：${events.length} 件`;
+    if(dupCount) s += ` / 重複候補：${dupCount} 件`;
+    if(errors.length) s += ` / 解析できなかった予定：${errors.length} 件`;
+    sumEl.textContent = s;
+  }
+  if(listEl) {
+    listEl.innerHTML = _icsPreviewItems.map(x => {
+      const e = x.ev;
+      const dStr = (e.date||'').replace(/^\d{4}-/,'').replace('-','/');
+      const provider = e.externalProvider && e.externalProvider !== 'unknown' ? `[${e.externalProvider}]` : '';
+      return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border-light);cursor:pointer;">
+        <input type="checkbox" data-idx="${x.idx}" ${x.selected?'checked':''} style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${H(e.title)}${x.isDup?' <span style="color:var(--orange);font-size:10px;font-weight:600;">⚠ 重複の可能性</span>':''}</div>
+          <div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${H(dStr)}${e.time?' '+H(e.time):''}${e.endTime?'〜'+H(e.endTime):''}${e.location?' / '+H(e.location):''} ${H(provider)}</div>
+          ${e.note?`<div style="font-size:10px;color:var(--text-muted);margin-top:2px;white-space:pre-wrap;">${H(e.note.slice(0,80))}${e.note.length>80?'…':''}</div>`:''}
+        </div>
+      </label>`;
+    }).join('');
+  }
+  if(wrap) wrap.style.display = 'block';
+}
+
+function icsPreviewSelectAll(sel) {
+  document.querySelectorAll('#ics-preview-list input[type=checkbox]').forEach(c => { c.checked = !!sel; });
+}
+
+function executeIcsImport() {
+  // 選択チェックを反映
+  document.querySelectorAll('#ics-preview-list input[type=checkbox]').forEach(c => {
+    const i = parseInt(c.getAttribute('data-idx'), 10);
+    const item = _icsPreviewItems.find(x => x.idx === i);
+    if(item) item.selected = c.checked;
+  });
+  const toImport = _icsPreviewItems.filter(x => x.selected);
+  if(!toImport.length) { showToast('取り込む予定を選択してください','error'); return; }
+  const now = new Date().toISOString();
+  if(!S.events) S.events = [];
+  let added = 0, skipped = 0;
+  toImport.forEach(x => {
+    if(x.isDup && x.dupId) {
+      // 重複は既存予定を上書き
+      const ex = S.events.find(e => e.id === x.dupId);
+      if(ex) {
+        Object.assign(ex, x.ev);
+        ex.id = ex.id; // 保持
+        ex.updatedAt = now;
+        ex.importedAt = now;
+        added++;
+      } else { skipped++; }
+    } else {
+      S.events.push(Object.assign({}, x.ev, {
+        id: 'event_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        importedAt: now,
+        createdAt: now,
+        updatedAt: now
+      }));
+      added++;
+    }
+  });
+  saveS();
+  closeModal('m-ics-import');
+  renderCal();
+  showToast(`${added} 件を取り込みました${skipped?` / ${skipped} 件スキップ`:''}`);
 }
 
 function selCalDayKeepView(ds) { S.calSel=ds; renderCal(); }
@@ -4258,7 +4663,7 @@ function deleteCurrentEvent() {
   showConfirm('予定を削除','この予定を削除しますか？','削除する', () => {
     S.events = (S.events||[]).filter(e=>e.id!==eid);
     saveS(); closeModal('m-event'); renderCal(); renderHome();
-    showToast('削除しました','error');
+    showToast('削除しました');
   }, '');
 }
 
@@ -4859,7 +5264,7 @@ function deleteTaskFromModal(){
   showConfirm('タスクを削除','このタスクを削除しますか？','削除する',()=>{
     S.tasks=(S.tasks||[]).filter(t=>t.id!==id);
     saveS();closeModal('m-task-edit');renderTaskScreen();renderHome();
-    showToast('削除しました','error');
+    showToast('削除しました');
   },'');
 }
 
@@ -5818,7 +6223,7 @@ function deleteCurrentPost() {
   showConfirm('投稿を削除',`「${a.title}」を削除しますか？`,'削除する', ()=>{
     S.announces = (S.announces||[]).filter(x=>x.id!==S._boardPostId);
     saveS(); go('s-board');
-    showToast('削除しました','error');
+    showToast('削除しました');
   }, '');
 }
 
@@ -6519,7 +6924,7 @@ function togglePrep(id) {
 
 function deletePrep(id) {
   S.prep = (S.prep||[]).filter(p=>p.id!==id);
-  saveS(); renderPrep(); showToast('削除しました','error');
+  saveS(); renderPrep(); showToast('削除しました');
 }
 
 /* 明日に回す（今日 → 明日） */
@@ -8850,11 +9255,17 @@ function classifierGuidance(category, q, secondary) {
 
   switch(category) {
     case 'calendar':
-      if (q && q.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|LINEカレンダー|\.ics|ics.*書き出|ics.*出力|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/)) {
-        return '外部カレンダーへの連携は、予定詳細から「外部カレンダーに追加」を選ぶとできます。'+NL+
-          '・Google カレンダー：追加 URL でその場で転送'+NL+
-          '・iPhone / Outlook / Yahoo / LINE：「.ics として書き出し」を選ぶと取り込めます'+NL+NL+
-          '双方向同期は今後の対応予定です。まずは Familink 内に予定を保存しておくと安心です。'+
+      if (q && q.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|LINEカレンダー|\.ics|ics.*書き出|ics.*出力|ics.*取|ics.*読|取り込|インポート|import|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/i)) {
+        return '外部カレンダーとの連携は、書き出しと取り込みの両方に対応しています。'+NL+NL+
+          '【Familink から書き出す】'+NL+
+          '予定詳細 →「外部カレンダーに追加」'+NL+
+          '・Google カレンダー：追加 URL で即転送'+NL+
+          '・iPhone / Outlook / Yahoo / LINE：.ics 書き出しで取込'+NL+NL+
+          '【外部カレンダーから取り込む】'+NL+
+          'カレンダー画面 →「取込」ボタン'+NL+
+          '・Google / iPhone / Yahoo / Outlook で書き出した .ics ファイル / テキストを Familink に取り込めます'+NL+
+          '・取込前にプレビューで予定を確認・選択できます'+NL+NL+
+          '※ Google や iPhone カレンダーとの完全自動同期は、ネイティブ化や OAuth 対応の v1.0 以降で拡張予定です。Familink がユーザー許可なく外部カレンダーを読み取ることはありません。'+
           ACTION('calendar');
       }
       return '予定として整理できそうな内容ですね。'+NL+
@@ -9687,6 +10098,70 @@ window.addEventListener('DOMContentLoaded', init);
 </div>
 
 <!-- ===== EXTERNAL CALENDAR EXPORT MODAL (Wave 25) ===== -->
+<!-- ===== Wave 40：予定の長押し移動モーダル ===== -->
+<div id="m-event-move" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:80vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">予定を移動</div>
+    <div style="font-size:13px;color:var(--text);font-weight:700;line-height:1.4;margin-bottom:4px;" id="mv-ev-title"></div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;" id="mv-current"></div>
+    <div class="modal-form">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <div class="field-label">新しい日付 <span style="color:var(--red)">*</span></div>
+          <input class="input" id="mv-new-date" type="date">
+        </div>
+        <div class="field">
+          <div class="field-label">新しい開始時刻 <span style="color:var(--red)">*</span></div>
+          <input class="input" id="mv-new-time" type="time">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">終了時刻（任意）</div>
+        <input class="input" id="mv-new-endtime" type="time">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin:6px 0 12px;line-height:1.55;background:var(--bg-muted);padding:8px 10px;border-radius:8px;">
+        ※ 「移動する」を押すと S.events に上書きされます。元に戻すには再度予定を移動してください。
+      </div>
+      <button class="btn btn-primary btn-block" onclick="executeEventMove()">移動する</button>
+      <button class="btn btn-ghost btn-block" onclick="cancelEventMove()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Wave 40：ICS インポートモーダル ===== -->
+<div id="m-ics-import" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">外部カレンダーから取り込み</div>
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;background:var(--bg-muted);padding:10px 12px;border-radius:10px;">
+      Familink は、ユーザーが選択した <b>.ics ファイル</b> または貼り付けたカレンダーデータのみを読み込みます。<br>
+      Google / iPhone / Yahoo カレンダーを自動で読み取ることはありません。<br>
+      Google Calendar / iPhone カレンダー / Yahoo カレンダー / Outlook 等から書き出した .ics ファイルを取り込めます。
+    </div>
+    <div class="field">
+      <div class="field-label">.ics ファイルを選択</div>
+      <input type="file" id="ics-file-input" accept=".ics,text/calendar" onchange="onIcsFileSelected(event)" style="font-size:13px;">
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
+    <div class="field">
+      <div class="field-label">.ics テキストを貼り付け</div>
+      <textarea class="input" id="ics-text-input" rows="4" placeholder="BEGIN:VCALENDAR ... END:VCALENDAR" style="font-family:monospace;font-size:11px;"></textarea>
+    </div>
+    <button class="btn btn-outline btn-block" onclick="parseIcsAndPreview()" style="margin-bottom:14px;">解析してプレビュー</button>
+    <div id="ics-preview" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;" id="ics-preview-summary"></div>
+      <div id="ics-preview-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff;"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;font-size:11px;">
+        <button class="btn btn-ghost" onclick="icsPreviewSelectAll(true)" style="flex:1;padding:6px;">すべて選択</button>
+        <button class="btn btn-ghost" onclick="icsPreviewSelectAll(false)" style="flex:1;padding:6px;">すべて解除</button>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="executeIcsImport()" style="margin-top:10px;">選択した予定を取り込む</button>
+    </div>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-ics-import')" style="margin-top:8px;">閉じる</button>
+  </div>
+</div>
+
 <div id="m-export-cal" class="modal-backdrop hidden">
   <div class="modal" style="max-height:80vh;overflow-y:auto;">
     <div class="modal-grip"></div>
