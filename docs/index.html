@@ -1482,6 +1482,19 @@ select.input {
 }
 .health-rec-row:active { background:var(--bg-muted); }
 
+/* Wave 41：体調過去ログのフィルターボタン */
+.hl-pf-btn, .hl-sf-btn {
+  flex-shrink:0; padding:6px 12px; border-radius:var(--r-full);
+  border:1.5px solid var(--border); background:#fff;
+  font-size:11px; font-weight:600; color:var(--text-sub);
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:all .12s; white-space:nowrap;
+}
+.hl-pf-btn.on, .hl-sf-btn.on {
+  background:var(--primary); color:#fff; border-color:var(--primary);
+}
+.hl-pf-btn:active, .hl-sf-btn:active { transform:scale(.94); }
+
 /* ── インラインコメント入力 ── */
 .card-comment-inline {
   display:flex; align-items:center; gap:6px;
@@ -1653,6 +1666,21 @@ select.input {
 .post-head-info { flex:1;min-width:0; }
 .post-title { font-size:14px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:1px; }
 .post-meta  { font-size:11px;color:var(--text-muted); }
+.post-card-menu {
+  flex-shrink:0; width:30px; height:30px; padding:0;
+  background:transparent; border:none; border-radius:8px;
+  color:var(--text-muted); cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.post-card-menu:active { background:var(--bg-muted); }
+/* コメントの削除ボタン */
+.bdetail-comment .cmt-del {
+  background:none;border:none;cursor:pointer;
+  color:var(--text-muted);font-size:11px;padding:2px 4px;
+  -webkit-tap-highlight-color:transparent;
+}
+.bdetail-comment .cmt-del:active { color:var(--red); }
 .post-body  { font-size:12.5px;color:var(--text-sub);line-height:1.55;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 .post-body.expanded { -webkit-line-clamp:unset; }
@@ -5878,6 +5906,9 @@ function postCardHtml(a, uid2) {
         </div>
         <div class="post-meta">${H(auth.name)} · ${H((a.createdAt||'').replace(/^\d{4}-/,'').replace('-','/'))}</div>
       </div>
+      <button class="post-card-menu" onclick="event.stopPropagation();openPostCardMenu('${H(a.id)}')" aria-label="メニュー" title="メニュー">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
     </div>
     <div class="post-body">${H(a.body)}</div>
     <div class="post-footer">
@@ -5986,7 +6017,7 @@ function renderBoardDetail() {
       <div class="bdetail-comment-bubble ${isMe?'mine':''}">
         ${!isMe ? `<div class="bdetail-comment-name">${H(cm.name)}</div>` : ''}
         <div class="bdetail-comment-text">${H(c.text)}</div>
-        <div class="bdetail-comment-time">${c.at || c.time ? H((c.at||c.time||'').replace(/^\d{4}-/,'').replace('-','/')) : ''}</div>
+        <div class="bdetail-comment-time">${c.at || c.time ? H((c.at||c.time||'').replace(/^\d{4}-/,'').replace('-','/')) : ''}${isMe ? ` <button class="cmt-del" onclick="deleteBoardComment('${H(a.id)}','${H(c.id)}')" aria-label="削除">削除</button>` : ''}</div>
       </div>
       ${isMe ? `${avHtml(cm.id, 28, 11, "flex-shrink:0;")}` : ''}
     </div>`;
@@ -6218,12 +6249,69 @@ function _bindPinLongPress() {
   });
 }
 function deleteCurrentPost() {
-  const a = getAnn(S._boardPostId);
+  if(!S._boardPostId) return;
+  deletePostWithConfirm(S._boardPostId, () => { go('s-board'); });
+}
+
+/* Wave 41：投稿の 3 点メニュー（カード右上）*/
+function openPostCardMenu(postId) {
+  const a = getAnn(postId);
   if(!a) return;
-  showConfirm('投稿を削除',`「${a.title}」を削除しますか？`,'削除する', ()=>{
-    S.announces = (S.announces||[]).filter(x=>x.id!==S._boardPostId);
-    saveS(); go('s-board');
-    showToast('削除しました');
+  // 既存メニューを除去
+  document.querySelectorAll('.post-card-menu-pop').forEach(el => el.remove());
+  const pop = document.createElement('div');
+  pop.className = 'post-card-menu-pop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.18);display:flex;align-items:flex-end;';
+  pop.innerHTML = `<div style="width:100%;background:#fff;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.12);">
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:8px;">${H(a.title || '投稿')}</div>
+    <button class="settings-item" onclick="openBoardDetail('${H(postId)}');document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">📖 詳細を開く</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());togglePostPin('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">${a.isPinned?'📍 ピン留めを解除':'📌 ピン留めする'}</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());openPostModal('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">✏️ 編集</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());deletePostWithConfirm('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:10px;color:var(--red);">🗑 削除する</button>
+    <button class="btn btn-ghost btn-block" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove())">キャンセル</button>
+  </div>`;
+  pop.addEventListener('click', (e) => { if(e.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
+/* Wave 41：投稿削除（コメント数・リアクション・ピン留めを考慮した確認） */
+function deletePostWithConfirm(postId, onAfterDelete) {
+  const a = getAnn(postId);
+  if(!a) return;
+  const cmtCount = (a.comments||[]).length;
+  const reactCount = a.reactMap ? Object.keys(a.reactMap).length : 0;
+  let msg = '';
+  if(a.isPinned) {
+    msg = 'この投稿はピン留めされています。\n削除するとピン留めも解除されます。\n本当に削除しますか？';
+  } else if(cmtCount > 0 && reactCount > 0) {
+    msg = `この投稿にはコメント ${cmtCount} 件、リアクション ${reactCount} 件があります。\n一緒に削除されます。よろしいですか？`;
+  } else if(cmtCount > 0) {
+    msg = `この投稿にはコメントが ${cmtCount} 件あります。\n一緒に削除されます。よろしいですか？`;
+  } else if(reactCount > 0) {
+    msg = `この投稿にはリアクションが ${reactCount} 件あります。\n一緒に削除されます。よろしいですか？`;
+  } else {
+    msg = `「${a.title || '(無題)'}」を削除しますか？\nこの操作は元に戻せません。`;
+  }
+  showConfirm('投稿を削除', msg, '削除する', () => {
+    S.announces = (S.announces||[]).filter(x => x.id !== postId);
+    saveS();
+    if(typeof renderBoard === 'function') renderBoard();
+    if(typeof onAfterDelete === 'function') onAfterDelete();
+    showToast('投稿を削除しました');
+  }, '');
+}
+
+/* Wave 41：単一コメントの削除（投稿詳細から）*/
+function deleteBoardComment(postId, commentId) {
+  const a = getAnn(postId);
+  if(!a) return;
+  showConfirm('コメントを削除', 'このコメントを削除しますか？', '削除する', () => {
+    a.comments = (a.comments||[]).filter(c => c.id !== commentId);
+    a.updatedAt = todayStr();
+    saveS();
+    if(typeof renderBoardDetail === 'function') renderBoardDetail();
+    if(typeof renderBoard === 'function') renderBoard();
+    showToast('コメントを削除しました');
   }, '');
 }
 
@@ -6286,6 +6374,32 @@ function normalizeHealthRec(r) {
 
 /* メンバー別タブ：'all' + MEMBERS */
 let _healthMemberFilter = 'all';
+let _healthPeriodFilter = '30';   // '7' | '30' | 'all'
+let _healthStatusFilter = 'all';  // 'all' | 'fever' | 'medicine' | 'hospital' | 'symptom'
+
+function setHealthPeriodFilter(p) { _healthPeriodFilter = p; renderHealth(); }
+function setHealthStatusFilter(s) { _healthStatusFilter = s; renderHealth(); }
+
+/* Wave 41：過去ログのフィルタ適用 */
+function _applyHealthLogFilters(recs) {
+  let r = recs.slice();
+  if(_healthMemberFilter !== 'all') r = r.filter(x => x.memberId === _healthMemberFilter);
+  // 期間
+  if(_healthPeriodFilter === '7' || _healthPeriodFilter === '30') {
+    const days = _healthPeriodFilter === '7' ? 7 : 30;
+    const today = todayStr();
+    const cutoff = new Date(today + 'T00:00:00');
+    cutoff.setDate(cutoff.getDate() - (days - 1));
+    const cs = cutoff.toISOString().slice(0,10);
+    r = r.filter(x => (x.date||'') >= cs);
+  }
+  // 状態
+  if(_healthStatusFilter === 'fever') r = r.filter(x => parseFloat(x.temp) >= 37.5);
+  else if(_healthStatusFilter === 'medicine') r = r.filter(x => (x.medicine||'').trim());
+  else if(_healthStatusFilter === 'hospital') r = r.filter(x => x.visitedHospital);
+  else if(_healthStatusFilter === 'symptom') r = r.filter(x => (x.symptoms||[]).filter(Boolean).length > 0);
+  return r;
+}
 function setHealthMemberFilter(id) { _healthMemberFilter = id; renderHealth(); }
 
 function renderHealth() {
@@ -6340,20 +6454,45 @@ function renderHealth() {
     html += renderHealthCharts(recs);
   }
 
-  // 過去の記録セクション
-  if(pastRecs.length) {
-    html += `<div style="padding:18px 16px 6px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">過去の記録</div>`;
+  // Wave 41：過去ログ強化セクション（期間 / 状態フィルター + 件数 + リッチカード）
+  const filteredPast = _applyHealthLogFilters(pastRecs);
+  html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 16px 8px;">
+    <div style="font-size:13px;font-weight:700;color:var(--text);">過去の記録</div>
+    <div style="font-size:11px;color:var(--text-muted);">${filteredPast.length} 件</div>
+  </div>`;
+  // 期間フィルター
+  html += `<div style="display:flex;gap:6px;padding:0 16px 6px;overflow-x:auto;scrollbar-width:none;">
+    ${[['7','7日'],['30','30日'],['all','すべて']].map(([k,l]) =>
+      `<button class="hl-pf-btn ${_healthPeriodFilter===k?'on':''}" onclick="setHealthPeriodFilter('${k}')">${l}</button>`
+    ).join('')}
+  </div>`;
+  // 状態フィルター
+  html += `<div style="display:flex;gap:6px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none;">
+    ${[['all','すべて'],['fever','🌡 発熱'],['medicine','💊 薬あり'],['hospital','🏥 病院'],['symptom','症状あり']].map(([k,l]) =>
+      `<button class="hl-sf-btn ${_healthStatusFilter===k?'on':''}" onclick="setHealthStatusFilter('${k}')">${l}</button>`
+    ).join('')}
+  </div>`;
+
+  if(filteredPast.length === 0) {
+    html += `<div style="margin:8px 16px;padding:18px;text-align:center;background:var(--bg-muted);border-radius:14px;color:var(--text-muted);font-size:12px;">
+      条件に合う過去ログはありません。フィルターを変更してください。
+    </div>`;
+  } else {
     // 日付グループ
     const byDate = {};
-    pastRecs.forEach(r => {
+    filteredPast.forEach(r => {
       const k = r.date || '';
       (byDate[k] = byDate[k] || []).push(r);
     });
     const sortedDates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
     html += sortedDates.map(d => {
       const items = byDate[d];
-      return `<div style="padding:8px 16px 4px;font-size:12px;font-weight:700;color:var(--text-sub);">${H(jpDate(d))}</div>` +
-        items.map(r => healthPastRow(r)).join('');
+      const dayLabel = jpDate(d);
+      return `<div style="padding:10px 16px 4px;font-size:12px;font-weight:700;color:var(--text-sub);display:flex;align-items:center;gap:8px;">
+        <span>${H(dayLabel)}</span>
+        <span style="font-size:10px;color:var(--text-muted);font-weight:500;">${items.length}件</span>
+      </div>` +
+        items.map(r => healthLogCardV2(r)).join('');
     }).join('');
   }
 
@@ -6537,6 +6676,55 @@ function healthTodayCard(r) {
     </div>
     ${symptomsHtml || medChip || hospChip ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">${symptomsHtml}${medChip}${hospChip}</div>` : ''}
     ${r.note?`<div style="font-size:12px;color:var(--text-sub);line-height:1.55;background:rgba(255,255,255,.7);padding:6px 8px;border-radius:8px;">${H(r.note)}</div>`:''}
+  </div>`;
+}
+
+/* Wave 41：体調過去ログのリッチカード */
+function healthLogCardV2(r) {
+  const t = parseFloat(r.temp);
+  const isFever = t >= 37.5;
+  const isHighFever = t >= 38.0;
+  const m = getMem(r.memberId);
+  const symptoms = (r.symptoms || []).filter(Boolean);
+  const hasSymptom = symptoms.length > 0;
+  const hasMed = !!(r.medicine || '').trim();
+  const hasHosp = !!r.visitedHospital;
+  const time = r.time || '';
+  const tempColor = isHighFever ? '#DC2626' : isFever ? '#FF6B6B' : '#52C47A';
+  const tempBg = isHighFever ? '#FEE2E2' : isFever ? '#FEE7E7' : '#F0FDF4';
+  const tempBorder = isHighFever ? '#FCA5A5' : isFever ? '#FFD4D4' : '#BBF7D0';
+  const showImportance = isFever || hasMed || hasHosp;
+
+  // ラベル群
+  const labels = [];
+  if(isHighFever) labels.push('<span style="background:#DC2626;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">高熱</span>');
+  else if(isFever) labels.push('<span style="background:#FF6B6B;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">発熱</span>');
+  if(hasMed) labels.push('<span style="background:#FF9B4E;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">💊 薬あり</span>');
+  if(hasHosp) labels.push('<span style="background:#7C3AED;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">🏥 病院</span>');
+
+  // 症状チップ
+  const symptomChips = symptoms.slice(0, 4).map(s =>
+    `<span style="background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:8px;font-size:10px;">${H(s)}</span>`
+  ).join('');
+  const moreSymp = symptoms.length > 4 ? `<span style="font-size:10px;color:var(--text-muted);">+${symptoms.length-4}</span>` : '';
+
+  // メモ抜粋（30文字）
+  const noteShort = r.note ? (r.note.length > 30 ? r.note.slice(0,30) + '…' : r.note) : '';
+
+  return `<div class="health-log-card-v2" onclick="openHealthEditModal('${H(r.id)}')" style="margin:6px 16px 6px;padding:11px 13px;background:${tempBg};border:1.5px solid ${tempBorder};border-radius:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;${showImportance?'box-shadow:0 1px 3px rgba(0,0,0,.04);':''}">
+    <div style="display:flex;align-items:center;gap:9px;">
+      ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : '<div style="width:30px;height:30px;background:var(--bg-muted);border-radius:50%;flex-shrink:0;"></div>'}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):'(未指定)'}</span>
+          ${time?`<span style="font-size:11px;color:var(--text-muted);">${H(time)}</span>`:''}
+        </div>
+        ${labels.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">${labels.join('')}</div>` : ''}
+      </div>
+      ${r.temp?`<div style="font-size:18px;font-weight:800;color:${tempColor};flex-shrink:0;">${H(r.temp)}<span style="font-size:11px;font-weight:600;">℃</span></div>`:''}
+    </div>
+    ${(symptomChips || hasMed || r.hospitalName) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${symptomChips}${moreSymp}${hasMed?`<span style="background:#FFEDD5;color:#9A3412;padding:2px 7px;border-radius:8px;font-size:10px;">💊 ${H(r.medicine)}${r.medicineTime?' ('+H(r.medicineTime)+')':''}</span>`:''}${hasHosp && r.hospitalName?`<span style="background:#EDE9FE;color:#5B21B6;padding:2px 7px;border-radius:8px;font-size:10px;">🏥 ${H(r.hospitalName)}</span>`:''}</div>`:''}
+    ${noteShort?`<div style="font-size:11px;color:var(--text-sub);margin-top:5px;line-height:1.5;background:rgba(255,255,255,.6);padding:5px 7px;border-radius:6px;">${H(noteShort)}</div>`:''}
   </div>`;
 }
 
@@ -9293,12 +9481,35 @@ function classifierGuidance(category, q, secondary) {
         '金額が分かれば「○○円使った」と話しかけると、家計に登録できます。'+
         ACTION('budget');
     case 'health':
+      // 過去ログ・フィルターの問い合わせには専用案内
+      if (q && q.match(/過去|履歴|ログ|振り返|見返|発熱.*(日|履歴)|薬.*(飲んだ|履歴)|病院.*(行った|履歴)|フィルタ/)) {
+        return '過去の体調ログは、体調管理画面の下部で確認できます。'+NL+NL+
+          '【絞り込み方法】'+NL+
+          '・メンバータブ：家族全員 / 子ども別'+NL+
+          '・期間：7日 / 30日 / すべて'+NL+
+          '・状態：発熱 / 薬あり / 病院 / 症状あり'+NL+NL+
+          '37.5℃以上は発熱、38.0℃以上は高熱として目立つように表示されます。'+NL+
+          'カードをタップすると編集・削除ができます。'+NL+NL+
+          '※ 体調記録は家族内の振り返り用です。診断や医療判断を行うものではありません。'+
+          ACTION('health');
+      }
       return '体調メモに残しておくと安心です。'+NL+
         '体温・食欲・水分・機嫌を一緒に記録しておくと、あとで状況を振り返りやすくなります。'+NL+NL+
         '症状が強い場合や不安がある場合は、医療機関への相談も検討してください。'+
         (secondary === 'calendar' ? NL+NL+'（補足：受診予定が決まったら、カレンダーにも登録しておくと安心です。）' : '')+
         ACTION('health');
     case 'board':
+      // 削除に関する問い合わせ
+      if (q && q.match(/削除|消し|消す|消去/)) {
+        return '家族ボードの投稿・コメントは安全に削除できます。'+NL+NL+
+          '【投稿の削除】'+NL+
+          '投稿カード右上の「⋮」メニュー →「削除する」'+NL+
+          'または投稿詳細を開いて右上のメニューから削除'+NL+NL+
+          '【コメントの削除】'+NL+
+          '投稿詳細を開く → 自分のコメントの「削除」を押す'+NL+NL+
+          '削除前に確認が表示されます。コメント・リアクション付きやピン留め投稿の場合は警告文が出るので、誤削除を防げます。'+
+          ACTION('board');
+      }
       return '家族ボードに共有するとよさそうです。'+NL+
         'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+
         '習い事の様子や記録は「習い事」タブにまとめると、一覧で振り返りやすくなります。'+NL+NL+
@@ -9378,6 +9589,46 @@ function hokuLocalAnswer(q) {
   function list(arr, fn, max=3) {
     if(!arr||!arr.length) return '　（なし）';
     return arr.slice(0,max).map(fn).join(NL)+(arr.length>max?NL+'　…他'+(arr.length-max)+'件':'');
+  }
+
+  /* Wave 41：家族ボード削除の問い合わせ（汎用 data-lookup より優先） */
+  if(q.match(/(投稿|コメント|家族ボード|ボード).*(削除|消し|消す|消去|消去した|削除したい)/) || q.match(/(削除|消し).*(投稿|コメント|家族ボード)/)) {
+    return '家族ボードの投稿・コメントは安全に削除できます。'+NL+NL+
+      '【投稿の削除】'+NL+
+      '投稿カード右上の「⋮」（3 点メニュー）→「🗑 削除する」'+NL+
+      'または投稿詳細画面の右上メニューから削除'+NL+NL+
+      '【コメントの削除】'+NL+
+      '投稿詳細を開く → 自分のコメントの右下「削除」を押す'+NL+NL+
+      '削除前に確認が表示されます。コメント・リアクション付きやピン留め投稿の場合は警告文が出るので、誤削除を防げます。';
+  }
+
+  /* Wave 41：体調過去ログの問い合わせ（汎用 data-lookup より優先） */
+  if(q.match(/(過去|履歴|ログ|振り返|見返).*(体調|体温|薬|発熱|症状|病院)/) ||
+     q.match(/(発熱|薬|病院).*(履歴|ログ|過去|振り返|だけ|のみ)/) ||
+     q.match(/体調.*(フィルタ|絞り込|絞込|期間|7日|30日)/)) {
+    return '過去の体調ログは、体調管理画面の下部で確認できます。'+NL+NL+
+      '【絞り込み方法】'+NL+
+      '・メンバータブ：家族全員 / 子ども別'+NL+
+      '・期間：7日 / 30日 / すべて'+NL+
+      '・状態：発熱 / 薬あり / 病院 / 症状あり'+NL+NL+
+      '37.5℃以上は発熱、38.0℃以上は高熱として目立つように表示されます。'+NL+
+      'カードをタップすると編集・削除ができます。'+NL+NL+
+      '※ 体調記録は家族内の振り返り用です。診断や医療判断を行うものではありません。';
+  }
+
+  /* Wave 41：スワイプ操作の問い合わせ */
+  if(q.match(/スワイプ|横に滑|横スワイプ|ページ.*移動|swipe/i)) {
+    return 'Familink は横スワイプでページ移動できます。'+NL+NL+
+      '【操作方法】'+NL+
+      '・左へスワイプ：次のページへ'+NL+
+      '・右へスワイプ：前のページへ'+NL+
+      '・詳細画面では右スワイプで前画面に戻れます'+NL+NL+
+      '【無効になる場面（誤操作防止）】'+NL+
+      '・入力中 / モーダル表示中'+NL+
+      '・カレンダー / グラフ / リスト操作中'+NL+
+      '・画面左端からのスワイプ（ブラウザ戻る防止）'+NL+
+      '・縦スクロール優先のため、横移動が小さい / 斜めスワイプは無視'+NL+NL+
+      '従来通り下部のタブバーや戻るボタンも使えます。';
   }
 
   /* 挨拶 */
@@ -9813,6 +10064,107 @@ function qaDebugTestHoku() {
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
+/* ============================================================
+   Wave 41：横スワイプによるページ遷移
+   - 左スワイプ：次のページ（順序配列の次）
+   - 右スワイプ：前のページ（または goBack 相当）
+   - スクロール / 入力 / モーダルとは競合させない
+   - 厳しめのしきい値（横 80px、縦は 50px 以内）で誤発火防止
+   ============================================================ */
+const SWIPE_PAGE_ORDER = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
+const SWIPE_THRESHOLD_X = 80;
+const SWIPE_MAX_Y = 50;
+const SWIPE_MAX_DURATION_MS = 800;
+const SWIPE_MIN_DURATION_MS = 80;
+const SWIPE_EDGE_PX = 24; // ブラウザバックと競合しないよう左端 24px は無効
+const _swipeBlockSelectors = [
+  'input', 'textarea', 'select',
+  '[contenteditable="true"]',
+  '.cal-week-view', '.cal-list-view',
+  '#health-list svg', '#budget-cat-chart',
+  '.modal-backdrop', '.react-popup-overlay', '.reactor-popup',
+  '.post-card-menu-pop'
+];
+let _swipeStart = null;
+let _swipeBlocked = false;
+
+function _swipeShouldBlock(target) {
+  if(!target) return false;
+  for(const sel of _swipeBlockSelectors) {
+    if(target.closest && target.closest(sel)) return true;
+  }
+  // モーダルが開いている場合
+  const anyModalOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => !m.classList.contains('hidden') && getComputedStyle(m).display !== 'none');
+  if(anyModalOpen) return true;
+  // 入力にフォーカス中
+  const ae = document.activeElement;
+  if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+  return false;
+}
+
+function _swipeNextScreen(dir) {
+  const cur = S.screen;
+  // 詳細画面では右（dir=1）で前に戻る
+  const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
+  if(detailScreens.indexOf(cur) >= 0) {
+    if(dir > 0) { goBack(); return; }
+    return; // 詳細から左スワイプは無効
+  }
+  const idx = SWIPE_PAGE_ORDER.indexOf(cur);
+  if(idx < 0) return; // 順序外（オンボード等）はスワイプ無効
+  let nextIdx = idx + (dir < 0 ? 1 : -1);
+  if(nextIdx < 0 || nextIdx >= SWIPE_PAGE_ORDER.length) return;
+  const next = SWIPE_PAGE_ORDER[nextIdx];
+  // タブバーに含まれるトップレベルなら switchTab、それ以外は go
+  const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
+  if(tabBar.indexOf(next) >= 0 && typeof switchTab === 'function') switchTab(next);
+  else go(next);
+}
+
+function _swipeOnTouchStart(e) {
+  if(!e.touches || e.touches.length !== 1) { _swipeStart = null; return; }
+  const t = e.touches[0];
+  // 左端からのスワイプ（ブラウザバックと競合）は無視
+  if(t.clientX < SWIPE_EDGE_PX) { _swipeStart = null; _swipeBlocked = true; return; }
+  if(_swipeShouldBlock(e.target)) { _swipeBlocked = true; _swipeStart = null; return; }
+  _swipeBlocked = false;
+  _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+}
+
+function _swipeOnTouchMove(e) {
+  // 移動中はブロック判定の更新のみ。preventDefault しない（縦スクロールを殺さない）
+  if(!_swipeStart || _swipeBlocked) return;
+  if(!e.touches || e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const dx = t.clientX - _swipeStart.x;
+  const dy = t.clientY - _swipeStart.y;
+  // 縦移動が大きい → 縦スクロール優先
+  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) {
+    _swipeStart = null;
+    return;
+  }
+}
+
+function _swipeOnTouchEnd(e) {
+  if(!_swipeStart || _swipeBlocked) { _swipeStart = null; _swipeBlocked = false; return; }
+  const tch = (e.changedTouches && e.changedTouches[0]) || null;
+  if(!tch) { _swipeStart = null; return; }
+  const dx = tch.clientX - _swipeStart.x;
+  const dy = tch.clientY - _swipeStart.y;
+  const dt = Date.now() - _swipeStart.t;
+  _swipeStart = null;
+  if(dt > SWIPE_MAX_DURATION_MS || dt < SWIPE_MIN_DURATION_MS) return;
+  if(Math.abs(dx) < SWIPE_THRESHOLD_X) return;
+  if(Math.abs(dy) > SWIPE_MAX_Y) return;
+  // dx 符号で方向決定：負＝左スワイプ＝次ページ、正＝右スワイプ＝前ページ
+  _swipeNextScreen(dx);
+}
+
+document.addEventListener('touchstart', _swipeOnTouchStart, { passive: true });
+document.addEventListener('touchmove', _swipeOnTouchMove, { passive: true });
+document.addEventListener('touchend', _swipeOnTouchEnd, { passive: true });
+document.addEventListener('touchcancel', () => { _swipeStart = null; _swipeBlocked = false; }, { passive: true });
 /* ============================================================
    HOKU FLOATING ASSISTANT v2
    全画面常駐フローティング・呼吸アニメーション・ドラッグ・タップ
