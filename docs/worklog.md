@@ -3661,3 +3661,77 @@ Wave 39：全体監査 + 不要コード徹底削除 + 公開品質仕上げ（3
 
 ### コミット
 - メッセージ: `wave 39: full audit + cleanup -150 lines (11 orphaned fns + tab system + dead state) + UX polish`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 40：カレンダー強化（週表示UX + 長押し移動 + ICS 取り込み + 外部同期ロードマップ）
+
+### 変更ファイル
+- `app-source/familink.html`（+約 480 行：週ビューUX / 長押し / ICS パーサー / モーダル）
+- `docs/index.html`（src と md5 同期）
+- `docs/calendar-import-sync-roadmap.md`（新規・段階的ロードマップ）
+
+### 変更内容
+1. **週ビュー UX を Google カレンダー風に改善**
+   - 予定カードに「時刻 / タイトル / メンバー名」を表示（高さに応じて段階表示）
+   - `endTime` に応じて高さ可変（デフォルト 60 分、終了時刻があれば実時間幅）
+   - 影 / アクティブ時のスケール / ドラッグ中スタイル
+   - `data-evid` 属性付与
+2. **予定カードを長押し（600ms）で移動モーダル**
+   - `_bindCalWeekLongPress`：touchstart/mousedown 600ms タイマー、12px 移動でキャンセル
+   - 長押し発火後の click を抑止して誤発動防止
+   - `m-event-move` モーダル：新しい日付 / 開始時刻 / 終了時刻 入力
+   - `executeEventMove`：S.events を上書き、updatedAt 更新
+   - 終了時刻 ≤ 開始時刻のバリデーション
+   - キャンセルで元に戻す（保存しない）
+3. **ICS インポート機能（Vanilla JS パーサー）**
+   - `m-ics-import` モーダル：ファイル選択 + テキスト貼付 + プレビュー + チェック選択
+   - `parseIcsText`：折返し連結 / VEVENT 抽出 / プロパティパラメータ対応
+   - 対応プロパティ：UID / SUMMARY / DTSTART / DTEND / DESCRIPTION / LOCATION / RRULE
+   - 対応日付形式：YYYYMMDD（終日）/ YYYYMMDDTHHMMSS（フローティング）/ YYYYMMDDTHHMMSSZ（UTC→ローカル）
+   - PRODID から provider 推定（google / apple / yahoo / outlook）
+   - 重複検知：externalId 一致 OR title+date+time 一致
+   - プレビューでチェック選択 → `executeIcsImport` で S.events に追加
+4. **S.events スキーマ拡張（任意・後方互換）**
+   - 新規任意フィールド：`endDate` / `endTime` / `location` / `source` / `externalId` / `externalProvider` / `importedAt`
+   - 既存予定は変更なし
+5. **Hoku 連携**
+   - `case 'calendar'` の外部カレンダー応答を取り込み案内も含むよう拡張
+   - 「取込」ボタンへの誘導 + プライバシー説明 + 完全自動同期は v1.0 以降と説明
+6. **プライバシー説明**
+   - インポートモーダル冒頭に「ユーザーが選択した .ics のみ読込 / 自動読取はしない」を表示
+7. **ロードマップドキュメント**
+   - `docs/calendar-import-sync-roadmap.md` 新規（12 セクション）：
+     - 現状 / Web 版でできる/できない / Phase 1 v0.2（ICS 取込・今回）/ Phase 2 v1.0（iPhone EventKit）/ Phase 3 v1.5（OAuth + バックエンド）
+     - Yahoo / プレミアム化 / 法務確認 / リスク
+
+### テスト結果
+- Wave 40 calendar smoke：45/45 PASS
+  - 週ビュー UX 5 / 長押し移動 8 / ICS パーサー 13 / インポート 8 / Hoku 連携 2 / ヘッダーボタン 1 / 4 ビューポート 4 / ドキュメント 1 / JS エラー 1
+- 既存 regression：614/614 PASS（17:203 + 18:48 + 21:13 + 22:37 + 25:25 + 26:67 + 29:10 + 30:26 + 31:12 + 32:12 + 33:11 + 34:4 + 35:25 + 36:30 + 37:15 + 38:10 + 39:66）
+- 累計：659/659 PASS
+
+### 未確認事項
+- iPhone Safari 実機での長押し動作 / .ics ファイル選択時の挙動
+- 大量予定（500 件以上）の ICS 取込時のパフォーマンス
+- TZID 付き予定（EUROPE/PARIS 等）の正確な変換
+
+### iPhone 確認ポイント
+- 週ビューで予定カードに時刻 + タイトル + メンバー名が表示
+- 予定カードを 600ms 長押しで移動モーダルが開く
+- 移動モーダルで日付・開始時刻・終了時刻を変更 → 「移動する」で更新
+- カレンダー画面右上の「取込」ボタンから ICS インポートモーダルが開く
+- .ics ファイル選択 or テキスト貼付 → プレビュー → 選択取込
+- 重複候補にオレンジの ⚠ マーク
+- Hoku に「取り込みたい」と話すと取込ボタンへの案内 + 自動同期は今後対応と説明
+
+### 次にやること
+- iPhone 実機検証
+- v1.0：WKWebView + EventKit（iPhone カレンダー読取）
+- v1.5：OAuth + バックエンド（Google Calendar 双方向同期）
+
+### コミット
+- メッセージ: `wave 40: calendar - google-like week + long-press move + ICS import + roadmap`
