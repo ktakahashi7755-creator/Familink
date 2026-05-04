@@ -3853,3 +3853,50 @@ Wave 42：家計管理 メンバータブの表示・非表示切替機能
 
 ### コミット
 - メッセージ: `wave 42: budget - member tab show/hide manager (parallel to task tkVisibleMembers)`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 43：家計メンバータブをタスクページと統一デザインへ刷新
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+- ヘッダーの「メンバー表示設定」アイコンボタンを削除
+- メンバータブを **タスクページと同じパターン**に統一：
+  - 「全員」ピル型ボタン（te-mem-btn 流用、サイズ少し大きめ・縦中央）
+  - 各メンバーは **アバター円 + 下に名前**（bm-mem-av-btn）
+  - 末尾に **ダッシュ円 ＋ ボタン**（bm-add-btn）
+- アバターボタン長押し（500ms）で非表示（タスクの removeTkMember と同等）
+- ＋ ボタンタップで表示設定モーダル（新規・既存メンバーの再表示）
+- 触覚フィードバック（vibrate 20ms）+ touch/mouse/contextmenu 対応
+- 短タップは選択切替のみ（非表示にならない）
+- 「家族共通」も同じアバター型（🏠 アイコン）で表示
+- 既存 `S.budgetVisibleMembers` ロジック・ヘルパーは維持
+- 新規 `removeBudgetMember(id)`：長押しから直接非表示にするヘルパー
+
+### テスト結果
+- Wave 43 budget unified smoke：15/15 PASS
+  - te-mem-btn スタイル / ヘッダー設定削除 / アバターボタン 5 件 / ＋ボタン / removeBudgetMember 定義 / 名前ラベル / 長押し 500ms / 非表示反映 / 短タップ無効 / モーダル / 再表示 / 全員アクティブ / メンバー切替 / JS エラーゼロ
+- 既存 regression：718/718 PASS
+- 累計：733/733 PASS
+
+### 未確認事項
+- iPhone Safari 実機での長押し感度
+- 縦書きにならず名前が 1 行で収まる確認
+
+### iPhone 確認ポイント
+- 家計画面のメンバータブがタスクページと同じ見た目になった
+- 「全員」「パパ」「ママ」「太郎」「花子」「健太」「家族共通」「+」が並ぶ
+- メンバーアイコンを長押し（0.5 秒）で非表示
+- ＋ボタンで表示設定モーダル → 再表示や複数切替
+
+### 次にやること
+- iPhone 実機検証
+
+### コミット
+- メッセージ: `wave 43: budget - unified member tab UI with task page (avatar + dashed +) + long-press hide`
