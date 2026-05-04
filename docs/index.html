@@ -2511,7 +2511,6 @@ nav#tabbar.hidden { display: none !important; }
     </div>
   </div>
   <!-- フィルターバー（動的構築） -->
-  <div id="board-filter-bar" style="display:none;padding:8px 16px;border-bottom:1px solid var(--border-light);gap:6px;overflow-x:auto;scrollbar-width:none;align-items:center;"></div>
   <div class="scroll-area pb-tab" id="board-list" style="padding-top:8px;"></div>
 </div>
 
@@ -3124,7 +3123,7 @@ let S = {
   folders: [], docs: [],
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
-  _boardCat: '', _boardPostId: null,
+  _boardPostId: null,
   userPhotos: {}, // { memberId: 'data:image/...' } - カスタム写真
   userAvatars: {}, // { memberId: 'avatar_baby_01' } - 公式アバターID
   userAvatarType: {}, // { memberId: 'customPhoto'|'official' }
@@ -5128,18 +5127,6 @@ function saveTx() {
   }
 }
 
-function deleteTxConfirm(id) {
-  const tx = (S.txs||[]).find(t=>t.id===id);
-  if(!tx) return;
-  showConfirm(`${tx.type==='expense'?'支出':'収入'}を削除`,
-    `${H(tx.desc)} ${fmtAmt(tx.amount)} を削除しますか？`,
-    '削除する', () => {
-      S.txs = (S.txs||[]).filter(t=>t.id!==id);
-      saveS(); renderBudget();
-      showToast('削除しました','error');
-    }, '');
-}
-
 
 /* ── 通知追加ヘルパー ── */
 function addNotif(title, desc, icon) {
@@ -5356,91 +5343,17 @@ function showReactors(postId, key) {
   }, 50);
 }
 
-/* 旧関数互換ラッパー */
-function toggleReaction(postId, key) { selectReaction(postId, key); }
 
 
 
-let _boardCat = '';
-let _boardFilterOpen = false;
-
-const BOARD_DEFAULT_TABS = ['家事','買い物','習い事','学校','重要','その他'];
-
-function getBoardTabs() {
-  // 既定タブ + ユーザー追加タブ（重複除外）
-  const custom = (S.boardCustomTabs || []).filter(t => t && !BOARD_DEFAULT_TABS.includes(t));
-  return [...BOARD_DEFAULT_TABS, ...custom];
-}
-
-function renderBoardFilterBar() {
-  const bar = document.getElementById('board-filter-bar');
-  if(!bar) return;
-  const tabs = getBoardTabs();
-  const customSet = new Set((S.boardCustomTabs || []).filter(t => !BOARD_DEFAULT_TABS.includes(t)));
-  let html = `<button class="tk-filter-btn ${_boardCat===''?'active':''}" data-cat="" onclick="setBoardCat('')">すべて</button>`;
-  html += tabs.map(t => {
-    const isCustom = customSet.has(t);
-    return `<button class="tk-filter-btn ${_boardCat===t?'active':''}" data-cat="${H(t)}" onclick="setBoardCat('${H(t)}')" oncontextmenu="${isCustom?`return removeBoardTab('${H(t)}')`:'return false'}">${H(t)}${isCustom?'<span style="opacity:.55;font-size:9px;margin-left:3px;">×</span>':''}</button>`;
-  }).join('');
-  html += `<button class="tk-filter-btn" style="border-style:dashed;color:var(--text-muted);padding:6px 10px;" onclick="addBoardTab()" title="タブを追加">＋ タブ</button>`;
-  bar.innerHTML = html;
-}
-
-function toggleBoardFilter() {
-  _boardFilterOpen = !_boardFilterOpen;
-  const bar = document.getElementById('board-filter-bar');
-  if(bar) {
-    bar.style.display = _boardFilterOpen ? 'flex' : 'none';
-    if(_boardFilterOpen) renderBoardFilterBar();
-  }
-}
-function setBoardCat(cat) {
-  _boardCat = cat;
-  renderBoardFilterBar();
-  renderBoard();
-}
-
-function addBoardTab() {
-  const name = (window.prompt('追加するタブ名（例：医療、おでかけ、PTA）','')||'').trim();
-  if(!name) return;
-  if(name.length > 8) { showToast('タブ名は 8 文字以内にしてください','error'); return; }
-  if(BOARD_DEFAULT_TABS.includes(name)) { showToast('既存タブと同じ名前です','error'); return; }
-  if(!S.boardCustomTabs) S.boardCustomTabs = [];
-  if(S.boardCustomTabs.includes(name)) { showToast('すでに追加されています','error'); return; }
-  if(S.boardCustomTabs.length >= 6) { showToast('カスタムタブは最大 6 個までです','error'); return; }
-  S.boardCustomTabs.push(name);
-  saveS();
-  _boardCat = name;
-  renderBoardFilterBar();
-  renderBoard();
-  showToast('タブを追加しました');
-}
-
-function removeBoardTab(name) {
-  if(!name) return false;
-  if(BOARD_DEFAULT_TABS.includes(name)) return false;
-  showConfirm('タブを削除',
-    `タブ「${name}」を削除しますか？このタブの投稿自体は残ります（カテゴリは保持）。`,
-    '削除する',
-    () => {
-      S.boardCustomTabs = (S.boardCustomTabs||[]).filter(t => t !== name);
-      saveS();
-      if(_boardCat === name) _boardCat = '';
-      renderBoardFilterBar();
-      renderBoard();
-      showToast('タブを削除しました');
-    },
-    ''
-  );
-  return false;
-}
+/* Wave 28：ボードカテゴリタブ機能は撤廃済（フィルターバー常時非表示）。
+   既存の `S.boardCustomTabs` および投稿の `cat` フィールドは LocalStorage 後方互換のため保持。
+   関連関数（getBoardTabs / renderBoardFilterBar / setBoardCat / addBoardTab / removeBoardTab /
+   toggleBoardFilter / _boardCat / _boardFilterOpen / BOARD_DEFAULT_TABS）は Wave 39 で完全削除。 */
 
 /* ── 一覧描画 ── */
 function renderBoard() {
   if(!(S.announces||[]).length) seedAnnounces(); // フォールバック
-  // タブ機能は Wave 28 で撤廃。フィルターバーは常に非表示。
-  const fbar = document.getElementById('board-filter-bar');
-  if(fbar) fbar.style.display = 'none';
   const el = document.getElementById('board-list');
   if(!el) return;
   const uid2 = userId();
@@ -5459,7 +5372,7 @@ function renderBoard() {
   if(!anns.length) {
     el.innerHTML = healthCard + prepCard + `<div class="docs-empty" style="margin-top:40px;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <div class="docs-empty-title">${_boardCat?`「${_boardCat}」の投稿はありません`:'投稿がありません'}</div>
+      <div class="docs-empty-title">投稿がありません</div>
       <div class="docs-empty-sub">右上の＋から投稿できます</div>
     </div>`;
     return;
@@ -5519,54 +5432,6 @@ function renderBoardCardHealthPreview() {
   if(fevered.length) banner = `<div class="bc-row" style="color:var(--red);font-weight:700;">🌡 発熱中 ${fevered.length}人</div>`;
   else if(onMeds.length) banner = `<div class="bc-row" style="color:var(--orange);font-weight:700;">💊 薬の記録 ${onMeds.length}件</div>`;
   return banner + lines;
-}
-
-/* Wave 35（旧）：家族ボードに表示していた体調管理サマリー → Wave 37 で家族ボードからは撤去（ホーム main へ移設） */
-function renderHealthSummaryCard() {
-  const today = todayStr();
-  const allRecs = (S.health || []);
-  const todayRecs = allRecs.filter(r => (r.date || '') === today);
-  const lastRec = allRecs.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||''))[0];
-  const fevered = todayRecs.filter(r => parseFloat(r.temp) >= 37.5);
-  const onMeds = todayRecs.filter(r => (r.medicine || r.meds || '').trim());
-  const total = allRecs.length;
-
-  // 一行サマリー
-  let summary = '';
-  if(todayRecs.length === 0) {
-    summary = total === 0
-      ? '体調・薬・症状をまとめて記録できます。'
-      : `今日の記録はまだありません（過去 ${total} 件保存中）`;
-  } else {
-    const parts = [];
-    if(fevered.length) parts.push(`<span style="color:var(--red);font-weight:700;">🌡 発熱中 ${fevered.length}人</span>`);
-    if(onMeds.length)  parts.push(`<span style="color:var(--orange);font-weight:700;">💊 薬の記録 ${onMeds.length}件</span>`);
-    if(!parts.length)  parts.push(`<span style="color:var(--secondary-dark);font-weight:700;">✓ 元気な記録 ${todayRecs.length}件</span>`);
-    summary = parts.join(' / ');
-  }
-
-  // 直近メンバープレビュー
-  let preview = '';
-  if(lastRec) {
-    const m = getMem(lastRec.child || lastRec.memberId || 'seito');
-    const mname = (m && m.name) || (lastRec.memberName || '');
-    const dateStr = (lastRec.date||'').slice(5).replace('-','/');
-    preview = `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">最新：${H(dateStr)} ${H(mname)} ${lastRec.temp?lastRec.temp+'℃':''} ${H(lastRec.cond||lastRec.status||'')}</div>`;
-  }
-
-  return `<div onclick="go('s-health')" style="margin:10px 16px 12px;padding:14px 16px;background:linear-gradient(135deg,#FFF5F5 0%,#FFE8E8 100%);border:1px solid #FFD4D4;border-radius:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(255,107,107,.12);">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:38px;height:38px;border-radius:12px;background:#FF6B6B;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:700;color:var(--text);">体調管理</div>
-        <div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${summary}</div>
-      </div>
-      <div style="color:var(--text-muted);font-size:18px;flex-shrink:0;">›</div>
-    </div>
-    ${preview}
-  </div>`;
 }
 
 function postCardHtml(a, uid2) {
@@ -6296,14 +6161,6 @@ function healthDisclaimerHtml() {
   </div>`;
 }
 
-/* 旧 setHealthChild 互換（CHILDREN ベースの呼び出しが残っていた場合） */
-function setHealthChild(idx) {
-  const c = CHILDREN[idx];
-  _healthMemberFilter = c ? c.id : 'all';
-  S.healthChild = idx;
-  renderHealth();
-}
-
 /* 体調記録モーダル：新規・編集対応 */
 function openHealthModal() {
   _openHealthModalCore(null);
@@ -6544,13 +6401,6 @@ function deleteCurrentHealth() {
     renderHealth();
     if(typeof renderBoard === 'function' && S.screen === 's-board') renderBoard();
     showToast('削除しました');
-  }, '');
-}
-
-function deleteHealthRec(id) {
-  showConfirm('記録を削除','この体調記録を削除しますか？この操作は元に戻せません。','削除する', () => {
-    S.health = (S.health||[]).filter(r=>r.id!==id);
-    saveS(); renderHealth(); showToast('削除しました');
   }, '');
 }
 

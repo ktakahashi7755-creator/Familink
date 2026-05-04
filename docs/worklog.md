@@ -3585,3 +3585,79 @@ Wave 38：体調管理の統計可視化を強化（誰の発熱か・誰の症�
 
 ### コミット
 - メッセージ: `wave 38: health stats - clickable temp bars + fever events list with members + symptom member breakdown`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 39：全体監査 + 不要コード徹底削除 + 公開品質仕上げ（3 時間総点検）
+
+### 変更ファイル
+- `app-source/familink.html`（10,119 → 9,969 行：**-150 行**）
+- `docs/index.html`（src と md5 同期）
+- `/tmp/wave17_deep.mjs`（撤廃機能のテストを更新）
+
+### 監査フェーズ
+1. `console.log/debug/warn` の全件確認 → 0 件（4件の `console.error` のみ、すべてエラーキャッチで適切）
+2. TODO/FIXME/HACK コメント → 1 件（regex パターン内、意図的）
+3. 全 17 画面 + 13 モーダル × 4 ビューポートのレンダリング確認
+4. 孤立関数・未呼び出しコード・撤廃済 UI の洗い出し
+
+### 削除した不要コード（11 関数 + 1 HTML 要素 + 3 状態変数）
+**完全に呼び出されていなかった関数：**
+- `deleteTxConfirm`（Wave 32 で家計編集モーダルへ統合済）
+- `toggleReaction`（`selectReaction` の不要なエイリアス）
+- `renderHealthSummaryCard`（Wave 37 でホーム main board へ移設）
+- `setHealthChild`（`setHealthMemberFilter` に置換済）
+- `deleteHealthRec`（編集モーダルの `deleteCurrentHealth` に統合）
+
+**Wave 28 で UI 撤去したが残っていたタブシステム：**
+- `getBoardTabs`、`renderBoardFilterBar`、`toggleBoardFilter`、`setBoardCat`、`addBoardTab`、`removeBoardTab`
+- 状態変数：`_boardCat`、`_boardFilterOpen`、`BOARD_DEFAULT_TABS`
+- HTML 要素：`<div id="board-filter-bar">`
+- `renderBoard()` 内のフィルターバー強制非表示処理
+- 空状態メッセージの `_boardCat` 三項演算子
+- LocalStorage の `S.boardCustomTabs` データは後方互換のため保持
+
+### UX 仕上げ
+- `削除しました` トーストの type='error'（赤）を default（success）に統一（4 箇所修正）：タスク削除 / 家計削除 / 体調削除 / 準備削除
+- 削除は通常操作のため、エラー赤は不適切だった
+
+### テスト結果
+- **Wave 39 audit smoke：66/66 PASS**
+  - 全 17 画面レンダリング
+  - 全 13 モーダル DOM 配置確認
+  - 下部タブバー全ボタンに onclick
+  - 孤立関数への onclick 参照ゼロ
+  - 4 ビューポート × 8 画面 = 32 件で横スクロールなし
+  - JS エラーゼロ
+- 既存 regression：548/548 PASS（Wave 17 の撤廃済タブ機能テストを撤廃確認テストに更新）
+- 累計：614/614 PASS
+
+### 改善された指標
+- **コード行数：-150 行（-1.5%）**
+- **孤立関数：11 件 → 0 件**
+- **撤廃 UI 残骸：1 件 → 0 件**
+- **不適切な error トースト：4 件 → 0 件**
+
+### 既存の保持判断
+- LocalStorage `S.posts` / `S.folders` / `S.docs` / `S.kanbanCols` / `S.boardCustomTabs` などの撤廃済 PERSIST フィールド：**保持**（CLAUDE.md ルール「LocalStorage 既存構造の削除禁止」遵守、既存ユーザーデータ保護）
+- `BOARD_TYPE_META`：保持（hoRenderCard で使用中）
+- `CHILDREN`：保持（オンボーディング・seedDemo 等で使用中）
+
+### 未確認事項
+- iPhone Safari 実機での全画面動作
+- LocalStorage 容量上限近くでの動作
+
+### iPhone 確認ポイント
+- 全 17 画面で破綻なし
+- 削除トーストが赤くなくなったこと
+- Wave 35〜38 の体調管理が正常に動作
+
+### 次にやること
+- iPhone 実機検証
+- v0.2：月次レポート PDF 出力（プレミアム候補）
+
+### コミット
+- メッセージ: `wave 39: full audit + cleanup -150 lines (11 orphaned fns + tab system + dead state) + UX polish`
