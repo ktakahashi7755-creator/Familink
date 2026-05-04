@@ -3474,3 +3474,62 @@ Wave 36：UI/UX 公開品質改善（タグ削除・タイトル崩れ修正・v
 
 ### コミット
 - メッセージ: `wave 36: ui polish - remove board tag chip + clamp titles + viewport fixed-zoom + global overflow-x hidden`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 37：体調管理を main board へ移設 + チャート可視化 + ステータス/症状の重複解消
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+1. **体調管理を main board（ホーム）へ移設**
+   - HO_FIXED に `'b_health'` を追加（既存ユーザーも含めホームに自動表示）
+   - hoRenderCard に `b_health` 分岐追加（赤系アイコン + 体調管理タイトル + 直近3件サマリー）
+   - hoCardClick で `b_health` → `s-health` 遷移
+   - 家族ボード（s-board）の上部体調サマリーは撤去（renderHealthSummaryCard 呼出しを削除）
+   - 新規ヘルパー `renderBoardCardHealthPreview()`：今日の発熱/薬バナー + 直近3件
+2. **過去レコードのチャート可視化（s-health 内）**
+   - `renderHealthCharts()` を新設、s-health のメンバータブと「本日の体調」の間に表示
+   - 体温の推移：過去30日のSVG棒グラフ（37.5℃以上は赤、平熱は緑、Y軸に36/37/37.5/38/39/40℃の補助線、X軸は5日おきに月日）
+   - 症状の頻度：過去30日内の症状出現回数を上位6件まで横バーで表示（オレンジ→赤グラデ）
+   - データなし時は空状態メッセージ
+3. **ステータスと症状の重複解消**
+   - `HEALTH_STATUSES` を 12 → **6項目**に縮小：「元気 / 少し不調 / 発熱 / 病院受診 / 薬あり / 様子見」（全体的な状態のみ）
+   - `HEALTH_SYMPTOMS` を 12項目に整理：「咳 / 鼻水 / 鼻づまり / 喉の痛み / 頭痛 / 腹痛 / 嘔吐 / 下痢 / 発疹 / じんましん / 倦怠感 / 寒気」（具体症状のみ）
+   - 重複チェック：`overlap=[]`
+   - 「病院」→「病院受診」へ名称統一（病院受診トグルと混同しないよう）
+   - チップ装飾色も新ラベルに合わせて再マップ
+
+### バグ修正
+- `renderHealthCharts` 内の `const H = 110` がグローバル `H`（HTMLエスケープ関数）を**シャドーイング**して `H is not a function` エラーを起こしていた → `CHART_W / CHART_H` にリネーム
+- SVG `height="auto"` → `style="height:auto"` に修正（仕様準拠）
+
+### テスト結果
+- Wave 37 health v2 smoke：15/15 PASS（main board カード / 家族ボード撤去 / 遷移 / 体温チャート / 症状頻度 / バー描画 / 重複ゼロ / 6+12項目 / 病院受診 / モーダルチップ / リロード / JS エラーなし）
+- 既存 regression：523/523 PASS（17:203 + 18:48 + 21:13 + 22:37 + 25:25 + 26:67 + 29:10 + 30:26 + 31:12 + 32:12 + 33:11 + 34:4 + 35:25 + 36:30）
+- 累計：538/538 PASS
+
+### 未確認事項
+- 既存ユーザーで `homeOrder` に `b_health` が含まれていない場合のマイグレーション動作（hoInitOrder で末尾追加されることを確認済）
+- 大量レコード（数百件）でのチャート描画パフォーマンス
+- iPhone Safari 実機でのSVG描画
+
+### iPhone 確認ポイント
+- ホーム main board に「体調管理」赤系カードが表示
+- 家族ボード（s-board）にはもう体調管理サマリーがない
+- 体調管理画面で過去30日の体温棒グラフが表示
+- 症状頻度の横バーチャートが表示
+- 記録追加モーダルでステータスチップが6個（咳・鼻水等は表示されない）
+- 症状チップは12個でステータスと重複していない
+
+### 次にやること
+- iPhone 実機検証
+- v0.2：月次レポート PDF 出力（プレミアム候補）
+
+### コミット
+- メッセージ: `wave 37: health board to main + temp/symptom charts + status/symptom dedupe`

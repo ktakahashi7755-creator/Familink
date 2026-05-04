@@ -3773,7 +3773,7 @@ function renderHome() {
    ============================================================ */
 
 /* ホームに表示する固定ボードのID */
-var HO_FIXED = ['b_board','b_task','b_cal'];
+var HO_FIXED = ['b_board','b_task','b_cal','b_health'];
 /* 旧バージョンで存在した固定ボード（廃止済 / homeOrder から除外する） */
 var HO_RETIRED = ['b_docs'];
 
@@ -3832,6 +3832,13 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + '<div class="bc-title">今週の予定</div>'
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+evHTML+'</div><img class="bc-bg" src="'+IMGS.bg_green1+'" alt=""></div>';
+  } else if(bid === 'b_health') {
+    var healthHTML = renderBoardCardHealthPreview();
+    card = '<div class="bc-head">'
+      + '<div class="bc-icon" style="background:#FFE8E8;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>'
+      + '<div class="bc-title">体調管理</div>'
+      + '</div>'
+      + '<div class="bc-body"><div class="bc-content">'+healthHTML+'</div><img class="bc-bg" src="'+(IMGS.bg_pink||IMGS.bg_yellow1||'')+'" alt=""></div>';
   } else if(bid.startsWith('cb_')) {
     var customId = bid.slice(3);
     var b = (S.customBoards||[]).find(function(x){ return x.id===customId; });
@@ -3865,9 +3872,10 @@ function hoSwap(fromIdx, toIdx) {
 
 /* カード click → 対応画面へ */
 function hoCardClick(bid) {
-  if(bid==='b_board') { switchTab('s-board'); return; }
-  if(bid==='b_task')  { switchTab('s-task');  return; }
-  if(bid==='b_cal')   { switchTab('s-cal');   return; }
+  if(bid==='b_board')  { switchTab('s-board'); return; }
+  if(bid==='b_task')   { switchTab('s-task');  return; }
+  if(bid==='b_cal')    { switchTab('s-cal');   return; }
+  if(bid==='b_health') { go('s-health');       return; }
   if(bid.startsWith('cb_')) openCustomBoard(bid.slice(3));
 }
 
@@ -5445,9 +5453,8 @@ function renderBoard() {
 
   // 準備リストは独立機能として s-prep に分離（Wave 17：家族ボードからは削除）
   let prepCard = '';
-
-  // Wave 35：体調管理サマリーカード（家族ボードのメイン機能）
-  const healthCard = renderHealthSummaryCard();
+  // Wave 37：体調管理サマリーは家族ボードから撤去（ホーム main board に移設）
+  const healthCard = '';
 
   if(!anns.length) {
     el.innerHTML = healthCard + prepCard + `<div class="docs-empty" style="margin-top:40px;">
@@ -5481,7 +5488,40 @@ function renderBoard() {
   _bindPinLongPress();
 }
 
-/* Wave 35：家族ボードに体調管理サマリーを表示 */
+/* Wave 37：ホーム main board の体調管理カード内プレビュー */
+function renderBoardCardHealthPreview() {
+  const today = todayStr();
+  const all = (S.health || []).map(normalizeHealthRec);
+  const todayRecs = all.filter(r => r.date === today);
+  const fevered = todayRecs.filter(r => parseFloat(r.temp) >= 37.5);
+  const onMeds = todayRecs.filter(r => (r.medicine||'').trim());
+  const total = all.length;
+
+  if(!total) {
+    return '<div class="bc-row" style="color:var(--text-muted);">記録するとここに表示されます</div>';
+  }
+  // 上位3件（直近順）
+  const recent = all.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||'')).slice(0, 3);
+  const lines = recent.map(r => {
+    const m = getMem(r.memberId);
+    const fever = parseFloat(r.temp) >= 37.5;
+    const dot = fever ? '#FF6B6B' : '#52C47A';
+    const dateLabel = r.date === today ? '今日' : (r.date||'').slice(5).replace('-','/');
+    const tempStr = r.temp ? r.temp + '℃' : '';
+    const status = (r.symptoms && r.symptoms.length) ? r.symptoms[0] : (r.status || '');
+    return `<div class="bc-row">
+      <div class="bc-dot" style="background:${dot};"></div>
+      <div class="bc-text">${H((m&&m.name)||'')} ${H(dateLabel)} ${H(tempStr)} ${H(status||'')}</div>
+    </div>`;
+  }).join('');
+  // ステータス（上部簡易バナー）
+  let banner = '';
+  if(fevered.length) banner = `<div class="bc-row" style="color:var(--red);font-weight:700;">🌡 発熱中 ${fevered.length}人</div>`;
+  else if(onMeds.length) banner = `<div class="bc-row" style="color:var(--orange);font-weight:700;">💊 薬の記録 ${onMeds.length}件</div>`;
+  return banner + lines;
+}
+
+/* Wave 35（旧）：家族ボードに表示していた体調管理サマリー → Wave 37 で家族ボードからは撤去（ホーム main へ移設） */
 function renderHealthSummaryCard() {
   const today = todayStr();
   const allRecs = (S.health || []);
@@ -5942,9 +5982,10 @@ function submitBoardComment(postId) {
 /* ============================================================
    HEALTH
    ============================================================ */
-/* Wave 35：体調管理の選択肢定義 */
-const HEALTH_STATUSES = ['元気','少し不調','発熱','咳','鼻水','腹痛','頭痛','嘔吐','下痢','病院','薬あり','様子見'];
-const HEALTH_SYMPTOMS = ['咳','鼻水','発熱','喉の痛み','頭痛','腹痛','嘔吐','下痢','発疹','じんましん','倦怠感','寒気'];
+/* Wave 35〜37：体調管理の選択肢定義
+   ステータスは「全体的な状態」、症状は「具体的な症状」と役割を明確に分離 */
+const HEALTH_STATUSES = ['元気','少し不調','発熱','病院受診','薬あり','様子見'];
+const HEALTH_SYMPTOMS = ['咳','鼻水','鼻づまり','喉の痛み','頭痛','腹痛','嘔吐','下痢','発疹','じんましん','倦怠感','寒気'];
 const HEALTH_APPETITES = ['普通','少ない','なし','多い'];
 const HEALTH_SLEEPS = ['よく寝た','途中で起きた','寝不足','昼寝多め'];
 const HEALTH_STOOLS = ['普通','やわらかい','下痢','便秘','未記録'];
@@ -6024,6 +6065,11 @@ function renderHealth() {
     </div>`;
   }
 
+  // Wave 37：過去 30 日の体温チャート + 症状頻度チャート
+  if(recs.length >= 1) {
+    html += renderHealthCharts(recs);
+  }
+
   // 過去の記録セクション
   if(pastRecs.length) {
     html += `<div style="padding:18px 16px 6px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">過去の記録</div>`;
@@ -6045,6 +6091,111 @@ function renderHealth() {
   html += healthDisclaimerHtml();
 
   el.innerHTML = html;
+}
+
+/* Wave 37：体調記録の可視化（過去 30 日の体温棒グラフ + 症状頻度） */
+function renderHealthCharts(recs) {
+  if(!recs || !recs.length) return '';
+  const today = todayStr();
+  const todayDate = new Date(today + 'T00:00:00');
+  const DAYS = 30;
+
+  // 日付ごとの最高体温を集計
+  const tempByDate = {};
+  recs.forEach(r => {
+    const t = parseFloat(r.temp);
+    if(!isFinite(t) || !r.date) return;
+    if(!tempByDate[r.date] || tempByDate[r.date] < t) tempByDate[r.date] = t;
+  });
+
+  // 直近 30 日の配列（今日が右端）
+  const days = [];
+  for(let i = DAYS - 1; i >= 0; i--) {
+    const d = new Date(todayDate); d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    days.push({ date: k, temp: tempByDate[k] || null, day: d.getDate(), month: d.getMonth() + 1 });
+  }
+
+  // 体温チャート SVG（棒グラフ）
+  // 注：global の H（escape）を上書きしないようローカル名は CHART_W/CHART_H を使用
+  const CHART_W = 320, CHART_H = 110, PAD_L = 28, PAD_R = 8, PAD_T = 14, PAD_B = 22;
+  const innerW = CHART_W - PAD_L - PAD_R, innerH = CHART_H - PAD_T - PAD_B;
+  const T_MIN = 35.5, T_MAX = 40.0;
+  const barW = Math.max(2, (innerW / DAYS) - 1.5);
+  const xFor = (i) => PAD_L + i * (innerW / DAYS) + (innerW / DAYS - barW) / 2;
+  const yFor = (t) => PAD_T + innerH - ((t - T_MIN) / (T_MAX - T_MIN)) * innerH;
+
+  const recordedDays = days.filter(d => d.temp != null);
+  let tempChart;
+  if(!recordedDays.length) {
+    tempChart = `<div style="padding:18px 16px;text-align:center;color:var(--text-muted);font-size:12px;background:#fff;border:1px solid var(--border-light);border-radius:14px;margin:0 16px;">体温の記録がまだありません。記録すると過去30日のチャートで振り返れます。</div>`;
+  } else {
+    // 横軸ラベル（5日おき）
+    const xLabels = [];
+    for(let i = 0; i < DAYS; i += 5) {
+      xLabels.push(`<text x="${xFor(i) + barW/2}" y="${CHART_H - 6}" text-anchor="middle" font-size="9" fill="#8A9ABE">${days[i].month}/${days[i].day}</text>`);
+    }
+    // 縦軸ラベル
+    const yLabels = [36, 37, 38, 39, 40].map(t =>
+      `<line x1="${PAD_L}" y1="${yFor(t)}" x2="${CHART_W - PAD_R}" y2="${yFor(t)}" stroke="${t >= 37.5 ? '#FECACA' : '#EEF2F7'}" stroke-dasharray="${t === 37.5 ? '3,3' : ''}"/>` +
+      `<text x="${PAD_L - 4}" y="${yFor(t) + 3}" text-anchor="end" font-size="9" fill="#8A9ABE">${t}</text>`
+    ).join('');
+    // 37.5℃ ライン強調
+    yLabels.replace?.(); // no-op (just to remind; actual stroke handled per t)
+    // バー
+    const bars = days.map((d, i) => {
+      if(d.temp == null) return '';
+      const tClamped = Math.max(T_MIN, Math.min(T_MAX, d.temp));
+      const y = yFor(tClamped);
+      const h = (PAD_T + innerH) - y;
+      const fever = d.temp >= 37.5;
+      const fill = fever ? '#FF6B6B' : '#52C47A';
+      return `<rect x="${xFor(i)}" y="${y}" width="${barW}" height="${h}" rx="1.5" fill="${fill}"><title>${d.month}/${d.day}：${d.temp}℃</title></rect>`;
+    }).join('');
+    tempChart = `<div style="margin:0 16px;padding:12px 12px 8px;background:#fff;border:1px solid var(--border-light);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);">体温の推移（過去30日）</div>
+        <div style="font-size:10px;color:var(--text-muted);">記録日 ${recordedDays.length} / ${DAYS} 日</div>
+      </div>
+      <svg viewBox="0 0 ${CHART_W} ${CHART_H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block;height:auto;">
+        ${yLabels}${bars}${xLabels.join('')}
+      </svg>
+      <div style="display:flex;gap:10px;font-size:10px;color:var(--text-muted);padding:4px 6px 0;">
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#52C47A;border-radius:2px;display:inline-block;"></span>平熱</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#FF6B6B;border-radius:2px;display:inline-block;"></span>発熱（37.5℃以上）</span>
+      </div>
+    </div>`;
+  }
+
+  // 症状頻度（過去30日内の出現回数）
+  const sinceDate = new Date(todayDate); sinceDate.setDate(sinceDate.getDate() - (DAYS - 1));
+  const sinceStr = sinceDate.toISOString().slice(0, 10);
+  const symptomCount = {};
+  recs.forEach(r => {
+    if((r.date||'') < sinceStr) return;
+    (r.symptoms || []).forEach(s => {
+      if(!s) return;
+      symptomCount[s] = (symptomCount[s] || 0) + 1;
+    });
+  });
+  const symptomEntries = Object.entries(symptomCount).sort((a,b) => b[1] - a[1]).slice(0, 6);
+  let symptomChart = '';
+  if(symptomEntries.length) {
+    const maxC = symptomEntries[0][1];
+    symptomChart = `<div style="margin:10px 16px 0;padding:12px 14px;background:#fff;border:1px solid var(--border-light);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">症状の頻度（過去30日）</div>
+      ${symptomEntries.map(([s, c]) => {
+        const pct = Math.round((c / maxC) * 100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+          <div style="font-size:11px;color:var(--text-sub);min-width:54px;flex-shrink:0;">${H(s)}</div>
+          <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FF9B4E,#FF6B6B);"></div></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text);min-width:24px;text-align:right;">${c}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  return `<div style="padding:6px 0 0;">${tempChart}${symptomChart}</div>`;
 }
 
 function healthTodayCard(r) {
@@ -6185,8 +6336,8 @@ function renderHealthStatusChips(selected) {
   const wrap = document.getElementById('hm-status-chips');
   if(!wrap) return;
   wrap.innerHTML = HEALTH_STATUSES.map(s => {
-    const cls = (s === '発熱' || s === '嘔吐' || s === '下痢' || s === '腹痛') ? 'fever' :
-                (s === '薬あり' || s === '病院') ? 'medicine' : '';
+    const cls = (s === '発熱' || s === '少し不調' || s === '様子見') ? 'fever' :
+                (s === '薬あり' || s === '病院受診') ? 'medicine' : '';
     return `<button type="button" class="hm-chip ${cls} ${selected===s?'selected':''}" onclick="setHealthStatus('${H(s)}')">${H(s)}</button>`;
   }).join('');
 }
