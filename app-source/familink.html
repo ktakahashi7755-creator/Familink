@@ -10220,7 +10220,8 @@ const _swipeBlockSelectors = [
   '.cal-week-view', '.cal-list-view',
   '#health-list svg', '#budget-cat-chart',
   '.modal-backdrop', '.react-popup-overlay', '.reactor-popup',
-  '.post-card-menu-pop'
+  '.post-card-menu-pop',
+  '#hoku-fab'  // Wave 45 修正：FAB（右上）はドラッグ/タップ独自処理。スワイプナビと競合させない
 ];
 let _swipeStart = null;       // { x, y, t, edge: 'left'|'right' }
 let _swipeBlocked = false;

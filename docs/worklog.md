@@ -4000,3 +4000,50 @@ Wave 45: 上端から下スワイプで詳細画面を閉じる
 
 ### コミット
 - メッセージ: `wave 45: top-edge swipe-down to close detail screens`
+
+---
+
+## 2026-05-04 19:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 45 検証ラウンド：FAB と右端スワイプの競合を修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- 検証中に発見：Hoku FAB（右上 312-380, 0-62px）が右端スワイプゾーン（350-390, 全 y）と重複
+  - FAB 起点で右→左スワイプすると、FAB ドラッグ + ページ遷移が**同時に**発火
+  - FAB 起点でタップすると 520ms 後に `openHoku()` が走り、後続の操作と混線する
+- 修正：`_swipeBlockSelectors` に `#hoku-fab` を追加
+  - FAB 上から始まったタッチはスワイプナビゲーションを発火しない
+  - FAB の独自ドラッグ/タップは従来どおり動く
+- 副次：audit テスト（B1）の偽陽性を修正
+  - 元のテストは FAB 位置にタップしてしまっていた（A1）→ 中央タップに変更
+  - 縦移動>横の検証は FAB 領域 (y<62) を避けて y=300 起点に変更
+
+### テスト結果
+- Wave 44 edge swipe smoke：22/22 PASS（FAB 起点ブロック 3 件追加）
+- Wave 45 top swipe smoke：15/15 PASS
+- Wave 45 audit：12/12 PASS
+- 既存 23 suites 全 PASS（579/579）
+- md5 同期：`e0e7f3e844b480a6196de09b8c6ed128`
+
+### 未確認事項
+- 他のフローティング要素や絶対配置のボタンが端ゾーンに重なるケース
+  （現状は FAB 以外見当たらないが、将来の追加時は要確認）
+- iOS Safari の interactive pop と Wave 44 左端スワイプの優先順位（ブラウザ履歴あり時）
+
+### iPhone 確認ポイント
+- 右上の Hoku アイコン上から左にスワイプしても、ページ遷移しないこと
+- 右上 Hoku をタップ → Hoku 画面が開くこと（従来通り）
+- 右上 Hoku をドラッグ → 位置移動できること（従来通り）
+- FAB 領域より下（y>62）の右端スワイプは正常にページ遷移する
+
+### 次にやること
+- iPhone 実機でジェスチャ＋ FAB 操作を併用してみる
+- 必要なら FAB 位置を変えて競合の挙動を再確認
+
+### コミット
+- メッセージ: `wave 45.1: block #hoku-fab from swipe nav to fix overlap with right-edge zone`
