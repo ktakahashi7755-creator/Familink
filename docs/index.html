@@ -10197,18 +10197,18 @@ function qaDebugTestHoku() {
 window.addEventListener('DOMContentLoaded', init);
 
 /* ============================================================
-   Wave 41：横スワイプによるページ遷移
-   - 左スワイプ：次のページ（順序配列の次）
-   - 右スワイプ：前のページ（または goBack 相当）
+   Wave 44：iOS / Android ネイティブ風エッジスワイプによるページ遷移
+   - 左端からスワイプ右 → 戻る（前のページ / 詳細画面なら goBack）
+   - 右端からスワイプ左 → 次のページ
+   - 中央でのスワイプは無効（横スクロール / カレンダー等と競合させない）
    - スクロール / 入力 / モーダルとは競合させない
-   - 厳しめのしきい値（横 80px、縦は 50px 以内）で誤発火防止
    ============================================================ */
 const SWIPE_PAGE_ORDER = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
-const SWIPE_THRESHOLD_X = 80;
-const SWIPE_MAX_Y = 50;
+const SWIPE_THRESHOLD_X = 60;       // エッジ起点なので少し緩める
+const SWIPE_MAX_Y = 60;
 const SWIPE_MAX_DURATION_MS = 800;
-const SWIPE_MIN_DURATION_MS = 80;
-const SWIPE_EDGE_PX = 24; // ブラウザバックと競合しないよう左端 24px は無効
+const SWIPE_MIN_DURATION_MS = 60;
+const SWIPE_EDGE_ZONE_PX = 40;      // 左右エッジ判定幅（iOS の interactive pop と同等）
 const _swipeBlockSelectors = [
   'input', 'textarea', 'select',
   '[contenteditable="true"]',
@@ -10217,7 +10217,7 @@ const _swipeBlockSelectors = [
   '.modal-backdrop', '.react-popup-overlay', '.reactor-popup',
   '.post-card-menu-pop'
 ];
-let _swipeStart = null;
+let _swipeStart = null;       // { x, y, t, edge: 'left'|'right' }
 let _swipeBlocked = false;
 
 function _swipeShouldBlock(target) {
@@ -10225,53 +10225,65 @@ function _swipeShouldBlock(target) {
   for(const sel of _swipeBlockSelectors) {
     if(target.closest && target.closest(sel)) return true;
   }
-  // モーダルが開いている場合
-  const anyModalOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => !m.classList.contains('hidden') && getComputedStyle(m).display !== 'none');
+  // モーダルは .open クラスがある場合のみ実際に表示されている（CSS は opacity で制御）
+  const anyModalOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => m.classList.contains('open'));
   if(anyModalOpen) return true;
-  // 入力にフォーカス中
   const ae = document.activeElement;
   if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
   return false;
 }
 
-function _swipeNextScreen(dir) {
+function _swipeGoBack() {
   const cur = S.screen;
-  // 詳細画面では右（dir=1）で前に戻る
   const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
-  if(detailScreens.indexOf(cur) >= 0) {
-    if(dir > 0) { goBack(); return; }
-    return; // 詳細から左スワイプは無効
-  }
+  if(detailScreens.indexOf(cur) >= 0) { goBack(); return; }
   const idx = SWIPE_PAGE_ORDER.indexOf(cur);
-  if(idx < 0) return; // 順序外（オンボード等）はスワイプ無効
-  let nextIdx = idx + (dir < 0 ? 1 : -1);
-  if(nextIdx < 0 || nextIdx >= SWIPE_PAGE_ORDER.length) return;
-  const next = SWIPE_PAGE_ORDER[nextIdx];
-  // タブバーに含まれるトップレベルなら switchTab、それ以外は go
+  if(idx <= 0) return;
+  const prev = SWIPE_PAGE_ORDER[idx - 1];
+  const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
+  if(tabBar.indexOf(prev) >= 0 && typeof switchTab === 'function') switchTab(prev);
+  else go(prev);
+}
+
+function _swipeGoForward() {
+  const cur = S.screen;
+  const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
+  if(detailScreens.indexOf(cur) >= 0) return;
+  const idx = SWIPE_PAGE_ORDER.indexOf(cur);
+  if(idx < 0 || idx >= SWIPE_PAGE_ORDER.length - 1) return;
+  const next = SWIPE_PAGE_ORDER[idx + 1];
   const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
   if(tabBar.indexOf(next) >= 0 && typeof switchTab === 'function') switchTab(next);
   else go(next);
 }
 
+// 後方互換：方向値を受け取って戻る/進むを呼ぶ
+function _swipeNextScreen(dir) {
+  if(dir > 0) _swipeGoBack();
+  else if(dir < 0) _swipeGoForward();
+}
+
 function _swipeOnTouchStart(e) {
   if(!e.touches || e.touches.length !== 1) { _swipeStart = null; return; }
   const t = e.touches[0];
-  // 左端からのスワイプ（ブラウザバックと競合）は無視
-  if(t.clientX < SWIPE_EDGE_PX) { _swipeStart = null; _swipeBlocked = true; return; }
+  const w = window.innerWidth || document.documentElement.clientWidth || 0;
+  // エッジ起点でなければスワイプ判定を開始しない
+  let edge = null;
+  if(t.clientX <= SWIPE_EDGE_ZONE_PX) edge = 'left';
+  else if(t.clientX >= w - SWIPE_EDGE_ZONE_PX) edge = 'right';
+  if(!edge) { _swipeStart = null; _swipeBlocked = false; return; }
   if(_swipeShouldBlock(e.target)) { _swipeBlocked = true; _swipeStart = null; return; }
   _swipeBlocked = false;
-  _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+  _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), edge };
 }
 
 function _swipeOnTouchMove(e) {
-  // 移動中はブロック判定の更新のみ。preventDefault しない（縦スクロールを殺さない）
   if(!_swipeStart || _swipeBlocked) return;
   if(!e.touches || e.touches.length !== 1) return;
   const t = e.touches[0];
   const dx = t.clientX - _swipeStart.x;
   const dy = t.clientY - _swipeStart.y;
-  // 縦移動が大きい → 縦スクロール優先
-  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) {
+  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 24) {
     _swipeStart = null;
     return;
   }
@@ -10284,12 +10296,14 @@ function _swipeOnTouchEnd(e) {
   const dx = tch.clientX - _swipeStart.x;
   const dy = tch.clientY - _swipeStart.y;
   const dt = Date.now() - _swipeStart.t;
+  const edge = _swipeStart.edge;
   _swipeStart = null;
   if(dt > SWIPE_MAX_DURATION_MS || dt < SWIPE_MIN_DURATION_MS) return;
-  if(Math.abs(dx) < SWIPE_THRESHOLD_X) return;
   if(Math.abs(dy) > SWIPE_MAX_Y) return;
-  // dx 符号で方向決定：負＝左スワイプ＝次ページ、正＝右スワイプ＝前ページ
-  _swipeNextScreen(dx);
+  if(Math.abs(dx) < SWIPE_THRESHOLD_X) return;
+  // 左端起点で右スワイプ → 戻る、右端起点で左スワイプ → 進む
+  if(edge === 'left' && dx > 0) _swipeGoBack();
+  else if(edge === 'right' && dx < 0) _swipeGoForward();
 }
 
 document.addEventListener('touchstart', _swipeOnTouchStart, { passive: true });

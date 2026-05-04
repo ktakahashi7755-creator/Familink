@@ -3900,3 +3900,61 @@ Wave 43：家計メンバータブをタスクページと統一デザインへ�
 
 ### コミット
 - メッセージ: `wave 43: budget - unified member tab UI with task page (avatar + dashed +) + long-press hide`
+
+---
+
+## 2026-05-04 17:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 44: スワイプナビゲーションを iOS / Android ネイティブ風のエッジスワイプに刷新
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- 中央領域のスワイプ判定を撤去し、**画面端 40px 起点のみ** ジェスチャ受付に変更
+  - 左端 → 右にスワイプ ＝ 戻る（前ページ / 詳細画面なら goBack）
+  - 右端 → 左にスワイプ ＝ 進む（次ページ）
+  - 中央スワイプは無反応 → 横スクロールやカレンダー操作と完全に分離
+- 定数調整
+  - `SWIPE_EDGE_PX(24)` → `SWIPE_EDGE_ZONE_PX(40)`（左右両方の端ゾーン幅）
+  - `SWIPE_THRESHOLD_X 80 → 60`（エッジ起点なので少し緩める）
+  - `SWIPE_MAX_Y 50 → 60` / `SWIPE_MIN_DURATION_MS 80 → 60`
+- ハンドラ分割：`_swipeGoBack()` / `_swipeGoForward()` を新設、後方互換のため `_swipeNextScreen(dir)` ラッパーは維持
+- `touchstart` で `_swipeStart.edge` に `'left' | 'right'` を保存し、`touchend` 時に edge と dx 符号の組み合わせで方向を確定
+- バグ修正：`_swipeShouldBlock` のモーダル判定が常に true を返していた
+  - 旧コードは `display !== 'none'` を見ていたが、本アプリのモーダルは display:flex のまま `.open` クラスで切替する仕様のため誤検知
+  - `m.classList.contains('open')` で判定するよう修正
+
+### テスト結果
+- Wave 44 edge swipe smoke：19/19 PASS（CDP `Input.dispatchTouchEvent` で実機相当のタッチを合成）
+  - エッジゾーン定数 / `_swipeGoBack` / `_swipeGoForward` / 後方互換ラッパー
+  - 右端→左：次ページへ遷移、左端→右：前ページへ遷移
+  - 中央スワイプ無効 / 短距離無効 / 縦スクロール優先 / 詳細画面の戻り
+  - モーダル中ブロック / 入力フォーカス中ブロック
+  - 最初/最後/順序外画面で無反応
+- 既存 21 suites regression：全 PASS（549/549）
+- md5 同期：`e2167501613fd559a4fde9d07d01fbca`
+
+### 未確認事項
+- 「上から下で」のジェスチャ仕様は途中で文章が途切れていたため未実装。
+  iOS 通知センター風の上端引き下ろしは現状アプリ内では用途が曖昧なので、
+  次回ユーザー確認時に意図を確認してから対応。
+- iPhone Safari の interactive pop（左端から右へのシステムジェスチャ）と
+  競合した場合の挙動（履歴ありの場合のみ Safari が優先）
+
+### iPhone 確認ポイント
+- 左端から右にスワイプ → 前のページに戻る
+- 右端から左にスワイプ → 次のページに進む
+- 画面中央でのスワイプは何も起きない（横スクロールが効く）
+- 詳細画面（ボードカード詳細など）で左端→右スワイプで戻れる
+- モーダル表示中はスワイプで遷移しない
+- カレンダーの週ビュー / 体調 SVG / 家計チャート上は従来どおりブロック
+
+### 次にやること
+- ユーザーから「上から下で」の意図ヒアリング後、必要なら縦エッジスワイプを実装
+- iPhone 実機での操作感確認
+
+### コミット
+- メッセージ: `wave 44: edge-based swipe navigation (iOS/Android native feel)`
