@@ -3809,3 +3809,47 @@ Wave 41：家族ボード削除 + 横スワイプ・ナビ + 体調過去ログ�
 
 ### コミット
 - メッセージ: `wave 41: board delete (3-dot + smart confirm) + horizontal swipe nav + health log v2 (filters/cards)`
+
+---
+
+## 2026-05-04  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 42：家計管理 メンバータブの表示・非表示切替機能
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（src と md5 同期）
+
+### 変更内容
+- 家計画面ヘッダー右上に「メンバー表示設定」ボタン（人物アイコン）を追加
+- 押下でボトムシートモーダル：5 メンバー × 「表示中 / 非表示」トグルボタン
+- `S.budgetVisibleMembers`：null（全員）または ['kenya','seiai',...] のフィルタ配列
+- 非表示にしても取引データは削除されず、再表示で元に戻る
+- 最低 1 人は表示するバリデーション（全員非表示禁止）
+- 選択中のメンバーを非表示にすると `_budgetMember = 'all'` に自動切替
+- LocalStorage `PERSIST` に `budgetVisibleMembers` 追加（後方互換）
+- 既存タスク画面の `tkVisibleMembers` と同じパターンを採用
+
+### テスト結果
+- Wave 42 budget visibility smoke：17/17 PASS
+  - ヘッダーボタン / 関数定義 / 設定モーダル / 行数 / トグル動作 / タブから非表示反映 / 最後 1 人保護 / 選択中メンバー非表示時 all 復帰 / リロード永続化 / PERSIST 含有 / JS エラーゼロ
+- 既存 regression：701/701 PASS
+- 累計：718/718 PASS
+
+### 未確認事項
+- iPhone Safari 実機での設定モーダル操作
+
+### iPhone 確認ポイント
+- 家計画面ヘッダー右上の人物アイコンを押すと表示設定モーダル開く
+- 各メンバーの「表示中 / 非表示」を切替できる
+- 非表示にしたメンバーがタブから消える
+- 全員非表示にしようとすると「最低 1 人は表示」エラートースト
+- リロード後も設定が保持される
+- 取引データは削除されない（再表示で全件戻る）
+
+### 次にやること
+- iPhone 実機検証
+
+### コミット
+- メッセージ: `wave 42: budget - member tab show/hide manager (parallel to task tkVisibleMembers)`

@@ -2636,6 +2636,9 @@ nav#tabbar.hidden { display: none !important; }
 <div id="s-budget" class="screen hidden">
   <div class="header">
     <div class="header-title">家計管理</div>
+    <button class="header-icon-btn" onclick="openBudgetMemberManager()" title="メンバー表示設定" aria-label="メンバー表示設定">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="18" cy="9" r="3" stroke-dasharray="2,2"/></svg>
+    </button>
   </div>
   <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
     <div class="budget-header-bar">
@@ -3167,6 +3170,7 @@ let S = {
   folders: [], docs: [],
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
+  budgetVisibleMembers: null, // Wave 42：null=全員表示
   _boardPostId: null,
   userPhotos: {}, // { memberId: 'data:image/...' } - カスタム写真
   userAvatars: {}, // { memberId: 'avatar_baby_01' } - 公式アバターID
@@ -3178,7 +3182,7 @@ let S = {
   boardSections: [], // [{id,boardId,title,order}]
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
 
 function saveS() {
   const d = {};
@@ -5303,6 +5307,66 @@ function saveTask(){saveTaskEdit();}
    ============================================================ */
 let _budgetMember = 'all'; // 'all' = 家族全体 / 'common' = 家族共通 / または MEMBER.id
 
+/* Wave 42：家計メンバータブの表示設定 */
+function getBudgetVisibleMembers() {
+  if(!S.budgetVisibleMembers || !S.budgetVisibleMembers.length) return MEMBERS.map(m => m.id);
+  return S.budgetVisibleMembers;
+}
+
+function toggleBudgetMemberVisible(id) {
+  const visible = getBudgetVisibleMembers();
+  let next;
+  if(visible.includes(id)) {
+    next = visible.filter(v => v !== id);
+    if(!next.length) {
+      showToast('最低 1 人は表示する必要があります','error');
+      return;
+    }
+  } else {
+    next = visible.concat(id);
+  }
+  S.budgetVisibleMembers = next.length === MEMBERS.length ? null : next;
+  if(_budgetMember !== 'all' && _budgetMember !== 'common' && !next.includes(_budgetMember)) {
+    _budgetMember = 'all';
+  }
+  saveS();
+  // 設定モーダルを再描画（チェック状態反映）
+  if(document.querySelector('.bm-mgr-popup')) {
+    document.querySelectorAll('.bm-mgr-popup').forEach(el => el.remove());
+    openBudgetMemberManager();
+  }
+  renderBudget();
+}
+
+function openBudgetMemberManager() {
+  const visible = getBudgetVisibleMembers();
+  document.querySelectorAll('.bm-mgr-popup').forEach(el => el.remove());
+  const popup = document.createElement('div');
+  popup.className = 'bm-mgr-popup';
+  popup.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.18);display:flex;align-items:flex-end;';
+  const rows = MEMBERS.map(m => {
+    const isVisible = visible.includes(m.id);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border-light);">
+      <div class="av" style="background:${H(m.grad)};width:32px;height:32px;font-size:13px;flex-shrink:0;">${H(m.av)}</div>
+      <span style="flex:1;font-size:14px;font-weight:600;color:var(--text);">${H(m.name)}</span>
+      <button onclick="toggleBudgetMemberVisible('${H(m.id)}')" style="padding:6px 12px;border-radius:var(--r-full);border:1.5px solid ${isVisible?'var(--primary)':'var(--border)'};background:${isVisible?'var(--primary)':'#fff'};color:${isVisible?'#fff':'var(--text-sub)'};font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        ${isVisible ? '表示中' : '非表示'}
+      </button>
+    </div>`;
+  }).join('');
+  popup.innerHTML = `<div style="width:100%;background:#fff;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.12);">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">家計タブの表示メンバー</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.55;">
+      家計画面のメンバータブに表示するメンバーを選べます。<br>
+      非表示にしたメンバーの取引データは削除されません（再表示で戻ります）。
+    </div>
+    <div style="margin-bottom:12px;">${rows}</div>
+    <button class="btn btn-ghost btn-block" onclick="document.querySelectorAll('.bm-mgr-popup').forEach(el=>el.remove())">閉じる</button>
+  </div>`;
+  popup.addEventListener('click', (e) => { if(e.target === popup) popup.remove(); });
+  document.body.appendChild(popup);
+}
+
 function setBudgetMember(id) {
   _budgetMember = id || 'all';
   renderBudget();
@@ -5339,7 +5403,10 @@ function renderBudget() {
       <span>👨‍👩‍👧‍👦 家族全体</span>
       <span class="bm-amt">${fmtAmt(totalExpAll)}</span>
     </button>`;
+    // Wave 42：表示メンバーのみタブを描画
+    const visibleMembers = getBudgetVisibleMembers();
     MEMBERS.forEach(mem => {
+      if(!visibleMembers.includes(mem.id)) return;
       const t = memTotals[mem.id];
       // メンバー固有の支出/収入が無くても全員ボタンは出す（押せる導線）
       const amt = t ? t.exp : 0;
