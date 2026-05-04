@@ -6099,13 +6099,20 @@ function renderHealthCharts(recs) {
   const today = todayStr();
   const todayDate = new Date(today + 'T00:00:00');
   const DAYS = 30;
+  const sinceDate = new Date(todayDate); sinceDate.setDate(sinceDate.getDate() - (DAYS - 1));
+  const sinceStr = sinceDate.toISOString().slice(0, 10);
+  const isAllMembers = (typeof _healthMemberFilter !== 'undefined') && _healthMemberFilter === 'all';
 
-  // 日付ごとの最高体温を集計
-  const tempByDate = {};
+  // 日付ごとの最高体温と該当レコード（誰のものかを保持）を集計
+  const tempByDate = {};   // date -> max temp
+  const peakRecByDate = {}; // date -> rec（その日の最高体温の主）
   recs.forEach(r => {
     const t = parseFloat(r.temp);
     if(!isFinite(t) || !r.date) return;
-    if(!tempByDate[r.date] || tempByDate[r.date] < t) tempByDate[r.date] = t;
+    if(tempByDate[r.date] == null || tempByDate[r.date] < t) {
+      tempByDate[r.date] = t;
+      peakRecByDate[r.date] = r;
+    }
   });
 
   // 直近 30 日の配列（今日が右端）
@@ -6113,11 +6120,10 @@ function renderHealthCharts(recs) {
   for(let i = DAYS - 1; i >= 0; i--) {
     const d = new Date(todayDate); d.setDate(d.getDate() - i);
     const k = d.toISOString().slice(0, 10);
-    days.push({ date: k, temp: tempByDate[k] || null, day: d.getDate(), month: d.getMonth() + 1 });
+    days.push({ date: k, temp: tempByDate[k] != null ? tempByDate[k] : null, rec: peakRecByDate[k] || null, day: d.getDate(), month: d.getMonth() + 1 });
   }
 
   // 体温チャート SVG（棒グラフ）
-  // 注：global の H（escape）を上書きしないようローカル名は CHART_W/CHART_H を使用
   const CHART_W = 320, CHART_H = 110, PAD_L = 28, PAD_R = 8, PAD_T = 14, PAD_B = 22;
   const innerW = CHART_W - PAD_L - PAD_R, innerH = CHART_H - PAD_T - PAD_B;
   const T_MIN = 35.5, T_MAX = 40.0;
@@ -6130,19 +6136,15 @@ function renderHealthCharts(recs) {
   if(!recordedDays.length) {
     tempChart = `<div style="padding:18px 16px;text-align:center;color:var(--text-muted);font-size:12px;background:#fff;border:1px solid var(--border-light);border-radius:14px;margin:0 16px;">体温の記録がまだありません。記録すると過去30日のチャートで振り返れます。</div>`;
   } else {
-    // 横軸ラベル（5日おき）
     const xLabels = [];
     for(let i = 0; i < DAYS; i += 5) {
       xLabels.push(`<text x="${xFor(i) + barW/2}" y="${CHART_H - 6}" text-anchor="middle" font-size="9" fill="#8A9ABE">${days[i].month}/${days[i].day}</text>`);
     }
-    // 縦軸ラベル
     const yLabels = [36, 37, 38, 39, 40].map(t =>
       `<line x1="${PAD_L}" y1="${yFor(t)}" x2="${CHART_W - PAD_R}" y2="${yFor(t)}" stroke="${t >= 37.5 ? '#FECACA' : '#EEF2F7'}" stroke-dasharray="${t === 37.5 ? '3,3' : ''}"/>` +
       `<text x="${PAD_L - 4}" y="${yFor(t) + 3}" text-anchor="end" font-size="9" fill="#8A9ABE">${t}</text>`
     ).join('');
-    // 37.5℃ ライン強調
-    yLabels.replace?.(); // no-op (just to remind; actual stroke handled per t)
-    // バー
+    // バー（クリックで該当日の編集を開く）
     const bars = days.map((d, i) => {
       if(d.temp == null) return '';
       const tClamped = Math.max(T_MIN, Math.min(T_MAX, d.temp));
@@ -6150,7 +6152,11 @@ function renderHealthCharts(recs) {
       const h = (PAD_T + innerH) - y;
       const fever = d.temp >= 37.5;
       const fill = fever ? '#FF6B6B' : '#52C47A';
-      return `<rect x="${xFor(i)}" y="${y}" width="${barW}" height="${h}" rx="1.5" fill="${fill}"><title>${d.month}/${d.day}：${d.temp}℃</title></rect>`;
+      const m = d.rec ? getMem(d.rec.memberId) : null;
+      const memName = (m && m.name) || '';
+      const tip = `${d.month}/${d.day}　${memName?memName+'　':''}${d.temp}℃`;
+      const recId = d.rec ? d.rec.id : '';
+      return `<rect x="${xFor(i)}" y="${y}" width="${barW}" height="${h}" rx="1.5" fill="${fill}" style="cursor:pointer;" onclick="${recId?`openHealthEditModal('${H(recId)}')`:''}"><title>${H(tip)}</title></rect>`;
     }).join('');
     tempChart = `<div style="margin:0 16px;padding:12px 12px 8px;background:#fff;border:1px solid var(--border-light);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;">
@@ -6160,22 +6166,55 @@ function renderHealthCharts(recs) {
       <svg viewBox="0 0 ${CHART_W} ${CHART_H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block;height:auto;">
         ${yLabels}${bars}${xLabels.join('')}
       </svg>
-      <div style="display:flex;gap:10px;font-size:10px;color:var(--text-muted);padding:4px 6px 0;">
+      <div style="display:flex;gap:10px;font-size:10px;color:var(--text-muted);padding:4px 6px 0;flex-wrap:wrap;">
         <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#52C47A;border-radius:2px;display:inline-block;"></span>平熱</span>
         <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#FF6B6B;border-radius:2px;display:inline-block;"></span>発熱（37.5℃以上）</span>
+        <span style="margin-left:auto;color:var(--text-muted);">バーをタップで詳細</span>
       </div>
     </div>`;
   }
 
-  // 症状頻度（過去30日内の出現回数）
-  const sinceDate = new Date(todayDate); sinceDate.setDate(sinceDate.getDate() - (DAYS - 1));
-  const sinceStr = sinceDate.toISOString().slice(0, 10);
-  const symptomCount = {};
+  // 発熱イベント一覧（過去30日内の発熱記録：誰がいつ何度だったか）
+  const feverRecs = recs
+    .filter(r => parseFloat(r.temp) >= 37.5 && (r.date || '') >= sinceStr)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||''));
+  let feverList = '';
+  if(feverRecs.length) {
+    feverList = `<div style="margin:10px 16px 0;padding:12px 14px;background:#fff;border:1px solid var(--border-light);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);">🌡 発熱があった日（過去30日）</div>
+        <div style="font-size:10px;color:var(--text-muted);">${feverRecs.length}件</div>
+      </div>
+      ${feverRecs.map(r => {
+        const m = getMem(r.memberId);
+        const dateStr = (r.date||'').slice(5).replace('-','/');
+        const sym = (r.symptoms||[]).filter(Boolean).join('・');
+        const med = r.medicine ? `💊 ${r.medicine}` : '';
+        const hosp = r.visitedHospital ? `🏥 ${r.hospitalName||'病院'}` : '';
+        const meta = [sym, med, hosp].filter(Boolean).join(' / ');
+        return `<div onclick="openHealthEditModal('${H(r.id)}')" style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : '<div style="width:30px;height:30px;flex-shrink:0;"></div>'}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} <span style="color:var(--text-muted);font-weight:500;font-size:11px;margin-left:3px;">${H(dateStr)}${r.time?' '+H(r.time):''}</span></div>
+            ${meta ? `<div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${H(meta)}</div>` : ''}
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--red);flex-shrink:0;">${H(r.temp)}<span style="font-size:11px;font-weight:600;">℃</span></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // 症状頻度（過去30日内の出現回数 + メンバー内訳）
+  const symptomCount = {};   // s -> count
+  const symptomMembers = {}; // s -> { memberId: count }
   recs.forEach(r => {
     if((r.date||'') < sinceStr) return;
     (r.symptoms || []).forEach(s => {
       if(!s) return;
       symptomCount[s] = (symptomCount[s] || 0) + 1;
+      if(!symptomMembers[s]) symptomMembers[s] = {};
+      const mid = r.memberId || 'unknown';
+      symptomMembers[s][mid] = (symptomMembers[s][mid] || 0) + 1;
     });
   });
   const symptomEntries = Object.entries(symptomCount).sort((a,b) => b[1] - a[1]).slice(0, 6);
@@ -6186,16 +6225,28 @@ function renderHealthCharts(recs) {
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">症状の頻度（過去30日）</div>
       ${symptomEntries.map(([s, c]) => {
         const pct = Math.round((c / maxC) * 100);
-        return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
-          <div style="font-size:11px;color:var(--text-sub);min-width:54px;flex-shrink:0;">${H(s)}</div>
-          <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FF9B4E,#FF6B6B);"></div></div>
-          <div style="font-size:11px;font-weight:700;color:var(--text);min-width:24px;text-align:right;">${c}</div>
+        // メンバー内訳（家族全員タブのときに表示）
+        const memberBreakdown = isAllMembers ? Object.entries(symptomMembers[s]||{}).sort((a,b)=>b[1]-a[1]).map(([mid, mc]) => {
+          const m = getMem(mid);
+          if(!m) return '';
+          return `<span title="${H(m.name)} ${mc}件" style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;background:var(--bg-muted);border-radius:8px;">
+            <span class="av" style="background:${H(m.grad)};width:14px;height:14px;font-size:8px;">${H(m.av)}</span>
+            <span style="font-size:10px;color:var(--text-sub);font-weight:700;">${mc}</span>
+          </span>`;
+        }).join('') : '';
+        return `<div style="margin:6px 0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:11px;color:var(--text-sub);min-width:54px;flex-shrink:0;">${H(s)}</div>
+            <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FF9B4E,#FF6B6B);"></div></div>
+            <div style="font-size:11px;font-weight:700;color:var(--text);min-width:24px;text-align:right;">${c}</div>
+          </div>
+          ${memberBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding-left:62px;">${memberBreakdown}</div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
   }
 
-  return `<div style="padding:6px 0 0;">${tempChart}${symptomChart}</div>`;
+  return `<div style="padding:6px 0 0;">${tempChart}${feverList}${symptomChart}</div>`;
 }
 
 function healthTodayCard(r) {
