@@ -4437,3 +4437,66 @@ S.prep[] 拡張（既存互換）：
 
 ### コミット
 - メッセージ: `wave 48: prep list -> member-aware weekday routines + timetable + auto-apply`
+
+---
+
+## 2026-05-05 06:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 48.1: 深い品質監査でバグ 3 件を発見・修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 発見＆修正したバグ
+
+**1. apply 時に非表示メンバーのルーティンも反映されてしまう（バナー件数と挙動の不一致）**
+- 問題：バナーは「太郎の 1 件」と表示するが、apply ボタン押下で全 3 件（花子・パパも）が S.prep[] に追加されていた
+- 修正：`applyPrepRoutinesForDate` に可視メンバーフィルタを追加。バナー件数と apply 件数が完全一致
+- 引数 `opts.includeHidden=true` で全メンバー強制反映オプションも残す（将来の Hoku 自動反映想定）
+
+**2. 同名異 routineId のルーティンが 1 件に統合されてしまう**
+- 問題：dedupe ロジックが `text + memberId + date` で OR 判定していたため、ユーザーが意図的に分けた 2 つのルーティンが 1 件にまとまっていた
+- 修正：dedupe を `routineId + date` 優先に変更。手動 prep（routineId なし）と被る場合のみ text 一致で dedupe
+- 結果：別々の routine は独立して反映、手動と被るときは賢く統合
+
+**3. `openPrepRoutineModal` の ID マッチが `pr_` プレフィックス前提だった**
+- 問題：プレフィックスなし ID で呼ばれた場合に新規モードに falls through してしまい、編集にならない
+- 修正：`S.prepRoutines.find(x => x.id === id)` で直接検索、prefix を問わない
+- メンバーヒント判定もより堅牢に：MEMBERS に存在する ID のみ初期メンバー値として採用
+
+### テスト結果
+- Wave 48 deep audit：**31/31 PASS**（新規）
+  - A. visibility/banner 整合（4 件）
+  - B. routine 削除と orphan 維持（3 件）
+  - C. dedupe 仕様（2 件：独立 routine / 手動 vs routine）
+  - D. 無効化 routine は反映されない
+  - E. 表示タイミング（PDT が前日と当日両方に出る）
+  - F. dirty form 検知（4 件：開放直後 / 変更 / 元値復帰 / dirty スワイプ確認）
+  - G. 全員/個別フィルタ（2 件）
+  - H. 曜日カード ＋ ボタンの prefilled 値（1 件）
+  - I. 全員表示中のチップ操作
+  - J. 連続非表示でも最後 1 人保護
+  - K. 全フィールド保存
+  - L. 既存データ互換（3 件：memberId なし / member 名のみ / 新スキーマ）
+  - M. リロード後 CRUD 継続
+  - N. メンバー管理モーダル経由 toggle
+  - O. enable/disable で applied フラグが正しく追従
+  - P. JS エラーゼロ
+- 既存 27 suites：全 PASS
+- 累計 **28 suites 790/790 PASS**
+- md5 同期：`4bb30ff7d570eee88376b9373c6af0d3`
+
+### iPhone 確認ポイント（追加分）
+1. メンバーを「太郎」だけ表示にして「今日の準備に追加」 → 太郎のルーティンだけ追加される（花子の分は漏れない）
+2. 同名で memberId 違いの 2 ルーティンを作成 → 両方とも反映される
+3. 同名で同 memberId の 2 ルーティンを作成 → 両方とも反映される（独立ルーティンとして扱われる）
+4. 手動で「体操服」追加した日に「体操服」ルーティンを反映 → 重複は追加されない
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機確認
+
+### コミット
+- メッセージ: `wave 48.1: visibility-aware apply + routine-id dedup + robust modal lookup (31 deep audit cases)`
