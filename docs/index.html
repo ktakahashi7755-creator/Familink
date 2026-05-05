@@ -1992,12 +1992,16 @@ nav#tabbar.hidden { display: none !important; }
 .avatar-grid-img-wrap {
   position: relative;
   width: 80px; height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
 }
 .avatar-grid-img-wrap img {
   width: 80px; height: 80px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   display: block;
+  transform: scale(1.18);  /* 公式アバター画像の白縁をクロップ */
 }
 .avatar-grid-check {
   position: absolute; bottom: 0; right: 0;
@@ -3331,15 +3335,18 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
     return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
   }
   const avatarType = (S.userAvatarType||{})[memberId];
+  // 公式アバターのキャンバス内余白（白縁）を切り落とすための拡大率
+  // 公式アバター画像はキャラ周辺に約 10% の余白が含まれているため、scale(1.18) で丸枠内をしっかり満たす
+  const OFFICIAL_AVATAR_SCALE = 1.18;
   // 公式アバター
   if(avatarType === 'official') {
     const avatarId = (S.userAvatars||{})[memberId];
     const avatarDef = [...OFFICIAL_AVATARS,...PREMIUM_AVATARS].find(a=>a.id===avatarId);
     if(avatarDef) {
-      return `<div class="av" style="width:${sz};height:${sz};background:${H(m.grad)};overflow:hidden;${extraStyle}"><img src="${avatarDef.src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="${H(m.name)}"></div>`;
+      return `<div class="av" style="width:${sz};height:${sz};background:${H(m.grad)};overflow:hidden;${extraStyle}"><img src="${avatarDef.src}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%;transform:scale(${OFFICIAL_AVATAR_SCALE});" alt="${H(m.name)}"></div>`;
     }
   }
-  // カスタム写真
+  // カスタム写真（ユーザー撮影）はそのまま、白余白の前提なし
   const photo = (S.userPhotos||{})[memberId];
   if(photo) {
     return `<div class="av" style="width:${sz};height:${sz};background:${H(m.grad)};overflow:hidden;${extraStyle}"><img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="${H(m.name)}"></div>`;
