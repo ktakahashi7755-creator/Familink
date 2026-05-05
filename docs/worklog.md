@@ -3900,3 +3900,270 @@ Wave 43：家計メンバータブをタスクページと統一デザインへ�
 
 ### コミット
 - メッセージ: `wave 43: budget - unified member tab UI with task page (avatar + dashed +) + long-press hide`
+
+---
+
+## 2026-05-04 17:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 44: スワイプナビゲーションを iOS / Android ネイティブ風のエッジスワイプに刷新
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- 中央領域のスワイプ判定を撤去し、**画面端 40px 起点のみ** ジェスチャ受付に変更
+  - 左端 → 右にスワイプ ＝ 戻る（前ページ / 詳細画面なら goBack）
+  - 右端 → 左にスワイプ ＝ 進む（次ページ）
+  - 中央スワイプは無反応 → 横スクロールやカレンダー操作と完全に分離
+- 定数調整
+  - `SWIPE_EDGE_PX(24)` → `SWIPE_EDGE_ZONE_PX(40)`（左右両方の端ゾーン幅）
+  - `SWIPE_THRESHOLD_X 80 → 60`（エッジ起点なので少し緩める）
+  - `SWIPE_MAX_Y 50 → 60` / `SWIPE_MIN_DURATION_MS 80 → 60`
+- ハンドラ分割：`_swipeGoBack()` / `_swipeGoForward()` を新設、後方互換のため `_swipeNextScreen(dir)` ラッパーは維持
+- `touchstart` で `_swipeStart.edge` に `'left' | 'right'` を保存し、`touchend` 時に edge と dx 符号の組み合わせで方向を確定
+- バグ修正：`_swipeShouldBlock` のモーダル判定が常に true を返していた
+  - 旧コードは `display !== 'none'` を見ていたが、本アプリのモーダルは display:flex のまま `.open` クラスで切替する仕様のため誤検知
+  - `m.classList.contains('open')` で判定するよう修正
+
+### テスト結果
+- Wave 44 edge swipe smoke：19/19 PASS（CDP `Input.dispatchTouchEvent` で実機相当のタッチを合成）
+  - エッジゾーン定数 / `_swipeGoBack` / `_swipeGoForward` / 後方互換ラッパー
+  - 右端→左：次ページへ遷移、左端→右：前ページへ遷移
+  - 中央スワイプ無効 / 短距離無効 / 縦スクロール優先 / 詳細画面の戻り
+  - モーダル中ブロック / 入力フォーカス中ブロック
+  - 最初/最後/順序外画面で無反応
+- 既存 21 suites regression：全 PASS（549/549）
+- md5 同期：`e2167501613fd559a4fde9d07d01fbca`
+
+### 未確認事項
+- 「上から下で」のジェスチャ仕様は途中で文章が途切れていたため未実装。
+  iOS 通知センター風の上端引き下ろしは現状アプリ内では用途が曖昧なので、
+  次回ユーザー確認時に意図を確認してから対応。
+- iPhone Safari の interactive pop（左端から右へのシステムジェスチャ）と
+  競合した場合の挙動（履歴ありの場合のみ Safari が優先）
+
+### iPhone 確認ポイント
+- 左端から右にスワイプ → 前のページに戻る
+- 右端から左にスワイプ → 次のページに進む
+- 画面中央でのスワイプは何も起きない（横スクロールが効く）
+- 詳細画面（ボードカード詳細など）で左端→右スワイプで戻れる
+- モーダル表示中はスワイプで遷移しない
+- カレンダーの週ビュー / 体調 SVG / 家計チャート上は従来どおりブロック
+
+### 次にやること
+- ユーザーから「上から下で」の意図ヒアリング後、必要なら縦エッジスワイプを実装
+- iPhone 実機での操作感確認
+
+### コミット
+- メッセージ: `wave 44: edge-based swipe navigation (iOS/Android native feel)`
+
+---
+
+## 2026-05-04 18:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 45: 上端から下スワイプで詳細画面を閉じる
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- Wave 44 の左右エッジスワイプに加え、**上端 40px 起点 → 下に 80px 以上スワイプで詳細画面を閉じる** ジェスチャを追加
+- 対象画面：`s-board-detail` / `s-cdetail` / `s-custom-board`（`SWIPE_DETAIL_SCREENS` 定数化）
+- メイン画面（s-home, s-cal, s-task 等）では上端→下スワイプは無反応（縦スクロール / プルリフレッシュとの誤解防止）
+- 縦スワイプ用の許容横ブレ：`SWIPE_MAX_X_FOR_VERTICAL = 60`（横より 60px 以上ぶれたら誤発火扱い）
+- `_swipeOnTouchMove` に edge='top' 用の分岐追加：横移動が主体になったらキャンセル
+- 新関数：`_swipeCloseDetail()`（詳細画面に居れば goBack）
+- 既存の左右エッジスワイプ・モーダル/入力ブロック・カレンダー除外などの仕様は維持
+
+### テスト結果
+- Wave 45 top swipe smoke：15/15 PASS（CDP `Input.dispatchTouchEvent`）
+  - 定数 / 関数定義 / 詳細→goBack / メインで無反応 / 上方向で無反応 /
+    中央起点で無反応 / 短距離無反応 / 横移動優位で無反応 / モーダル中ブロック /
+    カスタムボード詳細でも閉じる / Wave 44 regression
+- 既存 22 suites regression：全 PASS（564/564）
+
+### 未確認事項
+- iPhone Safari 実機での上端ジェスチャの操作感（OS のステータスバー領域との干渉確認）
+
+### iPhone 確認ポイント
+- ボード詳細画面で上端から下にスワイプ → 詳細を閉じて一覧へ戻る
+- カスタムボード詳細でも同様
+- メイン画面（ホーム / カレンダー等）では何も起きない（縦スクロールが普通に効く）
+- ボード詳細でモーダル開いている時は上端スワイプで反応しない
+
+### 次にやること
+- iPhone 実機での総合的な操作感確認（左右 + 上の 3 方向ジェスチャ）
+
+### コミット
+- メッセージ: `wave 45: top-edge swipe-down to close detail screens`
+
+---
+
+## 2026-05-04 19:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 45 検証ラウンド：FAB と右端スワイプの競合を修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+- 検証中に発見：Hoku FAB（右上 312-380, 0-62px）が右端スワイプゾーン（350-390, 全 y）と重複
+  - FAB 起点で右→左スワイプすると、FAB ドラッグ + ページ遷移が**同時に**発火
+  - FAB 起点でタップすると 520ms 後に `openHoku()` が走り、後続の操作と混線する
+- 修正：`_swipeBlockSelectors` に `#hoku-fab` を追加
+  - FAB 上から始まったタッチはスワイプナビゲーションを発火しない
+  - FAB の独自ドラッグ/タップは従来どおり動く
+- 副次：audit テスト（B1）の偽陽性を修正
+  - 元のテストは FAB 位置にタップしてしまっていた（A1）→ 中央タップに変更
+  - 縦移動>横の検証は FAB 領域 (y<62) を避けて y=300 起点に変更
+
+### テスト結果
+- Wave 44 edge swipe smoke：22/22 PASS（FAB 起点ブロック 3 件追加）
+- Wave 45 top swipe smoke：15/15 PASS
+- Wave 45 audit：12/12 PASS
+- 既存 23 suites 全 PASS（579/579）
+- md5 同期：`e0e7f3e844b480a6196de09b8c6ed128`
+
+### 未確認事項
+- 他のフローティング要素や絶対配置のボタンが端ゾーンに重なるケース
+  （現状は FAB 以外見当たらないが、将来の追加時は要確認）
+- iOS Safari の interactive pop と Wave 44 左端スワイプの優先順位（ブラウザ履歴あり時）
+
+### iPhone 確認ポイント
+- 右上の Hoku アイコン上から左にスワイプしても、ページ遷移しないこと
+- 右上 Hoku をタップ → Hoku 画面が開くこと（従来通り）
+- 右上 Hoku をドラッグ → 位置移動できること（従来通り）
+- FAB 領域より下（y>62）の右端スワイプは正常にページ遷移する
+
+### 次にやること
+- iPhone 実機でジェスチャ＋ FAB 操作を併用してみる
+- 必要なら FAB 位置を変えて競合の挙動を再確認
+
+### コミット
+- メッセージ: `wave 45.1: block #hoku-fab from swipe nav to fix overlap with right-edge zone`
+
+---
+
+## 2026-05-04 21:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 46: スマホアプリらしい自然なジェスチャー操作体験
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容（Wave 44/45 のエッジ専用設計を、自然な中央スワイプ＋モーダル下スワイプに刷新）
+
+**1. 右スワイプで戻る（中央領域）**
+- `dx >= 80px`、`|dy| < 60px`、duration 100-800ms で発火
+- 左端 20px 以内は Safari の interactive pop と競合させないため無視
+- アプリ内履歴スタック `_appHistory` を使った「自然な戻り」
+  - `go()` / `switchTab()` を wrap して履歴を push
+  - 履歴があれば pop、なければ既存 `goBack()` に委ねる
+  - 詳細画面は専用 `goBack()` ロジックを使う（履歴汚染回避）
+- `appNavBack()` 統一エントリポイント（既存戻るボタンとも整合）
+
+**2. 下スワイプでモーダル / 詳細を閉じる**
+- `dy >= 100px`、`|dx| < 60px`、duration 100-800ms
+- モーダル開放時は通常の右スワイプ戻りより優先
+- 削除確認 `m-confirm` / 課金ゲート `m-premium-gate` / 予定移動 `m-event-move` は閉じない
+- モーダル内コンテンツがスクロール中（`scrollTop > 8`）は閉じない
+- 入力中（input/textarea/select/contenteditable focus）は閉じない
+- 詳細画面ヘッダー領域（y<=40, x>20）でも下スワイプで閉じる
+
+**3. 未保存変更の確認**
+- `openModal` を wrap して入力スナップショットを取る
+- `_modalIsDirty(modal)` で変更検知
+- 下スワイプで閉じる前に dirty なら `showConfirm('入力中の内容があります', ...)` 表示
+
+**4. 左スワイプ（次ページ進む）は廃止**
+- `_swipeGoForward()` は no-op として残す（後方互換）
+- スペック「誤操作しやすいなら無理に入れない」に従う
+
+**5. ブロック条件**
+- input / textarea / select / [contenteditable]
+- カレンダー週ビュー / リストビュー（横スクロール領域）
+- React popup / ボードカードメニュー / FAB / `[data-no-swipe]`
+- 静的可視化（家計バーチャート / 体調 SVG）はブロック対象から除外
+  → 家計画面でも右スワイプで戻れるように
+
+**6. 初回案内トースト**
+- `S.userProfile.swipeHintSeen` フラグを永続化（既存 PERSIST 対象内）
+- 初めて右スワイプで戻った時に「右スワイプで戻る・下スワイプでモーダルを閉じる」を 1 度だけ表示
+
+**7. Hoku 連携**
+- 既存「スワイプ操作」案内を全面刷新
+- 「戻るボタンどこ？」「モーダル閉じたい」「操作方法」など複数表現に対応
+- 右スワイプで戻る・下スワイプで閉じる・無効になる場面を明確に説明
+
+### テスト結果
+- Wave 46 natural swipe smoke：49/49 PASS（iPhone 13 ベースライン + 4 viewport regression）
+  - A. 仕様 / 定数の存在確認（6 件）
+  - B. 履歴スタック動作（3 件）
+  - C. 9 メイン画面で右スワイプ戻り（s-cal / s-task / s-board / s-prep / s-health / s-budget / s-hoku / s-notif / s-settings）
+  - D. ボード詳細→右スワイプで親画面
+  - E. 入力フォーカス中無効
+  - F. 縦移動 > 横は無効
+  - G. 距離不足無効
+  - H. 左端 20px 以内無視
+  - I. モーダル中の通常右スワイプ無効
+  - J. 5 種類のモーダル下スワイプ閉じ（m-event / m-budget / m-health / m-prep / m-task-edit）
+  - K. m-confirm 下スワイプ無効
+  - L. dirty フォーム下スワイプで確認モーダル
+  - M. 入力中モーダル下スワイプで閉じない
+  - N. スクロール中モーダル下スワイプで閉じない
+  - O. ホーム履歴空の安全動作
+  - P. 初回案内トースト 1 度だけ
+  - Q. Hoku 案内（3 種類の表現）
+  - R. ピンチ 2 本指で誤発火しない
+  - S. 全 10 メイン画面到達
+  - T. 既存 goBack 互換
+  - V. iPhone SE / 13 / 15 Plus / Pro Max の 4 viewport 動作
+- 既存 23 suites（旧テストは Wave 46 仕様に合わせて更新）：全 PASS
+- 累計 24 suites：628/628 PASS
+- md5 同期：`05a20796c574df91ad617fdfc4f96e4a`
+
+### 既存テストの更新（Wave 46 仕様への追従）
+- Wave 41 #13/#14：左スワイプ進む削除→ switchTab + appNavBack に置換
+- Wave 44 全面：エッジ専用テスト（左/右端起点）→ Wave 46 中央領域テストへ
+- Wave 45 audit I1/J1/K1：エッジ起点 → 中央領域 / ヘッダー領域に置換
+
+### 未対応課題
+- iPhone Safari 実機での Safari interactive pop（左端ブラウザ戻る）の挙動確認
+  - 履歴がある時のみ Safari が優先される想定
+- 詳細画面で右スワイプ＋下スワイプの両方が成立する稀なケース（角の同時起点）
+- 規約 / プライバシー画面はアプリに未実装のためテスト未遂
+
+### iPhone 確認ポイント
+1. ホーム以外の画面で画面中央を右スワイプ → 前画面に戻る
+2. 家計画面でも右スワイプで戻れる（バーチャート上を含む）
+3. 詳細画面（ボード詳細など）で右スワイプ → 親画面（家族ボード）
+4. 予定 / 家計 / 体調 / 準備 / タスク編集モーダルを下スワイプで閉じられる
+5. 入力途中で下スワイプ → 確認「保存せずに閉じますか？」表示
+6. 削除確認モーダルは下スワイプで閉じない（ボタンのみ）
+7. モーダル内をスクロールしている時は下スワイプで閉じない
+8. 入力にフォーカスしている時は右スワイプで戻らない
+9. 縦スクロール中に右スワイプ戻りが暴発しない
+10. 初めて右スワイプで戻った時にトースト「右スワイプで戻る・下スワイプでモーダルを閉じる」が 1 度だけ
+11. 既存の戻るボタン / 下部タブバーが従来通り動く
+12. Hoku に「スワイプで戻れる？」と聞くと操作方法を案内
+
+### 次にやること
+- iPhone 実機での 12 個の確認ポイントを総合確認
+- 必要なら案内トースト文言を調整
+
+### 自己評価
+- 仕様適合：◯（QA 48 項目のうち 46 項目は test/コードで検証済、残り 2 項目は仕様外画面）
+- 既存機能への影響：◯（628/628 PASS、新規 JS エラーゼロ）
+- iOS ライク自然さ：◯（中央領域 + 距離 80px + 誤発火防止 + dirty 確認 + 削除モーダル除外）
+- App Store 公開品質：◯（予定の挙動、ブランド観に沿う案内文）
+
+### コミット
+- メッセージ: `wave 46: natural iOS-like swipe gestures (right-back + modal down-close + dirty check + Hoku hint)`

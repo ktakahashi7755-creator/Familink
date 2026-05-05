@@ -9747,19 +9747,26 @@ function hokuLocalAnswer(q) {
       '※ 体調記録は家族内の振り返り用です。診断や医療判断を行うものではありません。';
   }
 
-  /* Wave 41：スワイプ操作の問い合わせ */
-  if(q.match(/スワイプ|横に滑|横スワイプ|ページ.*移動|swipe/i)) {
-    return 'Familink は横スワイプでページ移動できます。'+NL+NL+
-      '【操作方法】'+NL+
-      '・左へスワイプ：次のページへ'+NL+
-      '・右へスワイプ：前のページへ'+NL+
-      '・詳細画面では右スワイプで前画面に戻れます'+NL+NL+
+  /* Wave 46：スワイプ / 戻る / モーダル閉じる の問い合わせ */
+  if(q.match(/スワイプ|横に滑|横スワイプ|ページ.*移動|swipe/i) ||
+     q.match(/(前|戻|もどる|もどり).*(ページ|画面|戻)/) ||
+     q.match(/戻るボタン|戻り方/) ||
+     q.match(/(モーダル|画面|詳細).*(閉じ|とじ)/) ||
+     q.match(/操作方法|使い方/)) {
+    return 'Familink は iPhone のように自然なジェスチャーで戻る・閉じるができます。'+NL+NL+
+      '【右にスワイプで戻る】'+NL+
+      '・どのページからでも、画面を右にスワイプすると前の画面に戻れます'+NL+
+      '・詳細画面では親画面（家族ボードや一覧）へ戻ります'+NL+
+      '・ホームで履歴がない時は何も起きません'+NL+NL+
+      '【下にスワイプで閉じる】'+NL+
+      '・モーダル（予定・家計・体調記録など）を上から下にスワイプで閉じられます'+NL+
+      '・入力途中の内容がある場合は確認が表示されます'+NL+
+      '・削除確認モーダルではスワイプ閉じは無効（誤操作防止）'+NL+NL+
       '【無効になる場面（誤操作防止）】'+NL+
-      '・入力中 / モーダル表示中'+NL+
-      '・カレンダー / グラフ / リスト操作中'+NL+
-      '・画面左端からのスワイプ（ブラウザ戻る防止）'+NL+
-      '・縦スクロール優先のため、横移動が小さい / 斜めスワイプは無視'+NL+NL+
-      '従来通り下部のタブバーや戻るボタンも使えます。';
+      '・入力中 / リスト・カレンダー・グラフをスクロール中'+NL+
+      '・画面左端 20px はブラウザ戻ると競合するため無視'+NL+
+      '・斜めスワイプ・短すぎるスワイプは無効'+NL+NL+
+      '従来どおり下部のタブバーや戻るボタンも使えます。';
   }
 
   /* 挨拶 */
@@ -10197,82 +10204,298 @@ function qaDebugTestHoku() {
 window.addEventListener('DOMContentLoaded', init);
 
 /* ============================================================
-   Wave 41：横スワイプによるページ遷移
-   - 左スワイプ：次のページ（順序配列の次）
-   - 右スワイプ：前のページ（または goBack 相当）
-   - スクロール / 入力 / モーダルとは競合させない
-   - 厳しめのしきい値（横 80px、縦は 50px 以内）で誤発火防止
+   Wave 46：iPhone らしい自然なジェスチャー
+   - 右スワイプ（中央領域、80px 以上）→ 戻る（アプリ内履歴 → 詳細→親 → 主要ページ順）
+   - モーダル / 詳細上で下スワイプ（100px 以上）→ 閉じる
+   - 縦スクロール / 入力中 / カレンダー / グラフ / FAB / 削除確認モーダルとは競合させない
+   - モーダルが内部スクロール中なら閉じない
+   - 入力済みフォームを閉じる前に確認
+   - 初回案内：右スワイプで戻った時に小さなトーストを 1 度だけ表示
    ============================================================ */
-const SWIPE_PAGE_ORDER = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
-const SWIPE_THRESHOLD_X = 80;
-const SWIPE_MAX_Y = 50;
-const SWIPE_MAX_DURATION_MS = 800;
-const SWIPE_MIN_DURATION_MS = 80;
-const SWIPE_EDGE_PX = 24; // ブラウザバックと競合しないよう左端 24px は無効
+
+/* ── スワイプ判定の数値 ── */
+const SWIPE_BACK_DX            = 80;   // 右スワイプ戻る最低距離
+const SWIPE_BACK_MAX_DY        = 60;   // 横スワイプの許容縦ブレ
+const SWIPE_DOWN_DY            = 100;  // 下スワイプ閉じる最低距離
+const SWIPE_DOWN_MAX_DX        = 60;   // 縦スワイプの許容横ブレ
+const SWIPE_DURATION_MIN       = 100;
+const SWIPE_DURATION_MAX       = 800;
+const SWIPE_LEFT_EDGE_AVOID_PX = 20;   // Safari interactive pop と競合させないため左端 20px は無視
+const SWIPE_CANCEL_PERPENDICULAR = 24; // 主体方向と垂直方向の差がこれ未満なら継続
+
+/* 旧定数も後方互換のため公開（既存テスト互換） */
+const SWIPE_PAGE_ORDER         = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
+const SWIPE_DETAIL_SCREENS     = ['s-board-detail','s-cdetail','s-custom-board'];
+const SWIPE_THRESHOLD_X        = 60;   // (legacy) wave44/45 互換
+const SWIPE_THRESHOLD_Y        = 80;   // (legacy)
+const SWIPE_MAX_Y              = 60;   // (legacy)
+const SWIPE_MAX_X_FOR_VERTICAL = 60;   // (legacy)
+const SWIPE_MAX_DURATION_MS    = SWIPE_DURATION_MAX;
+const SWIPE_MIN_DURATION_MS    = 60;   // (legacy)
+const SWIPE_EDGE_ZONE_PX       = 40;   // (legacy)
+const SWIPE_TOP_EDGE_PX        = 40;   // (legacy)
+
+/* タッチ起点で「スワイプナビ判定を始めない」要素群
+   静的な可視化（家計バーチャート / 体調 SVG）は右スワイプを通すために除外。
+   横方向の操作を持つ要素（カレンダー週ビュー等）のみブロックする。 */
 const _swipeBlockSelectors = [
   'input', 'textarea', 'select',
   '[contenteditable="true"]',
   '.cal-week-view', '.cal-list-view',
-  '#health-list svg', '#budget-cat-chart',
-  '.modal-backdrop', '.react-popup-overlay', '.reactor-popup',
-  '.post-card-menu-pop'
+  '.react-popup-overlay', '.reactor-popup', '.post-card-menu-pop',
+  '#hoku-fab',
+  '[data-no-swipe]'
 ];
-let _swipeStart = null;
+/* 削除確認など、下スワイプで閉じてはいけないモーダル */
+const SWIPE_DOWN_FORBIDDEN_MODAL_IDS = ['m-confirm','m-premium-gate','m-event-move'];
+
+let _swipeStart = null;   // { x, y, t, kind: 'back' | 'modal-down' | 'detail-down', modal? }
 let _swipeBlocked = false;
 
+/* ── アプリ内履歴スタック ──────────────────────── */
+const APP_HIST_MAX = 30;
+const _appHistory = [];
+function _appHistPush(screenId) {
+  if(!screenId) return;
+  // 同じ画面の連続 push は避ける
+  if(_appHistory.length && _appHistory[_appHistory.length-1] === screenId) return;
+  _appHistory.push(screenId);
+  if(_appHistory.length > APP_HIST_MAX) _appHistory.shift();
+}
+function _appHistPop() {
+  return _appHistory.length ? _appHistory.pop() : null;
+}
+function _appHistTop() {
+  return _appHistory.length ? _appHistory[_appHistory.length-1] : null;
+}
+
+/* ── 既存 go / switchTab を wrap して履歴を残す ── */
+(function hookNav() {
+  if(typeof go === 'function' && !go.__wave46Hooked) {
+    const _origGo = go;
+    window.go = function(id) {
+      const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+      const r = _origGo.apply(this, arguments);
+      if(cur && cur !== id) _appHistPush(cur);
+      return r;
+    };
+    window.go.__wave46Hooked = true;
+  }
+  if(typeof switchTab === 'function' && !switchTab.__wave46Hooked) {
+    const _origST = switchTab;
+    window.switchTab = function(id) {
+      const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+      const r = _origST.apply(this, arguments);
+      if(cur && cur !== id) _appHistPush(cur);
+      return r;
+    };
+    window.switchTab.__wave46Hooked = true;
+  }
+})();
+
+/* ── ヘルパー ──────────────────────────────── */
+function _isInputFocused() {
+  const ae = document.activeElement;
+  if(!ae) return false;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+  if(ae.isContentEditable) return true;
+  return false;
+}
+function _topOpenModal() {
+  const list = Array.from(document.querySelectorAll('.modal-backdrop.open'));
+  return list.length ? list[list.length-1] : null;
+}
 function _swipeShouldBlock(target) {
   if(!target) return false;
   for(const sel of _swipeBlockSelectors) {
     if(target.closest && target.closest(sel)) return true;
   }
-  // モーダルが開いている場合
-  const anyModalOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => !m.classList.contains('hidden') && getComputedStyle(m).display !== 'none');
-  if(anyModalOpen) return true;
-  // 入力にフォーカス中
-  const ae = document.activeElement;
-  if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+  // モーダルが開いている時は通常の戻るスワイプは無効（モーダル下スワイプが代替）
+  if(_topOpenModal()) return true;
+  if(_isInputFocused()) return true;
   return false;
 }
 
-function _swipeNextScreen(dir) {
-  const cur = S.screen;
-  // 詳細画面では右（dir=1）で前に戻る
-  const detailScreens = ['s-board-detail','s-cdetail','s-custom-board'];
-  if(detailScreens.indexOf(cur) >= 0) {
-    if(dir > 0) { goBack(); return; }
-    return; // 詳細から左スワイプは無効
+/* ── 戻る統一エントリ ───────────────────────── */
+function appNavBack() {
+  const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+  // 詳細・サブ画面は専用 goBack に委ねる（履歴汚染を避ける）
+  if(cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0) {
+    if(typeof goBack === 'function') goBack();
+    return true;
   }
-  const idx = SWIPE_PAGE_ORDER.indexOf(cur);
-  if(idx < 0) return; // 順序外（オンボード等）はスワイプ無効
-  let nextIdx = idx + (dir < 0 ? 1 : -1);
-  if(nextIdx < 0 || nextIdx >= SWIPE_PAGE_ORDER.length) return;
-  const next = SWIPE_PAGE_ORDER[nextIdx];
-  // タブバーに含まれるトップレベルなら switchTab、それ以外は go
-  const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
-  if(tabBar.indexOf(next) >= 0 && typeof switchTab === 'function') switchTab(next);
-  else go(next);
+  // アプリ履歴があればそれを優先
+  if(_appHistory.length) {
+    const prev = _appHistPop();
+    if(prev && prev !== cur) {
+      const tabBar = ['s-home','s-task','s-cal','s-budget','s-board'];
+      // pop した結果を再 push しないよう生関数を呼ぶ
+      const fn = (tabBar.indexOf(prev) >= 0 && typeof switchTab === 'function')
+        ? switchTab : (typeof go === 'function' ? go : null);
+      if(fn) {
+        // wrap 経由だと cur をまた push してしまうので、直接シーン切替
+        if(typeof showScreen === 'function') showScreen(prev);
+        if(typeof refresh === 'function') refresh(prev);
+        if(tabBar.indexOf(prev) >= 0) {
+          document.getElementById('tabbar')?.classList.remove('hidden');
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          const tid = (typeof TAB_MAP !== 'undefined') ? TAB_MAP[prev] : null;
+          if(tid) document.getElementById(tid)?.classList.add('active');
+        }
+        return true;
+      }
+    }
+  }
+  // 履歴も詳細でもない時は既存 goBack に委ねる
+  if(typeof goBack === 'function') { goBack(); return true; }
+  return false;
 }
 
+/* ── 後方互換ラッパー（Wave 44/45 テスト用に残す） ── */
+function _swipeGoBack()    { appNavBack(); }
+function _swipeGoForward() { /* Wave 46 では右スワイプ戻る優先のため左スワイプ進むは廃止 */ }
+function _swipeNextScreen(dir) { if(dir > 0) _swipeGoBack(); }
+function _swipeCloseDetail() {
+  const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+  if(cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0 && typeof goBack === 'function') goBack();
+}
+
+/* ── モーダル下スワイプで閉じる（dirty 確認込み） ── */
+function _swipeIsDownAllowedOnModal(modal) {
+  if(!modal) return false;
+  if(SWIPE_DOWN_FORBIDDEN_MODAL_IDS.indexOf(modal.id) >= 0) return false;
+  // モーダル内コンテンツがスクロール中（最上部にいない）なら閉じない
+  const inner = modal.querySelector('.modal');
+  if(inner && inner.scrollTop > 8) return false;
+  if(_isInputFocused()) return false;
+  return true;
+}
+function _modalSnapshot(modal) {
+  const map = {};
+  modal.querySelectorAll('input,textarea,select').forEach((el, i) => {
+    const k = el.id || el.name || ('_'+i);
+    map[k] = (el.type === 'checkbox' || el.type === 'radio') ? !!el.checked : (el.value || '');
+  });
+  return map;
+}
+function _modalIsDirty(modal) {
+  if(!modal || !modal.__wave46Snap) return false;
+  const cur = _modalSnapshot(modal);
+  const snap = modal.__wave46Snap;
+  for(const k in cur) { if(cur[k] !== snap[k]) return true; }
+  for(const k in snap) { if(!(k in cur)) return true; }
+  return false;
+}
+function _swipeCloseModal(modal) {
+  if(!modal) return;
+  const id = modal.id;
+  const close = () => {
+    if(typeof closeModal === 'function') closeModal(id);
+    else modal.classList.remove('open');
+  };
+  if(_modalIsDirty(modal)) {
+    if(typeof showConfirm === 'function') {
+      showConfirm('入力中の内容があります', '保存せずに閉じますか？', '閉じる', close, '⚠️');
+    } else {
+      if(window.confirm('入力中の内容があります。保存せずに閉じますか？')) close();
+    }
+    return;
+  }
+  close();
+}
+
+/* openModal を wrap して dirty 検知用スナップショットを取る */
+(function hookModalForDirty() {
+  if(typeof openModal === 'function' && !openModal.__wave46Hooked) {
+    const _origOM = openModal;
+    window.openModal = function(id) {
+      const r = _origOM.apply(this, arguments);
+      try {
+        const m = document.getElementById(id);
+        if(m && m.classList.contains('modal-backdrop')) {
+          // モーダル内容描画後にスナップショットを取る（次フレームで）
+          requestAnimationFrame(() => {
+            try { m.__wave46Snap = _modalSnapshot(m); } catch(e) {}
+          });
+        }
+      } catch(e) {}
+      return r;
+    };
+    window.openModal.__wave46Hooked = true;
+  }
+  if(typeof closeModal === 'function' && !closeModal.__wave46Hooked) {
+    const _origCM = closeModal;
+    window.closeModal = function(id) {
+      const m = document.getElementById(id);
+      if(m) m.__wave46Snap = null;
+      return _origCM.apply(this, arguments);
+    };
+    window.closeModal.__wave46Hooked = true;
+  }
+})();
+
+/* ── 初回案内トースト ───────────────────────── */
+function _swipeFirstHintIfNeeded() {
+  try {
+    if(!S.userProfile) S.userProfile = {};
+    if(S.userProfile.swipeHintSeen) return;
+    S.userProfile.swipeHintSeen = true;
+    if(typeof saveS === 'function') saveS();
+    if(typeof showToast === 'function') showToast('右スワイプで戻る・下スワイプでモーダルを閉じる', 'info');
+  } catch(e) {}
+}
+
+/* ── タッチハンドラ ───────────────────────── */
 function _swipeOnTouchStart(e) {
   if(!e.touches || e.touches.length !== 1) { _swipeStart = null; return; }
   const t = e.touches[0];
-  // 左端からのスワイプ（ブラウザバックと競合）は無視
-  if(t.clientX < SWIPE_EDGE_PX) { _swipeStart = null; _swipeBlocked = true; return; }
+  // Safari の左端 pop と競合しないため、極端な左端は無視
+  if(t.clientX < SWIPE_LEFT_EDGE_AVOID_PX) { _swipeStart = null; _swipeBlocked = false; return; }
+
+  // モーダル表示中：下スワイプ閉じる判定だけ受け付ける
+  const modal = _topOpenModal();
+  if(modal) {
+    if(!_swipeIsDownAllowedOnModal(modal)) { _swipeStart = null; _swipeBlocked = true; return; }
+    _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'modal-down', modal };
+    _swipeBlocked = false;
+    return;
+  }
+
+  // 通常画面：戻るスワイプ判定
   if(_swipeShouldBlock(e.target)) { _swipeBlocked = true; _swipeStart = null; return; }
+
+  // 詳細画面で touchstart が画面上部 40px 以内なら、下スワイプで閉じる動作を優先する
+  const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+  const onDetail = cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0;
+  if(onDetail && t.clientY <= 40) {
+    _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'detail-down' };
+    _swipeBlocked = false;
+    return;
+  }
+
   _swipeBlocked = false;
-  _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+  _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'back' };
 }
 
 function _swipeOnTouchMove(e) {
-  // 移動中はブロック判定の更新のみ。preventDefault しない（縦スクロールを殺さない）
   if(!_swipeStart || _swipeBlocked) return;
   if(!e.touches || e.touches.length !== 1) return;
   const t = e.touches[0];
   const dx = t.clientX - _swipeStart.x;
   const dy = t.clientY - _swipeStart.y;
-  // 縦移動が大きい → 縦スクロール優先
-  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) {
-    _swipeStart = null;
+
+  if(_swipeStart.kind === 'back') {
+    // 縦スクロール優先：縦移動が主体になったらキャンセル
+    if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > SWIPE_CANCEL_PERPENDICULAR) {
+      _swipeStart = null;
+    }
+    return;
+  }
+  if(_swipeStart.kind === 'modal-down' || _swipeStart.kind === 'detail-down') {
+    // 横移動が主体になったらキャンセル
+    if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_CANCEL_PERPENDICULAR) {
+      _swipeStart = null;
+    }
     return;
   }
 }
@@ -10284,12 +10507,28 @@ function _swipeOnTouchEnd(e) {
   const dx = tch.clientX - _swipeStart.x;
   const dy = tch.clientY - _swipeStart.y;
   const dt = Date.now() - _swipeStart.t;
+  const start = _swipeStart;
   _swipeStart = null;
-  if(dt > SWIPE_MAX_DURATION_MS || dt < SWIPE_MIN_DURATION_MS) return;
-  if(Math.abs(dx) < SWIPE_THRESHOLD_X) return;
-  if(Math.abs(dy) > SWIPE_MAX_Y) return;
-  // dx 符号で方向決定：負＝左スワイプ＝次ページ、正＝右スワイプ＝前ページ
-  _swipeNextScreen(dx);
+  if(dt < SWIPE_DURATION_MIN || dt > SWIPE_DURATION_MAX) return;
+
+  if(start.kind === 'back') {
+    if(dx < SWIPE_BACK_DX) return;
+    if(Math.abs(dy) > SWIPE_BACK_MAX_DY) return;
+    if(appNavBack()) _swipeFirstHintIfNeeded();
+    return;
+  }
+  if(start.kind === 'modal-down') {
+    if(dy < SWIPE_DOWN_DY) return;
+    if(Math.abs(dx) > SWIPE_DOWN_MAX_DX) return;
+    _swipeCloseModal(start.modal);
+    return;
+  }
+  if(start.kind === 'detail-down') {
+    if(dy < SWIPE_DOWN_DY) return;
+    if(Math.abs(dx) > SWIPE_DOWN_MAX_DX) return;
+    _swipeCloseDetail();
+    return;
+  }
 }
 
 document.addEventListener('touchstart', _swipeOnTouchStart, { passive: true });
