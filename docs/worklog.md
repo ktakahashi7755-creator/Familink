@@ -4167,3 +4167,65 @@ Wave 46: スマホアプリらしい自然なジェスチャー操作体験
 
 ### コミット
 - メッセージ: `wave 46: natural iOS-like swipe gestures (right-back + modal down-close + dirty check + Hoku hint)`
+
+---
+
+## 2026-05-04 23:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 46.1: 検証ラウンドで発見した認証画面エスケープバグ修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+
+**深い監査で発見したバグ**：認証 / オンボード画面（`s-ob` / `s-login` / `s-onboard`）で右スワイプすると、初期設定を飛ばして抜けてしまう致命的バグ。
+
+**修正**：
+- `SWIPE_LOCKED_SCREENS = ['s-ob','s-login','s-onboard']` を追加
+- `_swipeOnTouchStart` で touchstart 時にロック画面チェック → スワイプ判定を始めない
+- `appNavBack()` でも belt-and-suspenders として早期 return
+
+**Hoku 案内更新**：「ログイン / 初期設定画面では誤操作で抜けないよう無効」を案内に追加
+
+### テスト結果
+- Wave 46 deep audit：40/40 PASS（新規追加）
+  - **A**. 認証 / オンボード画面 3 種で右スワイプ → 抜けないこと検証
+  - **B**. 連続右スワイプで履歴を 3 段階遡れること
+  - **C**. 全 22 種のモーダルで下スワイプ動作（19 種は閉じる、3 種は禁止維持）
+  - **D**. Hoku 入力欄に値ありフォーカスでスワイプブロック
+  - **E**. 100ms 未満は duration check で無効（直接ハンドラ呼び出しで境界検証）
+  - **F**. 800ms 超は duration check で無効
+  - **G**. カレンダー週ビュー / リストビューはブロック対象
+  - **H**. 履歴 cap=30 が `_appHistPush` で適用
+  - **I**. リロード後も Wave 46 関数群が存在
+  - **J**. dirty 確認モーダルでキャンセル → 元モーダル維持
+  - **K**. 値変更 → 元に戻すと dirty=false
+  - **L**. マルチタッチからの単指 touchend で誤発火なし
+  - **M/N**. dx=80 境界で発火、dx=79 で無効
+  - **O**. JS エラーゼロ
+- 既存 24 suites：全 PASS
+- 累計 25 suites：**668/668 PASS**
+- md5 同期：`3333fb55481e669cbc39d6bb620e9ecd`
+
+### 副次効果
+- 全モーダル 22 種を網羅検証（既存テストでは 5 種のみだった）
+- m-board-detail-menu / m-react-detail / m-avatar-select / m-ics-import / m-export-cal / m-voice-confirm / m-profile-edit / m-board-create / m-board-item-view / m-board-item / m-board-menu / m-board-section の下スワイプ閉じが新規確認
+
+### 未対応課題
+- iPhone 実機での Safari interactive pop（左端 Safari 戻る）の最終確認
+- 規約 / プライバシー画面はアプリ未実装
+
+### iPhone 確認ポイント（追加分）
+- 初回ログイン / 初期設定画面で右スワイプしても画面が変わらない
+- 既存の右スワイプ戻り・モーダル下スワイプ閉じはすべて動作
+- 全 22 モーダルで適切に閉じる / 禁止モーダルで閉じない
+
+### 次にやること
+- 両ブランチ（QA + Pages）に push して Pages 配信反映
+- iPhone 実機で総合確認
+
+### コミット
+- メッセージ: `wave 46.1: block swipe-back on auth/onboarding screens + 40 deep audit cases`
