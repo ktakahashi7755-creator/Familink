@@ -10451,6 +10451,42 @@ function _swipeFirstHintIfNeeded() {
 }
 
 /* ── タッチハンドラ ───────────────────────── */
+const SWIPE_MODAL_HEADER_PX = 100; // モーダルヘッダー（グリップ＋タイトル）の判定領域
+
+function _modalInner(modal) { return modal ? modal.querySelector('.modal') : null; }
+
+/* ドラッグ追従用：開始時に inner の transition を切る */
+function _modalDragBegin(modal) {
+  const inner = _modalInner(modal);
+  if(!inner) return;
+  inner.style.transition = 'none';
+  inner.dataset.wave47Drag = '1';
+}
+/* ドラッグ中：dy>0 のみ反映、上方向は弾力ストッパー */
+function _modalDragUpdate(modal, dy) {
+  const inner = _modalInner(modal);
+  if(!inner) return;
+  let v = dy;
+  if(v < 0) v = v * 0.2;       // 上へは弱く
+  else if(v > 120) v = 120 + (v - 120) * 0.6; // 120px 超は弾力で抑える
+  inner.style.transform = `translateY(${v}px)`;
+}
+/* ドラッグ終了：close 動作 or スナップバック */
+function _modalDragEnd(modal, willClose) {
+  const inner = _modalInner(modal);
+  if(!inner) return;
+  inner.style.transition = '';
+  if(willClose) {
+    // closeModal() が呼ばれた直後 .open が外れる → CSS が transform を 100% に戻して下へ消える
+    // 残った inline transform を消して CSS に任せる
+    inner.style.transform = '';
+  } else {
+    // スナップバック：CSS の transition でゼロへ
+    inner.style.transform = '';
+  }
+  delete inner.dataset.wave47Drag;
+}
+
 function _swipeOnTouchStart(e) {
   if(!e.touches || e.touches.length !== 1) { _swipeStart = null; return; }
   const t = e.touches[0];
@@ -10461,8 +10497,17 @@ function _swipeOnTouchStart(e) {
   const modal = _topOpenModal();
   if(modal) {
     if(!_swipeIsDownAllowedOnModal(modal)) { _swipeStart = null; _swipeBlocked = true; return; }
-    _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'modal-down', modal };
+    // モーダルヘッダー領域（グリップ + タイトル付近）からの開始ならドラッグ追従モード
+    const inner = _modalInner(modal);
+    let header = false;
+    if(inner) {
+      const r = inner.getBoundingClientRect();
+      // 起点が inner 上端から 100px 以内なら header drag
+      if(t.clientY >= r.top - 8 && t.clientY <= r.top + SWIPE_MODAL_HEADER_PX) header = true;
+    }
+    _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'modal-down', modal, header };
     _swipeBlocked = false;
+    if(header) _modalDragBegin(modal);
     return;
   }
 
@@ -10500,9 +10545,17 @@ function _swipeOnTouchMove(e) {
     return;
   }
   if(_swipeStart.kind === 'modal-down' || _swipeStart.kind === 'detail-down') {
-    // 横移動が主体になったらキャンセル
+    // 横移動が主体になったらキャンセル → ドラッグ中ならスナップバック
     if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_CANCEL_PERPENDICULAR) {
+      if(_swipeStart.kind === 'modal-down' && _swipeStart.header) {
+        _modalDragEnd(_swipeStart.modal, false);
+      }
       _swipeStart = null;
+      return;
+    }
+    // ヘッダードラッグ中は dy をライブ反映
+    if(_swipeStart.kind === 'modal-down' && _swipeStart.header) {
+      _modalDragUpdate(_swipeStart.modal, dy);
     }
     return;
   }
@@ -10517,7 +10570,16 @@ function _swipeOnTouchEnd(e) {
   const dt = Date.now() - _swipeStart.t;
   const start = _swipeStart;
   _swipeStart = null;
-  if(dt < SWIPE_DURATION_MIN || dt > SWIPE_DURATION_MAX) return;
+
+  // ヘッダードラッグ中は duration check を緩める（ゆっくり引っ張っても閉じる）
+  const headerDrag = (start.kind === 'modal-down' && start.header);
+  if(!headerDrag) {
+    if(dt < SWIPE_DURATION_MIN || dt > SWIPE_DURATION_MAX) {
+      // ドラッグ追従中だった場合はスナップバック
+      if(start.kind === 'modal-down' && start.header) _modalDragEnd(start.modal, false);
+      return;
+    }
+  }
 
   if(start.kind === 'back') {
     if(dx < SWIPE_BACK_DX) return;
@@ -10526,9 +10588,9 @@ function _swipeOnTouchEnd(e) {
     return;
   }
   if(start.kind === 'modal-down') {
-    if(dy < SWIPE_DOWN_DY) return;
-    if(Math.abs(dx) > SWIPE_DOWN_MAX_DX) return;
-    _swipeCloseModal(start.modal);
+    const willClose = (dy >= SWIPE_DOWN_DY && Math.abs(dx) <= SWIPE_DOWN_MAX_DX);
+    if(start.header) _modalDragEnd(start.modal, willClose);
+    if(willClose) _swipeCloseModal(start.modal);
     return;
   }
   if(start.kind === 'detail-down') {
@@ -10542,7 +10604,13 @@ function _swipeOnTouchEnd(e) {
 document.addEventListener('touchstart', _swipeOnTouchStart, { passive: true });
 document.addEventListener('touchmove', _swipeOnTouchMove, { passive: true });
 document.addEventListener('touchend', _swipeOnTouchEnd, { passive: true });
-document.addEventListener('touchcancel', () => { _swipeStart = null; _swipeBlocked = false; }, { passive: true });
+document.addEventListener('touchcancel', () => {
+  // ドラッグ追従中だった場合はスナップバック
+  if(_swipeStart && _swipeStart.kind === 'modal-down' && _swipeStart.header) {
+    _modalDragEnd(_swipeStart.modal, false);
+  }
+  _swipeStart = null; _swipeBlocked = false;
+}, { passive: true });
 /* ============================================================
    HOKU FLOATING ASSISTANT v2
    全画面常駐フローティング・呼吸アニメーション・ドラッグ・タップ
