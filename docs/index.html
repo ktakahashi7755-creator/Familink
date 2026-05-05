@@ -2708,11 +2708,12 @@ nav#tabbar.hidden { display: none !important; }
     <div class="header-title">持ち物・準備リスト</div>
     <button class="header-icon-btn" onclick="openPrepModal()">＋</button>
   </div>
-  <!-- 今日 / 明日 / すべて タブ -->
+  <!-- 今日 / 明日 / すべて / ルーティン タブ -->
   <div id="prep-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
     <button class="tk-filter-btn active" data-prep-tab="today" onclick="setPrepTab('today')">今日</button>
     <button class="tk-filter-btn" data-prep-tab="tomorrow" onclick="setPrepTab('tomorrow')">明日</button>
     <button class="tk-filter-btn" data-prep-tab="all" onclick="setPrepTab('all')">すべて</button>
+    <button class="tk-filter-btn" data-prep-tab="routine" onclick="setPrepTab('routine')">ルーティン・時間割</button>
   </div>
   <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(20px + env(safe-area-inset-bottom));"></div>
 </div>
@@ -2967,11 +2968,22 @@ nav#tabbar.hidden { display: none !important; }
         <input class="input" id="pm-text" placeholder="例：体操服">
       </div>
       <div class="field">
+        <div class="field-label">対象メンバー</div>
+        <select class="input" id="pm-member">
+          <option value="">指定なし（家族共通）</option>
+        </select>
+      </div>
+      <div class="field">
         <div class="field-label">カテゴリ</div>
         <select class="input" id="pm-cat">
           <option value="学校">📚 学校</option>
+          <option value="幼稚園">🌱 幼稚園</option>
+          <option value="保育園">🏠 保育園</option>
           <option value="習い事">🎵 習い事</option>
+          <option value="部活">🏃 部活</option>
           <option value="病院">🏥 病院</option>
+          <option value="お出かけ">🚗 お出かけ</option>
+          <option value="提出物">📄 提出物</option>
           <option value="旅行">✈️ 旅行</option>
           <option value="その他">📦 その他</option>
         </select>
@@ -2982,6 +2994,84 @@ nav#tabbar.hidden { display: none !important; }
       </div>
       <button class="btn btn-primary btn-block" onclick="savePrepItem()">追加する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-prep')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Wave 48: 曜日ルーティンモーダル ===== -->
+<div id="m-prep-routine" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">曜日ルーティンを追加</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">準備タイトル <span style="color:var(--red)">*</span></div>
+        <input class="input" id="prm-title" placeholder="例：体操服">
+      </div>
+      <div class="field">
+        <div class="field-label">対象メンバー <span style="color:var(--red)">*</span></div>
+        <select class="input" id="prm-member"></select>
+      </div>
+      <div class="field">
+        <div class="field-label">曜日</div>
+        <select class="input" id="prm-day">
+          <option value="mon">月曜日</option>
+          <option value="tue">火曜日</option>
+          <option value="wed">水曜日</option>
+          <option value="thu">木曜日</option>
+          <option value="fri">金曜日</option>
+          <option value="sat">土曜日</option>
+          <option value="sun">日曜日</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">カテゴリ</div>
+        <select class="input" id="prm-cat">
+          <option value="学校">📚 学校</option>
+          <option value="幼稚園">🌱 幼稚園</option>
+          <option value="保育園">🏠 保育園</option>
+          <option value="習い事">🎵 習い事</option>
+          <option value="部活">🏃 部活</option>
+          <option value="病院">🏥 病院</option>
+          <option value="お出かけ">🚗 お出かけ</option>
+          <option value="提出物">📄 提出物</option>
+          <option value="その他">📦 その他</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">表示タイミング</div>
+        <select class="input" id="prm-timing">
+          <option value="previous_day_and_today">前日と当日</option>
+          <option value="today">当日のみ</option>
+          <option value="previous_day">前日のみ</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">メモ（任意）</div>
+        <input class="input" id="prm-memo" placeholder="例：月曜の体育用">
+      </div>
+      <div class="field">
+        <div class="field-label">有効/無効</div>
+        <select class="input" id="prm-enabled">
+          <option value="true">有効（自動反映）</option>
+          <option value="false">無効（一時停止）</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="savePrepRoutineFromModal()">保存する</button>
+      <button id="prm-delete" class="btn btn-ghost btn-block" onclick="deletePrepRoutineFromModal()" style="display:none;color:var(--red);">削除する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-prep-routine')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Wave 48: 準備リストのメンバー表示管理モーダル ===== -->
+<div id="m-prep-members" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">表示するメンバー</div>
+    <div class="modal-form">
+      <div id="prm-members-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-prep-members')">閉じる</button>
     </div>
   </div>
 </div>
@@ -3207,7 +3297,7 @@ let S = {
   boardSections: [], // [{id,boardId,title,order}]
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
 
 function saveS() {
   const d = {};
@@ -3435,7 +3525,7 @@ function doQuickDemo() {
 function _applyQuickDemo() {
   S.loggedIn = true;
   S.user = MEMBERS[0];
-  S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.notifs = [];
+  S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.prepRoutines = []; S.notifs = [];
   seedDemo();
   saveS();
   if(!S.onboardCompleted) {
@@ -7156,61 +7246,183 @@ function _prepDateMatchesTab(date) {
 }
 
 function renderPrep() {
+  _ensurePrepRoutines();
+  _ensurePrepVisibleMembers();
   const el = document.getElementById('prep-list');
   const all = S.prep||[];
-  const items = all.filter(p => _prepDateMatchesTab(p.date));
-
-  // 今日タブ：未完了の繰り越し候補（昨日以前で未完了）
-  const today = todayStr();
-  const carryCandidates = (_prepTab === 'today')
-    ? all.filter(p => p.date && p.date < today && !p.done)
-    : [];
-
-  if(!items.length && !carryCandidates.length) {
-    const hint = _prepTab === 'today' ? '今日の準備'
-              : _prepTab === 'tomorrow' ? '明日の準備'
-              : '準備リスト';
-    el.innerHTML = `<div class="empty" style="padding:42px 24px">
-      <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
-      <div class="empty-title">${hint}はまだありません</div>
-      <div class="empty-desc">右上の＋ボタンで追加できます</div>
-    </div>`;
-    return;
-  }
+  const visibleMembers = getPrepVisibleMembers();
+  // メンバーフィルタ：item にメンバー指定がない（既存データ含む）は常に表示
+  const matchesMember = (p) => {
+    const mid = p.memberId || '';
+    if(!mid) return true;
+    return visibleMembers.indexOf(mid) >= 0;
+  };
 
   let html = '';
-  if(carryCandidates.length) {
-    html += `<div style="margin:0 16px 10px;padding:10px 12px;background:var(--orange-light, #FFF7ED);border:1px solid var(--orange, #F59E0B);border-radius:10px;">
-      <div style="font-size:12px;font-weight:700;color:var(--orange, #D97706);margin-bottom:6px;">⏳ 昨日以前で未完了 ${carryCandidates.length} 件</div>
-      ${carryCandidates.map(p => `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);padding:4px 0;">
-        <span style="flex:1;${p.done?'text-decoration:line-through;opacity:.5':''}">${H(p.text)}<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">(${H(p.date||'')})</span></span>
-        <button onclick="carryPrepToToday('${H(p.id)}')" style="font-size:11px;padding:4px 10px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;">今日に回す</button>
-      </div>`).join('')}
-    </div>`;
-  }
 
-  // カテゴリ別表示
-  const cats = [...new Set(items.map(p=>p.cat||'その他'))];
-  html += cats.map(cat => {
-    const catItems = items.filter(p=>(p.cat||'その他')===cat);
-    return `<div class="prep-section">
-      <div class="prep-sec-title">${H(cat)}</div>
-      ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
-        <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?'✓':''}</div>
-        <div style="flex:1">
-          <div class="prep-txt ${p.done?'done':''}">${H(p.text)}</div>
-          ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
-        </div>
-        ${(_prepTab==='today' && !p.done) ? `<button onclick="event.stopPropagation();carryPrepToTomorrow('${H(p.id)}')" title="明日に回す" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;margin-right:4px;">明日に回す</button>` : ''}
-        <button onclick="deletePrep('${H(p.id)}')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
-      </div>`).join('')}
-    </div>`;
-  }).join('');
+  // === メンバー表示チップ（タスクページと同一の te-mem-btn スタイル流用） ===
+  html += `<div id="prep-member-chips" style="display:flex;gap:8px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;align-items:center;">`;
+  // 「全員」チップ：visible が全員ならアクティブ
+  const allActive = visibleMembers.length === MEMBERS.length;
+  html += `<button class="te-mem-btn ${allActive?'selected':''}" onclick="setPrepVisibleMembers(null);renderPrep();" style="flex-shrink:0;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;background:${allActive?'var(--primary)':'transparent'};color:${allActive?'#fff':'var(--text)'};border:1px solid ${allActive?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
+  for(const m of MEMBERS) {
+    const on = visibleMembers.indexOf(m.id) >= 0;
+    html += `<button class="te-mem-btn ${on?'selected':''}" data-pmid="${H(m.id)}" onclick="togglePrepMemberVisible('${H(m.id)}')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px 5px 5px;font-size:12px;font-weight:700;background:${on?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${on?'var(--primary)':'var(--border)'};cursor:pointer;opacity:${on?'1':'0.55'};">
+      <span style="width:22px;height:22px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${H(m.av)}</span>
+      <span>${H(m.name)}</span>
+    </button>`;
+  }
+  html += `<button class="bm-add-btn" onclick="openPrepMembersModal()" title="メンバー表示設定" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px dashed var(--border);background:transparent;color:var(--text-muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙</button>`;
+  html += `</div>`;
+
+  // === 通常リスト（今日 / 明日 / すべて タブ） ===
+  if(_prepTab === 'today' || _prepTab === 'tomorrow' || _prepTab === 'all') {
+    const items = all.filter(p => _prepDateMatchesTab(p.date)).filter(matchesMember);
+    const today = todayStr();
+    const carryCandidates = (_prepTab === 'today')
+      ? all.filter(p => p.date && p.date < today && !p.done).filter(matchesMember)
+      : [];
+
+    // ルーティン提案バナー
+    const targetDate = (_prepTab === 'tomorrow')
+      ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })()
+      : today;
+    if(_prepTab === 'today' || _prepTab === 'tomorrow') {
+      const sugg = computePrepRoutineSuggestions(targetDate).filter(s => !s.applied);
+      if(sugg.length > 0) {
+        const dow = prepDowKey(targetDate);
+        const dayLabel = PREP_DAY_LABELS_JA[dow];
+        const visibleSugg = sugg.filter(s => !s.routine.memberId || visibleMembers.indexOf(s.routine.memberId) >= 0);
+        if(visibleSugg.length > 0) {
+          html += `<div id="prep-suggest-banner" style="margin:6px 16px 10px;padding:12px;background:linear-gradient(135deg,#EBF4FF,#F5F3FF);border:1px solid #C7D2FE;border-radius:12px;">
+            <div style="font-size:12px;font-weight:700;color:#4F46E5;margin-bottom:6px;">📅 ${_prepTab==='today'?'今日':'明日'}（${dayLabel}曜日）のルーティン候補 ${visibleSugg.length}件</div>
+            <div style="font-size:13px;color:var(--text);margin-bottom:8px;">${H(visibleSugg.slice(0,3).map(s => `${memberNameById(s.routine.memberId)||'共通'}：${s.routine.title}`).join('・'))}${visibleSugg.length>3?` 他${visibleSugg.length-3}件`:''}</div>
+            <button onclick="${_prepTab==='today'?'applyTodayRoutines()':'applyTomorrowRoutines()'}" class="btn btn-primary" style="padding:6px 14px;font-size:12px;border-radius:8px;">${_prepTab==='today'?'今日':'明日'}の準備に追加</button>
+          </div>`;
+        }
+      }
+    }
+
+    if(!items.length && !carryCandidates.length) {
+      const hint = _prepTab === 'today' ? '今日の準備'
+                : _prepTab === 'tomorrow' ? '明日の準備'
+                : '準備リスト';
+      const desc = _prepTab === 'today' ? '忘れ物を防ぐために、持ち物や提出物を追加できます。'
+                : _prepTab === 'tomorrow' ? '前日のうちに準備しておくと、朝がラクになります。'
+                : '右上の＋ボタンで追加できます';
+      html += `<div class="empty" style="padding:42px 24px;text-align:center;">
+        <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
+        <div class="empty-title">${hint}はまだありません</div>
+        <div class="empty-desc">${desc}</div>
+        <button onclick="openPrepModal()" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${hint}を追加</button>
+      </div>`;
+      el.innerHTML = html;
+      return;
+    }
+
+    if(carryCandidates.length) {
+      html += `<div style="margin:0 16px 10px;padding:10px 12px;background:var(--orange-light, #FFF7ED);border:1px solid var(--orange, #F59E0B);border-radius:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--orange, #D97706);margin-bottom:6px;">⏳ 昨日以前で未完了 ${carryCandidates.length} 件</div>
+        ${carryCandidates.map(p => `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);padding:4px 0;">
+          <span style="flex:1;${p.done?'text-decoration:line-through;opacity:.5':''}">${H(p.text)}<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">(${H(p.date||'')})</span></span>
+          <button onclick="carryPrepToToday('${H(p.id)}')" style="font-size:11px;padding:4px 10px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;">今日に回す</button>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    // カテゴリ別表示
+    const cats = [...new Set(items.map(p=>p.cat||'その他'))];
+    html += cats.map(cat => {
+      const catItems = items.filter(p=>(p.cat||'その他')===cat);
+      return `<div class="prep-section">
+        <div class="prep-sec-title">${H(cat)}</div>
+        ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
+          <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?'✓':''}</div>
+          <div style="flex:1">
+            <div class="prep-txt ${p.done?'done':''}">${H(p.text)}${p.memberId?`<span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-weight:600;">${H(memberNameById(p.memberId))}</span>`:''}${p.source==='routine'?`<span style="font-size:9px;color:#6366F1;background:#EEF2FF;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;">ルーティン</span>`:''}</div>
+            ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
+          </div>
+          ${(_prepTab==='today' && !p.done) ? `<button onclick="event.stopPropagation();carryPrepToTomorrow('${H(p.id)}')" title="明日に回す" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;margin-right:4px;">明日に回す</button>` : ''}
+          <button onclick="deletePrep('${H(p.id)}')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  } else if(_prepTab === 'routine') {
+    // === ルーティン / 時間割タブ ===
+    html += renderPrepRoutinesSectionHtml();
+  }
 
   el.innerHTML = html;
 }
 
+function renderPrepRoutinesSection() {
+  // 互換のため残す（タブ切替経由）
+  if(document.getElementById('prep-list')) renderPrep();
+}
+
+function renderPrepRoutinesSectionHtml() {
+  _ensurePrepRoutines();
+  const memberId = _prepRoutineMember;
+  const filtered = (memberId === 'all') ? S.prepRoutines.slice() : S.prepRoutines.filter(r => r.memberId === memberId);
+  let html = '';
+
+  // メンバー選択行
+  html += `<div style="display:flex;gap:6px;padding:10px 16px 4px;overflow-x:auto;scrollbar-width:none;">`;
+  html += `<button onclick="setPrepRoutineMember('all')" class="te-mem-btn ${memberId==='all'?'selected':''}" style="flex-shrink:0;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;background:${memberId==='all'?'var(--primary)':'transparent'};color:${memberId==='all'?'#fff':'var(--text)'};border:1px solid ${memberId==='all'?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
+  for(const m of MEMBERS) {
+    const sel = memberId === m.id;
+    html += `<button onclick="setPrepRoutineMember('${H(m.id)}')" class="te-mem-btn ${sel?'selected':''}" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:700;background:${sel?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${sel?'var(--primary)':'var(--border)'};cursor:pointer;">
+      <span style="width:20px;height:20px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">${H(m.av)}</span>
+      <span>${H(m.name)}</span>
+    </button>`;
+  }
+  html += `</div>`;
+
+  // 反映ショートカット
+  html += `<div style="display:flex;gap:8px;padding:8px 16px;">
+    <button onclick="applyTodayRoutines()" class="btn btn-outline" style="flex:1;padding:8px;font-size:12px;border-radius:10px;">今日の準備に反映</button>
+    <button onclick="applyTomorrowRoutines()" class="btn btn-outline" style="flex:1;padding:8px;font-size:12px;border-radius:10px;">明日の準備に反映</button>
+  </div>`;
+
+  if(!filtered.length) {
+    html += `<div class="empty" style="padding:32px 24px;text-align:center;">
+      <div class="empty-title">曜日ごとの準備はまだありません</div>
+      <div class="empty-desc">毎週必要な持ち物を登録すると、今日・明日の準備に反映できます。</div>
+      <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','mon')" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ 曜日ルーティンを作る</button>
+    </div>`;
+    return html;
+  }
+
+  // 曜日ごとのカード（時間割風）
+  for(const day of PREP_DAYS) {
+    const dayItems = filtered.filter(r => r.dayOfWeek === day);
+    const label = PREP_DAY_LABELS_JA[day];
+    html += `<div class="prep-routine-day" style="margin:0 16px 10px;background:#fff;border:1px solid var(--border-light);border-radius:12px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-muted);border-bottom:1px solid var(--border-light);">
+        <span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">${H(label)}</span>
+        <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${H(label)}曜日 <span style="color:var(--text-muted);font-weight:600;font-size:11px;">(${dayItems.length}件)</span></span>
+        <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','${day}')" title="この曜日に追加" style="background:transparent;border:1px dashed var(--border);color:var(--primary);font-size:14px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">＋</button>
+      </div>
+      <div style="padding:6px 0;">
+        ${dayItems.length === 0
+          ? `<div style="padding:10px 14px;color:var(--text-muted);font-size:12px;">まだ登録なし</div>`
+          : dayItems.map(r => `<div onclick="openPrepRoutineModal('${H(r.id)}')" data-routine-id="${H(r.id)}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;${r.enabled===false?'opacity:0.5;':''}">
+              <span style="font-size:11px;color:var(--text-muted);font-weight:600;min-width:48px;">${H(memberNameById(r.memberId)||'-')}</span>
+              <span style="flex:1;font-size:13px;color:var(--text);font-weight:600;">${H(r.title)}</span>
+              <span style="font-size:10px;color:#6366F1;background:#EEF2FF;padding:2px 7px;border-radius:6px;font-weight:700;">${H(r.category||'その他')}</span>
+              <span style="font-size:10px;color:var(--text-muted);">${H(PREP_TIMING_LABELS[r.showTiming]||'')}</span>
+              <button onclick="event.stopPropagation();togglePrepRoutineEnabled('${H(r.id)}')" title="${r.enabled===false?'有効化':'無効化'}" style="background:transparent;border:none;color:${r.enabled===false?'var(--text-muted)':'var(--primary)'};font-size:14px;cursor:pointer;">${r.enabled===false?'☐':'☑'}</button>
+            </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  return html;
+}
+
 function openPrepModal() {
+  // ルーティンタブから ＋ 押下なら曜日ルーティン追加に流す
+  if(_prepTab === 'routine') { openPrepRoutineModal((_prepRoutineMember && _prepRoutineMember !== 'all') ? _prepRoutineMember : MEMBERS[0].id); return; }
   document.getElementById('pm-text').value='';
   // 現在のタブに応じて日付プリセット
   const dateInput = document.getElementById('pm-date');
@@ -7223,6 +7435,12 @@ function openPrepModal() {
       dateInput.value = '';
     }
   }
+  // メンバープルダウンを構築
+  const memSel = document.getElementById('pm-member');
+  if(memSel) {
+    memSel.innerHTML = '<option value="">指定なし（家族共通）</option>' + MEMBERS.map(m => `<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
+    memSel.value = '';
+  }
   openModal('m-prep');
 }
 
@@ -7230,8 +7448,16 @@ function savePrepItem() {
   const text = document.getElementById('pm-text').value.trim();
   const cat  = document.getElementById('pm-cat').value;
   const date = document.getElementById('pm-date').value;
+  const memSel = document.getElementById('pm-member');
+  const memberId = memSel ? memSel.value : '';
   if(!text) { showToast('アイテム名を入力してください','error'); return; }
-  S.prep.push({id:uid(),text,cat,done:false,date});
+  const item = {id:uid(),text,cat,done:false,date};
+  if(memberId) {
+    item.memberId = memberId;
+    item.member = memberNameById(memberId) || '';
+  }
+  item.createdAt = new Date().toISOString();
+  S.prep.push(item);
   saveS(); closeModal('m-prep'); renderPrep();
   showToast('追加しました');
 }
@@ -7242,8 +7468,13 @@ function togglePrep(id) {
 }
 
 function deletePrep(id) {
-  S.prep = (S.prep||[]).filter(p=>p.id!==id);
-  saveS(); renderPrep(); showToast('削除しました');
+  // Wave 48：削除前確認
+  const p = (S.prep||[]).find(x => x.id === id);
+  if(!p) return;
+  showConfirm('この準備項目を削除しますか？', H(p.text), '削除', () => {
+    S.prep = (S.prep||[]).filter(p=>p.id!==id);
+    saveS(); renderPrep(); showToast('削除しました');
+  }, '🗑');
 }
 
 /* 明日に回す（今日 → 明日） */
@@ -7265,6 +7496,281 @@ function carryPrepToToday(id) {
   p.done = false;
   saveS(); renderPrep();
   showToast('今日の準備に移しました');
+}
+
+/* ============================================================
+   Wave 48: PREP ROUTINES (曜日ルーティン / 時間割)
+   - S.prepRoutines[] に毎週繰り返す準備を保存
+   - S.userProfile.prepVisibleMembers でメンバー別表示制御
+   - 既存 S.prep[] は壊さない・互換読み取り
+   ============================================================ */
+const PREP_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const PREP_DAY_LABELS_JA = {mon:'月',tue:'火',wed:'水',thu:'木',fri:'金',sat:'土',sun:'日'};
+const PREP_TIMING_LABELS = {
+  today: '当日',
+  previous_day: '前日',
+  previous_day_and_today: '前日と当日'
+};
+const PREP_CATEGORIES = ['学校','幼稚園','保育園','習い事','部活','病院','お出かけ','提出物','その他'];
+
+let _prepRoutineMember = 'all';   // ルーティン管理画面で表示中のメンバー
+let _prepVisibleTab = null;        // 何かに使うかも（リスト用）
+let _prepEditingRoutineId = null;
+
+function _ensurePrepRoutines() {
+  if(!Array.isArray(S.prepRoutines)) S.prepRoutines = [];
+}
+function _ensurePrepVisibleMembers() {
+  if(!S.userProfile) S.userProfile = {};
+  if(!Array.isArray(S.userProfile.prepVisibleMembers)) S.userProfile.prepVisibleMembers = null; // null = 全員
+}
+function getPrepVisibleMembers() {
+  _ensurePrepVisibleMembers();
+  const v = S.userProfile.prepVisibleMembers;
+  if(!v || !v.length) return MEMBERS.map(m => m.id);
+  return v.filter(id => MEMBERS.some(m => m.id === id));
+}
+function setPrepVisibleMembers(ids) {
+  _ensurePrepVisibleMembers();
+  S.userProfile.prepVisibleMembers = (ids && ids.length) ? ids : null;
+  saveS();
+}
+function togglePrepMemberVisible(id) {
+  const cur = getPrepVisibleMembers();
+  if(cur.indexOf(id) >= 0) {
+    if(cur.length <= 1) { showToast('最後の 1 人は非表示にできません','error'); return; }
+    setPrepVisibleMembers(cur.filter(x => x !== id));
+  } else {
+    setPrepVisibleMembers([...cur, id]);
+  }
+  renderPrep();
+}
+
+/* 日付文字列 -> 'mon' などの曜日キー */
+function prepDowKey(dateStr) {
+  if(!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d.getTime())) return null;
+  // JS getDay: 0=日, 1=月, ... 6=土
+  const map = ['sun','mon','tue','wed','thu','fri','sat'];
+  return map[d.getDay()];
+}
+
+/* メンバー名検索 */
+function memberNameById(id) {
+  const m = MEMBERS.find(x => x.id === id);
+  return m ? m.name : '';
+}
+
+/* ルーティン CRUD */
+function addPrepRoutine(data) {
+  _ensurePrepRoutines();
+  const now = new Date().toISOString();
+  const r = Object.assign({
+    id: 'pr_' + uid(),
+    memberId: '',
+    dayOfWeek: 'mon',
+    title: '',
+    category: 'その他',
+    memo: '',
+    showTiming: 'previous_day_and_today',
+    repeat: true,
+    enabled: true,
+    order: 0,
+    createdAt: now,
+    updatedAt: now,
+  }, data || {});
+  S.prepRoutines.push(r);
+  saveS();
+  return r;
+}
+function updatePrepRoutine(id, patch) {
+  _ensurePrepRoutines();
+  const r = S.prepRoutines.find(x => x.id === id);
+  if(!r) return null;
+  Object.assign(r, patch || {});
+  r.updatedAt = new Date().toISOString();
+  saveS();
+  return r;
+}
+function deletePrepRoutine(id) {
+  _ensurePrepRoutines();
+  S.prepRoutines = S.prepRoutines.filter(x => x.id !== id);
+  saveS();
+}
+function getPrepRoutinesFor(memberId, dayKey, opts) {
+  _ensurePrepRoutines();
+  let list = S.prepRoutines;
+  if(memberId && memberId !== 'all') list = list.filter(r => r.memberId === memberId);
+  if(dayKey) list = list.filter(r => r.dayOfWeek === dayKey);
+  if(opts && opts.enabledOnly) list = list.filter(r => r.enabled !== false);
+  return list.sort((a,b) => (a.order||0) - (b.order||0));
+}
+
+/* ルーティンを today/tomorrow へ反映する候補を計算 */
+function computePrepRoutineSuggestions(targetDateStr) {
+  _ensurePrepRoutines();
+  const dow = prepDowKey(targetDateStr);
+  if(!dow) return [];
+  const today = todayStr();
+  const tDate = new Date(targetDateStr + 'T00:00:00');
+  const todayDate = new Date(today + 'T00:00:00');
+  const isToday = (targetDateStr === today);
+  const isTomorrow = (Math.round((tDate - todayDate) / 86400000) === 1);
+
+  const out = [];
+  for(const r of S.prepRoutines) {
+    if(r.enabled === false) continue;
+    // この日（targetDate）が「routine 対象として現れるべき」か判定
+    let ok = false;
+    if(r.dayOfWeek === dow) {
+      // ルーティン本来の曜日
+      if(r.showTiming === 'today' || r.showTiming === 'previous_day_and_today') ok = true;
+    }
+    // 前日表示：明日の曜日のルーティンを今日に出す
+    if(!ok) {
+      const nextDate = new Date(targetDateStr + 'T00:00:00');
+      nextDate.setDate(nextDate.getDate() + 1);
+      const map = ['sun','mon','tue','wed','thu','fri','sat'];
+      const nextDow = map[nextDate.getDay()];
+      if(r.dayOfWeek === nextDow && (r.showTiming === 'previous_day' || r.showTiming === 'previous_day_and_today')) {
+        ok = true;
+      }
+    }
+    if(!ok) continue;
+    // 重複チェック：S.prep[] に同じ routineId + date + memberId + text が既にあるか
+    const dup = (S.prep||[]).some(p =>
+      (p.routineId === r.id && p.date === targetDateStr) ||
+      (p.text === r.title && p.date === targetDateStr && (p.memberId||'') === (r.memberId||''))
+    );
+    out.push({ routine: r, applied: dup });
+  }
+  return out;
+}
+
+/* ルーティン candidate を S.prep[] へ反映（重複は除外） */
+function applyPrepRoutinesForDate(targetDateStr, opts) {
+  const list = computePrepRoutineSuggestions(targetDateStr);
+  let added = 0;
+  const now = new Date().toISOString();
+  for(const item of list) {
+    if(item.applied) continue;
+    const r = item.routine;
+    S.prep = S.prep || [];
+    S.prep.push({
+      id: uid(),
+      text: r.title,
+      cat: r.category || 'その他',
+      done: false,
+      date: targetDateStr,
+      member: memberNameById(r.memberId) || '',
+      memberId: r.memberId || '',
+      source: 'routine',
+      routineId: r.id,
+      dayOfWeek: r.dayOfWeek,
+      createdAt: now,
+      updatedAt: now,
+    });
+    added++;
+  }
+  if(added > 0) {
+    saveS();
+    renderPrep();
+    if(!(opts && opts.silent)) showToast(`${added}件をルーティンから反映しました`);
+  } else if(!(opts && opts.silent)) {
+    showToast('反映できる新規ルーティンはありません','info');
+  }
+  return added;
+}
+function applyTodayRoutines() { applyPrepRoutinesForDate(todayStr()); }
+function applyTomorrowRoutines() {
+  const t = new Date(); t.setDate(t.getDate()+1);
+  applyPrepRoutinesForDate(t.toISOString().slice(0,10));
+}
+
+/* ルーティン管理：メンバー切替 */
+function setPrepRoutineMember(id) { _prepRoutineMember = id; renderPrepRoutinesSection(); }
+
+/* ルーティン管理モーダルを開く */
+function openPrepRoutineModal(idOrMemberHint, dayHint) {
+  _ensurePrepRoutines();
+  let r = null;
+  if(typeof idOrMemberHint === 'string' && idOrMemberHint.startsWith('pr_')) {
+    r = S.prepRoutines.find(x => x.id === idOrMemberHint);
+  }
+  _prepEditingRoutineId = r ? r.id : null;
+  document.getElementById('prm-title').value = r ? (r.title||'') : '';
+  document.getElementById('prm-cat').value   = r ? (r.category||'その他') : '学校';
+  document.getElementById('prm-memo').value  = r ? (r.memo||'') : '';
+  document.getElementById('prm-day').value   = r ? (r.dayOfWeek||'mon') : (dayHint || 'mon');
+  document.getElementById('prm-timing').value = r ? (r.showTiming||'previous_day_and_today') : 'previous_day_and_today';
+  document.getElementById('prm-enabled').value = r ? String(r.enabled !== false) : 'true';
+  // メンバー
+  const memSel = document.getElementById('prm-member');
+  memSel.innerHTML = MEMBERS.map(m => `<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
+  memSel.value = r ? (r.memberId||'') : ((typeof idOrMemberHint === 'string' && idOrMemberHint && !idOrMemberHint.startsWith('pr_')) ? idOrMemberHint : MEMBERS[0].id);
+  // 削除ボタン表示制御
+  const delBtn = document.getElementById('prm-delete');
+  if(delBtn) delBtn.style.display = r ? 'block' : 'none';
+  // タイトル
+  const tEl = document.querySelector('#m-prep-routine .modal-title');
+  if(tEl) tEl.textContent = r ? '曜日ルーティンを編集' : '曜日ルーティンを追加';
+  openModal('m-prep-routine');
+}
+function savePrepRoutineFromModal() {
+  const title = document.getElementById('prm-title').value.trim();
+  if(!title) { showToast('準備タイトルを入力してください','error'); return; }
+  const data = {
+    memberId:    document.getElementById('prm-member').value,
+    dayOfWeek:   document.getElementById('prm-day').value,
+    title:       title,
+    category:    document.getElementById('prm-cat').value,
+    memo:        document.getElementById('prm-memo').value.trim(),
+    showTiming:  document.getElementById('prm-timing').value,
+    enabled:     document.getElementById('prm-enabled').value === 'true',
+  };
+  if(_prepEditingRoutineId) {
+    updatePrepRoutine(_prepEditingRoutineId, data);
+    showToast('ルーティンを更新しました');
+  } else {
+    addPrepRoutine(data);
+    showToast('ルーティンを追加しました');
+  }
+  _prepEditingRoutineId = null;
+  closeModal('m-prep-routine');
+  renderPrep();
+}
+function deletePrepRoutineFromModal() {
+  if(!_prepEditingRoutineId) return;
+  const id = _prepEditingRoutineId;
+  showConfirm('曜日ルーティンを削除', '今後の自動表示には出なくなります。既に今日/明日に反映済みの準備は残ります。', '削除', () => {
+    deletePrepRoutine(id);
+    _prepEditingRoutineId = null;
+    closeModal('m-prep-routine');
+    renderPrep();
+    showToast('ルーティンを削除しました');
+  }, '🗑');
+}
+function togglePrepRoutineEnabled(id) {
+  const r = (S.prepRoutines||[]).find(x => x.id === id);
+  if(!r) return;
+  updatePrepRoutine(id, { enabled: !(r.enabled !== false) });
+  renderPrep();
+}
+
+/* メンバー表示管理モーダル */
+function openPrepMembersModal() {
+  const wrap = document.getElementById('prm-members-list');
+  const visible = getPrepVisibleMembers();
+  wrap.innerHTML = MEMBERS.map(m => {
+    const on = visible.indexOf(m.id) >= 0;
+    return `<button onclick="togglePrepMemberVisible('${H(m.id)}');openPrepMembersModal();" class="bm-mgr-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;width:100%;background:transparent;border:1px solid var(--border-light);border-radius:10px;margin-bottom:6px;cursor:pointer;text-align:left;">
+      <span style="width:28px;height:28px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${H(m.av)}</span>
+      <span style="flex:1;color:var(--text);font-weight:600;">${H(m.name)}</span>
+      <span style="font-size:11px;padding:3px 9px;border-radius:10px;${on?'background:var(--primary);color:#fff;':'background:var(--bg-muted);color:var(--text-muted);'}">${on?'表示中':'非表示'}</span>
+    </button>`;
+  }).join('');
+  openModal('m-prep-members');
 }
 
 /* ============================================================
@@ -9722,6 +10228,34 @@ function hokuLocalAnswer(q) {
     return arr.slice(0,max).map(fn).join(NL)+(arr.length>max?NL+'　…他'+(arr.length-max)+'件':'');
   }
 
+  /* Wave 48：曜日ルーティン / 準備リストの問い合わせ（汎用 data-lookup より優先） */
+  if(q.match(/(毎週|曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜|時間割).*(準備|持ち物|ルーティン)/) ||
+     q.match(/(準備|持ち物|ルーティン).*(毎週|曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜|時間割)/) ||
+     q.match(/曜日(別|ごと|ルーティン)/) ||
+     q.match(/時間割/)) {
+    return '曜日ごとの準備（ルーティン・時間割）は、準備リスト画面の「ルーティン・時間割」タブで管理できます。'+NL+NL+
+      '【登録できる項目】'+NL+
+      '・対象メンバー（パパ／ママ／お子さん別）'+NL+
+      '・曜日（月〜日）'+NL+
+      '・準備タイトル（例：体操服）'+NL+
+      '・カテゴリ（学校／幼稚園／習い事 など）'+NL+
+      '・表示タイミング：前日・当日・前日と当日'+NL+
+      '・有効/無効の切替'+NL+NL+
+      '【自動反映】'+NL+
+      '今日・明日タブの上部に「ルーティン候補」が出るので、ボタン 1 つで反映できます。'+NL+
+      '同じルーティンが今日に既に反映されていれば、重複追加されません。'+NL+NL+
+      'まずは「準備リスト → ルーティン・時間割」を開いて、＋ボタンから 1 件登録してみてください。';
+  }
+  /* Wave 48：メンバー別表示の問い合わせ */
+  if(q.match(/(準備|持ち物).*(メンバー|子ども|表示|非表示|だけ表示|個別)/) ||
+     q.match(/(星斗|星旺|星汰|星愛|太郎|花子|健太|パパ|ママ).*(準備|持ち物)/) && !q.match(/曜日|毎週|時間割/)) {
+    return '準備リストはメンバーごとに表示・非表示を切り替えられます。'+NL+NL+
+      '・準備リスト画面の上部にメンバーチップが並びます'+NL+
+      '・タップで表示/非表示を切り替え'+NL+
+      '・⚙ ボタンで一覧から複数まとめて切替'+NL+
+      '・非表示にしてもデータは消えません（再表示で復活）'+NL+NL+
+      'お子さん別に「太郎の月曜は体操服」「花子の火曜はプール」のような曜日ルーティンを登録すると、朝の忘れ物がぐっと減ります。';
+  }
   /* Wave 41：家族ボード削除の問い合わせ（汎用 data-lookup より優先） */
   if(q.match(/(投稿|コメント|家族ボード|ボード).*(削除|消し|消す|消去|消去した|削除したい)/) || q.match(/(削除|消し).*(投稿|コメント|家族ボード)/)) {
     return '家族ボードの投稿・コメントは安全に削除できます。'+NL+NL+
