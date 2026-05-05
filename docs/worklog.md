@@ -4724,3 +4724,38 @@ Playwright の Canvas で各 WebP を分析した結果、すべての公式ア�
 
 ### コミット
 - メッセージ: `wave 49.2: regenerate official avatar bitmaps so colored circle fills 100% (no css scale needed)`
+
+---
+
+## 2026-05-06 01:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 49.3: m-event-move / m-premium-gate の下スワイプ閉じを許可
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー報告：「予定を移動」モーダル（m-event-move）の上部を下にスワイプしても閉じない。
+
+調査：Wave 46 で `SWIPE_DOWN_FORBIDDEN_MODAL_IDS` に `m-event-move` と `m-premium-gate` を入れていたが、これは過剰防御だった。
+- `m-confirm`（削除確認）は明示的にボタンで判断させる必要があるので残す
+- `m-event-move` はキャンセル＝何もしない、安全に閉じれて良い
+- `m-premium-gate` も上品に dismiss できるべき
+
+修正：`SWIPE_DOWN_FORBIDDEN_MODAL_IDS = ['m-confirm']` に縮小。dirty-form チェックは維持されるので、未保存変更があれば確認モーダルが出る。
+
+### テスト結果
+- 既存 29 suites 827/827 PASS
+- Wave 46 deep audit のテスト C11/C13 を新仕様（`forbidden: false`）に追従更新
+- m-event-move を Playwright で開いて下スワイプ → 閉じることを動作確認
+- md5 同期：`1fffb52c45ac9a33731f14ce09e405ba`
+
+### iPhone 確認ポイント
+1. 予定を週ビューで長押し移動 → m-event-move モーダル開く → 上部から下にスワイプで閉じる
+2. プレミアムゲート（m-premium-gate）も同様に下スワイプで閉じる
+3. 削除確認（m-confirm）は引き続き下スワイプで閉じない（ボタン明示が必要）
+
+### コミット
+- メッセージ: `wave 49.3: allow swipe-down close on m-event-move and m-premium-gate (only m-confirm forbidden)`

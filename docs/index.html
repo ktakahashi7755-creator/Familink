@@ -10836,8 +10836,11 @@ const _swipeBlockSelectors = [
   '#hoku-fab',
   '[data-no-swipe]'
 ];
-/* 削除確認など、下スワイプで閉じてはいけないモーダル */
-const SWIPE_DOWN_FORBIDDEN_MODAL_IDS = ['m-confirm','m-premium-gate','m-event-move'];
+/* 削除確認など、下スワイプで閉じてはいけないモーダル
+   - m-confirm：削除確認（誤操作で見逃さないよう、明示的にボタンで判断させる）
+   - m-premium-gate / m-event-move は当初リストに入れていたが、
+     ユーザー要望で下スワイプ閉じ可能にする（dirty チェックで未保存は確認） */
+const SWIPE_DOWN_FORBIDDEN_MODAL_IDS = ['m-confirm'];
 
 let _swipeStart = null;   // { x, y, t, kind: 'back' | 'modal-down' | 'detail-down', modal? }
 let _swipeBlocked = false;
