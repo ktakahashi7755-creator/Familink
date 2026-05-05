@@ -7385,22 +7385,37 @@ function renderPrepRoutinesSectionHtml() {
   </div>`;
 
   if(!filtered.length) {
+    const totalRoutines = (S.prepRoutines||[]).length;
+    const isFiltered = (memberId !== 'all') && totalRoutines > 0;
+    const memName = isFiltered ? (memberNameById(memberId)||'') : '';
     html += `<div class="empty" style="padding:32px 24px;text-align:center;">
-      <div class="empty-title">曜日ごとの準備はまだありません</div>
-      <div class="empty-desc">毎週必要な持ち物を登録すると、今日・明日の準備に反映できます。</div>
-      <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','mon')" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ 曜日ルーティンを作る</button>
+      <div class="empty-title">${isFiltered ? `${H(memName)}の曜日ルーティンはまだありません` : '曜日ごとの準備はまだありません'}</div>
+      <div class="empty-desc">${isFiltered ? 'このメンバー用の毎週ルーティンを登録できます。' : '毎週必要な持ち物を登録すると、今日・明日の準備に反映できます。'}</div>
+      <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','mon')" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${isFiltered ? `${H(memName)}のルーティンを追加` : '曜日ルーティンを作る'}</button>
     </div>`;
     return html;
   }
 
-  // 曜日ごとのカード（時間割風）
+  // 今日 / 明日の曜日キーをハイライトに使用
+  const _todayStrKey = todayStr();
+  const _tomoStrKey  = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })();
+  const _todayDow = prepDowKey(_todayStrKey);
+  const _tomoDow  = prepDowKey(_tomoStrKey);
+
+  // 曜日ごとのカード（時間割風） — 今日 / 明日をハイライト
   for(const day of PREP_DAYS) {
     const dayItems = filtered.filter(r => r.dayOfWeek === day);
     const label = PREP_DAY_LABELS_JA[day];
-    html += `<div class="prep-routine-day" style="margin:0 16px 10px;background:#fff;border:1px solid var(--border-light);border-radius:12px;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-muted);border-bottom:1px solid var(--border-light);">
+    const isToday    = (day === _todayDow);
+    const isTomorrow = (day === _tomoDow);
+    const headerBg = isToday ? 'linear-gradient(135deg,#EBF4FF,#F5F3FF)' : 'var(--bg-muted)';
+    const cardBorder = isToday ? '2px solid var(--primary)' : '1px solid var(--border-light)';
+    const badge = isToday ? `<span style="font-size:10px;background:var(--primary);color:#fff;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:4px;">今日</span>`
+               : isTomorrow ? `<span style="font-size:10px;background:#6366F1;color:#fff;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:4px;">明日</span>` : '';
+    html += `<div class="prep-routine-day" data-day="${day}" style="margin:0 16px 10px;background:#fff;border:${cardBorder};border-radius:12px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${headerBg};border-bottom:1px solid var(--border-light);">
         <span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">${H(label)}</span>
-        <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${H(label)}曜日 <span style="color:var(--text-muted);font-weight:600;font-size:11px;">(${dayItems.length}件)</span></span>
+        <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${H(label)}曜日${badge} <span style="color:var(--text-muted);font-weight:600;font-size:11px;">(${dayItems.length}件)</span></span>
         <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','${day}')" title="この曜日に追加" style="background:transparent;border:1px dashed var(--border);color:var(--primary);font-size:14px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">＋</button>
       </div>
       <div style="padding:6px 0;">
@@ -9347,7 +9362,10 @@ function executeAction(action) {
 
     case 'create_prep': {
       S.prep=S.prep||[];
-      S.prep.push({id:uid(), text:action.params.text, done:false, date:''});
+      const _now = new Date().toISOString();
+      const _item = { id:uid(), text:action.params.text, cat:'その他', done:false, date:'', createdAt:_now, updatedAt:_now };
+      if(action.params.memberId) { _item.memberId = action.params.memberId; _item.member = memberNameById(action.params.memberId) || ''; }
+      S.prep.push(_item);
       saveS(); refresh('s-prep');
       return `準備リストに追加しました。${NL}・内容：${action.params.text}${NL+NL}「準備リスト」画面で確認できます。`;
     }
@@ -9921,7 +9939,14 @@ function voiceConfirmSave() {
       saved = true;
     } else if(cat === 'prep') {
       const prepText = title || (note || '持ち物');
-      S.prep.push({ id:uid(), text:prepText, cat:'学校', done:false, date, member: member||'' });
+      // member は vc-member の value（memberId）。新スキーマで memberId と表示名を分けて保存
+      const _mName = member ? (memberNameById(member) || '') : '';
+      const _now = new Date().toISOString();
+      const prepItem = { id:uid(), text:prepText, cat:'学校', done:false, date };
+      if(member) { prepItem.memberId = member; prepItem.member = _mName; }
+      prepItem.createdAt = _now;
+      prepItem.updatedAt = _now;
+      S.prep.push(prepItem);
       saved = true;
     } else if(cat === 'budget') {
       if(!isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
@@ -10652,6 +10677,13 @@ function buildHokuContext() {
     const prepUrgent = (S.prep||[]).filter(p=>!p.done&&p.date&&p.date<=in3)
       .sort((a,b)=>a.date.localeCompare(b.date)).map(p=>({text:p.text,date:fmtD(p.date)}));
     const prepNoDate = (S.prep||[]).filter(p=>!p.done&&!p.date).slice(0,5).map(p=>({text:p.text}));
+    // Wave 48：曜日ルーティンの存在と本日候補件数も Hoku コンテキストへ
+    const prepRoutinesAll = (S.prepRoutines||[]).filter(r => r.enabled !== false);
+    const prepRoutineCount = prepRoutinesAll.length;
+    const _todayDow = (typeof prepDowKey === 'function') ? prepDowKey(td) : null;
+    const _tomoStr = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })();
+    const _suggToday = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(td).filter(s => !s.applied) : [];
+    const _suggTomo  = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(_tomoStr).filter(s => !s.applied) : [];
 
     const healthRecs = (S.health||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4)
       .map(h=>({date:fmtD(h.date),child:getMem(h.child).name||'',temp:h.temp,cond:h.cond||''}));
@@ -10670,7 +10702,7 @@ function buildHokuContext() {
       today:td, today_label:fmtD(td),
       today_events:todayEvs, tomorrow_events:tmrEvs, upcoming_events:upcomingEvs,
       tasks:{total:tasks.length,overdue:overdueTasks,today:todayTasks,soon:soonTasks,high_priority:highTasks},
-      prep:{urgent:prepUrgent,no_date:prepNoDate},
+      prep:{urgent:prepUrgent,no_date:prepNoDate, routines_total:prepRoutineCount, today_pending_routines:_suggToday.length, tomorrow_pending_routines:_suggTomo.length},
       budget:{month:(mo+1)+'月',income,expense,balance:income-expense,top_categories:topCats,recent:recentTxs},
       health:healthRecs, members, unread_announcements:unreadAnns
     };
