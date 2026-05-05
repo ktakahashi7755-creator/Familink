@@ -9765,7 +9765,8 @@ function hokuLocalAnswer(q) {
       '【無効になる場面（誤操作防止）】'+NL+
       '・入力中 / リスト・カレンダー・グラフをスクロール中'+NL+
       '・画面左端 20px はブラウザ戻ると競合するため無視'+NL+
-      '・斜めスワイプ・短すぎるスワイプは無効'+NL+NL+
+      '・斜めスワイプ・短すぎるスワイプは無効'+NL+
+      '・ログイン / 初期設定画面では誤操作で抜けないよう無効'+NL+NL+
       '従来どおり下部のタブバーや戻るボタンも使えます。';
   }
 
@@ -10226,6 +10227,8 @@ const SWIPE_CANCEL_PERPENDICULAR = 24; // 主体方向と垂直方向の差が�
 /* 旧定数も後方互換のため公開（既存テスト互換） */
 const SWIPE_PAGE_ORDER         = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
 const SWIPE_DETAIL_SCREENS     = ['s-board-detail','s-cdetail','s-custom-board'];
+/* 認証 / オンボード画面：戻るスワイプで抜けさせない（誤操作で初期設定を飛ばさないため） */
+const SWIPE_LOCKED_SCREENS     = ['s-ob','s-login','s-onboard'];
 const SWIPE_THRESHOLD_X        = 60;   // (legacy) wave44/45 互換
 const SWIPE_THRESHOLD_Y        = 80;   // (legacy)
 const SWIPE_MAX_Y              = 60;   // (legacy)
@@ -10319,6 +10322,8 @@ function _swipeShouldBlock(target) {
 /* ── 戻る統一エントリ ───────────────────────── */
 function appNavBack() {
   const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+  // 認証・オンボード画面は戻り操作で抜けない
+  if(cur && SWIPE_LOCKED_SCREENS.indexOf(cur) >= 0) return false;
   // 詳細・サブ画面は専用 goBack に委ねる（履歴汚染を避ける）
   if(cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0) {
     if(typeof goBack === 'function') goBack();
@@ -10464,8 +10469,11 @@ function _swipeOnTouchStart(e) {
   // 通常画面：戻るスワイプ判定
   if(_swipeShouldBlock(e.target)) { _swipeBlocked = true; _swipeStart = null; return; }
 
-  // 詳細画面で touchstart が画面上部 40px 以内なら、下スワイプで閉じる動作を優先する
+  // 認証 / オンボード画面では戻るスワイプを無効化（誤操作で抜けないように）
   const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
+  if(cur && SWIPE_LOCKED_SCREENS.indexOf(cur) >= 0) { _swipeStart = null; _swipeBlocked = true; return; }
+
+  // 詳細画面で touchstart が画面上部 40px 以内なら、下スワイプで閉じる動作を優先する
   const onDetail = cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0;
   if(onDetail && t.clientY <= 40) {
     _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'detail-down' };
