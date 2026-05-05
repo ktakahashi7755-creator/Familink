@@ -4229,3 +4229,61 @@ Wave 46.1: 検証ラウンドで発見した認証画面エスケープバグ修
 
 ### コミット
 - メッセージ: `wave 46.1: block swipe-back on auth/onboarding screens + 40 deep audit cases`
+
+---
+
+## 2026-05-04 23:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 47: モーダルヘッダー「掴んで下に引っ張る」 iOS シート風ライブドラッグ
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 変更内容
+ユーザー要望：「モーダルのヘッダー（グリップ + タイトル）部分を下げると、前のページに戻る感覚で閉じたい」
+
+実装：
+- ヘッダー領域（モーダル inner の上端から 100px 以内）から開始した下スワイプは「ヘッダードラッグモード」
+- ドラッグ中は `inner.style.transform = translateY(dy)` でライブ追従
+  - dy<0（上方向）は 0.2 倍の弱い反応（壁を感じる）
+  - dy>120 は超過分を 0.6 倍で減衰（弾力ストッパー）
+- リリース時：
+  - dy>=100 かつ |dx|<=60 → `_swipeCloseModal` で閉じる（dirty なら確認）
+  - 未達 → CSS transition でスムーズにスナップバック（transform 解除）
+  - 横移動 > 縦に転じた瞬間にもスナップバック
+- ヘッダードラッグモードでは duration check を緩和（ゆっくり引っ張っても閉じる）
+- touchcancel でもスナップバック復帰
+
+ヘッダー外（モーダル下部）からの下スワイプは従来通り（ライブ追従なし、判定だけで閉じる）。
+
+### テスト結果
+- Wave 47 modal drag smoke：17/17 PASS
+  - 関数定義 / 定数 / モーダル inner 検出
+  - ヘッダー touchstart で `header=true` セット
+  - dy=50 / 80 でライブ transform 反映
+  - dy=80 でスナップバック（transform 解除）
+  - dy=150 でモーダル閉じる
+  - ヘッダー外（200px 下）は `header=false`
+  - ヘッダー外でも dy>=100 で閉じる（既存維持）
+  - m-confirm はヘッダードラッグでも受付なし
+  - 横移動>縦でキャンセル → transform リセット
+- 既存 25 suites：全 PASS
+- 累計 **26 suites 685/685 PASS**
+- md5 同期：`cf128679d016e0d54abe7c29c4c0d289`
+
+### iPhone 確認ポイント
+1. モーダル（タスク編集など）のグリップ + タイトル部分を指で下に引っ張る
+2. 引っ張りに合わせてモーダルが下に追従する（指についてくる感覚）
+3. 100px 以上引いて離すとモーダルが閉じる
+4. 100px 未満で離すとスムーズに元位置にスナップバック
+5. 削除確認モーダルは引っ張っても閉じない
+6. モーダル下部（フォーム部分）からの下スワイプは従来通り（追従なし、判定のみ）
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機での触覚確認
+
+### コミット
+- メッセージ: `wave 47: live header pull-to-close on modals (iOS sheet feel)`
