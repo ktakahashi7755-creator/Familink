@@ -4585,3 +4585,47 @@ Wave 48.2: 最終 100 点監査 — 隠れた紐付け 4 件を修正、UX 仕�
 
 ### コミット
 - メッセージ: `wave 48.2: link voice/action prep -> memberId, hoku context routine stats, today/tomorrow card highlight (37 final-check cases)`
+
+---
+
+## 2026-05-05 22:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 49: 公式アバター画像の白縁ズレを CSS scale でクロップ
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー報告：「アイコンを変更すると白い部分があるみたいにズレてます」
+
+調査：公式アバター bitmap (160×160 WebP) はキャラ周辺に約 10〜15% の白余白を含んだ素材だった。
+.av の丸枠内では img が `object-fit:cover` で 100% 表示されるため、白余白がそのまま見えてしまう状態。
+
+修正：
+- `avHtml` の公式アバター枝に `transform:scale(1.18)` を付与（カスタム写真は対象外）
+- `.avatar-grid-img-wrap img` にも `transform:scale(1.18)` 追加し、`overflow:hidden` で確実にクリップ
+- カスタム写真（ユーザー撮影）は元サイズ前提なのでスケーリングしない
+
+検証：iPhone 13 (390×844) で設定画面ヘッダーと公式アバター選択モーダルをスクリーンショット比較。
+- 修正前：キャラ周辺に明確な白縁が見えていた
+- 修正後：キャラが丸枠を満たし、グラデ縁だけが見える美しい仕上がり
+
+### テスト結果
+- 既存 29 suites 827/827 PASS（影響なし）
+- md5 同期：`8c32fd33ca433b1b4bcde5f9b427caa4`
+- 描画系の純粋な CSS 変更のため自動テスト追加は不要（ビジュアル目視 OK）
+
+### iPhone 確認ポイント
+1. 設定画面ヘッダーのアバターが、白縁なくキャラが丸枠を満たして表示される
+2. 公式アバター選択モーダルの全アバターが同じく綺麗に丸枠を満たす
+3. メンバーチップ・タスク・家計・準備・体調すべての画面で公式アバター表示が崩れない
+4. カスタム写真アバター（ユーザー撮影）はスケールしないので顔が拡大されたりしない
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機で確認
+
+### コミット
+- メッセージ: `wave 49: crop white margin in official avatar bitmaps via transform:scale(1.18)`
