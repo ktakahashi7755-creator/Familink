@@ -7638,24 +7638,35 @@ function computePrepRoutineSuggestions(targetDateStr) {
       }
     }
     if(!ok) continue;
-    // 重複チェック：S.prep[] に同じ routineId + date + memberId + text が既にあるか
-    const dup = (S.prep||[]).some(p =>
-      (p.routineId === r.id && p.date === targetDateStr) ||
-      (p.text === r.title && p.date === targetDateStr && (p.memberId||'') === (r.memberId||''))
-    );
+    // 重複チェック：
+    // 1) 同じ routineId+date が既にあれば確実に重複
+    // 2) routineId が無い手動 prep で同 text+date+member ならルーティンと被るので重複扱い
+    //    （別 routineId の同名ルーティン同士は重複扱いしない＝個別に反映できる）
+    const dup = (S.prep||[]).some(p => {
+      if(p.routineId === r.id && p.date === targetDateStr) return true;
+      if(!p.routineId && p.text === r.title && p.date === targetDateStr && (p.memberId||'') === (r.memberId||'')) return true;
+      return false;
+    });
     out.push({ routine: r, applied: dup });
   }
   return out;
 }
 
-/* ルーティン candidate を S.prep[] へ反映（重複は除外） */
+/* ルーティン candidate を S.prep[] へ反映（重複は除外、可視メンバーのみ）
+   - 表示中のメンバーに該当しないルーティンは反映しない（バナー表示と挙動を一致）
+   - opts.includeHidden=true で全メンバー対象にする
+*/
 function applyPrepRoutinesForDate(targetDateStr, opts) {
   const list = computePrepRoutineSuggestions(targetDateStr);
+  const visible = getPrepVisibleMembers();
+  const includeHidden = !!(opts && opts.includeHidden);
   let added = 0;
   const now = new Date().toISOString();
   for(const item of list) {
     if(item.applied) continue;
     const r = item.routine;
+    // 可視メンバーフィルタ：memberId が無いルーティンは家族共通として常に対象
+    if(!includeHidden && r.memberId && visible.indexOf(r.memberId) < 0) continue;
     S.prep = S.prep || [];
     S.prep.push({
       id: uid(),
@@ -7695,8 +7706,9 @@ function setPrepRoutineMember(id) { _prepRoutineMember = id; renderPrepRoutinesS
 function openPrepRoutineModal(idOrMemberHint, dayHint) {
   _ensurePrepRoutines();
   let r = null;
-  if(typeof idOrMemberHint === 'string' && idOrMemberHint.startsWith('pr_')) {
-    r = S.prepRoutines.find(x => x.id === idOrMemberHint);
+  // 既存ルーティン ID として一致するか直接検索（prefix によらず）
+  if(typeof idOrMemberHint === 'string' && idOrMemberHint) {
+    r = S.prepRoutines.find(x => x.id === idOrMemberHint) || null;
   }
   _prepEditingRoutineId = r ? r.id : null;
   document.getElementById('prm-title').value = r ? (r.title||'') : '';
@@ -7708,7 +7720,12 @@ function openPrepRoutineModal(idOrMemberHint, dayHint) {
   // メンバー
   const memSel = document.getElementById('prm-member');
   memSel.innerHTML = MEMBERS.map(m => `<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
-  memSel.value = r ? (r.memberId||'') : ((typeof idOrMemberHint === 'string' && idOrMemberHint && !idOrMemberHint.startsWith('pr_')) ? idOrMemberHint : MEMBERS[0].id);
+  // メンバー値：編集中なら r.memberId、新規でメンバーIDヒントが来ているならそれ、それ以外は先頭
+  let memberValue;
+  if(r) memberValue = r.memberId || MEMBERS[0].id;
+  else if(typeof idOrMemberHint === 'string' && idOrMemberHint && MEMBERS.some(m => m.id === idOrMemberHint)) memberValue = idOrMemberHint;
+  else memberValue = MEMBERS[0].id;
+  memSel.value = memberValue;
   // 削除ボタン表示制御
   const delBtn = document.getElementById('prm-delete');
   if(delBtn) delBtn.style.display = r ? 'block' : 'none';
