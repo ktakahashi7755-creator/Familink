@@ -4672,3 +4672,55 @@ Wave 49 で適用した `scale(1.18)` が強すぎて、お団子・ポニーテ
 
 ### コミット
 - メッセージ: `wave 49.1: ease avatar crop scale 1.18 -> 1.06 + object-position 30% so heads aren't clipped`
+
+---
+
+## 2026-05-06 00:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 49.2: 公式アバター bitmap 自体を再生成し、白縁・頭切れを根本解決
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正方針（CSS だけでは限界 → bitmap を再生成）
+Wave 49 / 49.1 の CSS scale 補正は「白縁を消すと頭が切れる」「頭を守ると白縁が残る」のトレードオフが残っていた。
+Playwright の Canvas で各 WebP を分析した結果、すべての公式アバターの **colored circle 半径が 73〜79px**（160px キャンバスに対して）で、四隅に白いエリアが残っていることを確認。
+
+**根本対策：bitmap を再生成**
+1. 各 WebP を Canvas で読み込み、360 角度から非白画素の最大半径を測定
+2. 30 パーセンタイル値を使って scale を計算（外れ角度に引っ張られない）
+3. scale を 1.04〜1.12 にキャップ（頭切れ防止）
+4. 200×200 の出力 Canvas に scale 後の画像を中央描画し、WebP 0.85 で再エンコード
+5. 16 アバター全てを置き換え
+
+これで colored circle が **bitmap の 100% を満たす** 状態になり、CSS scale が不要に。
+
+### 変更内容
+- `OFFICIAL_AVATARS[]` の全 16 エントリの `src` を再生成版に置き換え
+- `avHtml()` の公式アバター描画から `transform:scale(...)` / `object-position:30%` / `transform-origin` を削除
+- `.avatar-grid-img-wrap img` も `object-position:center` のみに戻し scale 削除
+- ファイルサイズ：再生成後の base64 は概ね現状と同等〜やや小さい（合計 -10KB 程度）
+
+### 検証
+- 16 アバター全てを iPhone 15 Plus (430×932) でスクリーンショット確認
+- 赤ちゃん〜シニアまで、全アバターが colored circle で丸枠を満たし、頭・髪型は完全に視認可能
+- 白縁ゼロ、頭切れゼロ
+
+### テスト結果
+- 既存 29 suites **827/827 PASS**（影響なし）
+- md5 同期：`15c355553bc49e771c34b7d2c0e544aa`
+- bitmap 再生成のため pixel-perfect な diff だが、機能テストは全て合格
+
+### iPhone 確認ポイント
+1. 設定画面ヘッダーのアバター：白縁なし、頭切れなし
+2. 公式アバター選択モーダルの全 11 種類（無料分）と 2 種類（プレミアム）すべて綺麗
+3. メンバーチップ、タスク、家計、準備、体調すべての画面で公式アバターが綺麗に表示
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機での最終確認
+
+### コミット
+- メッセージ: `wave 49.2: regenerate official avatar bitmaps so colored circle fills 100% (no css scale needed)`
