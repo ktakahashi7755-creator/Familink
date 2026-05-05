@@ -4629,3 +4629,46 @@ Wave 49: 公式アバター画像の白縁ズレを CSS scale でクロップ
 
 ### コミット
 - メッセージ: `wave 49: crop white margin in official avatar bitmaps via transform:scale(1.18)`
+
+---
+
+## 2026-05-05 23:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 49.1: アバター scale 過剰補正で頭が切れていた問題を修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー報告：「頭切れてたりします」
+Wave 49 で適用した `scale(1.18)` が強すぎて、お団子・ポニーテール・年配男性などのアバターで頭頂部が丸枠を超えていた。
+
+修正：
+- `OFFICIAL_AVATAR_SCALE` を **1.18 → 1.06** に控えめ化（白縁の最も外側のみクロップ）
+- `object-position: center 30%` を追加 → 縦方向の中心を上寄せにして頭部優先表示
+- `transform-origin: center 30%` で scale の中心も同位置に揃える
+- `.avatar-grid-img-wrap img` も同設定に統一
+
+検証：iPhone 13 (390×844) でアバター選択モーダルおよびヘッダーアバターを再確認。
+- 修正前（Wave 49）：白縁は消えたが頭頂部・髪型が丸枠で切れていた
+- 修正後（Wave 49.1）：頭部が完全に見え、白縁もほぼ目立たない自然な仕上がり
+
+### テスト結果
+- 既存 29 suites 827/827 PASS（影響なし）
+- md5 同期：`4c4d8944a97f32acf84a3a5aaf0a5fa9`
+- ビジュアル目視 OK：11 種類のアバター全てで頭が切れない
+
+### iPhone 確認ポイント
+1. 設定画面ヘッダーのアバターで頭頂部・髪型が丸枠内に収まる
+2. 公式アバター選択モーダルの全アバター（赤ちゃん〜シニア）で頭が切れない
+3. 女性（お団子）・男性（ひげ）・シニア男性（メガネ）など頭頂部がリスクだったキャラも OK
+4. 白縁は引き続き極小化されている
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機で最終確認
+
+### コミット
+- メッセージ: `wave 49.1: ease avatar crop scale 1.18 -> 1.06 + object-position 30% so heads aren't clipped`
