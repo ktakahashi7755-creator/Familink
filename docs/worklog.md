@@ -4876,3 +4876,71 @@ Wave 50.1: モーダルヘッダーの「下げて閉じる」領域を動的に
 
 ### コミット
 - メッセージ: `wave 50.1: dynamic modal header drag-zone extends to first input/field`
+
+---
+
+## 2026-05-06 04:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50.2: タイムゾーン致命的バグ修正（JST で日付が 1 日前に保存されていた）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 発見した致命バグ
+ユーザー報告：「週のカレンダーの移動はできるけど変な位置に保存される」
+
+調査：iPhone Safari (JST = UTC+9) で `new Date('2026-05-06T00:00:00').toISOString().slice(0,10)` は **`"2026-05-05"`** を返していた。
+- `new Date('YYYY-MM-DD T00:00:00')` は LOCAL 時刻として解釈される
+- `.toISOString()` は UTC に変換 → JST 0:00 → UTC 前日 15:00 → スライスで前日になる
+- 全コードベースで同パターンが使われており、_finalizeCalDrag や addDays、todayStr などで日付がズレる可能性があった
+
+CI では UTC タイムゾーンで動作しているため発覚しなかった、長年潜在していたバグ。
+
+### 修正
+- 新規ヘルパー `localDateStr(d)` 追加：ローカル時刻で `YYYY-MM-DD` を返す（getFullYear/getMonth/getDate を使用）
+- `todayStr()` を `localDateStr(new Date())` に置き換え
+- `addDays(s, n)` を `localDateStr(d)` 使用に修正
+- 13 箇所の `toISOString().slice(0,10)` / `toISOString().split('T')[0]` を `localDateStr(...)` に置換
+  - `_finalizeCalDrag`：ドラッグ後の保存日付（致命修正）
+  - `renderCalWeek`：週ビューの日付セル比較
+  - `renderHealthCharts`：健康グラフの 30 日範囲
+  - 音声入力：来週土曜などの日付解析
+  - 準備リスト：今日/明日タブ判定
+  - その他
+
+### 再現と修正検証
+JST タイムゾーンで Playwright を起動：
+| ケース | 修正前 | 修正後 |
+|---|---|---|
+| `new Date('2026-05-06T00:00:00').toISOString().slice(0,10)` | "2026-05-05" | "2026-05-05"（参考） |
+| `localDateStr(new Date('2026-05-06T00:00:00'))` | - | **"2026-05-06"** ✓ |
+| `addDays('2026-05-06', 0)` | "2026-05-05" ❌ | **"2026-05-06"** ✓ |
+| `addDays('2026-05-06', 1)` | "2026-05-06" ❌ | **"2026-05-07"** ✓ |
+| 週ドラッグで右1日 + 30分 | 同日10:30（日付ズレ） | **翌日10:30** ✓ |
+
+### モーダルヘッダードラッグ閉じも JST で確認
+タスク編集 / 体調 / 予定移動の 3 モーダルでタイトル付近からの下スワイプ閉じが JST 環境でも正常動作することを確認。
+ヘッダー領域の高さ動的検出も問題なし（140px）。
+
+### テスト結果
+- Wave 50.2 JST timezone smoke：**11/11 PASS**
+- Wave 50.3 modal header JST smoke：**6/6 PASS**
+- 既存 31 suites（UTC で動作）：全 PASS
+- **累計 33 suites 870/870 PASS**（UTC + JST 両方）
+- md5 同期：`50122048fe84622f40bd5f85020d2343`
+
+### iPhone 確認ポイント
+1. 週ビューで予定を長押し → 横方向にドラッグ → 離した日付に正しく保存される（ズレない）
+2. 縦方向ドラッグ → 30 分単位で時刻が変わる
+3. 朝 7 時（JST）にアプリを開いた時も todayStr が正しく今日を返す
+4. タスク編集モーダルの「タスクを編集」タイトル付近を指で下に引っ張って閉じられる
+5. その他のモーダル（予定・家計・体調・準備など）も同様
+
+### 次にやること
+- 両ブランチ push
+- iPhone 実機で再現確認
+
+### コミット
+- メッセージ: `wave 50.2: fix critical JST date-shift bug in toISOString().slice(0,10) (calendar drag saves wrong date)`
