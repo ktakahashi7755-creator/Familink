@@ -4759,3 +4759,68 @@ Wave 49.3: m-event-move / m-premium-gate の下スワイプ閉じを許可
 
 ### コミット
 - メッセージ: `wave 49.3: allow swipe-down close on m-event-move and m-premium-gate (only m-confirm forbidden)`
+
+---
+
+## 2026-05-06 02:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50: 週ビューの予定を Google カレンダー風にドラッグで移動できるように
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー要望：「週部分で予定を長押し → 上下/左右にドラッグして簡単に移動・予定変更」
+
+実装：
+- 既存の長押し（600ms）→ 移動モーダル を、**長押し→指追従ドラッグ**に進化
+- 縦移動：30 分単位スナップ（CAL_SNAP_MIN=30, 44px/時間）
+- 横移動：1 日単位スナップ（実際の day column 幅を計測）
+- クランプ：時刻 7:00〜21:30 にクランプし、画面外へ出ない
+- ドラッグ中：`scale(1.04)` ＋ `opacity: .55` のゴースト表示で視覚フィードバック
+- 触覚フィードバック：長押し閾値突破時に `navigator.vibrate(15)`
+- 終了時刻 endTime も同じ分量シフト（時間は維持）
+
+UX 切り分け：
+| 操作 | 動作 |
+|---|---|
+| 短いタップ | 編集モーダル（既存） |
+| 長押し → 動かさず離す | ドラッグキャンセル → 編集モーダル（click 通常発火） |
+| 長押し → ドラッグ | 移動確定（ドラッグ後にトースト「MM/DD HH:MM に移動しました」） |
+| 移動量 0（長押し中に微動でも実質変化なし） | 何もせず元の位置へ戻る |
+
+技術ポイント：
+- `touchmove` を **passive:false** で登録し、ドラッグ中のみ `e.preventDefault()` でスクロール抑止
+- `.cal-week-col-day` の実際の幅を `getBoundingClientRect()` で計測 → どの viewport 幅でも正確に日割り
+- ドラッグ後の click は `_calLpFired` フラグで stopPropagation／preventDefault 抑止
+- ドラッグせず離した場合は `_calLpFired = false` を即座にリセットし、通常 click で onclick="openEventModal(...)" が走るようにする
+
+### テスト結果
+- Wave 50 drag event smoke：**13/13 PASS**
+  - 関数・定数の存在（5 件）
+  - 描画
+  - 縦下ドラッグで時刻シフト
+  - 横左ドラッグで前日へ
+  - 長押し-無移動 → 編集モーダル（cancel）
+  - 短いタップ → 編集モーダル
+  - 30 分スナップ
+  - クランプ（7:00 下限）
+  - JS エラーゼロ
+- 既存 29 suites：全 PASS
+- 累計 **30 suites 840/840 PASS**
+- md5 同期：`91026427d67047b104b8330c15ae94de`
+
+### iPhone 確認ポイント
+1. カレンダー → 週ビューを開く
+2. 予定カードを長押し（600ms） → カードが少し浮いた（拡大）状態になる、軽い振動
+3. 上下にドラッグ：30 分単位で時刻が変わる（10:00 → 10:30 → 11:00 …）
+4. 左右にドラッグ：1 日単位で日付が変わる
+5. 離した瞬間：その位置に予定が確定、画面再描画＋トースト表示
+6. 動かさずに離した場合：編集モーダル（または通常タップで編集モーダル）
+7. 7:00 より前 / 21:30 より後にドラッグしても自動でクランプされて消えない
+8. 終了時刻も同じ分量だけ後ろ／前にスライドする
+
+### コミット
+- メッセージ: `wave 50: drag events on week view to move (google-calendar-like 30min/day snap)`
