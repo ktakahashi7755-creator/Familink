@@ -5159,3 +5159,64 @@ Wave 50.6: 週ビューを 24h フル + Google カレンダー風スムーズス
 
 ### コミット
 - メッセージ: `wave 50.6: full 24h week view + sticky header + google-calendar-style smooth swipe (follow-finger + slide animation)`
+
+---
+
+## 2026-05-06 09:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50.7: 週ビュー 3 ページカルーセル化（常時つながった Google カレンダー風スワイプ）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー報告：「先の日付が白い、常時つながっているイメージが良い」（Google カレンダー風）
+
+旧 Wave 50.6 はスライドアウト → 切替 → スライドインの 2 段階アニメで、隣の週は描画されていなかった → スライド中に空白が見えていた。
+
+### 実装：3 ページカルーセル
+1. `renderCalWeek` を refactor し、**前週 / 当週 / 次週の 3 ページ**を一括描画
+   - `_buildWeekPageHtml(selStr, offsetWeeks)` で任意週の HTML を生成
+   - 各ページは `.cal-week-page[data-week-offset="-1|0|1"]`
+   - 中央ページ（offset=0）の予定だけ `data-evid` + onclick を付け、長押しドラッグ移動・タップ編集に対応
+2. **トラック構造**：`.cal-week-track` は width:300%（3 ページ分）で flex 横並び
+   - 中央ページ表示時は `transform: translateX(calc(-33.333% + 0px))`
+   - 指追従中：`-33.333% + dx` で track 全体がスライド → **隣の週も同時に見える**
+3. **CSS 構造**：
+   - `.cal-week-view`: position:relative, overflow:hidden, width:100%
+   - `.cal-week-track`: width:300%, display:flex, height:100%
+   - `.cal-week-page`: flex 0 0 33.333%, height:100%, overflow:hidden
+   - `.cal-week-scroll`: 各ページ内の縦スクロール（24h grid + sticky header）
+4. **main-area 制御**：週ビューでは main-area の overflow:hidden + display:flex に上書き、月/リスト復帰時に restore
+
+### 動作
+| 操作 | 結果 |
+|---|---|
+| 静止状態 | 中央ページ（当週）を表示。隣の週は track の左右に隠れている |
+| 指追従中 | track が `dx` だけ平行移動。前週/次週が画面端から **同時にスライドして見える**＝つながった印象 |
+| しきい値超で離す | `±viewport` までアニメ → renderCalWeek で track を再構築（calSel 更新） |
+| しきい値未達で離す | 中央位置にスプリングバック |
+| 縦スクロール | 各ページ内 .cal-week-scroll で独立、sticky ヘッダーで日付行が固定 |
+
+### テスト更新
+- wave50_drag_event：イベントを sticky ヘッダーで隠さないよう scrollTop=0 にしてから測定 + 中央ページ scope
+- wave50_5_week_accuracy / wave40_calendar：`.cal-week-hdr-cell` クエリを `.cal-week-page[data-week-offset="0"] .cal-week-hdr-cell` に scope
+- wave50_drag_event 全 evRect 取得を中央ページに scope
+
+### テスト結果
+- 35 suites **899/899 PASS**
+- md5 同期：`bd9e926237e109acf8efd6731aafbd6c`
+
+### iPhone 確認ポイント
+1. 週ビューを開く → 中央ページ表示。指で横にスワイプ
+2. **指の動きに合わせて隣の週がチラ見えしながらスライド**（白い空白なし）
+3. しきい値超で離す → 滑らかに次/前週へ切替（再びチラ見え状態に戻る）
+4. しきい値未達で離す → 中央にバネバック
+5. 各週で 24h 縦スクロール独立
+6. 予定の長押しドラッグ移動も中央ページで動作
+7. iOS 標準方向：右スワイプ → 前週、左スワイプ → 次週
+
+### コミット
+- メッセージ: `wave 50.7: 3-page carousel for connected swipe (prev/curr/next pre-rendered, smooth follow-finger)`
