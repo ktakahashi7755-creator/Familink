@@ -4944,3 +4944,55 @@ JST タイムゾーンで Playwright を起動：
 
 ### コミット
 - メッセージ: `wave 50.2: fix critical JST date-shift bug in toISOString().slice(0,10) (calendar drag saves wrong date)`
+
+---
+
+## 2026-05-06 05:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50.3: カレンダー週ビューに横スワイプで週送りを追加
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー要望：「右にスワイプで 6/10 以降、左にスワイプで 6/2 以前を表示」
+
+実装：
+- `changeCalWeek(n)` 関数：`S.calSel` を `n*7` 日シフトし、`S.calY/calM` も同期 → renderCal()
+- `_bindCalWeekSwipe()` で `.cal-week-view` に touchstart/move/end ハンドラを追加
+- 横スワイプ閾値：dx >= 80px、|dy| < 60px、duration 100-800ms
+- 右スワイプ（dx>0）→ `changeCalWeek(+1)`（次週へ進む）
+- 左スワイプ（dx<0）→ `changeCalWeek(-1)`（前週へ戻る）
+
+干渉防止：
+- 予定カード（`.cal-wk-ev`）上での操作は無視 → ドラッグ移動と競合しない
+- ヘッダー（`.cal-week-hdr-cell`）上のタップも無視
+- ボタン／入力要素も無視
+- 縦移動が主体になったらキャンセル → 縦スクロール優先
+- Wave 46 の global swipe-back は `.cal-week-view` を block selector に含めているため、こちらでハンドリング
+
+月またぎも正しく動作：5/30 → 6/6 で `S.calM` も 4 → 5 に更新。
+
+### テスト結果
+- Wave 50.4 week swipe smoke：**15/15 PASS**（JST 環境）
+  - 関数定義・定数（4 件）
+  - changeCalWeek 直接呼び出し（4 件：+1/-1/-2/月またぎ）
+  - 実際の swipe（右→次週／左→前週）
+  - 短いスワイプ／縦移動主体／予定カード上のタップでは反応しない
+  - JS エラーゼロ
+- 既存 33 suites：全 PASS
+- **累計 34 suites 885/885 PASS**
+- md5 同期：`13946678a215267f0382072cf8e9cde0`
+
+### iPhone 確認ポイント
+1. カレンダー → 週ビューを開く
+2. 画面の左半分から右半分へ指を払う（右スワイプ） → 翌週（6/10〜）が表示
+3. 右半分から左半分へ指を払う（左スワイプ） → 前週（5/27〜6/2）が表示
+4. 月をまたいでも正しく週送りされる
+5. 予定カード上をタップ・ドラッグしても週送りには巻き込まれない
+6. 縦スクロールは引き続き普通に動く
+
+### コミット
+- メッセージ: `wave 50.3: horizontal swipe on week view to navigate weeks (right=next, left=prev)`
