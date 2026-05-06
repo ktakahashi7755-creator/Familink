@@ -4303,17 +4303,42 @@ function renderCalWeek() {
   _bindCalWeekLongPress();
 }
 
-/* Wave 40：週ビューの予定カードに長押しバインドを設定（移動モーダル起動） */
+/* Wave 40 + 50：週ビューの予定カード長押しドラッグ移動
+   - 長押し（600ms） → ドラッグ開始 → 指追従 → 離した位置に保存（Google カレンダー風）
+   - ドラッグせずすぐ離せばモーダル（精密編集）
+   - スナップ：30分単位（縦） / 1日単位（横）
+   - 7:00〜21:30 にクランプ */
 let _calLpTimer = null;
 let _calLpStart = null;
 let _calLpFired = false;
+let _calDragState = null; // { evid, el, ghost, lastX, lastY, dayWidth, hourPx, weekStart, originalEv, didMove }
 const CAL_LP_THRESHOLD_MS = 600;
 const CAL_LP_MOVE_THRESHOLD_PX = 12;
+const CAL_HOUR_PX = 44;
+const CAL_SNAP_MIN = 30; // 30分単位スナップ
+const CAL_MIN_HOUR = 7;
+const CAL_MAX_HOUR = 21;
+
+function _calWeekStartFromSel() {
+  const sel = (typeof S !== 'undefined' && S && S.calSel) || todayStr();
+  const d = new Date(sel + 'T00:00:00');
+  d.setDate(d.getDate() - d.getDay()); // 日曜起点
+  d.setHours(0,0,0,0);
+  return d;
+}
+function _calDayWidth() {
+  // .cal-week-col-day の実際の幅（1fr）を計測
+  const col = document.querySelector('.cal-week-col-day');
+  if(!col) return 0;
+  return col.getBoundingClientRect().width;
+}
+
 function _bindCalWeekLongPress() {
   document.querySelectorAll('.cal-wk-ev[data-evid]').forEach(el => {
     if(el._lpBound) return;
     el._lpBound = true;
     const evid = el.getAttribute('data-evid');
+
     const start = (e) => {
       _calLpFired = false;
       if(_calLpTimer) clearTimeout(_calLpTimer);
@@ -4321,32 +4346,103 @@ function _bindCalWeekLongPress() {
       _calLpStart = (typeof t.clientX === 'number') ? { x: t.clientX, y: t.clientY } : { x:0, y:0 };
       _calLpTimer = setTimeout(() => {
         _calLpFired = true;
-        el.classList.add('dragging');
         if(navigator.vibrate) try { navigator.vibrate(15); } catch(_e) {}
-        openEventMoveModal(evid);
-        setTimeout(() => el.classList.remove('dragging'), 250);
+        // ドラッグモード開始（モーダルはまだ開かない）
+        const ev = (S.events||[]).find(x => x.id === evid);
+        if(!ev) return;
+        const dayWidth = _calDayWidth();
+        if(!dayWidth) return;
+        _calDragState = {
+          evid,
+          el,
+          startX: _calLpStart.x,
+          startY: _calLpStart.y,
+          lastX: _calLpStart.x,
+          lastY: _calLpStart.y,
+          dayWidth,
+          hourPx: CAL_HOUR_PX,
+          weekStart: _calWeekStartFromSel(),
+          originalEv: { date: ev.date, time: ev.time, endTime: ev.endTime },
+          didMove: false,
+        };
+        el.classList.add('dragging');
       }, CAL_LP_THRESHOLD_MS);
     };
+
     const cancel = () => {
       if(_calLpTimer) { clearTimeout(_calLpTimer); _calLpTimer = null; }
       _calLpStart = null;
-      el.classList.remove('dragging');
     };
+
     const move = (e) => {
-      if(!_calLpStart || !_calLpTimer) return;
+      // 長押しタイマー前なら閾値超過でキャンセル
+      if(!_calLpFired) {
+        if(!_calLpStart || !_calLpTimer) return;
+        const t = (e.touches && e.touches[0]) || e;
+        if(typeof t.clientX !== 'number') return;
+        const dx = t.clientX - _calLpStart.x, dy = t.clientY - _calLpStart.y;
+        if(Math.hypot(dx, dy) > CAL_LP_MOVE_THRESHOLD_PX) cancel();
+        return;
+      }
+      // ドラッグ中：指に追従
+      if(!_calDragState) return;
       const t = (e.touches && e.touches[0]) || e;
       if(typeof t.clientX !== 'number') return;
-      const dx = t.clientX - _calLpStart.x, dy = t.clientY - _calLpStart.y;
-      if(Math.hypot(dx, dy) > CAL_LP_MOVE_THRESHOLD_PX) cancel();
+      _calDragState.lastX = t.clientX;
+      _calDragState.lastY = t.clientY;
+      const ddx = t.clientX - _calDragState.startX;
+      const ddy = t.clientY - _calDragState.startY;
+      if(Math.hypot(ddx, ddy) > 4) _calDragState.didMove = true;
+      el.style.transform = `translate(${ddx}px, ${ddy}px) scale(1.04)`;
+      el.style.zIndex = '50';
+      // スクロールを抑止（cancelable な場合のみ）
+      if(e.cancelable) e.preventDefault();
     };
+
+    const end = (e) => {
+      if(_calLpTimer) { clearTimeout(_calLpTimer); _calLpTimer = null; }
+      _calLpStart = null;
+
+      // ドラッグしたか、長押しのまま離したか
+      if(_calLpFired && _calDragState) {
+        const ds = _calDragState;
+        if(ds.didMove) {
+          // ドラッグ確定：座標から新しい日時を計算して保存
+          _finalizeCalDrag();
+          // click 抑止のため _calLpFired は維持（click 後 50ms でリセット）
+          setTimeout(() => { _calLpFired = false; }, 50);
+        } else {
+          // 動いていない → ドラッグキャンセル。click は通常通り発火させて編集モーダルを開く
+          el.style.transform = '';
+          el.style.zIndex = '';
+          el.classList.remove('dragging');
+          _calDragState = null;
+          _calLpFired = false; // click を抑止しない
+          return;
+        }
+      }
+      el.classList.remove('dragging');
+    };
+
     el.addEventListener('touchstart', start, { passive: true });
-    el.addEventListener('touchend', cancel);
-    el.addEventListener('touchmove', move, { passive: true });
-    el.addEventListener('touchcancel', cancel);
-    el.addEventListener('mousedown', start);
-    el.addEventListener('mouseup', cancel);
-    el.addEventListener('mouseleave', cancel);
-    el.addEventListener('mousemove', move);
+    el.addEventListener('touchmove',  move,  { passive: false }); // preventDefault のため非 passive
+    el.addEventListener('touchend',   end);
+    el.addEventListener('touchcancel', () => {
+      if(_calLpTimer) { clearTimeout(_calLpTimer); _calLpTimer = null; }
+      _calLpStart = null;
+      if(_calDragState) {
+        el.style.transform = '';
+        el.style.zIndex = '';
+        _calDragState = null;
+      }
+      el.classList.remove('dragging');
+    });
+    el.addEventListener('mousedown',  start);
+    el.addEventListener('mousemove',  move);
+    el.addEventListener('mouseup',    end);
+    el.addEventListener('mouseleave', () => {
+      if(_calLpTimer) { clearTimeout(_calLpTimer); _calLpTimer = null; }
+    });
     el.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
     // 長押し発火後の click は抑止
     el.addEventListener('click', (e) => {
@@ -4357,6 +4453,70 @@ function _bindCalWeekLongPress() {
       }
     }, true);
   });
+}
+
+/* ドラッグ確定：移動量を日時に変換し S.events を更新 */
+function _finalizeCalDrag() {
+  if(!_calDragState) return;
+  const ds = _calDragState;
+  const el = ds.el;
+  const ev = (S.events||[]).find(x => x.id === ds.evid);
+  if(!ev) {
+    el.style.transform = ''; el.style.zIndex = ''; el.classList.remove('dragging');
+    _calDragState = null; return;
+  }
+
+  const dx = ds.lastX - ds.startX;
+  const dy = ds.lastY - ds.startY;
+
+  // 日のシフト（1日単位）
+  const dayShift = Math.round(dx / ds.dayWidth);
+  // 時刻シフト（30分単位）
+  const minutesPerSnap = CAL_SNAP_MIN;
+  const minuteShiftRaw = (dy / ds.hourPx) * 60;
+  const minuteShift = Math.round(minuteShiftRaw / minutesPerSnap) * minutesPerSnap;
+
+  // 元の日付・時刻を起点に算出
+  const origDate = new Date(ds.originalEv.date + 'T00:00:00');
+  origDate.setDate(origDate.getDate() + dayShift);
+  const newDate = origDate.toISOString().slice(0,10);
+
+  const [oh, om] = (ds.originalEv.time || '09:00').split(':').map(Number);
+  let totalMin = oh * 60 + om + minuteShift;
+  // クランプ：7:00〜21:30
+  totalMin = Math.max(CAL_MIN_HOUR * 60, Math.min(CAL_MAX_HOUR * 60 + 30, totalMin));
+  const nh = Math.floor(totalMin / 60);
+  const nm = totalMin % 60;
+  const newTime = `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
+
+  let newEndTime = ev.endTime;
+  if(ds.originalEv.endTime) {
+    const [eh, em] = ds.originalEv.endTime.split(':').map(Number);
+    let etot = eh * 60 + em + minuteShift;
+    etot = Math.max(0, Math.min(23*60 + 30, etot));
+    newEndTime = `${String(Math.floor(etot/60)).padStart(2,'0')}:${String(etot%60).padStart(2,'0')}`;
+  }
+
+  // 変化なしならモーダル動線（didMove なのに変化なし＝小さなドラッグ）
+  if(newDate === ds.originalEv.date && newTime === ds.originalEv.time) {
+    el.style.transform = ''; el.style.zIndex = ''; el.classList.remove('dragging');
+    _calDragState = null;
+    return;
+  }
+
+  ev.date = newDate;
+  ev.time = newTime;
+  if(newEndTime) ev.endTime = newEndTime;
+  ev.updatedAt = new Date().toISOString();
+  saveS();
+
+  // クリーンアップ → 再描画
+  el.style.transform = ''; el.style.zIndex = ''; el.classList.remove('dragging');
+  _calDragState = null;
+  renderCal();
+
+  const dStr = newDate.replace(/^\d{4}-/,'').replace('-','/');
+  showToast(`${dStr} ${newTime} に移動しました`);
 }
 
 /* Wave 40：予定の移動モーダルを開く */
