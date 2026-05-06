@@ -5104,3 +5104,58 @@ iOS 標準（右=前、左=次）に揃えることで、iPhone ユーザーの�
 
 ### コミット
 - メッセージ: `wave 50.5: align week-view swipe direction with iOS standard (right=prev, left=next) + direction toast`
+
+---
+
+## 2026-05-06 08:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50.6: 週ビューを 24h フル + Google カレンダー風スムーズスワイプ
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー要望：
+1. 朝7:00〜夜21:00 しか表示されていない → 24時間フル表示に
+2. Google カレンダーの様な滑らかなスワイプアニメーションに
+
+### 実装
+
+**24時間フル表示**
+- `HOURS = Array.from({length:24}, (_,i)=>i)`：0:00〜23:00 全 24 時間
+- 縦サイズ：24 × 44px = 1056px
+- 初期スクロール：今日表示時は「現在時刻 -2h」、それ以外は朝 7:00 に自動スクロール
+- ユーザーが手動スクロール後の位置は `window._calWkScrollY` に保持して再描画後も維持
+- 週ヘッダー（日付セル行）を `position: sticky; top: 0` で固定 → 縦スクロール中も常に見える
+- ドラッグ移動のクランプを `0:00〜23:30` に拡大（`CAL_MIN_HOUR=0`、`CAL_MAX_HOUR=23`）
+
+**スムーズスワイプアニメーション（Google カレンダー風）**
+1. **指追従（follow-finger）**：touchmove で `transform: translate3d(dx, 0, 0)` を即時適用
+2. **しきい値判定**：横移動 80px 以上、縦ブレ 60px 以下、80〜900ms
+3. **スライドアウト**：しきい値超過時は `translateX(±viewport幅)` まで `transform .22s cubic-bezier(.22,.61,.36,1)` でアニメ
+4. **スライドイン**：再描画後に新しい週を反対側 (`±viewport幅`) に瞬時配置 → reflow → `translateX(0)` へアニメ
+5. **スプリングバック**：しきい値未達は `translateX(0)` に戻すアニメ
+6. **横移動 8px 超でドラッグ判定開始**（小さいタッチでは追従しない）
+7. **縦移動主体ならキャンセル**＋ transform を即解除（縦スクロール優先）
+8. **touchcancel** でも transform を確実にクリア
+
+### テスト結果
+- 既存 35 suites 全 PASS
+- wave50_drag_event の 7:00 クランプテストを 0:00 クランプに更新（24h 表示反映）
+- 累計 **35 suites 899/899 PASS**
+- md5 同期：`93d8041efe81df140fbb35f626907c98`
+
+### iPhone 確認ポイント
+1. 週ビューを開く → 0:00〜23:00 の 24 時間が縦スクロール可能
+2. 初回表示は今日なら現在時刻あたりに、それ以外は 7:00 にスクロール開始
+3. 縦スクロールしても日付ヘッダーが上に貼り付いて消えない
+4. 横にスワイプ → 指の動きに合わせて週がスライド（追従）
+5. しきい値超で離す → 滑らかに切り替わり（スライドアウト → スライドイン）
+6. しきい値未達で離す → ふわっと元の位置に戻る
+7. 縦スクロール途中で横にちょっと触れても誤発火しない
+8. 0時跨ぎ・23時台の予定もドラッグ移動できる
+
+### コミット
+- メッセージ: `wave 50.6: full 24h week view + sticky header + google-calendar-style smooth swipe (follow-finger + slide animation)`
