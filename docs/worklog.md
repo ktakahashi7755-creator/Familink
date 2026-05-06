@@ -5308,3 +5308,81 @@ Wave 51.1: 検証ラウンド — m-event モーダルのレイアウト修正
 
 ### コミット
 - メッセージ: `wave 51.1: m-event modal layout - date own row, time/endtime in 2-col`
+
+---
+
+## 2026-05-06 13:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 52: Hoku Intent Engine 全面強化（parseHokuIntent / executeHokuAction の統一 API + 4 新 intent）
+
+### 変更ファイル
+- `app-source/familink.html` — Hoku 統一エントリ + ask-back + intent 4 種追加
+- `docs/index.html`（mirror）
+- `docs/hoku-intent-engine.md`（新規）
+
+### 実装内容
+1. **`parseHokuIntent(text, source)`** — テキスト/音声共通の統一エントリ。返却シェイプ：
+   `{ rawText, normalizedText, source, intentType, confidence (0..1), needsConfirmation, missingFields[], ambiguous, secondary, score, entities{...}, action{targetStore, operation} }`
+   - 既存 `voiceCorrectText` / `parseVoiceIntent` / `classifyHokuInput` を再利用（破壊しない）
+   - intentType: `calendar_add` / `task_add` / `budget_add` / `prep_add` / `prep_routine_add` / `health_add` / `board_post_add` / `notification_add` / `external_calendar_help` / `settings_help` / `unknown`
+   - confidence は score → 0..1 マッピング（≥6:0.92 / ≥4:0.78 / ≥3:0.62 / ≥2:0.45 / 他:0.25）
+2. **`executeHokuAction(intent)`** — intentType に応じて分岐
+   - 保存系 → `_voiceParsed` を橋渡しシェイプにセットして `m-voice-confirm` を開く
+   - `external_calendar_help` / `settings_help` / `notification_add` → 案内メッセージのみ
+   - `unknown` → 質問返答
+3. **新 intent 4 種**：
+   - `prep_routine_add`：「毎週 + 曜日 + 持ち物」検出時に `S.prepRoutines[]` へ保存（曜日 / member / title / cat / notify:'both' / enabled:true）
+   - `notification_add`：通知 / リマインド系。OS 通知非対応である旨を案内
+   - `external_calendar_help`：Google / iPhone / Yahoo / LINE / `.ics` 系の問い合わせ
+   - `settings_help`：設定 / プロフィール / 家族構成系の問い合わせ
+4. **Ask-back UX** (`_hokuAskBackMessage`)：短文 (≤14 文字) で必須情報が不足する場合、確認モーダルを開かずに Hoku が質問テキストで返す
+5. **不足情報の可視化**：`m-voice-confirm` のヘッダーに ⚠ で「不足項目：金額 / 対象メンバー / ...」を表示
+6. **エンティティ抽出強化**：
+   - `HOKU_MEDICINE_TOKENS`（カロナール / 解熱剤 / 咳止め / 抗生剤 / タミフル 等）
+   - `HOKU_SYMPTOM_TOKENS`（咳 / 鼻水 / 発熱 / 頭痛 / 腹痛 / 嘔吐 / 下痢 / だるい 等）
+   - 家計カテゴリ自動推定（スーパー→食費、電車→交通費、薬局→医療費、習い事代→習い事 ほか）
+   - 収入/支出判定（入金 / 給料 / 振込 → income）
+7. **保存パス強化**：
+   - 家計：`txType` (income/expense) と `budgetCat` を `_voiceParsed` から拾って保存
+   - 体調：抽出済み `symptoms[]` / `medicine` を `S.health` に保存
+   - 準備ルーティン：cat='prep' + `isRoutine` 時は `S.prepRoutines[]` へ
+8. **MEMBER エイリアス追加**：せいとくん / せお / せおくん / せいたくん / おとう / おかあ
+9. **`detectIntent` 強化**：チャット側でも prep / health / board の作成を検知 → 統一エンジン経由で確認モーダルへ
+
+### Hoku 返答品質
+- 短く・やさしく・断定しない
+- 医療：「不安な場合は医療機関へ相談」を必要に応じて添える
+- 通知：OS プッシュ非対応である旨を明示
+- 外部カレンダー：自動同期は v1.0 以降と明示
+
+### テスト結果
+- 単一 HTML 内の `<script>` ブロックを Node `new Function` で構文検証 → OK
+- 主要識別子 (`parseHokuIntent` / `executeHokuAction` / `HOKU_INTENT_META` / `_hokuAskBackMessage` / `HOKU_MEDICINE_TOKENS` / `HOKU_SYMPTOM_TOKENS`) すべて存在を確認
+- 既存 `parseVoiceIntent` / `classifyHokuInput` / `m-voice-confirm` / `voiceConfirmSave` は加算的拡張のみ（既存パスは破壊なし）
+- md5 同期：`34fa931d39ed47239c5aa8f1547250ed`
+- Playwright 自動回帰：このリポジトリには tests/ が無いため CI 側での実行が前提（前回 36 suites 917/917 PASS）
+
+### iPhone 確認ポイント
+1. Hoku 画面 → テキスト入力「金曜18時、星旺のスイミング」→ m-voice-confirm が開きカレンダー候補で各フィールドが prefill
+2. 「スーパーで3200円、食費で支出」→ m-voice-confirm 家計（食費 / expense）prefill
+3. 「明日、星斗の体操服を準備に追加」→ prep prefill（member: seito / date: 明日）
+4. 「星汰が37.8度で咳あり、カロナール飲んだ」→ health prefill（temp 37.8 / symptoms 咳 / medicine カロナール）
+5. 「毎週月曜、星斗の体操服」→ prep + ⚠ ルーティン表示 → 保存後 `S.prepRoutines` に入る
+6. 「3200円」のみ → モーダル開かず Hoku が質問
+7. 「Google カレンダーと連携できる？」→ 案内テキストのみ
+8. 確認モーダル：登録先 select で他カテゴリへ変更可能
+9. 確認モーダル：[手入力に切り替える] で `hoku-input` に補正済みテキストが残る
+10. 音声入力フローは従来どおり（`hokuHandleVoiceText`）— 確認モーダルが必ず開く
+
+### 未確認事項
+- Playwright Chromium 4 ビューポート回帰（CI 環境で要実行）
+- 「星愛 (seiai)」など実機音声認識の揺れの吸収範囲
+- 家計の「8千円 / 1万円」など漢数字表現の取りこぼし（簡易対応のみ）
+
+### 次にやること
+- 確認モーダルにタイトル候補 chip UI（タップで補完）
+- `prep_routine_add` 保存後、準備リスト画面のルーティンタブへ「今すぐ反映」導線の自動表示
+
+### コミット
+- メッセージ: `wave 52: hoku intent engine - parseHokuIntent / executeHokuAction unified API + 4 new intents`
