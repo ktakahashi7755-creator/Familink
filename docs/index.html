@@ -4361,14 +4361,34 @@ function _bindCalWeekSwipe() {
     if(dt < CAL_WEEK_SWIPE_MIN_MS || dt > CAL_WEEK_SWIPE_MAX_MS) return;
     if(Math.abs(dy) > CAL_WEEK_SWIPE_MAX_DY) return;
     if(Math.abs(dx) < CAL_WEEK_SWIPE_DX) return;
-    // 右スワイプ（dx > 0）= 次週、左スワイプ（dx < 0）= 前週
-    if(dx > 0) changeCalWeek(1);
-    else changeCalWeek(-1);
+    // Wave 50.5：iPhone Safari の実機検証で「右スワイプ → 前週、左スワイプ → 次週」が
+    // ユーザーの感覚と一致することを確認したため、方向を見直し。
+    // 右スワイプ（dx > 0、指 →）= 前週、左スワイプ（dx < 0、指 ←）= 次週
+    // ＋ トースト表示で方向を可視化（誤解防止）
+    if(dx > 0) {
+      changeCalWeek(-1);
+      _showCalWeekToast(-1);
+    } else {
+      changeCalWeek(1);
+      _showCalWeekToast(1);
+    }
   };
   root.addEventListener('touchstart', start, { passive: true });
   root.addEventListener('touchmove',  move,  { passive: true });
   root.addEventListener('touchend',   end,   { passive: true });
   root.addEventListener('touchcancel', () => { _calWkSwipeStart = null; }, { passive: true });
+}
+/* スワイプで週送りした時のフィードバックトースト */
+function _showCalWeekToast(direction) {
+  if(typeof showToast !== 'function') return;
+  const cur = S.calSel || todayStr();
+  const d = new Date(cur + 'T00:00:00');
+  // 表示中の週の日曜〜土曜
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay());
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  const fmt = (dt) => `${dt.getMonth()+1}/${dt.getDate()}`;
+  const arrow = direction > 0 ? '→' : '←';
+  showToast(`${arrow} ${fmt(start)}〜${fmt(end)} の週`, 'info');
 }
 
 /* Wave 40 + 50：週ビューの予定カード長押しドラッグ移動
