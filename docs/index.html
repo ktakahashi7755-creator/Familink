@@ -4231,24 +4231,27 @@ function renderCalWeek() {
   const td = todayStr();
   const sel = S.calSel || td;
   const selDate = new Date(sel+'T00:00:00');
-  // 選択日の週の日曜日を起点にする
+  // 選択日の週の日曜日を起点にする（堅牢に：時刻を 0 にしてから Sunday へ）
+  selDate.setHours(0, 0, 0, 0);
   const weekStart = new Date(selDate);
+  weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(selDate.getDate() - selDate.getDay());
 
   const HOURS = Array.from({length:15}, (_,i)=>i+7); // 7:00〜21:00
   const DOWS = ['日','月','火','水','木','金','土'];
 
-  // 7日のカラムヘッダー
+  // 7日のカラムヘッダー — ラベルは date.getDay() で動的に決定（列 index に依存しない）
   const hdrCells = ['<div></div>'];
   for(let d=0; d<7; d++) {
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate()+d);
     const ds = localDateStr(date);
     const isToday = ds===td;
-    const isSun=d===0, isSat=d===6;
+    const dow = date.getDay();
+    const isSun = dow === 0, isSat = dow === 6;
     const col = isSun?'color:var(--red)':isSat?'color:var(--primary)':'';
     hdrCells.push(`<div class="cal-week-hdr-cell ${isToday?'wk-today':''}" onclick="selCalDayKeepView('${ds}')">
-      <div class="wh-dow" style="${col}">${DOWS[d]}</div>
+      <div class="wh-dow" style="${col}">${DOWS[dow]}</div>
       <div class="cal-week-hdr-num">${date.getDate()}</div>
     </div>`);
   }
@@ -4957,9 +4960,24 @@ function renderCalList() {
 /* ── ナビゲーション ── */
 function selCalDay(ds) { S.calSel = ds; renderCal(); }
 function changeCalMonth(d) {
+  // Wave 50.4：ビューに応じて挙動を切り替え（タイトルとカレンダー表示の整合を保つ）
+  // 週ビュー：`>` で次週、`<` で前週（= changeCalWeek と同等）
+  if(S.calView === 'week') {
+    changeCalWeek(d);
+    return;
+  }
+  // 月 / リスト：従来通り月単位で移動。calSel も整合させる
   S.calM += d;
   if(S.calM > 11){S.calM=0; S.calY++;}
   if(S.calM < 0) {S.calM=11;S.calY--;}
+  // calSel も新しい月に合わせる（同じ「日」を維持、月末超過なら月末にクランプ）
+  const cur = S.calSel ? new Date(S.calSel + 'T00:00:00') : new Date();
+  const dayOfMonth = cur.getDate();
+  const newSel = new Date(S.calY, S.calM, 1);
+  // 新しい月の最終日を求めてクランプ
+  const lastDay = new Date(S.calY, S.calM + 1, 0).getDate();
+  newSel.setDate(Math.min(dayOfMonth, lastDay));
+  S.calSel = localDateStr(newSel);
   renderCal();
 }
 /* Wave 50.3：週ビューで calSel を ±7日シフトして再描画 */
