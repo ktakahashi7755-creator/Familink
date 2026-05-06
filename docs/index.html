@@ -4309,6 +4309,63 @@ function renderCalWeek() {
   </div>`;
   // Wave 40：長押しで予定移動モーダル
   _bindCalWeekLongPress();
+  // Wave 50.3：週ビューで横スワイプによる週送り
+  _bindCalWeekSwipe();
+}
+
+/* Wave 50.3：週ビュー横スワイプで週送り
+   - 右にスワイプ → 次の週（6/10〜などへ進む）
+   - 左にスワイプ → 前の週（6/2 以前へ戻る）
+   - 予定カード上での操作（ドラッグ／タップ）と競合しない
+   - 縦スクロールも邪魔しない */
+const CAL_WEEK_SWIPE_DX = 80;
+const CAL_WEEK_SWIPE_MAX_DY = 60;
+const CAL_WEEK_SWIPE_MIN_MS = 100;
+const CAL_WEEK_SWIPE_MAX_MS = 800;
+let _calWkSwipeStart = null;
+function _bindCalWeekSwipe() {
+  const root = document.querySelector('.cal-week-view');
+  if(!root || root._wkSwBound) return;
+  root._wkSwBound = true;
+
+  const start = (e) => {
+    if(!e.touches || e.touches.length !== 1) { _calWkSwipeStart = null; return; }
+    // 予定カードや時間ヘッダー上の操作は週送りで横取りしない
+    const target = e.target;
+    if(target && target.closest && target.closest('.cal-wk-ev, .cal-week-hdr-cell, button, a, input, textarea, select')) {
+      _calWkSwipeStart = null; return;
+    }
+    const t = e.touches[0];
+    _calWkSwipeStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const move = (e) => {
+    if(!_calWkSwipeStart || !e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - _calWkSwipeStart.x;
+    const dy = t.clientY - _calWkSwipeStart.y;
+    // 縦移動が主体になったらキャンセル（縦スクロール優先）
+    if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 16) _calWkSwipeStart = null;
+  };
+  const end = (e) => {
+    if(!_calWkSwipeStart) return;
+    const tch = (e.changedTouches && e.changedTouches[0]) || null;
+    const start = _calWkSwipeStart;
+    _calWkSwipeStart = null;
+    if(!tch) return;
+    const dx = tch.clientX - start.x;
+    const dy = tch.clientY - start.y;
+    const dt = Date.now() - start.t;
+    if(dt < CAL_WEEK_SWIPE_MIN_MS || dt > CAL_WEEK_SWIPE_MAX_MS) return;
+    if(Math.abs(dy) > CAL_WEEK_SWIPE_MAX_DY) return;
+    if(Math.abs(dx) < CAL_WEEK_SWIPE_DX) return;
+    // 右スワイプ（dx > 0）= 次週、左スワイプ（dx < 0）= 前週
+    if(dx > 0) changeCalWeek(1);
+    else changeCalWeek(-1);
+  };
+  root.addEventListener('touchstart', start, { passive: true });
+  root.addEventListener('touchmove',  move,  { passive: true });
+  root.addEventListener('touchend',   end,   { passive: true });
+  root.addEventListener('touchcancel', () => { _calWkSwipeStart = null; }, { passive: true });
 }
 
 /* Wave 40 + 50：週ビューの予定カード長押しドラッグ移動
@@ -4903,6 +4960,17 @@ function changeCalMonth(d) {
   S.calM += d;
   if(S.calM > 11){S.calM=0; S.calY++;}
   if(S.calM < 0) {S.calM=11;S.calY--;}
+  renderCal();
+}
+/* Wave 50.3：週ビューで calSel を ±7日シフトして再描画 */
+function changeCalWeek(n) {
+  const cur = S.calSel || todayStr();
+  const d = new Date(cur + 'T00:00:00');
+  d.setDate(d.getDate() + n * 7);
+  S.calSel = localDateStr(d);
+  // 月インデックスも同期（月ビューで戻った時に齟齬が出ないように）
+  S.calY = d.getFullYear();
+  S.calM = d.getMonth();
   renderCal();
 }
 function goToday() {
