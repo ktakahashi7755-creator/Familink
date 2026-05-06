@@ -11201,9 +11201,26 @@ function _swipeFirstHintIfNeeded() {
 }
 
 /* ── タッチハンドラ ───────────────────────── */
-const SWIPE_MODAL_HEADER_PX = 100; // モーダルヘッダー（グリップ＋タイトル）の判定領域
+const SWIPE_MODAL_HEADER_PX = 140; // モーダルヘッダー（グリップ＋タイトル）の固定上限
 
 function _modalInner(modal) { return modal ? modal.querySelector('.modal') : null; }
+
+/* ヘッダードラッグ領域の縦上限を求める：
+   - inner の上端 〜 最初の入力要素の上端 まで（だいたい grip + title + 余白）
+   - 入力要素が無いモーダル（例：m-board-detail-menu）は inner 全体を header 扱い
+   - 入力要素検出失敗時は SWIPE_MODAL_HEADER_PX を fallback として使う */
+function _modalHeaderBottomY(modal) {
+  const inner = _modalInner(modal);
+  if(!inner) return null;
+  const innerTop = inner.getBoundingClientRect().top;
+  // 入力フォーカス可能な最初の要素を探す
+  const firstField = inner.querySelector('input, textarea, select, [contenteditable="true"], button, .input, .field, .modal-form > *:not(.modal-title):not(.modal-grip)');
+  if(firstField) {
+    const r = firstField.getBoundingClientRect();
+    if(r.top > innerTop) return r.top;
+  }
+  return innerTop + SWIPE_MODAL_HEADER_PX;
+}
 
 /* ドラッグ追従用：開始時に inner の transition を切る */
 function _modalDragBegin(modal) {
@@ -11247,13 +11264,14 @@ function _swipeOnTouchStart(e) {
   const modal = _topOpenModal();
   if(modal) {
     if(!_swipeIsDownAllowedOnModal(modal)) { _swipeStart = null; _swipeBlocked = true; return; }
-    // モーダルヘッダー領域（グリップ + タイトル付近）からの開始ならドラッグ追従モード
+    // モーダルヘッダー領域（グリップ + タイトル + Hoku 星）からの開始ならドラッグ追従モード
+    const headerBottomY = _modalHeaderBottomY(modal);
     const inner = _modalInner(modal);
     let header = false;
-    if(inner) {
-      const r = inner.getBoundingClientRect();
-      // 起点が inner 上端から 100px 以内なら header drag
-      if(t.clientY >= r.top - 8 && t.clientY <= r.top + SWIPE_MODAL_HEADER_PX) header = true;
+    if(inner && headerBottomY !== null) {
+      const innerTop = inner.getBoundingClientRect().top;
+      // 起点が inner 上端から「最初の入力要素の少し上」までなら header drag
+      if(t.clientY >= innerTop - 8 && t.clientY <= headerBottomY - 4) header = true;
     }
     _swipeStart = { x: t.clientX, y: t.clientY, t: Date.now(), kind: 'modal-down', modal, header };
     _swipeBlocked = false;

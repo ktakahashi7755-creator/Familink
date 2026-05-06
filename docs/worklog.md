@@ -4824,3 +4824,55 @@ UX 切り分け：
 
 ### コミット
 - メッセージ: `wave 50: drag events on week view to move (google-calendar-like 30min/day snap)`
+
+---
+
+## 2026-05-06 03:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 50.1: モーダルヘッダーの「下げて閉じる」領域を動的に拡張
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 修正内容
+ユーザー要望：「全てページのこの様な部分（タイトル＋グリップ＋Hoku 星）は下げたら閉じる様に設計して」
+
+調査：Wave 47 の固定 100px ヘッダー検出だと、Hoku 星イラストや余白を含む場合にタイトル下の入力欄手前まで届かないモーダルがあった。
+
+修正：
+- `_modalHeaderBottomY(modal)` 新設：モーダル内の最初の入力要素（input/textarea/select/[contenteditable]/button/.input/.field 等）を検出し、その上端をヘッダードラッグ領域の下限に
+- 入力要素検出失敗時は `SWIPE_MODAL_HEADER_PX = 140`（旧 100）を fallback
+- 入力要素直前の 4px 余白を残して終端
+- これにより、grip + title + Hoku 星 + 余白を含む全領域が「下げて閉じる」エリアに
+
+### テスト結果（10 モーダルで網羅）
+| モーダル | 検出ヘッダー高 | 結果 |
+|---|---|---|
+| m-task-edit | 140px (fallback) | 閉じる ✓ |
+| m-event | 140px (fallback) | 閉じる ✓ |
+| m-budget | 88px (動的) | 閉じる ✓ |
+| m-health | 140px (fallback) | 閉じる ✓ |
+| m-prep | 88px (動的) | 閉じる ✓ |
+| m-prep-routine | 88px (動的) | 閉じる ✓ |
+| m-profile-edit | 88px (動的) | 閉じる ✓ |
+| m-board-create | 140px (fallback) | 閉じる ✓ |
+| m-board-item | 140px (fallback) | 閉じる ✓ |
+| m-event-move | 88px (動的) | 閉じる ✓ |
+
+- Wave 50.1 modal header drag smoke：**13/13 PASS**
+- Wave 47 modal drag（既存）：定数を 140 に追従更新、17/17 PASS
+- 既存 30 suites：全 PASS
+- 累計 **31 suites 853/853 PASS**
+- md5 同期：`90457f2c75bb1dd4de7026be5e1eb2ad`
+
+### iPhone 確認ポイント
+1. 各モーダルを開く（タスク編集・予定・家計・体調・準備・準備ルーティン・プロフィール・ボード作成 等）
+2. タイトル文字「タスクを編集」など、または右上の Hoku 星上を指で下に引っ張る
+3. 100px 以上下げると閉じる、それ未満は元位置にスナップバック
+4. 入力欄に触れている場合は閉じない（誤操作防止）
+5. 削除確認モーダルだけは引き続き閉じない
+
+### コミット
+- メッセージ: `wave 50.1: dynamic modal header drag-zone extends to first input/field`
