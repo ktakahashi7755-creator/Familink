@@ -5442,3 +5442,40 @@ Wave 52.1: Hoku Intent Engine タイトル抽出バグ修正（トリガー句�
 
 ### コミット
 - メッセージ: `wave 52.1: fix hoku title extraction - strip trigger phrases (xxx を予定追加 → xxx)`
+
+## 2026-05-07 00:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 52.2: Hoku チャットの bot アイコンを正式 Hoku（IMGS.hoku）に統一
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- Hoku チャットの bot メッセージ行で使用していた小さい星顔 `IMGS.happy` を、FAB と同じ正式 Hoku `IMGS.hoku` に変更（fallback で `IMGS.happy`）
+- ローディングバブル行も同様に `IMGS.hoku` へ
+- サイズを 28px → 32px に微調整（バブル高さに合わせる）
+- 空状態ヒーロー（IMGS.wave / sleep / wink）はキャラクター演出として残し変更なし
+
+### テスト結果
+- 構文・mirror md5 一致：`732d4d69260b4ea465f442f760b17a03`
+- iPhone 実機確認は未（ユーザーに依頼）
+
+### iPhone 確認ポイント
+1. Hoku 画面で何か送信 → 返信バブル左の bot アイコンが「正式 Hoku」に切り替わっている
+2. ローディング中（思考中）アイコンも正式 Hoku
+3. 空状態画面のキャラ（手を振る Hoku 等）は従来どおり
+4. FAB（右下浮遊）と同一画像が使われていることを目視確認
+
+### 未確認事項
+- なし（ピンポイント修正）
+
+### 次にやること
+- 連結トークン分割（「明日18時」を「明日」「18時」に切り分ける）
+- 確認モーダルにタイトル候補 chip UI
+- prep_routine_add 保存後の「今すぐ反映」導線
+
+### コミット
+- メッセージ: `wave 52.2: hoku chat bot avatar - use official Hoku (IMGS.hoku) instead of small star face`

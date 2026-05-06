@@ -9957,7 +9957,7 @@ function renderHokuMsgs() {
 
   el.innerHTML = msgs.map(m => {
     if(m.role==='loading') {
-      return `<div class="hoku-row"><img src="${IMGS.happy}" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;">
+      return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
         <div class="hoku-bubble ai"><div class="loading" style="transform:scale(.7);margin:-4px;"><span></span><span></span><span></span></div></div></div>`;
     }
     if(m.role==='user') {
@@ -9980,7 +9980,7 @@ function renderHokuMsgs() {
       }
     }
     const html = H(content).replace(/\n/g,'<br>');
-    return `<div class="hoku-row"><img src="${IMGS.happy}" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;">
+    return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
       <div class="hoku-bubble ai">${html}${actionsHTML}</div></div>`;
   }).join('');
 
