@@ -3319,7 +3319,15 @@ function loadS() {
    ============================================================ */
 const H = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-const todayStr = () => new Date().toISOString().split('T')[0];
+/* ローカルタイムゾーンで YYYY-MM-DD を返す（JST 等で UTC 変換ズレを回避） */
+function localDateStr(d) {
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+const todayStr = () => localDateStr(new Date());
 const jpDate = s => { if(!s) return ''; const d = new Date(s+'T00:00:00'); return `${d.getMonth()+1}月${d.getDate()}日(${['日','月','火','水','木','金','土'][d.getDay()]})`; };
 const jpMonth = (y,m) => `${y}年${m+1}月`;
 const fmtAmt = n => '¥' + Number(n||0).toLocaleString();
@@ -3351,7 +3359,7 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   // デフォルト（グラデーション＋文字）
   return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
 }
-const addDays = (s,n) => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; };
+const addDays = (s,n) => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return localDateStr(d); };
 
 function greeting() {
   const h = new Date().getHours();
@@ -3582,7 +3590,7 @@ function startOnboarding() {
   const dateEl = document.getElementById('ob2-firstDate');
   if(dateEl) {
     const t = new Date(); t.setDate(t.getDate()+1);
-    dateEl.value = t.toISOString().slice(0,10);
+    dateEl.value = localDateStr(t);
   }
   ob2GoStep(1);
   document.getElementById('tabbar').classList.add('hidden');
@@ -4235,7 +4243,7 @@ function renderCalWeek() {
   for(let d=0; d<7; d++) {
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate()+d);
-    const ds = date.toISOString().split('T')[0];
+    const ds = localDateStr(date);
     const isToday = ds===td;
     const isSun=d===0, isSat=d===6;
     const col = isSun?'color:var(--red)':isSat?'color:var(--primary)':'';
@@ -4255,7 +4263,7 @@ function renderCalWeek() {
   for(let d=0; d<7; d++) {
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate()+d);
-    const ds = date.toISOString().split('T')[0];
+    const ds = localDateStr(date);
     const dayEvs = (S.events||[]).filter(e=>e.date===ds && e.time)
       .sort((a,b)=>a.time.localeCompare(b.time));
 
@@ -4476,10 +4484,10 @@ function _finalizeCalDrag() {
   const minuteShiftRaw = (dy / ds.hourPx) * 60;
   const minuteShift = Math.round(minuteShiftRaw / minutesPerSnap) * minutesPerSnap;
 
-  // 元の日付・時刻を起点に算出
+  // 元の日付・時刻を起点に算出（ローカル日付を維持、UTC 変換による日ズレを回避）
   const origDate = new Date(ds.originalEv.date + 'T00:00:00');
   origDate.setDate(origDate.getDate() + dayShift);
-  const newDate = origDate.toISOString().slice(0,10);
+  const newDate = localDateStr(origDate);
 
   const [oh, om] = (ds.originalEv.time || '09:00').split(':').map(Number);
   let totalMin = oh * 60 + om + minuteShift;
@@ -6775,7 +6783,7 @@ function _applyHealthLogFilters(recs) {
     const today = todayStr();
     const cutoff = new Date(today + 'T00:00:00');
     cutoff.setDate(cutoff.getDate() - (days - 1));
-    const cs = cutoff.toISOString().slice(0,10);
+    const cs = localDateStr(cutoff);
     r = r.filter(x => (x.date||'') >= cs);
   }
   // 状態
@@ -7404,7 +7412,7 @@ function _prepDateMatchesTab(date) {
   }
   if(_prepTab === 'tomorrow') {
     const t = new Date(); t.setDate(t.getDate()+1);
-    return date === t.toISOString().slice(0,10);
+    return date === localDateStr(t);
   }
   return true;
 }
@@ -7449,7 +7457,7 @@ function renderPrep() {
 
     // ルーティン提案バナー
     const targetDate = (_prepTab === 'tomorrow')
-      ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })()
+      ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return localDateStr(t); })()
       : today;
     if(_prepTab === 'today' || _prepTab === 'tomorrow') {
       const sugg = computePrepRoutineSuggestions(targetDate).filter(s => !s.applied);
@@ -7562,7 +7570,7 @@ function renderPrepRoutinesSectionHtml() {
 
   // 今日 / 明日の曜日キーをハイライトに使用
   const _todayStrKey = todayStr();
-  const _tomoStrKey  = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })();
+  const _tomoStrKey  = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return localDateStr(t); })();
   const _todayDow = prepDowKey(_todayStrKey);
   const _tomoDow  = prepDowKey(_tomoStrKey);
 
@@ -7609,7 +7617,7 @@ function openPrepModal() {
     if(_prepTab === 'today') dateInput.value = todayStr();
     else if(_prepTab === 'tomorrow') {
       const t = new Date(); t.setDate(t.getDate()+1);
-      dateInput.value = t.toISOString().slice(0,10);
+      dateInput.value = localDateStr(t);
     } else {
       dateInput.value = '';
     }
@@ -7661,7 +7669,7 @@ function carryPrepToTomorrow(id) {
   const p = (S.prep||[]).find(p=>p.id===id);
   if(!p) return;
   const t = new Date(); t.setDate(t.getDate()+1);
-  p.date = t.toISOString().slice(0,10);
+  p.date = localDateStr(t);
   p.done = false;
   saveS(); renderPrep();
   showToast('明日の準備に移しました');
@@ -7875,7 +7883,7 @@ function applyPrepRoutinesForDate(targetDateStr, opts) {
 function applyTodayRoutines() { applyPrepRoutinesForDate(todayStr()); }
 function applyTomorrowRoutines() {
   const t = new Date(); t.setDate(t.getDate()+1);
-  applyPrepRoutinesForDate(t.toISOString().slice(0,10));
+  applyPrepRoutinesForDate(localDateStr(t));
 }
 
 /* ルーティン管理：メンバー切替 */
@@ -9204,7 +9212,7 @@ function parseDate(q) {
       d.setDate(d.getDate()+1);
       if(d.getDay()===target) {
         if(isNextWeek && i<=7) continue;
-        const ds = d.toISOString().slice(0,10);
+        const ds = localDateStr(d);
         const diff = i<=7 ? '今週' : '来週';
         return {date:ds, label:`${diff}${dowM[1]}曜`};
       }
@@ -9216,7 +9224,7 @@ function parseDate(q) {
     let d=new Date(now);
     while(d.getDay()!==6) d.setDate(d.getDate()+1);
     d.setDate(d.getDate()+7);
-    return {date:d.toISOString().slice(0,10), label:'来週土曜'};
+    return {date:localDateStr(d), label:'来週土曜'};
   }
 
   // M/D または M月D日
@@ -10845,7 +10853,7 @@ function buildHokuContext() {
     const prepRoutinesAll = (S.prepRoutines||[]).filter(r => r.enabled !== false);
     const prepRoutineCount = prepRoutinesAll.length;
     const _todayDow = (typeof prepDowKey === 'function') ? prepDowKey(td) : null;
-    const _tomoStr = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().slice(0,10); })();
+    const _tomoStr = (function(){ const t = new Date(); t.setDate(t.getDate()+1); return localDateStr(t); })();
     const _suggToday = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(td).filter(s => !s.applied) : [];
     const _suggTomo  = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(_tomoStr).filter(s => !s.applied) : [];
 
