@@ -10309,18 +10309,50 @@ function voiceResolveTemp(text) {
   return null;
 }
 
+/* トリガー句（"を予定追加" "カレンダー登録して" 等）をタイトルから除く
+   - 分類は full text で済ませた後に呼ぶ前提
+   - 残った末尾助詞・先頭区切りもクリーンアップ */
+const VOICE_TRIGGER_CAT_NOUN = '(?:予定|スケジュール|カレンダー|タスク|todo|to-?do|準備|持ち物|持ちもの|買い物|買物|家計|お金|支出|出費|収入|入金|体調|健康|家族ボード|ボード|お知らせ|連絡|リマインド|通知|アラーム)';
+const VOICE_TRIGGER_VERB     = '(?:追加|登録|記録|メモ|入れて|入力|投稿|残す|保存|セット|教えて|知らせて|思い出させて)';
+const VOICE_TRIGGER_PARTICLE = '(?:[をにへはがで])?';
+const VOICE_TRIGGER_SEP      = '[\\s、,，。．\\.]*';
+function stripTriggerPhrases(text) {
+  if(!text) return '';
+  let t = String(text);
+  // 1) 末尾の丁寧形 / お願い系
+  t = t.replace(/(?:してください|して下さい|してね|してくれ|お願いします|お願い|ください|下さい)$/g, '');
+  // 2a) 末尾：[助詞] CAT [助詞] VERB [して]
+  let re = new RegExp(VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_VERB + VOICE_TRIGGER_SEP + '(?:して)?' + VOICE_TRIGGER_SEP + '$', 'gi');
+  t = t.replace(re, '');
+  // 2b) 末尾：[助詞] CAT 単独（「ヨガ教室を予定」のような尻尾）
+  re = new RegExp(VOICE_TRIGGER_SEP + '[をにへ]' + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + '$', 'gi');
+  t = t.replace(re, '');
+  // 2c) 末尾：単独 VERB（タイトルが 2 文字以上残るときのみ適用）
+  re = new RegExp(VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + '(?:追加|登録|記録|メモ|保存|入力|投稿)' + VOICE_TRIGGER_SEP + '(?:して)?' + VOICE_TRIGGER_SEP + '$', 'gi');
+  const candidate = t.replace(re, '');
+  if(candidate.replace(/[\s、,，]/g,'').length >= 2) t = candidate;
+  // 3) 先頭：CAT [助詞] VERB [区切り]
+  re = new RegExp('^' + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_VERB + VOICE_TRIGGER_SEP + '[:：!！]?' + VOICE_TRIGGER_SEP, 'gi');
+  t = t.replace(re, '');
+  // 4) 残った末尾助詞・両端の区切り
+  t = t.replace(/[をにへはがで、,，\s　]+$/g, '');
+  t = t.replace(/^[、,，\s　]+/g, '');
+  return t.trim();
+}
+
 /* 短文音声からカテゴリ + 主要フィールドを抽出 */
 function parseVoiceIntent(rawText) {
   const text = voiceCorrectText(rawText);
-  const cls  = classifyHokuInput(text);
+  const cls  = classifyHokuInput(text);  // 分類は full text で
   const member = voiceResolveMember(text);
   const date   = voiceResolveDate(text);
   const time   = voiceResolveTime(text);
   const amount = voiceResolveAmount(text);
   const temp   = voiceResolveTemp(text);
 
-  // タイトル / 内容の抽出：句読点・読点・スペースで分割した短い断片を中心に
-  const tokens = text.split(/[、,，\s　・]+/).filter(Boolean);
+  // タイトルはトリガー句を除いてから抽出（バグ修正：「を予定追加」等が残らないように）
+  const titleSrc = stripTriggerPhrases(text);
+  const tokens = titleSrc.split(/[、,，\s　・]+/).filter(Boolean);
   // メタトークン（既に拾ったもの）を除外して残りを title 候補に
   const META = /^(明日|今日|明後日|昨日|本日|来週|今週|来月|月曜|火曜|水曜|木曜|金曜|土曜|日曜|朝|昼|夜|晩|夕方|午前|正午)$/;
   const metaPicked = new Set();
@@ -10336,7 +10368,8 @@ function parseVoiceIntent(rawText) {
     }
   }
   const titleTokens = tokens.filter(t => !metaPicked.has(t));
-  const title = titleTokens.join(' ').trim();
+  // 末尾助詞を更にトークン単位でも掃除
+  const title = titleTokens.join(' ').replace(/[をにへはがで]+$/,'').trim();
 
   // 不足判定
   const missing = [];
