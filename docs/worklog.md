@@ -5220,3 +5220,58 @@ Wave 50.7: 週ビュー 3 ページカルーセル化（常時つながった Go
 
 ### コミット
 - メッセージ: `wave 50.7: 3-page carousel for connected swipe (prev/curr/next pre-rendered, smooth follow-finger)`
+
+---
+
+## 2026-05-06 11:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 51: 週ビューの空スロットをタップ／縦ドラッグで予定作成
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 機能概要
+ユーザー要望：「週の画面から最低 30 分、それ以上は選択して都度カレンダー作成できる様な仕組み」
+
+### 実装
+1. **m-event モーダルに終了時刻を追加**：`ev-endtime` 入力欄を新設し `ev-time` の右隣に配置（grid 3 列）
+2. **`openEventModal` を拡張**：`window._calNewEvtPrefill = {date, time, endTime}` が設定されていれば prefill
+3. **`saveEvent` を拡張**：`endTime` フィールドを `S.events` に保存。終了 ≤ 開始は自動で +30 分補正
+4. **`_addMinutesToTime(timeStr, addMin)` ヘルパー新設**：24h クランプ付き
+5. **`_bindCalWeekSlotCreate()` 新設**：中央ページの `.cal-week-col-day` 各列に touch/mouse ハンドラを bind
+   - **タップ**：30 分の予定 prefill → m-event 編集モーダルを開く
+   - **縦ドラッグ**：開始位置から指の位置までを 30 分単位スナップでプレビュー → リリースで m-event 開く
+   - **横移動**：dx > dy で `CAL_SLOT_MAX_X_FOR_DRAG=16` を超えるとキャンセル → 週送りスワイプに譲る
+   - **既存予定上**：`.cal-wk-ev` を closest で検出して反応しない（編集モーダル優先）
+6. **`data-date` 属性**：`.cal-week-col-day` に各日の `YYYY-MM-DD` を付与
+7. **synthesized click 対策**：touchend 後の click が m-event のバックドロップで closeModal を呼ぶのを避けるため、`setTimeout(80ms)` で開く
+
+### 視覚フィードバック
+ドラッグ中は半透明の青い枠（dashed border）に開始〜終了時刻が表示されて、リアルタイムで延長量が見える。
+
+### テスト結果
+- Wave 51 slot-create smoke：**18/18 PASS**
+  - 関数 / 定数 / 入力欄の存在
+  - `_addMinutesToTime` ロジック（クランプ含む）
+  - 7 day 列の `data-date` 付与
+  - タップで 30 分予定 prefill → m-event 開く
+  - 縦ドラッグで延長 → m-event 開く（時刻が動く）
+  - 横ドラッグでは m-event 開かない（週送りに譲る）
+  - 既存予定タップ → 編集モーダル
+  - 終了 ≤ 開始の自動補正
+- 既存 35 suites：全 PASS
+- **累計 36 suites 917/917 PASS**
+- md5 同期：`fc7925f7612d8af6a45126168017615d`
+
+### iPhone 確認ポイント
+1. 週ビューで空きスロットを **タップ** → 30 分の予定で編集モーダル prefill
+2. 空きスロットを **縦に長くドラッグ** → 開始〜終了時刻が指の位置でリアルタイム表示 → リリースで編集モーダル
+3. **横にスワイプ**すれば週送りが動作（slot-create はキャンセル）
+4. 既存予定の上を **タップ** → 編集モーダル（slot-create は無効）
+5. 既存予定を **長押しドラッグ** → 移動（Wave 50 機能、変わらず）
+6. 編集モーダルで開始 ≥ 終了に設定して保存 → 自動で +30 分補正
+
+### コミット
+- メッセージ: `wave 51: tap/drag empty slots in week view to create events (30min default + extendable)`

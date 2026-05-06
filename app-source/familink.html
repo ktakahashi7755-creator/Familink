@@ -2796,14 +2796,18 @@ nav#tabbar.hidden { display: none !important; }
         <div class="field-label">タイトル <span style="color:var(--red)">*</span></div>
         <input class="input" id="ev-title" placeholder="例：太郎の英語">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
         <div class="field">
           <div class="field-label">日付 <span style="color:var(--red)">*</span></div>
           <input class="input" id="ev-date" type="date">
         </div>
         <div class="field">
-          <div class="field-label">時刻</div>
+          <div class="field-label">開始</div>
           <input class="input" id="ev-time" type="time" value="09:00">
+        </div>
+        <div class="field">
+          <div class="field-label">終了</div>
+          <input class="input" id="ev-endtime" type="time" value="09:30">
         </div>
       </div>
       <div class="field">
@@ -3383,6 +3387,14 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
 }
 const addDays = (s,n) => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return localDateStr(d); };
+/* "HH:MM" 形式に分を加算して返す（24h クランプ） */
+function _addMinutesToTime(timeStr, addMin) {
+  if(!timeStr || !timeStr.includes(':')) return timeStr;
+  const [h,m] = timeStr.split(':').map(Number);
+  let total = h*60 + m + addMin;
+  total = Math.max(0, Math.min(23*60+59, total));
+  return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+}
 
 function greeting() {
   const h = new Date().getHours();
@@ -4327,7 +4339,7 @@ function renderCalWeek() {
         </div>`;
       }).join('');
 
-      dayCols.push(`<div class="cal-week-col-day">${slots}${evBoxes}</div>`);
+      dayCols.push(`<div class="cal-week-col-day" data-date="${ds}" data-week-offset="${offsetWeeks}">${slots}${evBoxes}</div>`);
     }
 
     return `<div class="cal-week-page" data-week-offset="${offsetWeeks}">
@@ -4378,6 +4390,8 @@ function renderCalWeek() {
   _bindCalWeekLongPress();
   // Wave 50.7：週ビューで横スワイプによる週送り（3 ページカルーセル）
   _bindCalWeekSwipe();
+  // Wave 51：空きスロットをタップ/ドラッグで予定作成
+  _bindCalWeekSlotCreate();
 }
 
 /* Wave 50.7：週ビュー 3 ページカルーセル（Google カレンダー風）
@@ -4493,6 +4507,121 @@ function _showCalWeekToast(direction) {
   const fmt = (dt) => `${dt.getMonth()+1}/${dt.getDate()}`;
   const arrow = direction > 0 ? '→' : '←';
   showToast(`${arrow} ${fmt(start)}〜${fmt(end)} の週`, 'info');
+}
+
+/* Wave 51：空きスロットをタップ／縦ドラッグで予定作成
+   - タップ：30 分の予定を作成 → m-event 編集モーダルが開く
+   - 縦ドラッグ：開始位置から指の位置までを 30 分単位スナップで延長
+   - 既存の予定（.cal-wk-ev）上は反応しない（編集モーダル優先）
+   - 横方向の動き（dx > dy）は週送りスワイプに譲る */
+const CAL_SLOT_MIN = 30;          // 最低 30 分
+const CAL_SLOT_MAX_X_FOR_DRAG = 16;  // 横移動がこれ以上なら slot-create をキャンセル
+let _calSlotState = null;
+
+function _bindCalWeekSlotCreate() {
+  // 中央ページの day カラムだけにバインド（前後ページは preview のみ）
+  document.querySelectorAll('.cal-week-page[data-week-offset="0"] .cal-week-col-day').forEach(col => {
+    if(col._slotBound) return;
+    col._slotBound = true;
+    const date = col.dataset.date;
+    if(!date) return;
+
+    const minFromY = (clientY) => {
+      const r = col.getBoundingClientRect();
+      const y = clientY - r.top;
+      const min = Math.round(y / CAL_HOUR_PX * 60);
+      return Math.max(0, Math.min(23*60 + 30, min));
+    };
+    const snap30 = (m) => Math.floor(m / 30) * 30;
+    const fmt = (m) => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+
+    const start = (e) => {
+      const target = e.target;
+      // 既存予定の上は無視（編集モーダルへ）
+      if(target.closest('.cal-wk-ev')) return;
+      const t = (e.touches && e.touches[0]) || e;
+      if(!t || typeof t.clientX !== 'number') return;
+      const startMin = snap30(minFromY(t.clientY));
+      _calSlotState = {
+        col, date, startMin,
+        startX: t.clientX, startY: t.clientY,
+        currentY: t.clientY,
+        didMoveY: false, didMoveX: false,
+        previewEl: null,
+      };
+    };
+    const move = (e) => {
+      if(!_calSlotState) return;
+      const t = (e.touches && e.touches[0]) || e;
+      const dx = t.clientX - _calSlotState.startX;
+      const dy = t.clientY - _calSlotState.startY;
+      // 横ドラッグ優位なら週送りに譲る → cleanup
+      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > CAL_SLOT_MAX_X_FOR_DRAG) {
+        _calSlotState.didMoveX = true;
+        if(_calSlotState.previewEl) _calSlotState.previewEl.remove();
+        _calSlotState = null;
+        return;
+      }
+      if(Math.abs(dy) > 6) _calSlotState.didMoveY = true;
+      _calSlotState.currentY = t.clientY;
+      // 縦ドラッグ中：プレビューを表示 / 更新
+      if(_calSlotState.didMoveY) {
+        if(!_calSlotState.previewEl) {
+          const div = document.createElement('div');
+          div.className = 'cal-wk-slot-preview';
+          div.style.cssText =
+            'position:absolute;left:1px;right:1px;border-radius:4px;pointer-events:none;z-index:10;'+
+            'background:rgba(74,144,226,.32);border:2px dashed var(--primary);'+
+            'color:var(--primary);font-size:10px;font-weight:700;padding:3px 4px;line-height:1.25;';
+          col.appendChild(div);
+          _calSlotState.previewEl = div;
+        }
+        const sm = _calSlotState.startMin;
+        const em = Math.max(sm + CAL_SLOT_MIN, snap30(minFromY(t.clientY)) + CAL_SLOT_MIN);
+        const top  = sm / 60 * CAL_HOUR_PX;
+        const high = (em - sm) / 60 * CAL_HOUR_PX;
+        _calSlotState.previewEl.style.top    = top + 'px';
+        _calSlotState.previewEl.style.height = Math.max(20, high) + 'px';
+        _calSlotState.previewEl.textContent  = `${fmt(sm)} 〜 ${fmt(em)}`;
+      }
+    };
+    const end = (e) => {
+      if(!_calSlotState) return;
+      const ss = _calSlotState;
+      _calSlotState = null;
+      if(ss.previewEl) ss.previewEl.remove();
+      if(ss.didMoveX) return; // 横移動でキャンセル済
+      const sm = ss.startMin;
+      let em;
+      if(ss.didMoveY) {
+        em = Math.max(sm + CAL_SLOT_MIN, snap30(minFromY(ss.currentY)) + CAL_SLOT_MIN);
+      } else {
+        em = sm + CAL_SLOT_MIN; // タップ＝30 分
+      }
+      em = Math.min(24*60, em);
+      // 編集モーダルを prefill して開く（calSel は変更しない＝週ビューはそのまま）
+      window._calNewEvtPrefill = { date: ss.date, time: fmt(sm), endTime: fmt(em) };
+      // touchend 後に発火する synthesized click が m-event のバックドロップ上で
+      // closeModal を呼ぶのを避けるため、少し遅延させてから開く
+      setTimeout(() => {
+        if(typeof openEventModal === 'function') openEventModal();
+      }, 80);
+    };
+    const cancel = () => {
+      if(_calSlotState && _calSlotState.previewEl) _calSlotState.previewEl.remove();
+      _calSlotState = null;
+    };
+
+    col.addEventListener('touchstart', start, { passive: true });
+    col.addEventListener('touchmove',  move,  { passive: true });
+    col.addEventListener('touchend',   end);
+    col.addEventListener('touchcancel', cancel);
+    // マウス（PC）
+    col.addEventListener('mousedown',  start);
+    col.addEventListener('mousemove',  move);
+    col.addEventListener('mouseup',    end);
+    col.addEventListener('mouseleave', cancel);
+  });
 }
 
 /* Wave 40 + 50：週ビューの予定カード長押しドラッグ移動
@@ -5130,6 +5259,7 @@ function openEventModal(evId) {
   memSel.innerHTML = MEMBERS.map(m=>`<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
 
   let sel = S._evColor;
+  const endEl = document.getElementById('ev-endtime');
   if(evId) {
     const ev = (S.events||[]).find(e=>e.id===evId);
     if(!ev) return;
@@ -5138,6 +5268,7 @@ function openEventModal(evId) {
     document.getElementById('ev-title').value = ev.title;
     document.getElementById('ev-date').value  = ev.date;
     document.getElementById('ev-time').value  = ev.time;
+    if(endEl) endEl.value = ev.endTime || _addMinutesToTime(ev.time, 30);
     document.getElementById('ev-member').value= ev.member;
     document.getElementById('ev-note').value  = ev.note||'';
     document.getElementById('ev-repeat').value= ev.repeat||'';
@@ -5145,16 +5276,22 @@ function openEventModal(evId) {
     document.getElementById('ev-del-btn').style.display = 'flex';
     const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'block';
   } else {
+    // 新規作成：Wave 51 のスロットタップから事前 prefill されている場合は尊重
+    const preDate = window._calNewEvtPrefill?.date;
+    const preTime = window._calNewEvtPrefill?.time;
+    const preEnd  = window._calNewEvtPrefill?.endTime;
     document.getElementById('m-event-title').textContent = '予定を追加';
     document.getElementById('ev-id').value    = '';
     document.getElementById('ev-title').value = '';
-    document.getElementById('ev-date').value  = S.calSel||todayStr();
-    document.getElementById('ev-time').value  = '09:00';
+    document.getElementById('ev-date').value  = preDate || S.calSel || todayStr();
+    document.getElementById('ev-time').value  = preTime || '09:00';
+    if(endEl) endEl.value = preEnd || _addMinutesToTime(preTime || '09:00', 30);
     document.getElementById('ev-note').value  = '';
     document.getElementById('ev-repeat').value= '';
     sel = '#4A90E2'; S._evColor = '#4A90E2';
     document.getElementById('ev-del-btn').style.display = 'none';
     const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'none';
+    window._calNewEvtPrefill = null;
   }
   document.getElementById('ev-colors').innerHTML =
     EV_COLORS.map(c=>`<div class="swatch ${c===sel?'on':''}" style="background:${c}" onclick="selEvColor(this,'${c}')"></div>`).join('');
@@ -5171,6 +5308,8 @@ function saveEvent() {
   const title  = document.getElementById('ev-title').value.trim();
   const date   = document.getElementById('ev-date').value;
   const time   = document.getElementById('ev-time').value;
+  const endEl  = document.getElementById('ev-endtime');
+  let endTime  = endEl ? endEl.value : '';
   const member = document.getElementById('ev-member').value;
   const note   = document.getElementById('ev-note').value.trim();
   const repeat = document.getElementById('ev-repeat').value || '';
@@ -5179,12 +5318,17 @@ function saveEvent() {
   if(!title) { showToast('タイトルを入力してください','error'); return; }
   if(!date)  { showToast('日付を入力してください','error'); return; }
 
+  // 終了時刻 ≤ 開始時刻なら 30 分後に自動補正
+  if(time && endTime && endTime <= time) {
+    endTime = _addMinutesToTime(time, 30);
+  }
+
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
-    if(ev) Object.assign(ev, {title,date,time,member,note,repeat,color:S._evColor});
+    if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,color:S._evColor});
     showToast('予定を更新しました');
   } else {
-    S.events.push({id:uid(),title,date,time,member,note,repeat,color:S._evColor});
+    S.events.push({id:uid(),title,date,time,endTime,member,note,repeat,color:S._evColor});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
