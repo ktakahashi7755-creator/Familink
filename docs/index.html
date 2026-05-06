@@ -820,7 +820,7 @@ select.input {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   overflow-x: hidden; padding-bottom: calc(98px + env(safe-area-inset-bottom));
 }
-.cal-week-hdr { display: grid; grid-template-columns: 36px repeat(7,1fr); border-bottom: 2px solid var(--border-light); }
+.cal-week-hdr { display: grid; grid-template-columns: 36px repeat(7,1fr); border-bottom: 2px solid var(--border-light); position: sticky; top: 0; z-index: 5; background: #fff; }
 .cal-week-hdr-cell {
   padding: 5px 2px; text-align: center; border-left: 1px solid var(--border-light);
   font-size: 10px; font-weight: 600; color: var(--text-muted);
@@ -4237,7 +4237,7 @@ function renderCalWeek() {
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(selDate.getDate() - selDate.getDay());
 
-  const HOURS = Array.from({length:15}, (_,i)=>i+7); // 7:00〜21:00
+  const HOURS = Array.from({length:24}, (_,i)=>i); // 0:00〜23:00（24時間フル）
   const DOWS = ['日','月','火','水','木','金','土'];
 
   // 7日のカラムヘッダー — ラベルは date.getDay() で動的に決定（列 index に依存しない）
@@ -4302,7 +4302,7 @@ function renderCalWeek() {
 
   const mainArea = document.getElementById('cal-main-area');
   mainArea.innerHTML = `<div class="cal-week-view">
-    <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(98px + env(safe-area-inset-bottom));">
+    <div id="cal-week-scroll" style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(98px + env(safe-area-inset-bottom));">
       ${hdr}
       <div class="cal-week-body">
         ${timecol}
@@ -4310,36 +4310,90 @@ function renderCalWeek() {
       </div>
     </div>
   </div>`;
+  // Wave 50.6：24時間表示。初期スクロールを「現在時刻 -2h」または朝7:00 にして縦中央寄せ
+  const scrollEl = document.getElementById('cal-week-scroll');
+  if(scrollEl) {
+    const now = new Date();
+    const targetH = (sel === td) ? Math.max(0, now.getHours() - 2) : 7;
+    // 直前の renderCalWeek でスクロール位置を保存していれば優先（ユーザー操作維持）
+    const saved = (typeof window._calWkScrollY === 'number') ? window._calWkScrollY : null;
+    requestAnimationFrame(() => {
+      scrollEl.scrollTop = (saved != null) ? saved : targetH * CAL_HOUR_PX;
+    });
+    // スクロール位置を保存
+    scrollEl.addEventListener('scroll', () => { window._calWkScrollY = scrollEl.scrollTop; }, { passive: true });
+  }
   // Wave 40：長押しで予定移動モーダル
   _bindCalWeekLongPress();
   // Wave 50.3：週ビューで横スワイプによる週送り
   _bindCalWeekSwipe();
+  // Wave 50.6：スライドインアニメーション（直前のスワイプから渡された方向に応じて）
+  if(typeof window._calWkSlideIn === 'number') {
+    const wkRoot = document.querySelector('.cal-week-view');
+    if(wkRoot) {
+      const w = wkRoot.parentElement?.getBoundingClientRect().width || window.innerWidth || 390;
+      const fromDir = window._calWkSlideIn;
+      wkRoot.style.transition = 'none';
+      wkRoot.style.transform = `translate3d(${fromDir * w}px, 0, 0)`;
+      // 強制 reflow → アニメ起点が確定
+      void wkRoot.offsetWidth;
+      wkRoot.style.transition = `transform ${CAL_WEEK_SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)`;
+      wkRoot.style.transform = 'translate3d(0,0,0)';
+    }
+    window._calWkSlideIn = null;
+  }
 }
 
-/* Wave 50.3：週ビュー横スワイプで週送り
-   - 右にスワイプ → 次の週（6/10〜などへ進む）
-   - 左にスワイプ → 前の週（6/2 以前へ戻る）
+/* Wave 50.6：週ビュー横スワイプで週送り（Google カレンダー風 follow-finger + slide-out）
+   - 指追従でモーション、リリース時にしきい値超なら次/前週へスライドイン
+   - 右にスワイプ（指 →） → 前週へ戻る（iOS 標準）
+   - 左にスワイプ（指 ←） → 次週へ進む
    - 予定カード上での操作（ドラッグ／タップ）と競合しない
    - 縦スクロールも邪魔しない */
 const CAL_WEEK_SWIPE_DX = 80;
 const CAL_WEEK_SWIPE_MAX_DY = 60;
-const CAL_WEEK_SWIPE_MIN_MS = 100;
-const CAL_WEEK_SWIPE_MAX_MS = 800;
+const CAL_WEEK_SWIPE_MIN_MS = 80;
+const CAL_WEEK_SWIPE_MAX_MS = 900;
+const CAL_WEEK_SLIDE_MS = 220;
 let _calWkSwipeStart = null;
+let _calWkDragging = false;
+
+function _calWkApplyTransform(root, dx) {
+  if(!root) return;
+  root.style.transition = 'none';
+  // 弾力：絶対値が画面幅を超えても少しだけ追従
+  root.style.transform = `translate3d(${dx}px, 0, 0)`;
+}
+function _calWkResetTransform(root, animate) {
+  if(!root) return;
+  if(animate) {
+    root.style.transition = `transform ${CAL_WEEK_SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)`;
+  } else {
+    root.style.transition = 'none';
+  }
+  root.style.transform = 'translate3d(0,0,0)';
+}
+
 function _bindCalWeekSwipe() {
   const root = document.querySelector('.cal-week-view');
   if(!root || root._wkSwBound) return;
   root._wkSwBound = true;
+  // 初期 transform をクリア（前回のスライド残骸対策）
+  root.style.transform = '';
+  root.style.transition = '';
 
   const start = (e) => {
-    if(!e.touches || e.touches.length !== 1) { _calWkSwipeStart = null; return; }
+    if(!e.touches || e.touches.length !== 1) { _calWkSwipeStart = null; _calWkDragging = false; return; }
     // 予定カードや時間ヘッダー上の操作は週送りで横取りしない
     const target = e.target;
     if(target && target.closest && target.closest('.cal-wk-ev, .cal-week-hdr-cell, button, a, input, textarea, select')) {
-      _calWkSwipeStart = null; return;
+      _calWkSwipeStart = null; _calWkDragging = false; return;
     }
     const t = e.touches[0];
     _calWkSwipeStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+    _calWkDragging = false;
+    // ドラッグ開始時に transition なし（追従用）
+    root.style.transition = 'none';
   };
   const move = (e) => {
     if(!_calWkSwipeStart || !e.touches || e.touches.length !== 1) return;
@@ -4347,36 +4401,61 @@ function _bindCalWeekSwipe() {
     const dx = t.clientX - _calWkSwipeStart.x;
     const dy = t.clientY - _calWkSwipeStart.y;
     // 縦移動が主体になったらキャンセル（縦スクロール優先）
-    if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 16) _calWkSwipeStart = null;
+    if(!_calWkDragging && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 16) {
+      _calWkSwipeStart = null;
+      _calWkResetTransform(root, false);
+      return;
+    }
+    // 横移動が一定以上で「ドラッグ中」と判定し追従開始
+    if(Math.abs(dx) > 8) _calWkDragging = true;
+    if(_calWkDragging) {
+      _calWkApplyTransform(root, dx);
+    }
   };
   const end = (e) => {
     if(!_calWkSwipeStart) return;
     const tch = (e.changedTouches && e.changedTouches[0]) || null;
-    const start = _calWkSwipeStart;
+    const startState = _calWkSwipeStart;
+    const wasDragging = _calWkDragging;
     _calWkSwipeStart = null;
-    if(!tch) return;
-    const dx = tch.clientX - start.x;
-    const dy = tch.clientY - start.y;
-    const dt = Date.now() - start.t;
-    if(dt < CAL_WEEK_SWIPE_MIN_MS || dt > CAL_WEEK_SWIPE_MAX_MS) return;
-    if(Math.abs(dy) > CAL_WEEK_SWIPE_MAX_DY) return;
-    if(Math.abs(dx) < CAL_WEEK_SWIPE_DX) return;
-    // Wave 50.5：iPhone Safari の実機検証で「右スワイプ → 前週、左スワイプ → 次週」が
-    // ユーザーの感覚と一致することを確認したため、方向を見直し。
-    // 右スワイプ（dx > 0、指 →）= 前週、左スワイプ（dx < 0、指 ←）= 次週
-    // ＋ トースト表示で方向を可視化（誤解防止）
-    if(dx > 0) {
-      changeCalWeek(-1);
-      _showCalWeekToast(-1);
-    } else {
-      changeCalWeek(1);
-      _showCalWeekToast(1);
+    _calWkDragging = false;
+    if(!tch) { _calWkResetTransform(root, true); return; }
+    const dx = tch.clientX - startState.x;
+    const dy = tch.clientY - startState.y;
+    const dt = Date.now() - startState.t;
+    const w = root.getBoundingClientRect().width || window.innerWidth || 390;
+
+    const passThreshold = (Math.abs(dx) >= CAL_WEEK_SWIPE_DX
+                          && Math.abs(dy) <= CAL_WEEK_SWIPE_MAX_DY
+                          && dt >= CAL_WEEK_SWIPE_MIN_MS
+                          && dt <= CAL_WEEK_SWIPE_MAX_MS);
+
+    if(!passThreshold) {
+      // しきい値未達：スプリングバック
+      _calWkResetTransform(root, wasDragging);
+      return;
     }
+    // しきい値超：現在週を画面外へスライドアウト → 切替 → 新週を反対側からスライドイン
+    const dir = dx > 0 ? 1 : -1;
+    root.style.transition = `transform ${CAL_WEEK_SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)`;
+    root.style.transform = `translate3d(${dir * w}px, 0, 0)`;
+    setTimeout(() => {
+      // 週切替（iOS 標準：右スワイプ → 前週、左スワイプ → 次週）
+      const weekDelta = dir > 0 ? -1 : 1;
+      // スライドイン用に新しい root を反対側に置いてからアニメ
+      window._calWkSlideIn = -dir;
+      changeCalWeek(weekDelta);
+      _showCalWeekToast(weekDelta);
+    }, CAL_WEEK_SLIDE_MS);
   };
+
   root.addEventListener('touchstart', start, { passive: true });
   root.addEventListener('touchmove',  move,  { passive: true });
   root.addEventListener('touchend',   end,   { passive: true });
-  root.addEventListener('touchcancel', () => { _calWkSwipeStart = null; }, { passive: true });
+  root.addEventListener('touchcancel', () => {
+    _calWkSwipeStart = null; _calWkDragging = false;
+    _calWkResetTransform(root, true);
+  }, { passive: true });
 }
 /* スワイプで週送りした時のフィードバックトースト */
 function _showCalWeekToast(direction) {
@@ -4404,8 +4483,8 @@ const CAL_LP_THRESHOLD_MS = 600;
 const CAL_LP_MOVE_THRESHOLD_PX = 12;
 const CAL_HOUR_PX = 44;
 const CAL_SNAP_MIN = 30; // 30分単位スナップ
-const CAL_MIN_HOUR = 7;
-const CAL_MAX_HOUR = 21;
+const CAL_MIN_HOUR = 0;   // Wave 50.6：24時間表示
+const CAL_MAX_HOUR = 23;  // 23:30 までクランプ
 
 function _calWeekStartFromSel() {
   const sel = (typeof S !== 'undefined' && S && S.calSel) || todayStr();
