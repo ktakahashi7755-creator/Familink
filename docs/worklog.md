@@ -5275,3 +5275,36 @@ Wave 51: 週ビューの空スロットをタップ／縦ドラッグで予定�
 
 ### コミット
 - メッセージ: `wave 51: tap/drag empty slots in week view to create events (30min default + extendable)`
+
+---
+
+## 2026-05-06 11:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 51.1: 検証ラウンド — m-event モーダルのレイアウト修正
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（mirror）
+
+### 実施内容
+- 36 suites 全て PASS を再確認
+- 視覚検証（週ビュー初期表示 / 24h スクロール上端 / 下端 / スロットタップ後のモーダル）
+
+### 発見した UI 問題と修正
+スクリーンショット検証で `m-event` モーダルの 3 列グリッド（日付 / 開始 / 終了）が iPhone SE 幅で **終了時刻フィールドが画面外にはみ出していた** ことを確認。
+
+修正：
+- 日付を独立した 1 行に
+- 開始 / 終了 を 2 列グリッド（1fr 1fr）で配置
+- これにより全 viewport 幅で 3 フィールドが綺麗に収まる
+
+### 検証結果
+- 全 36 suites **917/917 PASS**（Wave 51 含む）
+- 視覚確認：週ビュー（24h・sticky ヘッダー・3 ページカルーセル）正常
+- スロットタップで編集モーダル prefill：日付 2026-05-06 / 開始 09:00 / 終了 09:30
+- JS エラーゼロ
+- md5 同期：`af282b88ff5bcdbe6f55b8a3e9569b3e`
+
+### コミット
+- メッセージ: `wave 51.1: m-event modal layout - date own row, time/endtime in 2-col`
