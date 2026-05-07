@@ -11042,6 +11042,53 @@ const HOKU_INTENT_META = {
   unknown:                { uiCat:null,       store:null,           label:'要確認' }
 };
 
+/* Wave 55.1: 準備ルーティン専用パーサー（根本修正）
+   - 「毎週月曜、太郎の国語の教科書を準備に入れて」のような入力から
+     day / items / subject を **正しく** 抽出する
+   - これまで parseVoiceIntent の汎用 title 抽出だけでは「毎週」「太郎の」「曜」が
+     残ってゴミ title になっていた問題を解決
+   - 戻り値：{ day:'mon'|...|null, items:[string,...], subject:string, member:'<id>'|null } */
+function _hokuParsePrepRoutine(text) {
+  if(!text) return { day:null, items:[], subject:'', member:null };
+  let body = String(text);
+  // 1) メンバー検出（textから既存ロジックで）
+  const member = (typeof voiceResolveMember === 'function') ? voiceResolveMember(body) : null;
+  // 2) 曜日検出（"月曜は" "火曜の" "水曜、" 等）
+  let day = null;
+  const dm = body.match(/(月|火|水|木|金|土|日)曜(?:日)?/);
+  if(dm) {
+    const wd = ['日','月','火','水','木','金','土'].indexOf(dm[1]);
+    day = ['sun','mon','tue','wed','thu','fri','sat'][wd];
+  }
+  // 3) ルーティンマーカーを削る
+  body = body.replace(/^(?:毎週|毎月|今週|来週)/g, '');
+  body = body.replace(/(?:時間割に?|ルーティンに?)/g, '');
+  // 4) 曜日トークンと続く助詞を削る（"月曜は" "月曜の" "月曜、"）
+  body = body.replace(/(月|火|水|木|金|土|日)曜(?:日)?[はにのをへで、,，\s　]*/, '');
+  // 5) メンバー名 + 助詞 を削る（"太郎の" "星斗は" など）
+  if(typeof MEMBERS !== 'undefined') {
+    for(const m of MEMBERS) {
+      if(!m.name) continue;
+      const esc = m.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      body = body.replace(new RegExp('^[\\s、,，]*' + esc + '[のはがを]?', ''), '');
+    }
+  }
+  // 6) 末尾のトリガー句を削る
+  body = body.replace(/(?:を|に|へ)?\s*(?:準備|持ち物)?\s*[にへ]?\s*(?:追加|入れて|登録|入れる)\s*(?:して|お願い|ください)?\s*$/, '');
+  body = body.replace(/[\s、,，　]+$/, '');
+  body = body.replace(/^[\s、,，　]+/, '');
+  // 7) 教科を抽出（テキスト全体から）
+  const subject = (typeof _hokuExtractSubject === 'function') ? _hokuExtractSubject(text) : '';
+  // 8) 複数分割（と / や / 、 / and）
+  let items = [];
+  if(body && /[、,，や]|と/.test(body)) {
+    items = body.split(/[、,，]|\sand\s|\s?と\s?|\sや\s/).map(function(s){ return s.replace(/[\s　]+/g,'').trim(); }).filter(Boolean);
+  } else if(body) {
+    items = [body.trim()];
+  }
+  return { day:day, items:items, subject:subject, member:member };
+}
+
 /* 「○○と○○」「○○、○○」「○○や○○」を商品名配列に分解 */
 function _hokuSplitShoppingNames(s) {
   if(!s) return [];
@@ -11164,11 +11211,11 @@ function parseHokuIntent(rawText, source) {
   const isNotificationLike =
     text.match(/(通知|リマインド|思い出させて|あとで教えて|忘れないように.*知らせ|アラーム|朝に.*教えて|前日に.*教えて)/);
 
-  // 3) 準備ルーティン（毎週 + 曜日 + 持ち物）
-  const isRoutineLike =
-    text.match(/(毎週|毎月|曜日.*ルーティン|ルーティン.*曜日|時間割)/) &&
-    (_hokuExtractWeekday(text) != null) &&
-    text.match(/(持|準備|体操服|連絡帳|水筒|プールバッグ|給食袋|上履き|お着替え)/);
+  // 3) 準備ルーティン（毎週/毎月/時間割 + 曜日 OR "X曜は/X曜の" 自然表現 + 持ち物関連語）
+  // Wave 55.1: 「火曜は算数ノート」「水曜の時間割に図工セット」など、「毎週」抜きでも routine と認識
+  const _routineMarker  = text.match(/(毎週|毎月|時間割|ルーティン|(月|火|水|木|金|土|日)曜は|(月|火|水|木|金|土|日)曜の)/);
+  const _routineItemHit = text.match(/(持|準備|体操服|連絡帳|水筒|プールバッグ|給食袋|上履き|お着替え|教科書|ノート|ドリル|セット|筆箱|宿題|提出物)/);
+  const isRoutineLike = !!(_routineMarker && (_hokuExtractWeekday(text) != null) && _routineItemHit);
 
   // 4) ベース解析（既存 parseVoiceIntent を再利用）
   const v = parseVoiceIntent(text);
@@ -11205,30 +11252,30 @@ function parseHokuIntent(rawText, source) {
   const medicine = (intentType === 'health_add') ? _hokuExtractMedicine(text) : null;
   const budgetCat = (intentType === 'budget_add') ? _hokuExtractBudgetCategory(text) : null;
   const txType = (intentType === 'budget_add') ? _hokuExtractTxType(text) : null;
-  const weekday = (intentType === 'prep_routine_add') ? _hokuExtractWeekday(text) : null;
-  // Wave 55: prep / prep_routine_add 用に教科 + 持ち物の複数分割を抽出
-  const prepSubject = (intentType === 'prep_routine_add' || intentType === 'prep_add') ? _hokuExtractSubject(text) : '';
+  let weekday = (intentType === 'prep_routine_add') ? _hokuExtractWeekday(text) : null;
+  // Wave 55.1: 専用パーサーで day / items / subject を綺麗に抽出（旧バグ修正）
+  let prepSubject = '';
   let prepItems = [];
+  let prepSingleTitle = '';
   if(intentType === 'prep_routine_add' || intentType === 'prep_add') {
-    // 「○○曜は ○○ノートと計算ドリル」→ ['○○ノート','計算ドリル']
-    let body = text;
-    const sep = body.match(/(月|火|水|木|金|土|日)曜は\s*/);
-    if(sep) body = body.slice(body.indexOf(sep[0]) + sep[0].length);
-    body = body.replace(/^(?:[一-龯ぁ-んァ-ヶ]+の|星[斗旺汰愛][のは]?)/, '');
-    body = body.replace(/(?:を)?\s*(?:準備|持ち物)?\s*に?\s*(?:追加|入れて|登録|入れる).*$/, '');
-    body = body.replace(/(?:準備|持ち物)$/, '').trim();
-    if(body && /[、,，や]|と/.test(body)) {
-      prepItems = body.split(/[、,，]|\sand\s|\s?と\s?|\sや\s/)
-                      .map(function(s){ return s.replace(/[\s　]+/g,'').trim(); })
-                      .filter(Boolean);
+    const pp = _hokuParsePrepRoutine(text);
+    prepSubject = pp.subject || '';
+    if(pp.items && pp.items.length >= 2) {
+      prepItems = pp.items.slice();
+    } else if(pp.items && pp.items.length === 1) {
+      prepSingleTitle = pp.items[0];
     }
-    if(prepItems.length < 2) prepItems = [];
+    if(intentType === 'prep_routine_add' && weekday == null && pp.day) {
+      // routine の場合、専用パーサー側の day を優先
+      weekday = ['sun','mon','tue','wed','thu','fri','sat'].indexOf(pp.day);
+    }
   }
 
   const entities = {
     memberId: v.member || null,
     memberName: memName,
-    title: v.title || '',
+    // Wave 55.1: prep 系で単品抽出が成功していればクリーンなタイトルで上書き
+    title: ((intentType === 'prep_routine_add' || intentType === 'prep_add') && prepSingleTitle) ? prepSingleTitle : (v.title || ''),
     date: v.date || null,
     time: v.time || null,
     amount: v.amount != null ? v.amount : null,
