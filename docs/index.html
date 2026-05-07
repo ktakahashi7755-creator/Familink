@@ -3212,6 +3212,17 @@ nav#tabbar.hidden { display: none !important; }
     <div class="modal-title" id="m-member-edit-title">メンバーを追加</div>
     <input type="hidden" id="me-id">
     <div class="modal-form">
+      <!-- Wave 60.1: アバター画像プレビュー + 変更ボタン -->
+      <div class="field">
+        <div class="field-label">アバター画像</div>
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg-muted);padding:10px 12px;border-radius:12px;">
+          <div id="me-avatar-preview" style="flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div id="me-avatar-summary" style="font-size:12px;color:var(--text-muted);line-height:1.4;">公式アバター・写真・カラー＋イニシャルから選べます</div>
+          </div>
+          <button type="button" class="btn btn-outline" onclick="meOpenAvatarSelect()" style="padding:7px 12px;font-size:11.5px;border-radius:10px;flex-shrink:0;">変更する</button>
+        </div>
+      </div>
       <div class="field">
         <div class="field-label">名前 <span style="color:var(--red)">*</span></div>
         <input class="input" id="me-name" placeholder="例：太郎" maxlength="20" autocomplete="off">
@@ -3225,7 +3236,7 @@ nav#tabbar.hidden { display: none !important; }
         <input type="hidden" id="me-role" value="child">
       </div>
       <div class="field">
-        <div class="field-label">アバターのカラー</div>
+        <div class="field-label">アバターのカラー <span style="font-size:10px;color:var(--text-muted);font-weight:500;">（公式アバター/写真未設定時に使用）</span></div>
         <div id="me-grad-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
         <input type="hidden" id="me-grad" value="">
       </div>
@@ -10176,8 +10187,51 @@ function openMemberEdit(id) {
   // 削除ボタン（編集時のみ）
   const delBtn = document.getElementById('me-delete-btn');
   if(delBtn) delBtn.style.display = m ? 'block' : 'none';
+  // Wave 60.1: アバター画像プレビュー
+  meRefreshAvatarPreview(m ? m.id : '');
   openModal('m-member-edit');
   setTimeout(function(){ document.getElementById('me-name').focus(); }, 200);
+}
+
+/* Wave 60.1: メンバー編集モーダル内のアバタープレビューを更新 */
+function meRefreshAvatarPreview(memberId) {
+  const wrap = document.getElementById('me-avatar-preview');
+  if(!wrap) return;
+  if(memberId) {
+    wrap.innerHTML = avHtml(memberId, 56, 22);
+    const t = (S.userAvatarType || {})[memberId];
+    let label = 'カラー＋イニシャルで表示中';
+    if(t === 'official')    label = '公式アバターを設定中';
+    if(t === 'customPhoto') label = '写真を設定中';
+    const sum = document.getElementById('me-avatar-summary');
+    if(sum) sum.textContent = label + '。タップで変更できます。';
+  } else {
+    // 新規メンバーは保存前なのでプレースホルダ表示
+    wrap.innerHTML = '<div class="av" style="background:linear-gradient(135deg,#94A3B8,#CBD5E1);width:56px;height:56px;font-size:22px;">＋</div>';
+    const sum = document.getElementById('me-avatar-summary');
+    if(sum) sum.textContent = '保存後に「変更する」で公式アバター・写真を選べます。';
+  }
+}
+
+/* Wave 60.1: メンバー編集 → 公式アバターギャラリーへ橋渡し
+   - 編集時：直接アバターギャラリーを開く
+   - 新規時：先に名前/役割/カラーで保存させる（保存処理を流用） */
+function meOpenAvatarSelect() {
+  const id = document.getElementById('me-id').value;
+  if(!id) {
+    // 新規 → 一旦保存して ID を確定させてから開く
+    const name = document.getElementById('me-name').value.trim();
+    if(!name) { showToast('先に名前を入力してください','error'); return; }
+    saveMemberEdit();
+    // saveMemberEdit が closeModal するので、最後に追加された ID を取得して開く
+    const last = MEMBERS[MEMBERS.length - 1];
+    if(last && last.id) {
+      setTimeout(function(){ openOfficialAvatarModal(last.id); }, 200);
+    }
+    return;
+  }
+  closeModal('m-member-edit');
+  setTimeout(function(){ openOfficialAvatarModal(id); }, 200);
 }
 function meSelectRole(role) {
   document.getElementById('me-role').value = role;
@@ -10606,6 +10660,8 @@ function confirmAvatarSelect() {
   document.getElementById('m-avatar-select')?.classList.add('hidden');
   renderSettings();
   renderHome();
+  // Wave 60.1: 家族メンバー管理画面で開いていた場合は再描画
+  try { if(typeof renderChildren === 'function') renderChildren(); } catch(e) {}
   showToast('アバターを設定しました ✨', 'success');
 }
 
