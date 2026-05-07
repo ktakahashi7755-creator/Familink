@@ -9699,8 +9699,20 @@ function parseEvent(q) {
 
 /* ── インテント分類 ── */
 function detectIntent(q) {
+  // Wave 52：準備（持ち物）追加 — 家計やタスクより先に判定
+  if(q.match(/(準備|持ち物|忘れ物|準備リスト|持ってく)/) && q.match(/(追加|入れ|登録|に|入れて|追加して)/)) {
+    return {type:'action', action:'create_prep', raw:q};
+  }
+  // 体調記録
+  if(q.match(/(体調|発熱|微熱|高熱|咳|鼻水|腹痛|頭痛|嘔吐|下痢|3[5-9]\.\d|3[5-9]度|薬.*飲んだ|カロナール|解熱)/) && !q.match(/光熱費|電気代|水道|ガス代/)) {
+    return {type:'action', action:'create_health', raw:q};
+  }
+  // 家族ボード共有
+  if(q.match(/(家族ボード|家族に共有|家族にシェア|家族に伝え|みんなに知らせ|投稿)/) && q.match(/(共有|伝え|シェア|知らせ|投稿|追加)/)) {
+    return {type:'action', action:'create_board', raw:q};
+  }
   // 家計追加
-  if(q.match(/円/) && q.match(/追加|入れ|登録|使った|かかった|払った|食べた|買った/)) {
+  if(q.match(/円/) && q.match(/追加|入れ|登録|使った|かかった|払った|食べた|買った|計上|入金/)) {
     return {type:'action', action:'create_budget', raw:q};
   }
   // 予定追加
@@ -9729,17 +9741,26 @@ function detectIntent(q) {
 function handleAction(intent, q) {
   const NL = '\n';
 
-  // 作成系：保存前確認モーダルへ
-  if(intent.action === 'create_budget'
-    || intent.action === 'create_event'
-    || intent.action === 'create_task'
-    || intent.action === 'create_prep') {
+  // Wave 52：作成系は統一 parseHokuIntent / executeHokuAction へ
+  const CREATE_ACTIONS = ['create_budget','create_event','create_task','create_prep','create_health','create_board'];
+  if(CREATE_ACTIONS.indexOf(intent.action) >= 0) {
     try {
-      hokuHandleVoiceText(q);
-      return '内容を確認してください。修正があればその場で編集できます。';
+      const hokuIntent = parseHokuIntent(q, 'text');
+      // 致命的に情報不足の短文は確認モーダルではなく Hoku が質問で返す
+      const isCritical =
+        (hokuIntent.intentType === 'budget_add'   && hokuIntent.entities.amount == null) ||
+        (hokuIntent.intentType === 'health_add'   && !hokuIntent.entities.memberId && hokuIntent.entities.temperature == null && !hokuIntent.entities.symptoms.length && !hokuIntent.entities.medicine) ||
+        (hokuIntent.intentType === 'prep_add'     && !hokuIntent.entities.title) ||
+        (hokuIntent.intentType === 'calendar_add' && !hokuIntent.entities.title && !hokuIntent.entities.date);
+      if(isCritical && q.length <= 14) {
+        return _hokuAskBackMessage(hokuIntent);
+      }
+      const r = executeHokuAction(hokuIntent);
+      return (r && r.message) || '内容を確認してください。';
     } catch(e) {
-      // フォールバック：旧フローへ
-      console.error('hokuHandleVoiceText failed in handleAction', e);
+      console.error('parseHokuIntent / executeHokuAction failed in handleAction', e);
+      // フォールバック：旧フロー
+      try { hokuHandleVoiceText(q); return '内容を確認してください。'; } catch(_) {}
     }
   }
 
@@ -9936,7 +9957,7 @@ function renderHokuMsgs() {
 
   el.innerHTML = msgs.map(m => {
     if(m.role==='loading') {
-      return `<div class="hoku-row"><img src="${IMGS.happy}" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;">
+      return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
         <div class="hoku-bubble ai"><div class="loading" style="transform:scale(.7);margin:-4px;"><span></span><span></span><span></span></div></div></div>`;
     }
     if(m.role==='user') {
@@ -9959,7 +9980,7 @@ function renderHokuMsgs() {
       }
     }
     const html = H(content).replace(/\n/g,'<br>');
-    return `<div class="hoku-row"><img src="${IMGS.happy}" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;">
+    return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
       <div class="hoku-bubble ai">${html}${actionsHTML}</div></div>`;
   }).join('');
 
@@ -10150,11 +10171,11 @@ function hokuVoiceToggle() {
 /* 家族メンバーの音声エイリアス辞書（音声認識ゆれを吸収）。
    id は MEMBERS の id と一致。表記ゆれは個別端末の家族名に応じて拡張可能。 */
 const VOICE_MEMBER_ALIASES = [
-  { id:'kenya',   aliases:['パパ','ぱぱ','お父さん','おとうさん','父','とうさん','ダディ','dad','papa'] },
-  { id:'seiai',   aliases:['ママ','まま','お母さん','おかあさん','母','かあさん','マミー','mom','mama','ほしあ','せいあ','星愛','聖愛','せいあい'] },
-  { id:'seito',   aliases:['太郎','たろう','たろー','せいと','ほしと','星斗','聖斗','星と','しょうた','長男'] },
-  { id:'seio',    aliases:['花子','はなこ','はなちゃん','せお','せいおう','ほしおう','星旺','聖旺','長女','はな'] },
-  { id:'seitaro', aliases:['健太','けんた','けんちゃん','せいた','ほした','星汰','聖汰','せいたろう','次男','三男'] }
+  { id:'kenya',   aliases:['パパ','ぱぱ','お父さん','おとうさん','父','とうさん','おとう','ダディ','dad','papa'] },
+  { id:'seiai',   aliases:['ママ','まま','お母さん','おかあさん','母','かあさん','おかあ','マミー','mom','mama','ほしあ','せいあ','星愛','聖愛','せいあい'] },
+  { id:'seito',   aliases:['太郎','たろう','たろー','せいと','せいとくん','ほしと','星斗','聖斗','星と','しょうた','長男'] },
+  { id:'seio',    aliases:['花子','はなこ','はなちゃん','せお','せお','せおくん','せいおう','ほしおう','星旺','聖旺','長女','はな'] },
+  { id:'seitaro', aliases:['健太','けんた','けんちゃん','せいた','せいたくん','ほした','星汰','聖汰','せいたろう','次男','三男'] }
 ];
 
 /* 子育て用語の正規化辞書（音声認識のカタカナ誤認識を漢字に揃える） */
@@ -10288,18 +10309,50 @@ function voiceResolveTemp(text) {
   return null;
 }
 
+/* トリガー句（"を予定追加" "カレンダー登録して" 等）をタイトルから除く
+   - 分類は full text で済ませた後に呼ぶ前提
+   - 残った末尾助詞・先頭区切りもクリーンアップ */
+const VOICE_TRIGGER_CAT_NOUN = '(?:予定|スケジュール|カレンダー|タスク|todo|to-?do|準備|持ち物|持ちもの|買い物|買物|家計|お金|支出|出費|収入|入金|体調|健康|家族ボード|ボード|お知らせ|連絡|リマインド|通知|アラーム)';
+const VOICE_TRIGGER_VERB     = '(?:追加|登録|記録|メモ|入れて|入力|投稿|残す|保存|セット|教えて|知らせて|思い出させて)';
+const VOICE_TRIGGER_PARTICLE = '(?:[をにへはがで])?';
+const VOICE_TRIGGER_SEP      = '[\\s、,，。．\\.]*';
+function stripTriggerPhrases(text) {
+  if(!text) return '';
+  let t = String(text);
+  // 1) 末尾の丁寧形 / お願い系
+  t = t.replace(/(?:してください|して下さい|してね|してくれ|お願いします|お願い|ください|下さい)$/g, '');
+  // 2a) 末尾：[助詞] CAT [助詞] VERB [して]
+  let re = new RegExp(VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_VERB + VOICE_TRIGGER_SEP + '(?:して)?' + VOICE_TRIGGER_SEP + '$', 'gi');
+  t = t.replace(re, '');
+  // 2b) 末尾：[助詞] CAT 単独（「ヨガ教室を予定」のような尻尾）
+  re = new RegExp(VOICE_TRIGGER_SEP + '[をにへ]' + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + '$', 'gi');
+  t = t.replace(re, '');
+  // 2c) 末尾：単独 VERB（タイトルが 2 文字以上残るときのみ適用）
+  re = new RegExp(VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + '(?:追加|登録|記録|メモ|保存|入力|投稿)' + VOICE_TRIGGER_SEP + '(?:して)?' + VOICE_TRIGGER_SEP + '$', 'gi');
+  const candidate = t.replace(re, '');
+  if(candidate.replace(/[\s、,，]/g,'').length >= 2) t = candidate;
+  // 3) 先頭：CAT [助詞] VERB [区切り]
+  re = new RegExp('^' + VOICE_TRIGGER_SEP + VOICE_TRIGGER_CAT_NOUN + VOICE_TRIGGER_SEP + VOICE_TRIGGER_PARTICLE + VOICE_TRIGGER_SEP + VOICE_TRIGGER_VERB + VOICE_TRIGGER_SEP + '[:：!！]?' + VOICE_TRIGGER_SEP, 'gi');
+  t = t.replace(re, '');
+  // 4) 残った末尾助詞・両端の区切り
+  t = t.replace(/[をにへはがで、,，\s　]+$/g, '');
+  t = t.replace(/^[、,，\s　]+/g, '');
+  return t.trim();
+}
+
 /* 短文音声からカテゴリ + 主要フィールドを抽出 */
 function parseVoiceIntent(rawText) {
   const text = voiceCorrectText(rawText);
-  const cls  = classifyHokuInput(text);
+  const cls  = classifyHokuInput(text);  // 分類は full text で
   const member = voiceResolveMember(text);
   const date   = voiceResolveDate(text);
   const time   = voiceResolveTime(text);
   const amount = voiceResolveAmount(text);
   const temp   = voiceResolveTemp(text);
 
-  // タイトル / 内容の抽出：句読点・読点・スペースで分割した短い断片を中心に
-  const tokens = text.split(/[、,，\s　・]+/).filter(Boolean);
+  // タイトルはトリガー句を除いてから抽出（バグ修正：「を予定追加」等が残らないように）
+  const titleSrc = stripTriggerPhrases(text);
+  const tokens = titleSrc.split(/[、,，\s　・]+/).filter(Boolean);
   // メタトークン（既に拾ったもの）を除外して残りを title 候補に
   const META = /^(明日|今日|明後日|昨日|本日|来週|今週|来月|月曜|火曜|水曜|木曜|金曜|土曜|日曜|朝|昼|夜|晩|夕方|午前|正午)$/;
   const metaPicked = new Set();
@@ -10315,7 +10368,8 @@ function parseVoiceIntent(rawText) {
     }
   }
   const titleTokens = tokens.filter(t => !metaPicked.has(t));
-  const title = titleTokens.join(' ').trim();
+  // 末尾助詞を更にトークン単位でも掃除
+  const title = titleTokens.join(' ').replace(/[をにへはがで]+$/,'').trim();
 
   // 不足判定
   const missing = [];
@@ -10335,6 +10389,263 @@ function parseVoiceIntent(rawText) {
     missing,
     confidence: cls.score >= 5 ? 'high' : (cls.score >= 3 ? 'medium' : 'low')
   };
+}
+
+/* ============================================================
+   Wave 52 — HOKU INTENT ENGINE (unified entry point)
+   parseHokuIntent / executeHokuAction
+   - テキスト・音声を共通シェイプへ
+   - intentType に基づき登録先を分岐
+   - 既存 parseVoiceIntent / classifyHokuInput / m-voice-confirm を破壊しない
+   ============================================================ */
+
+/* intentType → 保存先メタ。確認モーダル経由で保存するものは uiCat を持つ。 */
+const HOKU_INTENT_META = {
+  calendar_add:           { uiCat:'calendar', store:'S.events',     label:'カレンダー' },
+  task_add:               { uiCat:'task',     store:'S.tasks',      label:'タスク' },
+  budget_add:             { uiCat:'budget',   store:'S.txs',        label:'家計' },
+  prep_add:               { uiCat:'prep',     store:'S.prep',       label:'準備リスト' },
+  prep_routine_add:       { uiCat:'prep',     store:'S.prepRoutines', label:'準備ルーティン', isRoutine:true },
+  health_add:             { uiCat:'health',   store:'S.health',     label:'体調管理' },
+  board_post_add:         { uiCat:'board',    store:'S.announces',  label:'家族ボード' },
+  notification_add:       { uiCat:null,       store:'S.notifs',     label:'通知' },
+  external_calendar_help: { uiCat:null,       store:null,           label:'外部カレンダー連携案内' },
+  settings_help:          { uiCat:null,       store:null,           label:'設定案内' },
+  unknown:                { uiCat:null,       store:null,           label:'要確認' }
+};
+
+/* 曜日抽出ヘルパー（0=日 〜 6=土） */
+function _hokuExtractWeekday(text) {
+  const m = text.match(/(月|火|水|木|金|土|日)曜/);
+  if(!m) return null;
+  return ['日','月','火','水','木','金','土'].indexOf(m[1]);
+}
+
+/* 簡易な薬名抽出（既知 + 「○○の薬」「薬を飲んだ」のフラグ） */
+const HOKU_MEDICINE_TOKENS = ['カロナール','解熱剤','咳止め','鼻水の薬','抗生剤','整腸剤','タミフル','ポララミン','ムコダイン'];
+function _hokuExtractMedicine(text) {
+  for(const m of HOKU_MEDICINE_TOKENS) if(text.indexOf(m) >= 0) return m;
+  if(text.match(/薬.*(飲んだ|あり|服用|処方)/)) return '薬';
+  if(text.match(/飲んだ/) && text.match(/カロナール|解熱|咳止|抗生/)) return '薬';
+  return null;
+}
+
+/* 症状抽出（既存 voiceCorrectText で正規化済みテキストに対し） */
+const HOKU_SYMPTOM_TOKENS = ['咳','鼻水','発熱','頭痛','腹痛','嘔吐','下痢','だるい','喉痛い','食欲なし','寝不足','便秘','湿疹','じんましん'];
+function _hokuExtractSymptoms(text) {
+  const found = [];
+  for(const s of HOKU_SYMPTOM_TOKENS) if(text.indexOf(s) >= 0) found.push(s);
+  return found;
+}
+
+/* 家計カテゴリ推定（食費・交通費・日用品 等） */
+function _hokuExtractBudgetCategory(text) {
+  if(text.match(/スーパー|食材|惣菜|外食|ランチ|弁当|食費/)) return '食費';
+  if(text.match(/電車|バス|タクシー|交通費|ガソリン/)) return '交通費';
+  if(text.match(/薬局|医院|病院|診察|医療費|薬代/)) return '医療費';
+  if(text.match(/日用品|洗剤|歯磨|ティッシュ|トイレットペーパー/)) return '日用品';
+  if(text.match(/習い事|レッスン|月謝|塾|スイミング.*代|ピアノ.*代/)) return '習い事';
+  if(text.match(/保育園|保育料|幼稚園.*代|学校.*費/)) return '教育費';
+  if(text.match(/コンビニ/)) return '食費';
+  return null;
+}
+
+/* 収入/支出判定 */
+function _hokuExtractTxType(text) {
+  if(text.match(/入金|給料|給与|振込|入った|もらった|収入/)) return 'income';
+  if(text.match(/支出|使った|払った|買った|買い物|計上|引き落とし|支払/)) return 'expense';
+  return 'expense'; // 既定は支出
+}
+
+/* 統一エントリーポイント — テキスト/音声両対応 */
+function parseHokuIntent(rawText, source) {
+  source = source === 'voice' ? 'voice' : 'text';
+  const raw = String(rawText || '');
+  const text = voiceCorrectText(raw);
+
+  // 1) ヘルプ系（先に判定）— 登録ではなく案内
+  if(text.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|LINE.*カレンダー|\.ics|ics.*書き|ics.*取|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/i)) {
+    return _hokuMakeIntent('external_calendar_help', raw, text, source, 0.9, {});
+  }
+  if(text.match(/(設定|プロフィール|家族構成|メンバー(追加|編集|削除)|アバター(変更|編集))/) && text.match(/(教えて|変えたい|変更|どうやって|どこ|やり方)/)) {
+    return _hokuMakeIntent('settings_help', raw, text, source, 0.85, {});
+  }
+
+  // 2) 通知 / リマインド（弱い登録系）
+  const isNotificationLike =
+    text.match(/(通知|リマインド|思い出させて|あとで教えて|忘れないように.*知らせ|アラーム|朝に.*教えて|前日に.*教えて)/);
+
+  // 3) 準備ルーティン（毎週 + 曜日 + 持ち物）
+  const isRoutineLike =
+    text.match(/(毎週|毎月|曜日.*ルーティン|ルーティン.*曜日|時間割)/) &&
+    (_hokuExtractWeekday(text) != null) &&
+    text.match(/(持|準備|体操服|連絡帳|水筒|プールバッグ|給食袋|上履き|お着替え)/);
+
+  // 4) ベース解析（既存 parseVoiceIntent を再利用）
+  const v = parseVoiceIntent(text);
+
+  // 5) intentType マッピング
+  let intentType = 'unknown';
+  if(isRoutineLike) {
+    intentType = 'prep_routine_add';
+  } else if(isNotificationLike && (!v.category || v.category === 'notification')) {
+    intentType = 'notification_add';
+  } else if(v.category) {
+    const map = {
+      calendar:'calendar_add', task:'task_add', prep:'prep_add',
+      budget:'budget_add', health:'health_add', board:'board_post_add',
+      notification:'notification_add'
+    };
+    intentType = map[v.category] || 'unknown';
+  }
+
+  // 6) スコア → 0..1 confidence
+  const sc = v.score || 0;
+  let confidence = 0;
+  if(sc >= 6) confidence = 0.92;
+  else if(sc >= 4) confidence = 0.78;
+  else if(sc >= 3) confidence = 0.62;
+  else if(sc >= 2) confidence = 0.45;
+  else confidence = 0.25;
+  if(intentType === 'unknown') confidence = Math.min(confidence, 0.35);
+  if(intentType === 'external_calendar_help' || intentType === 'settings_help') confidence = 0.9;
+
+  // 7) Entities
+  const memName = v.member ? (memberNameById(v.member) || '') : '';
+  const symptoms = (intentType === 'health_add') ? _hokuExtractSymptoms(text) : [];
+  const medicine = (intentType === 'health_add') ? _hokuExtractMedicine(text) : null;
+  const budgetCat = (intentType === 'budget_add') ? _hokuExtractBudgetCategory(text) : null;
+  const txType = (intentType === 'budget_add') ? _hokuExtractTxType(text) : null;
+  const weekday = (intentType === 'prep_routine_add') ? _hokuExtractWeekday(text) : null;
+
+  const entities = {
+    memberId: v.member || null,
+    memberName: memName,
+    title: v.title || '',
+    date: v.date || null,
+    time: v.time || null,
+    amount: v.amount != null ? v.amount : null,
+    category: budgetCat,
+    txType: txType,
+    temperature: v.temp != null ? v.temp : null,
+    symptoms: symptoms,
+    medicine: medicine,
+    weekday: weekday,
+    memo: ''
+  };
+
+  // 8) 不足フィールド & 必要確認
+  const missingFields = [];
+  if(intentType === 'calendar_add') {
+    if(!entities.title) missingFields.push('title');
+    if(!entities.date) missingFields.push('date');
+  } else if(intentType === 'task_add') {
+    if(!entities.title) missingFields.push('title');
+  } else if(intentType === 'budget_add') {
+    if(entities.amount == null) missingFields.push('amount');
+  } else if(intentType === 'prep_add') {
+    if(!entities.title) missingFields.push('title');
+  } else if(intentType === 'prep_routine_add') {
+    if(!entities.title) missingFields.push('title');
+    if(entities.weekday == null) missingFields.push('weekday');
+  } else if(intentType === 'health_add') {
+    if(!entities.memberId) missingFields.push('member');
+    if(entities.temperature == null && !entities.symptoms.length && !entities.medicine) missingFields.push('healthDetail');
+  } else if(intentType === 'board_post_add') {
+    if(!entities.title) missingFields.push('title');
+  }
+
+  // 9) 曖昧判定（best と secondary が拮抗）
+  const ambiguous = !!(v.secondary && v.score && (v.score - (v.score - 1)) < 2 && intentType !== 'unknown' && intentType !== 'external_calendar_help' && intentType !== 'settings_help'
+    && (text.length <= 12 && !text.match(/カレンダー|タスク|準備|家計|体調|家族ボード/)));
+
+  return _hokuMakeIntent(intentType, raw, text, source, confidence, entities, {
+    missingFields,
+    ambiguous,
+    secondary: v.secondary || null,
+    score: v.score || 0
+  });
+}
+
+function _hokuMakeIntent(intentType, raw, text, source, confidence, entities, extra) {
+  extra = extra || {};
+  const meta = HOKU_INTENT_META[intentType] || HOKU_INTENT_META.unknown;
+  const needsConfirmation = !!meta.uiCat; // 保存系は確認必須
+  return {
+    rawText: raw,
+    normalizedText: text,
+    source: source,
+    intentType: intentType,
+    confidence: confidence,
+    needsConfirmation: needsConfirmation,
+    missingFields: extra.missingFields || [],
+    ambiguous: !!extra.ambiguous,
+    secondary: extra.secondary || null,
+    score: extra.score || 0,
+    entities: entities || {},
+    action: { targetStore: meta.store, operation: meta.uiCat ? 'add' : 'help' }
+  };
+}
+
+/* 不足情報がある場合の Hoku 質問文（短文返答） */
+function _hokuAskBackMessage(intent) {
+  const t = intent && intent.intentType;
+  if(t === 'budget_add')   return '金額が読み取れませんでした。「○○円」のように金額を含めて教えてください。\n例：スーパーで3,200円使った';
+  if(t === 'health_add')   return '誰の体調を記録しますか？体温・症状・薬名のいずれかも一緒に教えてください。\n例：星汰が37.8度で咳あり';
+  if(t === 'prep_add')     return '準備リストに何を追加しますか？\n例：明日、星斗の体操服を準備に追加';
+  if(t === 'calendar_add') return 'スケジュールの内容を教えてください。日付・時刻・対象が分かるとそのまま登録できます。\n例：金曜18時、星旺のスイミング';
+  if(t === 'task_add')     return 'どんなタスクを追加しますか？\n例：明日までに学校へ電話';
+  return '内容をもう少し詳しく教えてください。';
+}
+
+/* 統一ディスパッチャ — intent.intentType に応じて処理を実行 */
+function executeHokuAction(intent) {
+  if(!intent || !intent.intentType) return { ok:false, message:'内容を読み取れませんでした。' };
+
+  // 案内系（保存しない）
+  if(intent.intentType === 'external_calendar_help') {
+    return { ok:true, message: classifierGuidance('calendar', intent.normalizedText, null) || '' };
+  }
+  if(intent.intentType === 'settings_help') {
+    return { ok:true, message: '家族構成 / プロフィール / アバターは「設定」画面から変更できます。\n設定 → プロフィール / 家族メンバーの順で進んでください。' };
+  }
+  if(intent.intentType === 'notification_add') {
+    return { ok:true, message: 'リマインドの内容として承りました。\n現状の Familink ではアプリを開いた時の通知センター表示が中心で、OS のプッシュ通知は v1.0 以降で対応予定です。\n忘れたくない予定は、まずカレンダーへ登録しておくことをおすすめします。' };
+  }
+  if(intent.intentType === 'unknown') {
+    return { ok:false, message:'登録先を判定できませんでした。「予定」「タスク」「準備」「家計」「体調」「家族ボード」のいずれかを含めて、もう一度教えてください。' };
+  }
+
+  // 保存系 → 既存の m-voice-confirm を再利用（_voiceParsed をセットして開く）
+  const meta = HOKU_INTENT_META[intent.intentType];
+  if(!meta || !meta.uiCat) return { ok:false, message:'対応する登録先がありません。' };
+
+  // 既存 _voiceParsed シェイプへ橋渡し
+  _voiceParsed = {
+    raw: intent.rawText,
+    text: intent.normalizedText,
+    category: meta.uiCat,
+    secondary: intent.secondary,
+    score: intent.score,
+    member: intent.entities.memberId || null,
+    date:   intent.entities.date || null,
+    time:   intent.entities.time || null,
+    amount: intent.entities.amount,
+    temp:   intent.entities.temperature,
+    title:  intent.entities.title || '',
+    missing: intent.missingFields || [],
+    confidence: intent.confidence >= 0.85 ? 'high' : (intent.confidence >= 0.55 ? 'medium' : 'low'),
+    isRoutine: !!meta.isRoutine,
+    weekday: intent.entities.weekday,
+    medicine: intent.entities.medicine,
+    symptoms: intent.entities.symptoms || [],
+    budgetCat: intent.entities.category,
+    txType: intent.entities.txType
+  };
+  hokuVoiceSetPhase('confirming');
+  voiceConfirmRender();
+  openModal('m-voice-confirm');
+  return { ok:true, message:'内容を確認してください。修正があればその場で編集できます。', opened:'m-voice-confirm' };
 }
 
 /* カテゴリ別ラベル */
@@ -10417,8 +10728,16 @@ function voiceConfirmRender() {
   if(header) {
     if(p.category) {
       const memName = p.member ? (getMem(p.member)?.name || '') : '';
-      header.innerHTML = `<b>${VOICE_CAT_ICON[p.category]} ${VOICE_CAT_LABEL[p.category]}</b> に追加します`
+      const rtSuffix = p.isRoutine ? '（曜日ルーティン）' : '';
+      let html = `<b>${VOICE_CAT_ICON[p.category]} ${VOICE_CAT_LABEL[p.category]}${rtSuffix}</b> に追加します`
         + (memName ? `（対象：${memName}）` : '');
+      // 不足情報の注意
+      if(Array.isArray(p.missing) && p.missing.length) {
+        const labels = { title:'タイトル', date:'日付', time:'時刻', member:'対象メンバー', amount:'金額', temp:'体温', healthDetail:'体温/症状/薬のいずれか', weekday:'曜日' };
+        const miss = p.missing.map(k => labels[k] || k).join(' / ');
+        html += `<div style="font-size:11px;color:var(--orange,#e08a3a);margin-top:6px;">⚠ 不足項目：${miss}（下のフォームで補えます）</div>`;
+      }
+      header.innerHTML = html;
     } else {
       header.innerHTML = '登録先を判定できませんでした。下から選んでください。';
     }
@@ -10468,24 +10787,40 @@ function voiceConfirmSave() {
       saved = true;
     } else if(cat === 'prep') {
       const prepText = title || (note || '持ち物');
-      // member は vc-member の value（memberId）。新スキーマで memberId と表示名を分けて保存
+      const _isRoutine = !!(_voiceParsed && _voiceParsed.isRoutine);
       const _mName = member ? (memberNameById(member) || '') : '';
       const _now = new Date().toISOString();
-      const prepItem = { id:uid(), text:prepText, cat:'学校', done:false, date };
-      if(member) { prepItem.memberId = member; prepItem.member = _mName; }
-      prepItem.createdAt = _now;
-      prepItem.updatedAt = _now;
-      S.prep.push(prepItem);
+      if(_isRoutine) {
+        if(!Array.isArray(S.prepRoutines)) S.prepRoutines = [];
+        const wd = (_voiceParsed && Number.isInteger(_voiceParsed.weekday)) ? _voiceParsed.weekday : 1; // 既定：月曜
+        S.prepRoutines.push({
+          id:uid(), memberId: member || '',
+          weekday: wd, // 0=日 〜 6=土
+          title: prepText, cat:'学校',
+          notify:'both', enabled:true,
+          createdAt:_now, updatedAt:_now
+        });
+      } else {
+        const prepItem = { id:uid(), text:prepText, cat:'学校', done:false, date };
+        if(member) { prepItem.memberId = member; prepItem.member = _mName; }
+        prepItem.createdAt = _now;
+        prepItem.updatedAt = _now;
+        S.prep.push(prepItem);
+      }
       saved = true;
     } else if(cat === 'budget') {
       if(!isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
-      S.txs.push({ id:uid(), type:'expense', amount:amount, cat:'食費', desc: title || note || '音声入力', date, member: member||'kenya' });
+      const _bCat  = (_voiceParsed && _voiceParsed.budgetCat) ? _voiceParsed.budgetCat : '食費';
+      const _bType = (_voiceParsed && _voiceParsed.txType === 'income') ? 'income' : 'expense';
+      S.txs.push({ id:uid(), type:_bType, amount:amount, cat:_bCat, desc: title || note || '音声入力', date, member: member||'kenya' });
       saved = true;
     } else if(cat === 'health') {
       // 体温は任意（薬の記録だけのケースも許容）
       const memberId = member || 'seito';
       const mem = MEMBERS.find(m => m.id === memberId);
-      const symptoms = title ? title.split(/[、,・\s]+/).filter(Boolean) : [];
+      const _vpSymptoms = (_voiceParsed && Array.isArray(_voiceParsed.symptoms) && _voiceParsed.symptoms.length) ? _voiceParsed.symptoms.slice() : null;
+      const _vpMedicine = (_voiceParsed && _voiceParsed.medicine) ? _voiceParsed.medicine : '';
+      const symptoms = _vpSymptoms || (title ? title.split(/[、,・\s]+/).filter(Boolean) : []);
       const status = isFinite(temp) && temp >= 37.5 ? '発熱' : (symptoms.length ? symptoms[0] : (title || '元気'));
       const isoNow = new Date().toISOString();
       const now = new Date();
@@ -10499,7 +10834,7 @@ function voiceConfirmSave() {
         status,
         cond: symptoms.join('・') || status,
         symptoms,
-        medicine: '', meds: '',
+        medicine: _vpMedicine || '', meds: _vpMedicine || '',
         medicineTime: '',
         visitedHospital: false, hospitalName: '',
         appetite: '', sleep: '', stool: '',
