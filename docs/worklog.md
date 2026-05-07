@@ -5904,3 +5904,117 @@ Wave 57: 設定再編 + ホーム通知ベル + 書類保管庫復活 + アル�
 
 ### コミット
 - メッセージ: `wave 57: settings reshuffle + home notification bell + bring back 書類保管庫 + new アルバム`
+
+## 2026-05-07 22:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 57.2: バックアップ取得（v3.1 / Wave 57.1 スナップショット）
+
+### 変更ファイル
+- docs/worklog.md（このエントリのみ）
+- リポジトリに backup ブランチを追加：`backup/014-v3.1-near-ideal-archive-album`
+
+### 内容
+- 「現段階でバックアップを取り確実に保存してください」の依頼に応じてリモートにバックアップ枝を作成
+- 起点：default branch `claude/merge-and-push-main-u44Ty` の HEAD = `da0ad96`
+- ブランチ：`backup/014-v3.1-near-ideal-archive-album`
+- ローカル / リモート（origin）双方に存在を確認
+- docs/index.html md5：`01bda90a2230c325cb1af5b5867ad8cb`（バックアップ先・現在の default 一致）
+- タグ `v3.1-wave57` も付与しようとしたが、Git プロキシが tag push を 403 で拒否したためタグはローカルのみ。**ブランチでの保存は成功**しているので復元・参照は問題なし
+
+### バックアップに含まれる主な機能（Wave 53〜57.1）
+- Wave 53: タスク画面の音声入力（マイク + m-task-edit prefill）
+- Wave 54: 買い物リスト 3 タブ画面（リスト / よく購入するもの / 購入履歴 / Hoku 連携）
+- Wave 55: 準備リスト時間割化（subject / quantity / カテゴリ刷新 / サンプル時間割 / Hoku 多重持ち物）
+- Wave 55.1: prep_routine_add パーサーバグ修正（X曜は対応 / クリーン title）
+- Wave 56: 設定・メニューから重複ナビ削除（ホーム/カレンダー/タスク/家族ボード/準備/体調/家計/Hoku）
+- Wave 57: 通知 + はじめてガイド削除 / ホーム右上の通知ベル / 書類保管庫復活 / アルバム新設
+- Wave 57.1: フッター v3.1 表示（キャッシュ判別用）
+
+### 復元方法（メモ）
+```
+git fetch origin
+git checkout -b restore-from-backup origin/backup/014-v3.1-near-ideal-archive-album
+# または default に戻すなら：
+git checkout claude/merge-and-push-main-u44Ty
+git reset --hard origin/backup/014-v3.1-near-ideal-archive-album
+```
+
+### 既存バックアップ系列との関係
+- 013-perfect-100（Wave 11 期、過去）
+- 014-v3.1-near-ideal-archive-album（**今回**：Wave 57.1 / v3.1）
+
+### 次にやること
+- ユーザーが iPhone Safari のキャッシュを破棄して v3.1 表記を確認 → 通知が消えていることを目視確認
+- アルバム / 書類保管庫の実機操作（撮影 → アップロード → 表示 → 削除）
+
+### コミット
+- メッセージ: バックアップ枝作成のみのため、本ブランチ（unicorn-product）への新規コミットは worklog 追記用 1 件
+
+## 2026-05-07 22:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 58: 世界最高峰の品質スイープ（静的解析 + シナリオ27件 + 分類精度3件 + 容量保護）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 静的解析の結果
+- onclick 参照する関数：537 個 / すべて存在（false positive 6 件は DOM API メソッド）
+- 画面 ID 参照：20 / 20 整合（壊れたナビゼロ）
+- モーダル ID 参照：27 / 27 整合（壊れた openModal/closeModal ゼロ）
+- XSS リスク：実質ゼロ（H() 一貫適用 + confirm/toast はテキスト出力）
+
+### 修正した分類精度バグ（VM 検証済み）
+| 入力 | 旧 | 新 |
+|---|---|---|
+| 5万円給与振込 | unknown | budget_add (給与/振込/入金/ボーナス系を +3) |
+| 昨日カロナール飲んだ | unknown | health_add (既知薬名トークン単体で +3) |
+| 明日までに学校へ電話 | calendar_add | task_add ("までに+動詞" を +4 / 動詞リストに 電話/連絡/予約/送る/申し込み 等を追加) |
+
+### 追加した容量保護（Wave 58）
+- `saveS()` が boolean を返すように変更：QuotaExceededError を捕捉し toast で通知
+- `downscaleImageFile(file, maxDim=1280, quality=0.85)` を新設：写真を canvas で自動ダウンスケール → JPEG 化
+- `archiveOnPhotoPicked` / `albumOnFilesPicked` がダウンスケール後の dataUrl を保存
+- 結果：1 枚 5MB クラスの写真が ~150-300KB へ。LocalStorage 5-10MB 制約下でも実用十分
+
+### 統合シナリオテスト（27 / 27 PASS）
+- 買い物リスト全ライフサイクル：active → よく買う → 購入済み → 履歴 → 再追加（dup 警告含む 9 項目）
+- 準備ルーティン：3 件登録 → 教科グループ表示 → 数量チップ → 月曜/水曜表示（5 項目）
+- Hoku 多重持ち物：「火曜は算数ノートと計算ドリル」→ 2 件 routine（6 項目）
+- Hoku 単品クリーンタイトル：「毎週月曜、太郎の国語の教科書」→ title=国語の教科書 (3 項目)
+- サンプル時間割の冪等性：1 回目 12 件 / 2 回目 0 件追加（2 項目）
+- saveS 成功時 true 返却（1 項目）
+- 全 13 画面の empty + populated render 各 13 項目が boot エラーゼロ
+
+### Hoku 22 種の意図分類マトリックス（全件 PASS）
+calendar_add 5 / task_add 2 / shopping系 5 / budget_add 2 / health_add 2 / prep系 4 / external_calendar_help 1 / settings_help 1 / notification_add 1 → 失敗 0 件
+
+### 既存機能への影響
+- 加算的拡張のみ（既存ロジック温存）
+- 既存 LocalStorage キー / 既存データすべて保持
+- 既存ルーティン CRUD / 確認モーダル / Hoku 確認モーダルの導線無変更
+
+### md5 同期
+- `55eadd3fcde15d7ce81daa6566ade42f`
+
+### iPhone 確認ポイント（実機要再検証）
+1. 設定画面の「家族の保管 → アルバム」で写真選択 → 自動圧縮されて保存（複数同時可）
+2. 設定画面の「家族の保管 → 書類保管庫」で書類追加時に写真をダウンスケールして添付
+3. 容量上限到達時にトーストで通知される
+4. Hoku に「給与5万円振込」→ 家計確認モーダル
+5. Hoku に「カロナールを飲んだ」→ 体調確認モーダル
+6. Hoku に「明日までに学校へ電話」→ タスク確認モーダル
+
+### 未対応
+- 画像のアスペクト比保持の細かい品質調整（必要なら次 Wave）
+- 古い album/archive エントリの batch 圧縮機能
+
+### 次にやること
+- バックアップ系列に Wave 58 スナップショット
+- 大量データ時のリスト仮想化（パフォーマンス）
+
+### コミット
+- メッセージ: `wave 58: world-class quality sweep - classifier accuracy + storage resilience + 27 scenario tests`
