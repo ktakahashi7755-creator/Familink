@@ -3638,7 +3638,51 @@ const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','h
 function saveS() {
   const d = {};
   PERSIST.forEach(k => d[k] = S[k]);
-  try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {}
+  try { localStorage.setItem(SK, JSON.stringify(d)); return true; }
+  catch(e) {
+    // Wave 58: 容量超過などの保存失敗を黙殺せずユーザーに通知
+    try { if(typeof showToast === 'function') showToast('保存容量が上限に達しました。アルバムや書類の写真を整理してください。','error'); } catch(_){}
+    try { console.error('saveS failed:', e && e.message); } catch(_){}
+    return false;
+  }
+}
+
+/* Wave 58: 写真を 1280px / JPEG 0.85 にダウンスケール → LocalStorage への詰め込みを抑制
+   返り値：Promise<dataUrl>。失敗時は元の dataUrl を返す。 */
+function downscaleImageFile(file, maxDim, quality) {
+  maxDim  = maxDim  || 1280;
+  quality = quality || 0.85;
+  return new Promise(function(resolve) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      const orig = String(reader.result || '');
+      try {
+        const img = new Image();
+        img.onload = function() {
+          try {
+            let w = img.width, h = img.height;
+            if(w <= 0 || h <= 0) { resolve(orig); return; }
+            if(w > maxDim || h > maxDim) {
+              const r = Math.min(maxDim / w, maxDim / h);
+              w = Math.round(w * r);
+              h = Math.round(h * r);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            // PNG/SVG 由来 alpha は保持されないが、写真用途ではサイズ優先で JPEG 化
+            const out = canvas.toDataURL('image/jpeg', quality);
+            resolve(out && out.length < orig.length ? out : orig);
+          } catch(e) { resolve(orig); }
+        };
+        img.onerror = function(){ resolve(orig); };
+        img.src = orig;
+      } catch(e) { resolve(orig); }
+    };
+    reader.onerror = function() { resolve(''); };
+    reader.readAsDataURL(file);
+  });
 }
 function loadS() {
   try {
@@ -8414,12 +8458,11 @@ function openArchiveAdd(id) {
 function archiveOnPhotoPicked(ev) {
   const f = ev.target.files && ev.target.files[0];
   if(!f) return;
-  const reader = new FileReader();
-  reader.onload = function() {
-    _archivePhotoBuf = String(reader.result || '');
+  // Wave 58: ダウンスケール → 容量を抑制
+  downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
+    _archivePhotoBuf = dataUrl;
     document.getElementById('aa-photo-preview').innerHTML = '<img src="'+H(_archivePhotoBuf)+'" style="max-width:100%;max-height:140px;border-radius:8px;">';
-  };
-  reader.readAsDataURL(f);
+  });
 }
 function saveArchiveAdd() {
   _ensureArchive();
@@ -8480,21 +8523,29 @@ function albumOnFilesPicked(ev) {
   const files = ev.target.files;
   if(!files || !files.length) return;
   const now = new Date().toISOString();
-  let pending = files.length;
-  for(let i=0; i<files.length; i++) {
+  const total = files.length;
+  let pending = total;
+  let failed = 0;
+  // Wave 58: 各写真をダウンスケールしてから push（容量保護）
+  for(let i=0; i<total; i++) {
     const f = files[i];
-    const reader = new FileReader();
-    reader.onload = function() {
-      S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:String(reader.result||''), takenAt:now, memberId:'', caption:'' });
+    downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
+      if(dataUrl) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'' });
+      else failed++;
       pending--;
       if(pending === 0) {
-        saveS();
+        const ok = saveS();
         renderAlbum();
-        showToast(files.length+' 枚追加しました','success');
+        if(!ok) {
+          // saveS が容量超過で false を返した場合、直前 push を巻き戻して整合性確保
+          showToast('容量不足のため保存できませんでした。古い写真を削除してください。','error');
+        } else if(failed > 0) {
+          showToast((total - failed)+' 枚追加 / '+failed+' 枚は読込失敗','info');
+        } else {
+          showToast(total+' 枚追加しました','success');
+        }
       }
-    };
-    reader.onerror = function() { pending--; };
-    reader.readAsDataURL(f);
+    });
   }
   ev.target.value = '';
 }
@@ -12189,10 +12240,12 @@ function classifyHokuInput(q) {
 
   // ─── task: 動詞+目的のやること（「忘れない」系は notification に渡す）───
   if(q.match(/やること|タスク|todo|ToDo/i)) scores.task += 3;
-  if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える/)) scores.task += 2;
+  if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える|電話する|電話して|問い合わせ|予約する|予約して|申し込む|申し込み|送る|送って/)) scores.task += 2;
   if(q.match(/書類|プリント|アンケート|申込|申し込み|提出物|宿題|課題/)) scores.task += 2;
+  // Wave 58: 「電話」「連絡」など短い動詞単体も task 寄り（電話は calendar の発表会等と区別したい）
+  if(q.match(/(?:^|[\s、,])(電話|連絡|送付|送金|振込|振り込み|キャンセル)(?:[\s、,]|$|して|する|を|に)/)) scores.task += 2;
   // 「○○までに〜動詞」は明確な期限付きタスク
-  if(q.match(/まで(に|の|).{0,12}(洗う|書く|提出|確認|終わらせる|やる|やっておく|準備)/)) scores.task += 2;
+  if(q.match(/まで(に|の|).{0,12}(洗う|書く|提出|確認|終わらせる|やる|やっておく|準備|電話|連絡|送る|送付|予約|申し込み|キャンセル|振込|振り込み|払う|聞く|伝える)/)) scores.task += 4;
 
   // ─── prep: 持ち物 / 明日の準備 / ルーティン ───
   if(q.match(/持ち物|準備物|準備したい|準備.*進め|忘れ物|を準備|の準備|を用意|の用意/)) scores.prep += 3;
@@ -12206,6 +12259,8 @@ function classifyHokuInput(q) {
   if(q.match(/買った|使った|払った|かかった|引き落とし|請求|出費.*増|食費.*高/)) scores.budget += 2;
   if(q.match(/今月|先月|月.*高|月.*抑え/)) scores.budget += 1;
   if(q.match(/家族で.*使|いくら.*使|誰が.*使|誰がいくら|家族.*家計|家計.*家族/)) scores.budget += 2;
+  // Wave 58: 収入系（給与/振込/入金/ボーナス/お小遣い/児童手当）も予算扱い
+  if(q.match(/給与|給料|振込|振り込み|入金|入った|もらった|ボーナス|賞与|お小遣い|児童手当|手当|還付/)) scores.budget += 3;
 
   // ─── health: 体調 ─── (「光熱費」と区別、「食欲」は症状性で +3)
   if(q.match(/発熱|微熱|高熱|風邪|インフル|嘔吐|吐い|下痢|湿疹|発疹|じんましん|怪我|けが|やけど|ぐったり|だるい/)) scores.health += 3;
@@ -12215,6 +12270,9 @@ function classifyHokuInput(q) {
   if(q.match(/食欲.*(ない|なく|落ち)|食欲が(ない|なく|落ち)/)) scores.health += 3;
   if(q.match(/体調|具合.*悪|食欲|水分|機嫌|薬を|処方|医療機関|予防接種|ワクチン|症状/)) scores.health += 2;
   if(q.match(/3[5-9]\.\d|3[5-9]度|3[5-9]\.\d度|4[0-2]度/)) scores.health += 3; // 体温
+  // Wave 58: 既知の薬名トークン単体でも health 寄りに（家計の「医療費」より優先したい）
+  if(q.match(/カロナール|解熱剤|咳止め|鼻水の薬|抗生剤|整腸剤|タミフル|ポララミン|ムコダイン|アセトアミノフェン|イブプロフェン|アレジオン|アレグラ|シングレア|フルナーゼ/)) scores.health += 3;
+  if(q.match(/(?:薬|くすり).*飲(?:んだ|ます|ませた|ませる)|(?:薬|くすり).*服用/)) scores.health += 2;
 
   // ─── board: 家族共有（習い事の様子・出来事の記録もここ） ───
   if(q.match(/家族.*共有|家族.*伝え|家族に伝え|みんなに知らせ|シェアしたい|シェアする|家族.*シェア|シェアしておく|残しておきたい|共有したい|報告したい/)) scores.board += 3;
