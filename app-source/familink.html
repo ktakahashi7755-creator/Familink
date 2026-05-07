@@ -3232,6 +3232,15 @@ nav#tabbar.hidden { display: none !important; }
           <option value="その他">その他</option>
         </select>
       </div>
+      <!-- Wave 60.14: 買い物リストのセクション（今すぐ / 次の買い物） -->
+      <div class="field" id="sa-section-field">
+        <div class="field-label">いつ買う？</div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="rt-type-btn" data-section="今すぐ"     onclick="saSelectSection('今すぐ')">今すぐ</button>
+          <button type="button" class="rt-type-btn" data-section="次の買い物" onclick="saSelectSection('次の買い物')">次の買い物</button>
+        </div>
+        <input type="hidden" id="sa-section" value="今すぐ">
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-shop-add')">キャンセル</button>
@@ -4878,10 +4887,20 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
     var iMeta = getIntentMeta(b);
     var items;
     if(b.intent === 'shopping') {
-      // Wave 60.11: shopping-intent ボードは S.shoppingItems からプレビュー描画して
-      // s-shopping 画面と表示を一致させる（boardItems の混在を解消）
+      // Wave 60.11/60.14: shopping-intent ボードは S.shoppingItems を boardSections と紐付けて描画
+      // section 名（'今すぐ' / '次の買い物'）→ boardSections の id にマッピング
+      var sects = (S.boardSections||[]).filter(function(s){ return s.boardId===b.id; });
+      var titleToSecId = {};
+      sects.forEach(function(s){ titleToSecId[s.title] = s.id; });
       items = (S.shoppingItems||[]).map(function(it){
-        return { id:it.id, boardId:b.id, title:it.name, body:it.qty||'', category:it.category||'', childId:it.assignedTo||'', status:it.status||'', order:0, createdAt:it.createdAt };
+        var secTitle = it.section || '今すぐ';
+        return {
+          id:it.id, boardId:b.id,
+          title:it.name, body:it.qty||'',
+          category:it.category||'', childId:it.assignedTo||'',
+          status:it.status||'', order:0, createdAt:it.createdAt,
+          sectionId: titleToSecId[secTitle] || (sects[0] && sects[0].id) || ''
+        };
       });
     } else {
       items = (S.boardItems||[]).filter(function(x){ return x.boardId===b.id; });
@@ -9345,7 +9364,7 @@ function openShopAdd(idOrPayload) {
   const mode = isFreq ? 'frequent' : 'list';
   document.getElementById('m-shop-add-title').textContent = isFreq ? 'よく購入するものを追加' : '買い物を追加';
   document.getElementById('sa-mode').value = mode;
-  let id = '', name = '', qty = '', cat = '';
+  let id = '', name = '', qty = '', cat = '', section = '今すぐ';
   if(typeof idOrPayload === 'string' && idOrPayload) {
     id = idOrPayload;
     const arr = isFreq ? (S.shoppingFrequent||[]) : (S.shoppingItems||[]);
@@ -9354,18 +9373,31 @@ function openShopAdd(idOrPayload) {
       name = it.name || '';
       qty  = isFreq ? (it.defaultQty || '') : (it.qty || '');
       cat  = it.category || '';
+      section = it.section || '今すぐ';
     }
   } else if(idOrPayload && typeof idOrPayload === 'object') {
     name = idOrPayload.name || '';
     qty  = idOrPayload.qty  || '';
     cat  = idOrPayload.category || '';
+    section = idOrPayload.section || '今すぐ';
   }
   document.getElementById('sa-id').value   = id;
   document.getElementById('sa-name').value = name;
   document.getElementById('sa-qty').value  = qty;
   document.getElementById('sa-cat').value  = cat;
+  // Wave 60.14: section 選択（list モードのみ表示）
+  const secField = document.getElementById('sa-section-field');
+  if(secField) secField.style.display = isFreq ? 'none' : '';
+  saSelectSection(section);
   openModal('m-shop-add');
   setTimeout(function(){ document.getElementById('sa-name').focus(); }, 200);
+}
+function saSelectSection(section) {
+  if(['今すぐ','次の買い物'].indexOf(section) < 0) section = '今すぐ';
+  document.getElementById('sa-section').value = section;
+  document.querySelectorAll('#sa-section-field .rt-type-btn').forEach(function(b){
+    b.classList.toggle('selected', b.getAttribute('data-section') === section);
+  });
 }
 function shopEditItem(id) { S.shoppingTab = 'list';     openShopAdd(id); }
 function shopFreqEdit(id) { S.shoppingTab = 'frequent'; openShopAdd(id); }
@@ -9429,12 +9461,15 @@ function saveShopAdd() {
       });
     }
   } else {
+    // Wave 60.14: section（今すぐ / 次の買い物）を保持
+    const section = (document.getElementById('sa-section')?.value) === '次の買い物' ? '次の買い物' : '今すぐ';
     if(id) {
       const it = (S.shoppingItems||[]).find(function(x){ return x.id===id; });
-      if(it) { it.name = name; it.qty = qty; it.category = cat; it.updatedAt = now; }
+      if(it) { it.name = name; it.qty = qty; it.category = cat; it.section = section; it.updatedAt = now; }
     } else {
       S.shoppingItems.push({
         id: 'shop_'+uid(), name: name, qty: qty, category: cat, memo: '',
+        section: section,
         assignedTo: '', status: 'active', createdAt: now, updatedAt: now
       });
     }
@@ -9506,7 +9541,7 @@ function shopFreqToList(id) {
   const now = new Date().toISOString();
   S.shoppingItems.push({
     id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
-    memo: '', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+    memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
   });
   saveS();
   showToast('リストに追加しました','success');
@@ -9706,7 +9741,7 @@ function shopHistRepost(id) {
   const now = new Date().toISOString();
   S.shoppingItems.push({
     id: 'shop_'+uid(), name: h.name, qty: h.qty||'', category: h.category||'',
-    memo: h.memo||'', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+    memo: h.memo||'', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
   });
   saveS();
   showToast('リストに再追加しました','success');
@@ -11108,13 +11143,17 @@ function renderBoardCardPreview(b, items, meta) {
   }
   if(b.type==='prep') {
     const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));
+    // Wave 60.14: shopping-intent は各セクション 2 件まで（買い物カードを見やすく）
+    const perSec = (b.intent === 'shopping') ? 2 : 3;
     const show = sections.length ? sections.slice(0,2).map(sec => {
-      const secItems = items.filter(i=>i.sectionId===sec.id).slice(0,3);
-      return `<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:2px;">${H(sec.title)}</div>`
-        + secItems.map(i=>`<div class="bc-row" style="gap:6px;">
-          <div style="width:8px;height:8px;border-radius:2px;border:1.5px solid ${i.status==='done'?'var(--primary)':'var(--border)'};background:${i.status==='done'?'var(--primary)':'#fff'};flex-shrink:0;margin-top:2px;"></div>
-          <div class="bc-text" style="${i.status==='done'?'text-decoration:line-through;opacity:.5;':''}">${H(i.title)}</div>
-        </div>`).join('');
+      const secItems = items.filter(i=>i.sectionId===sec.id).slice(0, perSec);
+      return `<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:2px;margin-top:4px;">${H(sec.title)}</div>`
+        + (secItems.length === 0
+          ? `<div style="font-size:11px;color:var(--text-muted);opacity:.5;padding-left:14px;">—</div>`
+          : secItems.map(i=>`<div class="bc-row" style="gap:6px;">
+            <div style="width:8px;height:8px;border-radius:2px;border:1.5px solid ${i.status==='done'?'var(--primary)':'var(--border)'};background:${i.status==='done'?'var(--primary)':'#fff'};flex-shrink:0;margin-top:2px;"></div>
+            <div class="bc-text" style="${i.status==='done'?'text-decoration:line-through;opacity:.5;':''}">${H(i.title)}${i.body?`<span style="font-size:10px;color:var(--text-muted);margin-left:4px;">${H(i.body)}</span>`:''}</div>
+          </div>`).join(''));
     }).join('') : items.slice(0,4).map(i=>`<div class="bc-row"><div class="bc-dot" style="background:var(--border)"></div><div class="bc-text">${H(i.title)}</div></div>`).join('');
     return `<div>${show}</div>`;
   }
@@ -13370,7 +13409,7 @@ function _hokuExecuteShopping(intent) {
   let added = 0;
   names.forEach(function(nm){
     S.shoppingItems.push({
-      id:'shop_'+uid(), name: nm, qty:'', category:'', memo:'',
+      id:'shop_'+uid(), name: nm, qty:'', category:'', memo:'', section:'今すぐ',
       assignedTo:'', status:'active', createdAt: now, updatedAt: now
     });
     added++;
@@ -13401,7 +13440,7 @@ function _hokuShoppingAddPending() {
   shopArrays();
   const now = new Date().toISOString();
   names.forEach(function(nm){
-    S.shoppingItems.push({ id:'shop_'+uid(), name:nm, qty:'', category:'', memo:'', assignedTo:'', status:'active', createdAt:now, updatedAt:now });
+    S.shoppingItems.push({ id:'shop_'+uid(), name:nm, qty:'', category:'', memo:'', section:'今すぐ', assignedTo:'', status:'active', createdAt:now, updatedAt:now });
   });
   saveS();
   if(typeof renderHome === 'function') renderHome();
@@ -14413,17 +14452,26 @@ function migrateShoppingFromBoardItems() {
   const boardIdSet = {};
   shopBoards.forEach(function(b){ boardIdSet[b.id] = true; });
   const items = (S.boardItems || []).filter(function(it){ return it && boardIdSet[it.boardId]; });
+  // Wave 60.14: 旧 boardSections のタイトルを section に引き継ぐ（今すぐ / 次の買い物）
+  const sectionTitleById = {};
+  (S.boardSections || []).forEach(function(s){ if(s) sectionTitleById[s.id] = s.title; });
   let migrated = 0;
   const now = new Date().toISOString();
   for(const it of items) {
     const dup = S.shoppingItems.some(function(s){ return s.name === it.title; });
     if(dup) continue;
+    let section = '今すぐ';
+    if(it.sectionId && sectionTitleById[it.sectionId]) {
+      const t = sectionTitleById[it.sectionId];
+      if(t === '今すぐ' || t === '次の買い物') section = t;
+    }
     S.shoppingItems.push({
       id: 'shop_' + uid(),
       name: it.title || '',
       qty: it.body || '',
       category: it.category || '',
       memo: '',
+      section: section,
       assignedTo: it.childId || it.assignee || '',
       status: 'active',
       createdAt: it.createdAt || now,
