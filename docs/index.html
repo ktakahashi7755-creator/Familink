@@ -3281,7 +3281,8 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">通知</div>
-    <button class="header-icon-btn" onclick="markAllRead()" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全既読</button>
+    <button class="header-icon-btn" onclick="markAllRead()" aria-label="全て既読" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全既読</button>
+    <button class="header-icon-btn" onclick="confirmClearAllNotifs()" aria-label="全て削除" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);color:var(--red);">全削除</button>
   </div>
   <div class="scroll-area" id="notif-list" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
 </div>
@@ -10576,27 +10577,61 @@ function renderNotif() {
   }
   el.innerHTML = notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}" onclick="readNotif('${H(n.id)}')">
     <div class="notif-icon">${H(n.icon||'🔔')}</div>
-    <div style="flex:1">
+    <div style="flex:1;min-width:0;">
       <div class="notif-title">${H(n.title)}</div>
       <div class="notif-desc">${H(n.desc||'')}</div>
       <div class="notif-time">${H(jpDate(n.time))}</div>
     </div>
     ${!n.read?'<div class="notif-dot"></div>':''}
+    <button onclick="event.stopPropagation();deleteNotif('${H(n.id)}')" aria-label="この通知を削除" style="background:transparent;border:1px solid var(--border-light);border-radius:8px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;flex-shrink:0;margin-left:6px;">削除</button>
   </div>`).join('');
 }
 
 function readNotif(id) {
   const n = (S.notifs||[]).find(n=>n.id===id); if(n){n.read=true;saveS();renderNotif();}
-  const unread = (S.notifs||[]).filter(n=>!n.read).length;
-  const badge = document.getElementById('notif-badge');
-  if(badge) badge.style.display = unread>0?'flex':'none';
+  _refreshNotifBadges();
 }
 
 function markAllRead() {
   (S.notifs||[]).forEach(n=>n.read=true); saveS(); renderNotif();
-  const badge = document.getElementById('notif-badge');
-  if(badge) badge.style.display='none';
+  _refreshNotifBadges();
   showToast('全て既読にしました');
+}
+
+/* Wave 60.12: 通知 個別削除 / 全削除 */
+function deleteNotif(id) {
+  if(!id) return;
+  S.notifs = (S.notifs||[]).filter(n => n.id !== id);
+  saveS();
+  renderNotif();
+  _refreshNotifBadges();
+  showToast('通知を削除しました','success');
+}
+function confirmClearAllNotifs() {
+  const c = (S.notifs||[]).length;
+  if(!c) { showToast('削除する通知はありません','info'); return; }
+  if(!confirm('通知 '+c+' 件をすべて削除しますか？\nこの操作は元に戻せません。')) return;
+  S.notifs = [];
+  saveS();
+  renderNotif();
+  _refreshNotifBadges();
+  showToast(c+' 件を削除しました','success');
+}
+/* 通知バッジ（ホーム右上ベル + 旧 notif-badge）を再描画 */
+function _refreshNotifBadges() {
+  const unread = (S.notifs||[]).filter(n=>!n.read).length;
+  const badge = document.getElementById('notif-badge');
+  if(badge) badge.style.display = unread>0 ? 'flex' : 'none';
+  // ホームベル（Wave 57）
+  const bellBadge = document.getElementById('home-bell-badge');
+  if(bellBadge) {
+    if(unread > 0) {
+      bellBadge.textContent = unread > 99 ? '99+' : String(unread);
+      bellBadge.style.display = 'block';
+    } else {
+      bellBadge.style.display = 'none';
+    }
+  }
 }
 
 /* ============================================================

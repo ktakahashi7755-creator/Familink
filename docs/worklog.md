@@ -6951,3 +6951,76 @@ if(b.intent === 'shopping') {
 
 ### コミット
 - メッセージ: `wave 60.11: unify home card and s-shopping (boardItems → shoppingItems migration + render switch)`
+
+## 2026-05-08 09:05  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.12: 通知の削除機能（個別削除 + 全削除）
+
+### ユーザー要望
+右上の通知ベルから開く通知画面で、メッセージを削除できる仕組みを追加してほしい。
+
+### 変更内容
+**1. 通知行ごとに「削除」ボタンを追加**
+- 各 `notif-item` 行の右端に灰色 outline の「削除」ボタン
+- `event.stopPropagation()` で行タップ（既読化）と分離
+- `aria-label="この通知を削除"` で読み上げ対応
+- 1 タップで即削除 + toast「通知を削除しました」
+
+**2. ヘッダーに「全削除」ボタンを追加**
+- 既存「全既読」の右隣に赤色テキストで配置
+- 0 件なら toast「削除する通知はありません」
+- 1 件以上なら confirm() で確認後に全削除
+
+**3. 関数追加**
+- `deleteNotif(id)`：個別削除
+- `confirmClearAllNotifs()`：全削除（確認あり）
+- `_refreshNotifBadges()`：旧 `notif-badge` + ホーム右上ベル `home-bell-badge` を統一更新（重複コード削減）
+  - `readNotif` / `markAllRead` / `deleteNotif` / `confirmClearAllNotifs` すべてが呼ぶ
+  - 99+ で頭打ち、0 件で非表示
+
+### テスト結果（新 notif 16/16 PASS + 全 397 PASS）
+- レンダリング 3 件 + 各行に削除ボタン
+- aria-label 付与
+- 個別削除 → 残り 2 件
+- リロード round-trip で削除が永続化
+- ベルバッジが未読数を反映
+- 全既読でバッジ消える
+- 全削除で 0 件、空状態表示
+- 0 件で全削除しても安全
+- XSS：タイトル / desc がエスケープされる
+- 削除と同時にベルバッジが即更新
+
+### 全テストスイート（**397 / 397 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| member-rename | 7 |
+| shop-migrate | 14 |
+| **notif (新)** | **16** |
+| **合計** | **397 / 397 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`e416cdadcaf73fb7737d78bef3ebf92f`
+
+### iPhone 確認シナリオ
+1. ホーム右上のベル → 通知画面
+2. 各通知行の右端「削除」ボタン → 即座に消える + ベルバッジが減る
+3. ヘッダー「全削除」 → 確認ダイアログ → 全件消える
+4. 「全既読」「全削除」が並んで配置されている
+5. リロード後も削除状態が保持される
+
+### コミット
+- メッセージ: `wave 60.12: notification per-item delete + clear-all + unified badge refresh`
