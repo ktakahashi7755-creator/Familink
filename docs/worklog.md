@@ -6560,3 +6560,85 @@ Wave 60.6: モーダル表示中にタブバー自動非表示（保存ボタン
 
 ### コミット
 - メッセージ: `wave 60.6: hide tabbar / FAB while a modal is open (fixes hidden save button)`
+
+## 2026-05-08 07:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.7: 容量不足の根本対応（ストレージ管理画面 + 一括整理 + エラー誘導改善）
+
+### ユーザー報告の問題
+公式アバター選択モーダルで「保存容量が上限に達しました」「容量不足のため保存できませんでした」のトーストが出る。
+
+### 改善策（実装済）
+**1. ストレージ管理モーダル `m-storage` を新設**
+- 設定 → 家族の保管 → **「ストレージ管理」** から起動
+- 使用量プログレスバー（< 70% 青 / 70-90% 黄 / ≥ 90% 赤）
+- 内訳表示：アルバム / 書類保管庫 / メンバーアバター（件数 + バイト数）
+- カテゴリ別アクションボタン：
+  - アルバム：「古い 10 件を削除」「すべて削除」
+  - 書類保管庫：「すべての書類写真を削除」（タイトル・メモは保持）
+  - メンバーアバター：「すべてのアバター写真を削除」（メンバー本体は保持）
+- 各操作前に確認ダイアログ
+- 70%/90% 閾値で警告バナー表示
+- 「IndexedDB へ移行する v0.3 で容量制限を緩和予定」の今後方針を明記
+
+**2. エラートースト 3 箇所を改善**
+- 旧：「古い写真を整理してください」
+- 新：「**設定 → ストレージ管理**から整理してください」
+- ユーザーが具体的にどこへ行けば良いかが明確に
+
+**3. データ整理の堅牢な実装**
+- アルバム古い 10 件削除：`takenAt` 昇順ソートして先頭 N 件を削除
+- 書類写真削除：`d.photo = ''` のみで `d.title / d.memo / d.cat` は保持
+- アバター写真削除：`S.userPhotos[id]` 削除 + `userAvatarType[id]==='customPhoto'` のみクリア（公式アバター設定はそのまま）
+
+**4. 関数群**
+- `getStorageStats()`：`localStorage` 全体サイズ + 内訳バイト数 + 件数 + 使用率
+- `_fmtMB(bytes)`：B / KB / MB の自動切替
+- `openStorageModal()` / `renderStorageModal()` / `storageAction(id)`
+
+### テスト結果
+- 構文 1/1 PASS
+- 既存 264 + 新ストレージ 17 = **281 / 281 PASS**（退行ゼロ）
+- ストレージ専用テスト：
+  - getStorageStats の精度（album/docs/photo の bytes/count）
+  - delete-album-old（古いものから N 件削除）
+  - delete-album-all（全削除）
+  - delete-docs-photos（写真のみクリア / タイトル保持）
+  - delete-avatar-photos（写真のみクリア / 公式アバター保持）
+  - 空配列での冪等性
+
+### フッター更新
+`v3.2.1 → v3.2.2`（Wave 60.7 / ストレージ管理 + 容量整理）
+
+### iPhone 確認ポイント
+1. Safari 完全リロード → フッター = `Familink v3.2.2`
+2. 設定 → 家族の保管 → **「ストレージ管理」** をタップ
+3. 使用量バー + 内訳が表示される
+4. 「古い 10 件を削除」→ 確認ダイアログ → 削除 → アルバムから即時消える
+5. 容量警告のトーストから設定への誘導文言が改善
+
+### 累計テスト件数
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| **storage (新)** | **17** |
+| **合計** | **281 / 281 PASS** |
+
+### 今後の長期対策（v0.3 で実装予定）
+- LocalStorage → IndexedDB 移行で容量制限を 50MB+ に拡大
+- 写真の WebP 化（JPEG より 25-35% 圧縮）
+- 自動古写真クリーンアップ（90 日経過）
+- 端末間同期で写真をクラウドへ退避（Supabase 候補）
+
+### コミット
+- メッセージ: `wave 60.7: storage management screen with breakdown + bulk cleanup actions`

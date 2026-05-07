@@ -3115,6 +3115,19 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
+<!-- Wave 60.7: ストレージ管理モーダル -->
+<div id="m-storage" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">ストレージ管理</div>
+    <div id="storage-body" class="modal-form">
+      <!-- renderStorageModal() で動的生成 -->
+    </div>
+    <div class="modal-actions" style="margin-top:8px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-storage')">閉じる</button>
+    </div>
+  </div>
+</div>
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
@@ -3916,7 +3929,7 @@ function saveS() {
   try { localStorage.setItem(SK, JSON.stringify(d)); return true; }
   catch(e) {
     // Wave 58: 容量超過などの保存失敗を黙殺せずユーザーに通知
-    try { if(typeof showToast === 'function') showToast('保存容量が上限に達しました。アルバムや書類の写真を整理してください。','error'); } catch(_){}
+    try { if(typeof showToast === 'function') showToast("保存容量が上限に達しました。設定 → ストレージ管理から整理してください。","error"); } catch(_){}
     try { console.error('saveS failed:', e && e.message); } catch(_){}
     return false;
   }
@@ -3924,6 +3937,138 @@ function saveS() {
 
 /* Wave 58: 写真を 1280px / JPEG 0.85 にダウンスケール → LocalStorage への詰め込みを抑制
    返り値：Promise<dataUrl>。失敗時は元の dataUrl を返す。 */
+/* Wave 60.7: LocalStorage 容量の見える化 + 一括整理
+   - iPhone Safari は origin あたり 5–10MB 上限
+   - アルバム / 書類 / アバター写真 / 公式アバター（base64）の合計を計測
+   - ユーザーが古い写真を整理できる UI を提供 */
+function getStorageStats() {
+  let totalBytes = 0;
+  try {
+    const v = localStorage.getItem('familink_v3');
+    totalBytes = v ? new Blob([v]).size : 0;
+  } catch(e) {}
+  const sumLen = (arr, key) => (arr||[]).reduce((s, x) => s + ((x && x[key] && x[key].length) || 0), 0);
+  const album   = sumLen(S.albumPhotos, 'dataUrl');
+  const docs    = sumLen(S.docs, 'photo');
+  const photos  = Object.values(S.userPhotos || {}).reduce((s, v) => s + ((v && v.length) || 0), 0);
+  // 推定上限：iPhone Safari 5MB を保守的に採用（実機は 5–10MB）
+  const max = 5 * 1024 * 1024;
+  return {
+    totalBytes, max,
+    albumBytes: album,
+    docsBytes:  docs,
+    photoBytes: photos,
+    albumCount: (S.albumPhotos||[]).length,
+    docsCount:  (S.docs||[]).filter(d=>d && d.photo).length,
+    photoCount: Object.keys(S.userPhotos||{}).length,
+    pct: Math.min(100, Math.round((totalBytes / max) * 100))
+  };
+}
+function _fmtMB(bytes) {
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+function openStorageModal() {
+  renderStorageModal();
+  openModal('m-storage');
+}
+function renderStorageModal() {
+  const s = getStorageStats();
+  const body = document.getElementById('storage-body');
+  if(!body) return;
+  const warn = s.pct >= 90 ? 'danger' : (s.pct >= 70 ? 'warn' : '');
+  const barColor = s.pct >= 90 ? '#DC2626' : (s.pct >= 70 ? '#F59E0B' : '#4A90E2');
+  body.innerHTML = ''
+    + '<div style="background:var(--bg-muted);border-radius:14px;padding:14px;margin-bottom:12px;">'
+    +   '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
+    +     '<span style="font-size:12px;color:var(--text-muted);font-weight:600;">使用中 / 上限</span>'
+    +     '<span style="font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;">'+_fmtMB(s.totalBytes)+' / '+_fmtMB(s.max)+'</span>'
+    +   '</div>'
+    +   '<div style="height:10px;background:var(--border-light);border-radius:6px;overflow:hidden;">'
+    +     '<div style="height:100%;width:'+s.pct+'%;background:'+barColor+';transition:width .3s;"></div>'
+    +   '</div>'
+    +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
+    + '</div>'
+    + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? '⚠ 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
+    + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
+    + _renderStorageRow('🖼 アルバム写真', s.albumBytes, s.albumCount,
+        [['delete-album-old','古い10件を削除', s.albumCount > 0],
+         ['delete-album-all','すべて削除', s.albumCount > 0]])
+    + _renderStorageRow('📂 書類保管庫の写真', s.docsBytes, s.docsCount,
+        [['delete-docs-photos','すべての書類写真を削除', s.docsCount > 0]])
+    + _renderStorageRow('👤 メンバーアバター写真', s.photoBytes, s.photoCount,
+        [['delete-avatar-photos','すべてのアバター写真を削除', s.photoCount > 0]])
+    + '<div style="font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.5;">'
+    +   '※ 写真は自動的に 1280px / JPEG 画質 0.85 で圧縮されます。<br>'
+    +   '※ アルバム・書類本体（タイトル/メモ）は残ります。写真だけが削除されます。<br>'
+    +   '※ App Store 提出後の v0.3 で IndexedDB へ移行し、容量制限を大幅に緩和予定です。'
+    + '</div>';
+}
+function _renderStorageRow(label, bytes, count, actions) {
+  const acts = actions.map(a => {
+    const [id, txt, enabled] = a;
+    return enabled
+      ? '<button onclick="storageAction(\''+id+'\')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid var(--border-light);background:transparent;color:var(--text);cursor:pointer;margin-left:6px;">'+txt+'</button>'
+      : '';
+  }).join('');
+  return '<div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:12px;margin-bottom:8px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+    +   '<span style="font-size:13px;font-weight:700;color:var(--text);">'+label+'</span>'
+    +   '<span style="font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums;">'+count+' 件 / '+_fmtMB(bytes)+'</span>'
+    + '</div>'
+    + (count > 0 ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">'+acts+'</div>' : '')
+    + '</div>';
+}
+function storageAction(id) {
+  if(id === 'delete-album-old') {
+    const arr = (S.albumPhotos||[]).slice().sort((a,b)=>(a.takenAt||'').localeCompare(b.takenAt||''));
+    const targets = arr.slice(0, Math.min(10, arr.length));
+    if(!targets.length) return;
+    if(!confirm('古いアルバム写真 '+targets.length+' 件を削除します。よろしいですか？\n（タイトルやキャプションは残ります — 写真自体は復元できません）')) return;
+    const targetIds = new Set(targets.map(t=>t.id));
+    S.albumPhotos = (S.albumPhotos||[]).filter(p => !targetIds.has(p.id));
+    saveS();
+    renderStorageModal();
+    if(typeof renderAlbum === 'function') renderAlbum();
+    showToast(targets.length+' 件削除しました','success');
+  } else if(id === 'delete-album-all') {
+    const c = (S.albumPhotos||[]).length;
+    if(!c) return;
+    if(!confirm('アルバム写真 '+c+' 件すべてを削除します。\nこの操作は元に戻せません。よろしいですか？')) return;
+    S.albumPhotos = [];
+    saveS();
+    renderStorageModal();
+    if(typeof renderAlbum === 'function') renderAlbum();
+    showToast(c+' 件削除しました','success');
+  } else if(id === 'delete-docs-photos') {
+    const arr = (S.docs||[]).filter(d=>d.photo);
+    if(!arr.length) return;
+    if(!confirm('書類保管庫の写真 '+arr.length+' 件を削除します。\n書類自体（タイトル・メモ）は残ります。よろしいですか？')) return;
+    arr.forEach(d => { d.photo = ''; });
+    saveS();
+    renderStorageModal();
+    if(typeof renderArchive === 'function') renderArchive();
+    showToast(arr.length+' 件の写真を削除しました','success');
+  } else if(id === 'delete-avatar-photos') {
+    const c = Object.keys(S.userPhotos||{}).length;
+    if(!c) return;
+    if(!confirm('メンバーのアバター写真 '+c+' 件すべてを削除します。\nメンバーは残り、アバターはイニシャル+カラーに戻ります。よろしいですか？')) return;
+    S.userPhotos = {};
+    // 写真型のアバタータイプもクリア（公式アバター設定はそのまま）
+    if(S.userAvatarType) {
+      Object.keys(S.userAvatarType).forEach(k => {
+        if(S.userAvatarType[k] === 'customPhoto') delete S.userAvatarType[k];
+      });
+    }
+    saveS();
+    renderStorageModal();
+    if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
+    showToast(c+' 件のアバター写真を削除しました','success');
+  }
+}
+
 function downscaleImageFile(file, maxDim, quality) {
   maxDim  = maxDim  || 1280;
   quality = quality || 0.85;
@@ -9443,7 +9588,7 @@ function albumOnFilesPicked(ev) {
         renderAlbum();
         if(!ok) {
           // saveS が容量超過で false を返した場合、直前 push を巻き戻して整合性確保
-          showToast('容量不足のため保存できませんでした。古い写真を削除してください。','error');
+          showToast("容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。","error");
         } else if(failed > 0) {
           showToast((total - failed)+' 枚追加 / '+failed+' 枚は読込失敗','info');
         } else {
@@ -10523,6 +10668,11 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>','#EC4899')}</div>
         <div class="settings-item-label">アルバム</div><div class="settings-arrow">›</div>
       </div>
+      <!-- Wave 60.7: ストレージ管理（容量不足時の整理画面） -->
+      <div class="settings-item" onclick="openStorageModal()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
+        <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -10536,7 +10686,7 @@ function renderSettings() {
     <!-- Footer -->
     <div class="menu-footer">
       <div class="menu-footer-tagline">家族の毎日を、少しだけラクに。</div>
-      Familink v3.2.1（Wave 60.6 / モーダル表示時にタブバー自動非表示）<br>
+      Familink v3.2.2（Wave 60.7 / ストレージ管理 + 容量整理）<br>
       <span style="font-size:10px">家族運営AI「Hoku」が、毎日の段取りをそっと支えます。</span>
     </div>`;
 }
@@ -10694,7 +10844,7 @@ function onAvatarPhotoPicked(ev) {
       // 保存失敗（容量超過）→ ロールバック
       delete S.userPhotos[_avatarSelectTarget];
       delete S.userAvatarType[_avatarSelectTarget];
-      showToast('容量不足のため保存できませんでした。古い写真を整理してください。','error');
+      showToast("容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。","error");
       return;
     }
     closeModal('m-avatar-select');
