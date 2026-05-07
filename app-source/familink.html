@@ -2541,7 +2541,7 @@ nav#tabbar.hidden { display: none !important; }
 <!-- ===== HOME ===== -->
 <div id="s-home" class="screen hidden">
   <div class="home-header">
-    <button class="home-menu" onclick="go('s-settings')" id="home-avatar-btn">
+    <button class="home-menu" onclick="go('s-settings')" id="home-avatar-btn" aria-label="設定・メニューを開く">
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid"></span>
@@ -10186,7 +10186,7 @@ function openMemberEdit(id) {
   const initialGrad = m ? m.grad : (MEMBER_GRADIENTS.find(function(g){ return !used.has(g); }) || MEMBER_GRADIENTS[0]);
   document.getElementById('me-grad').value = initialGrad;
   wrap.innerHTML = MEMBER_GRADIENTS.map(function(g){
-    return '<button type="button" class="me-grad-swatch '+(g===initialGrad?'selected':'')+'" data-g="'+g+'" onclick="meSelectGrad(this)" style="background:'+g+';"></button>';
+    return '<button type="button" class="me-grad-swatch '+(g===initialGrad?'selected':'')+'" data-g="'+g+'" onclick="meSelectGrad(this)" aria-label="アバター背景色" style="background:'+g+';"></button>';
   }).join('');
   // 削除ボタン（編集時のみ）
   const delBtn = document.getElementById('me-delete-btn');
