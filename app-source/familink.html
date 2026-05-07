@@ -10376,20 +10376,17 @@ function meRefreshAvatarPreview(memberId) {
    - 新規時：先に名前/役割/カラーで保存させる（保存処理を流用） */
 function meOpenAvatarSelect() {
   const id = document.getElementById('me-id').value;
-  if(!id) {
-    // 新規 → 一旦保存して ID を確定させてから開く
-    const name = document.getElementById('me-name').value.trim();
-    if(!name) { showToast('先に名前を入力してください','error'); return; }
-    saveMemberEdit();
-    // saveMemberEdit が closeModal するので、最後に追加された ID を取得して開く
-    const last = MEMBERS[MEMBERS.length - 1];
-    if(last && last.id) {
-      setTimeout(function(){ openOfficialAvatarModal(last.id); }, 200);
-    }
-    return;
+  // Wave 60.10: 新規・編集どちらも、まず現在の入力（名前 / 役割 / カラー）を保存してから
+  // アバターモーダルを開く。これまで編集パスは入力を破棄して閉じていたため、
+  // 「健太」→「せた」のリネーム途中で「変更する」を押すと名前が戻る不具合があった。
+  const name = document.getElementById('me-name').value.trim();
+  if(!name) { showToast('先に名前を入力してください','error'); return; }
+  saveMemberEdit();
+  // saveMemberEdit が closeModal するので、対象 ID を確定してからアバターモーダルを開く
+  const targetId = id || (MEMBERS[MEMBERS.length - 1] && MEMBERS[MEMBERS.length - 1].id);
+  if(targetId) {
+    setTimeout(function(){ openOfficialAvatarModal(targetId); }, 200);
   }
-  closeModal('m-member-edit');
-  setTimeout(function(){ openOfficialAvatarModal(id); }, 200);
 }
 function meSelectRole(role) {
   document.getElementById('me-role').value = role;
