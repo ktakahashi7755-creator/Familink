@@ -6322,3 +6322,66 @@ Wave 60.2: アバターに写真アップロード対応 + 全画面紐付け
 
 ### コミット
 - メッセージ: `wave 60.2: avatar - photo upload from member modal, propagates to all screens`
+
+## 2026-05-08 01:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.3: アバター紐付けを全画面に完全伝播（raw 描画 12 箇所を avHtml 経由へ統一）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 背景（ユーザー報告）
+Wave 60.2 で写真アップロードを実装したが、タスク画面のメンバーフィルタチップ（パ/マ/花/健）と担当バッジ（マ/パ）は写真設定後も色付きイニシャルのまま。理由は **これらの描画箇所が `avHtml` を経由せず raw な `<div class="av" style="background:${m.grad};...">` で描画していた** ため。
+
+### 変更内容
+**raw 描画 → avHtml 経由へ一括変換（12 箇所）**
+全コードベースを走査し、raw な avatar 描画を node script で `${avHtml(id, W, FS, EXTRA)}` に置換。これで `S.userPhotos[id]` / `S.userAvatarType[id]` が全画面で自動反映される。
+
+変換対象画面：
+- タスク画面のメンバーフィルタチップ（30px）
+- タスク行の担当アバターバッジ（26px、opacity 動的式対応）
+- 体調管理のメンバータブ（38px）
+- 家計のメンバー選択ボタン（20px）
+- 準備リストのメンバーチップ（複数サイズ：30/32/14px）
+- 家族ボードのコメント発信者（28px）
+- ボードカードの作成者（36px / 42px）
+
+**avHtml の防御的改善（Wave 60.3）**
+- 不明な memberId（`'all'` / `'common'` のような合成 ID）が渡された場合、`getMem` のフォールバック（MEMBERS[0]）を引き継がず、**中立グレーの `？` プレースホルダ**を返す
+- 写真 / 公式アバター属性を誤って他メンバーから引き継がない
+- 既存の health 'all' タブと家計 'common' タブは raw 描画にフォールバック（合成 ID なので意図的）
+
+### テスト結果
+**新規 avatar-propagation.js (19/19 PASS)**：
+- 15 サイズ全 (14〜56px) で写真が反映される
+- 他メンバーは写真を引き継がない（独立性）
+- 不明 ID は中立アバターで安全描画
+
+**回帰スイート（179 / 179 PASS）**：
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| **avatar-propagation (新)** | **19** |
+| **合計** | **179 / 179 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`e54195bb1705dafdcd97a12a34c57ed7`
+
+### iPhone 確認ポイント
+1. 設定 → 家族メンバー管理 → パパ → 編集 → 「変更する」 → 写真をアップロード
+2. **タスク画面**のメンバーフィルタチップ「パ」が写真に変わる ← Wave 60.3 で修正
+3. **タスク行**の担当アバター（パ）も写真に変わる ← Wave 60.3 で修正
+4. **体調管理のメンバータブ** / **家計のメンバー選択** / **準備リストのメンバーチップ** / **家族ボードのコメント発信者** すべて写真に変わる
+5. ホーム / カレンダー / メンバー詳細 / 設定アバター も従来どおり写真表示
+6. 「家族全員」「家族共通」タブはグレーのまま（パパの写真にはならない＝意図通り）
+
+### コミット
+- メッセージ: `wave 60.3: avatar - propagate custom photo to ALL screens (12 raw renders → avHtml)`

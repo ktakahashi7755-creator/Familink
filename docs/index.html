@@ -3988,6 +3988,10 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   if(!memberId) {
     return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
   }
+  // Wave 60.3: 不明な memberId（例：'all' / 'common' 等の合成 ID）は写真/公式の参照を行わず中立グレーで描画
+  if(!m || m.id !== memberId) {
+    return `<div class="av" style="background:linear-gradient(135deg,#9CA3AF,#D1D5DB);width:${sz};height:${sz};font-size:${fs};${extraStyle}">？</div>`;
+  }
   const avatarType = (S.userAvatarType||{})[memberId];
   // Wave 49.2：公式アバター bitmap を colored circle が 100% を満たすよう再生成済み。
   // CSS scale は不要、object-position も center で OK（頭が切れない）
@@ -6185,7 +6189,7 @@ function openTkMemberManager() {
     const isVisible = visible.includes(m.id);
     return `<div class="tk-mem-popup-row">
       <div style="display:flex;align-items:center;gap:10px;flex:1;">
-        <div class="av" style="background:${H(m.grad)};width:32px;height:32px;font-size:13px;">${H(m.av)}</div>
+        ${avHtml(m.id, 32, 13, "")}
         <span style="font-size:14px;font-weight:600;color:var(--text);">${H(m.name)}</span>
       </div>
       <button class="tk-mem-toggle ${isVisible?'on':''}"
@@ -6266,7 +6270,7 @@ function renderTkMemberFilter() {
       onclick="setTkMember('${H(id)}')"
       data-mid="${H(id)}"
       title="${H(m.name)}（長押しで非表示）">
-      <div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;">${H(m.av)}</div>
+      ${avHtml(id, 30, 12)}
       <span style="font-size:10px;color:var(--text-sub);margin-top:2px;">${H(m.name)}</span>
     </button>`;
   }).join('');
@@ -6332,7 +6336,7 @@ function tkCardHtml(t){
         ${isDone?`<span style="font-size:10px;color:var(--text-muted);">完了</span>`:''}
       </div>
     </div>
-    ${t.assignedTo?`<div class="av" style="background:${H(mem.grad)};width:26px;height:26px;font-size:10px;flex-shrink:0;opacity:${isDone?'.55':'1'};">${H(mem.av)}</div>`:''}
+    ${t.assignedTo?`${avHtml(mem.id, 26, 10, "flex-shrink:0;opacity:"+(isDone?'.55':'1'))}`:''}
     ${deleteBtn}
   </div>`;
 }
@@ -6644,7 +6648,7 @@ function openBudgetMemberManager() {
   const rows = MEMBERS.map(m => {
     const isVisible = visible.includes(m.id);
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border-light);">
-      <div class="av" style="background:${H(m.grad)};width:32px;height:32px;font-size:13px;flex-shrink:0;">${H(m.av)}</div>
+      ${avHtml(m.id, 32, 13, "flex-shrink:0")}
       <span style="flex:1;font-size:14px;font-weight:600;color:var(--text);">${H(m.name)}</span>
       <button onclick="toggleBudgetMemberVisible('${H(m.id)}')" style="padding:6px 12px;border-radius:var(--r-full);border:1.5px solid ${isVisible?'var(--primary)':'var(--border)'};background:${isVisible?'var(--primary)':'#fff'};color:${isVisible?'#fff':'var(--text-sub)'};font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">
         ${isVisible ? '表示中' : '非表示'}
@@ -6707,7 +6711,7 @@ function renderBudget() {
         onclick="setBudgetMember('${H(mem.id)}')"
         data-mid="${H(mem.id)}"
         title="${H(mem.name)}（長押しで非表示）">
-        <div class="av" style="background:${H(mem.grad)};width:36px;height:36px;font-size:14px;">${H(mem.av)}</div>
+        ${avHtml(mem.id, 36, 14, "")}
         <span class="bm-mem-name">${H(mem.name)}</span>
       </button>`;
     }).join('');
@@ -7531,7 +7535,7 @@ function renderBmMemberBtns(selected) {
   ];
   wrap.innerHTML = choices.map(c => `<button type="button" class="te-mem-btn ${selected===c.id?'selected':''}"
     onclick="selectBmMember('${H(c.id)}')">
-    <span class="av" style="background:${H(c.grad)};width:20px;height:20px;font-size:9px;">${H(c.av)}</span>
+    ${c.id==='common' ? `<span class="av" style="background:${H(c.grad)};width:20px;height:20px;font-size:9px;">${H(c.av)}</span>` : avHtml(c.id, 20, 9, "")}
     ${H(c.name)}
   </button>`).join('');
 }
@@ -8420,7 +8424,7 @@ function renderHealth() {
     const tabs = [{id:'all', name:'家族全員', av:'家', grad:'linear-gradient(135deg,#9CA3AF,#D1D5DB)'}]
       .concat(MEMBERS.map(m => ({id:m.id, name:m.name, av:m.av, grad:m.grad})));
     tabEl.innerHTML = tabs.map(t => `<div class="child-tab ${_healthMemberFilter===t.id?'on':''}" onclick="setHealthMemberFilter('${H(t.id)}')">
-      <div class="av" style="background:${H(t.grad)};width:38px;height:38px;font-size:14px;">${H(t.av)}</div>
+      ${t.id==='all' ? `<div class="av" style="background:${H(t.grad)};width:38px;height:38px;font-size:14px;">${H(t.av)}</div>` : avHtml(t.id, 38, 14, "")}
       <div class="child-tab-name">${H(t.name)}</div>
     </div>`).join('');
   }
@@ -8613,7 +8617,7 @@ function renderHealthCharts(recs) {
         const hosp = r.visitedHospital ? `🏥 ${r.hospitalName||'病院'}` : '';
         const meta = [sym, med, hosp].filter(Boolean).join(' / ');
         return `<div onclick="openHealthEditModal('${H(r.id)}')" style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent;">
-          ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : '<div style="width:30px;height:30px;flex-shrink:0;"></div>'}
+          ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : '<div style="width:30px;height:30px;flex-shrink:0;"></div>'}
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} <span style="color:var(--text-muted);font-weight:500;font-size:11px;margin-left:3px;">${H(dateStr)}${r.time?' '+H(r.time):''}</span></div>
             ${meta ? `<div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${H(meta)}</div>` : ''}
@@ -8650,7 +8654,7 @@ function renderHealthCharts(recs) {
           const m = getMem(mid);
           if(!m) return '';
           return `<span title="${H(m.name)} ${mc}件" style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;background:var(--bg-muted);border-radius:8px;">
-            <span class="av" style="background:${H(m.grad)};width:14px;height:14px;font-size:8px;">${H(m.av)}</span>
+            ${avHtml(m.id, 14, 8, "")}
             <span style="font-size:10px;color:var(--text-sub);font-weight:700;">${mc}</span>
           </span>`;
         }).join('') : '';
@@ -8678,7 +8682,7 @@ function healthTodayCard(r) {
   const hospChip = r.visitedHospital ? `<span class="chip" style="background:#EDE9FE;color:#7C3AED;">🏥 ${H(r.hospitalName||'病院受診')}</span>` : '';
   return `<div class="health-today-card ${fever?'':'normal'}" onclick="openHealthEditModal('${H(r.id)}')" style="cursor:pointer;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      ${m ? `<div class="av" style="background:${H(m.grad)};width:32px;height:32px;font-size:13px;flex-shrink:0;">${H(m.av)}</div>` : ''}
+      ${m ? `${avHtml(m.id, 32, 13, "flex-shrink:0")}` : ''}
       <div style="flex:1;min-width:0;">
         <div style="font-size:14px;font-weight:700;color:var(--text);">${m?H(m.name):'メンバー未指定'}</div>
         <div style="font-size:11px;color:var(--text-muted);">${r.time?H(r.time):'今日'}${r.status?' ・ '+H(r.status):''}</div>
@@ -8724,7 +8728,7 @@ function healthLogCardV2(r) {
 
   return `<div class="health-log-card-v2" onclick="openHealthEditModal('${H(r.id)}')" style="margin:6px 16px 6px;padding:11px 13px;background:${tempBg};border:1.5px solid ${tempBorder};border-radius:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;${showImportance?'box-shadow:0 1px 3px rgba(0,0,0,.04);':''}">
     <div style="display:flex;align-items:center;gap:9px;">
-      ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : '<div style="width:30px;height:30px;background:var(--bg-muted);border-radius:50%;flex-shrink:0;"></div>'}
+      ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : '<div style="width:30px;height:30px;background:var(--bg-muted);border-radius:50%;flex-shrink:0;"></div>'}
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):'(未指定)'}</span>
@@ -8750,7 +8754,7 @@ function healthPastRow(r) {
   if(r.medicine) meta.push(`💊 ${r.medicine}`);
   if(r.visitedHospital) meta.push(`🏥 ${r.hospitalName||'病院'}`);
   return `<div class="health-rec-row" onclick="openHealthEditModal('${H(r.id)}')">
-    ${m ? `<div class="av" style="background:${H(m.grad)};width:30px;height:30px;font-size:12px;flex-shrink:0;">${H(m.av)}</div>` : ''}
+    ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : ''}
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} ${r.time?`<span style="font-weight:500;color:var(--text-muted);font-size:11px;margin-left:4px;">${H(r.time)}</span>`:''}</div>
       <div style="font-size:12px;color:${fever?'var(--red)':'var(--text-sub)'};margin-top:3px;line-height:1.5;">${H(meta.join(' / '))}</div>
@@ -8835,7 +8839,7 @@ function renderHealthMemberBtns(selected) {
   const wrap = document.getElementById('hm-member-btns');
   if(!wrap) return;
   wrap.innerHTML = MEMBERS.map(m => `<button type="button" class="hm-mem-btn ${selected===m.id?'selected':''}" onclick="setHealthMember('${H(m.id)}')">
-    <span class="av" style="background:${H(m.grad)};width:20px;height:20px;font-size:9px;">${H(m.av)}</span>
+    ${avHtml(m.id, 20, 9, "")}
     ${H(m.name)}
   </button>`).join('');
 }
