@@ -6102,3 +6102,32 @@ Wave 59: 家族メンバー管理を完全な追加・編集・削除に対応�
 
 ### コミット
 - メッセージ: `wave 59: dynamic family members - full add/edit/delete with cross-screen propagation`
+
+## 2026-05-07 23:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 59.1: ChatGPT 引き継ぎドキュメント作成
+
+### 変更ファイル
+- docs/handoff-to-chatgpt.md（新規）
+- docs/worklog.md
+
+### 内容
+新しい AI（ChatGPT）に Familink の開発を完全に引き継ぐためのハンドオフ資料。
+17 セクション + 付録（短縮版）を含む。
+- プロダクト概要 / 技術前提 / リポジトリ構造 / ブランチ運用
+- データモデル全体（S オブジェクト + 主要レコードのスキーマ）
+- 18 画面の一覧 + Hoku 意図 13 種類のマッピング
+- 設定・メニュー構成（Wave 56-59 確定版）
+- Wave 47-59 の主要履歴
+- VM スモークテスト方法（自動 CI が無いため）
+- 既知の制約 / 次タスク候補（S/A/B/C 優先度）
+- すぐ使えるコマンド集
+- ChatGPT への依頼テンプレ + 1 メッセージ用短縮版
+
+### 用途
+新規 ChatGPT スレッドの先頭にこのファイル全文を貼り付けることで、
+ルール / データモデル / Wave 履歴を完全に引き継いで開発継続できる。
+
+### コミット
+- メッセージ: `wave 59.1: handoff doc for ChatGPT - full context transfer`
