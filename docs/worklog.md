@@ -6131,3 +6131,98 @@ Wave 59.1: ChatGPT 引き継ぎドキュメント作成
 
 ### コミット
 - メッセージ: `wave 59.1: handoff doc for ChatGPT - full context transfer`
+
+## 2026-05-08 00:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60: 家計管理を「固定収支 + 資金繰り表」へ進化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/budget-recurring-cashflow.md（新規）
+- docs/worklog.md
+
+### 既存維持
+- 既存 `s-budget` 画面・既存 `S.txs[]`・既存月別表示・既存メンバータブ・カテゴリチャート・編集/削除 すべて無変更
+- 既存 m-budget モーダルと openTxModal/saveTx は保持
+- 既存 Hoku 家計入力 (`budget_add`) と従来挙動も保持
+
+### 変更内容
+**データモデル**
+- `S.recurringTxs[]` 新設：毎月◯日 / 毎月末 / 毎週 / 毎年 / 毎日 のテンプレート
+- `S.cashflowSettings = { openingBalances:{}, defaultOpeningBalance:0 }` 新設：月初残高
+- `S.budgetTab` 新設：normal / recurring / cashflow（既定 normal）
+- 全て PERSIST に追加。既存データ無変更
+
+**UI（s-budget タブ拡張）**
+- 上部に 3 タブ：家計 / 固定収支 / 資金繰り
+- + ボタンが現タブで動作切替（onBudgetFabTap）
+- 固定収支タブ：合計サマリー + 行ごとの編集/有効化/削除
+- 資金繰りタブ：月ナビ + 警告バナー + サマリー + 内訳 + 未反映予定明細 + 反映ボタン
+
+**モーダル**
+- `m-recurring-tx`：種別 / 名称 / 金額 / カテゴリ / 担当 / 周期 / 発生日 or 月末 or 曜日 or 月年日 / 開始日 / 終了日 / メモ / 有効
+- `m-opening-balance`：対象月の月初残高入力
+
+**CRUD + 計算**
+- `addRecurringTx / updateRecurringTx / deleteRecurringTx`
+- `expandRecurringForMonth(y, m0)`：対象月で発生する occurrence
+- `_isRecurringApplied(recurringId, date)`：重複判定
+- `applyRecurringForMonth(y, m0, opts)`：S.txs[] へ反映（重複自動スキップ）
+- `computeMonthlyCashflow(y, m0)`：opening / actual / scheduled / total / net / forecast を返す
+
+**Hoku 連携**
+- 新 intent：`recurring_budget_add` / `cashflow_view`
+- `_hokuDetectRecurringBudget(text)`：金額 + 周期パターンを抽出。**金額が無いか、金額シグナルがない場合は null を返し他 intent に譲る**（prep_routine_add との衝突回避）
+- `_hokuExecuteRecurringBudget`：[[ACTION_BUTTONS:rtxconfirm]] 付き確認 → `_hokuRecurringConfirm` で addRecurringTx
+- `cashflow_view` → 資金繰りタブへ遷移 + 案内
+- HOKU_INTENT_META に `recurring_budget_add` / `cashflow_view` 追加
+- classifierActions に `rtxconfirm` / `cashflow` の専用ボタンセット追加
+
+### テスト結果（VM 単体 30 / 30 PASS）
+- Hoku 検出 6 ケース（毎月25日/毎月1日/毎月末/毎週月曜/毎年4月1日 等）
+- parseHokuIntent 統合 4 ケース（recurring_budget_add / cashflow_view）
+- expandRecurringForMonth 5 ケース（5 月 3 件 / 2 月末 28 日 / 4 月年次）
+- computeMonthlyCashflow 9 ケース（opening 100k / actual 50k+5k / scheduled 300k+200k / total 350k+205k / net +145k / forecast 245k）
+- 反映 + 重複防止 6 ケース（first 3 / second 0 / 後 scheduled=0 / forecast 不変）
+
+### 回帰テスト（全 PASS）
+- 既存 27 シナリオ：全 PASS（買い物 / 準備 / Hoku 多重 / クリーン title / サンプル / saveS）
+- メンバーテスト 16/16 PASS（applyMembersFromS / persist / unlink）
+- スモーク：全画面 render エラーゼロ
+
+### 構文 + md5
+- scripts ok 1/1
+- md5 同期：`f01feb3861266823a7e9778555fdc21d`
+
+### iPhone 確認ポイント
+1. 家計画面に 3 タブ（家計 / 固定収支 / 資金繰り）が並ぶ
+2. 固定収支タブ → + → 「給料」「家賃」「カード支払い」を毎月25日/毎月1日/毎月末で登録
+3. 各行の編集/有効化/削除が機能。合計サマリーが上部に表示
+4. 資金繰りタブ → 月ナビで 5 月を選ぶ → 月初残高未設定の警告 → 設定する → 例 100,000円 → 月末残高見込みが表示
+5. マイナス見込みなら赤、収入<支出なら黄色の注意バナー
+6. 「今月分の予定を実績へ反映」→ confirm → S.txs に追加
+7. 既存家計タブの動作は完全に保持されている
+8. Hoku に「毎月25日に給料30万円」→ 確認ボタン → 登録 → 固定収支タブで確認
+9. Hoku に「今月の資金繰りを見たい」→ 資金繰りタブへ遷移
+10. リロード後も S.recurringTxs / S.cashflowSettings が保持
+11. iPhone SE / 13 / 15 Plus / Pro Max 幅で横スクロールなし
+
+### 既存538自動テスト
+このリポジトリには `tests/` 自動実行基盤が無いため CI 側 Playwright での回帰実行が前提（Wave 50 系で稼働を確認している前提）。本 Wave は加算的拡張のみ・既存ロジック温存。
+
+### 未対応
+- 前月末残高見込みを翌月開始残高へ自動反映
+- 口座別残高（現金 / 銀行 / カード別）
+- 月初残高の年単位ベースライン
+- 反映した実績の取り消し（recurringId 経由で source==='recurring' を一括削除する UI）
+
+### 次にやること（候補）
+- 家計タブに「今月の見通しカード」のミニ表示
+- 月初残高の前月末残高見込みからの一括継承
+- Hoku 「家賃を 8 万から 7 万 5 千に変更」のような editing 意図
+- 資金繰りの 3/6 ヶ月先予測（プレミアム候補）
+
+### コミット
+- メッセージ: `wave 60: budget recurring transactions + monthly cashflow forecast + Hoku integration`

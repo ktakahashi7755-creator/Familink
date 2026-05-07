@@ -1117,6 +1117,35 @@ select.input {
   color: var(--text-muted); cursor: pointer; transition: var(--t);
 }
 .type-btn.on { background: #fff; color: var(--text); box-shadow: var(--s-sm); }
+/* Wave 60: 固定収支 / 資金繰り */
+.rt-type-btn { flex:1; padding:10px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-size:13px; font-weight:700; cursor:pointer; color:var(--text-muted); transition:var(--t-spring); }
+.rt-type-btn.selected { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+.recurring-row { background:var(--bg-card); border:1.5px solid var(--border-light); border-radius:14px; padding:12px 14px; margin:0 16px 10px; box-shadow:var(--s-sm); display:flex; align-items:flex-start; gap:10px; }
+.recurring-row.disabled { opacity:.55; }
+.recurring-row .rr-main { flex:1; min-width:0; }
+.recurring-row .rr-name { font-size:14px; font-weight:700; color:var(--text); word-break:break-word; }
+.recurring-row .rr-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.recurring-row .rr-chip { font-size:10.5px; padding:1px 8px; border-radius:999px; }
+.recurring-row .rr-chip.income  { background:#DCFCE7; color:#16A34A; }
+.recurring-row .rr-chip.expense { background:#FFE8E8; color:#DC2626; }
+.recurring-row .rr-chip.cycle   { background:#EEF2FF; color:#4F46E5; }
+.recurring-row .rr-chip.member  { background:var(--bg-muted); color:var(--text-muted); }
+.recurring-row .rr-amount { font-size:15px; font-weight:800; color:var(--text); }
+.recurring-row .rr-amount.income { color:#16A34A; }
+.recurring-row .rr-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+.recurring-row .rr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 9px; font-size:11px; color:var(--text-muted); cursor:pointer; }
+.recurring-row .rr-actions button:hover { color:var(--primary); border-color:var(--primary); }
+.recurring-row .rr-actions .rr-del:hover { color:var(--red); border-color:var(--red); }
+.cf-card { background:var(--bg-card); border:1.5px solid var(--border-light); border-radius:14px; padding:14px; margin:0 16px 10px; box-shadow:var(--s-sm); }
+.cf-card .cf-row { display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--border-light); }
+.cf-card .cf-row:last-child { border-bottom:none; }
+.cf-card .cf-label { font-size:12px; color:var(--text-muted); font-weight:600; }
+.cf-card .cf-value { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+.cf-card .cf-value.pos { color:#16A34A; }
+.cf-card .cf-value.neg { color:#DC2626; }
+.cf-card .cf-value.big { font-size:22px; font-weight:800; }
+.cf-warn { background:#FEF3C7; border:1px solid #F59E0B; color:#92400E; border-radius:10px; padding:10px 12px; margin:0 16px 12px; font-size:12px; line-height:1.5; }
+.cf-warn.danger { background:#FFE8E8; border-color:#DC2626; color:#991B1B; }
 .tx-item {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 0; border-bottom: 1px solid var(--border-light);
@@ -2921,28 +2950,163 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <div class="header-title">家計管理</div>
   </div>
-  <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
-    <div class="budget-header-bar">
-      <button class="budget-nav-btn" onclick="budgetChangeMonth(-1)" title="前の月">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="budget-month-lbl" id="budget-month" onclick="budgetGoToToday()"></div>
-      <button class="budget-nav-btn" onclick="budgetChangeMonth(1)" title="次の月">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-    <!-- 担当者切替タブ（家族全体 / パパ / ママ / etc） -->
-    <div class="budget-member-tabs" id="budget-member-tabs"></div>
-    <div class="budget-hero" id="budget-hero"></div>
-    <div id="budget-cat-chart" style="margin: 6px 16px 0;"></div>
-    <div class="type-toggle">
-      <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
-      <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
-    </div>
-    <div style="padding:0 16px;" id="budget-list"></div>
+  <!-- Wave 60: 家計タブ（家計 / 固定収支 / 資金繰り） -->
+  <div id="budget-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
+    <button class="tk-filter-btn active" data-budget-tab="normal"    onclick="setBudgetTab('normal')">家計</button>
+    <button class="tk-filter-btn"        data-budget-tab="recurring" onclick="setBudgetTab('recurring')">固定収支</button>
+    <button class="tk-filter-btn"        data-budget-tab="cashflow"  onclick="setBudgetTab('cashflow')">資金繰り</button>
   </div>
-  <div style="position:fixed;bottom:calc(98px + env(safe-area-inset-bottom));right:18px;">
-    <button class="fab" onclick="openTxModal()">＋</button>
+  <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
+    <!-- 通常家計（既存） -->
+    <div id="budget-section-normal">
+      <div class="budget-header-bar">
+        <button class="budget-nav-btn" onclick="budgetChangeMonth(-1)" title="前の月">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="budget-month-lbl" id="budget-month" onclick="budgetGoToToday()"></div>
+        <button class="budget-nav-btn" onclick="budgetChangeMonth(1)" title="次の月">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <!-- 担当者切替タブ（家族全体 / パパ / ママ / etc） -->
+      <div class="budget-member-tabs" id="budget-member-tabs"></div>
+      <div class="budget-hero" id="budget-hero"></div>
+      <div id="budget-cat-chart" style="margin: 6px 16px 0;"></div>
+      <div class="type-toggle">
+        <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
+        <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
+      </div>
+      <div style="padding:0 16px;" id="budget-list"></div>
+    </div>
+    <!-- 固定収支（Wave 60） -->
+    <div id="budget-section-recurring" style="display:none;padding:14px 0;"></div>
+    <!-- 資金繰り（Wave 60） -->
+    <div id="budget-section-cashflow"  style="display:none;padding:14px 0;"></div>
+  </div>
+  <div id="budget-fab" style="position:fixed;bottom:calc(98px + env(safe-area-inset-bottom));right:18px;">
+    <button class="fab" onclick="onBudgetFabTap()">＋</button>
+  </div>
+</div>
+
+<!-- Wave 60: 固定収支 追加 / 編集モーダル -->
+<div id="m-recurring-tx" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="m-recurring-tx-title">固定収支を追加</div>
+    <input type="hidden" id="rt-id">
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">種別 <span style="color:var(--red)">*</span></div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="rt-type-btn" data-type="expense" onclick="rtSelectType('expense')">💸 支出</button>
+          <button type="button" class="rt-type-btn" data-type="income"  onclick="rtSelectType('income')">💰 収入</button>
+        </div>
+        <input type="hidden" id="rt-type" value="expense">
+      </div>
+      <div class="field">
+        <div class="field-label">名称・説明 <span style="color:var(--red)">*</span></div>
+        <input class="input" id="rt-desc" placeholder="例：家賃 / 給料 / 保育料" maxlength="40" autocomplete="off">
+      </div>
+      <div class="field">
+        <div class="field-label">金額（円） <span style="color:var(--red)">*</span></div>
+        <input class="input" id="rt-amount" type="number" inputmode="numeric" min="0" step="100" placeholder="例：80000">
+      </div>
+      <div class="field">
+        <div class="field-label">カテゴリ</div>
+        <select class="input" id="rt-cat"></select>
+      </div>
+      <div class="field">
+        <div class="field-label">担当メンバー</div>
+        <select class="input" id="rt-member"></select>
+      </div>
+      <div class="field">
+        <div class="field-label">繰り返し</div>
+        <select class="input" id="rt-frequency" onchange="rtUpdateFreqUi()">
+          <option value="monthly">毎月</option>
+          <option value="weekly">毎週</option>
+          <option value="yearly">毎年</option>
+          <option value="daily">毎日</option>
+        </select>
+      </div>
+      <div class="field" id="rt-monthly-fields">
+        <div class="field-label">発生日</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="input" id="rt-day-of-month" style="flex:1;"></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;">
+            <input type="checkbox" id="rt-is-month-end" onchange="rtUpdateMonthEnd()"> 月末
+          </label>
+        </div>
+      </div>
+      <div class="field" id="rt-weekly-fields" style="display:none;">
+        <div class="field-label">曜日</div>
+        <select class="input" id="rt-day-of-week">
+          <option value="mon">月曜</option>
+          <option value="tue">火曜</option>
+          <option value="wed">水曜</option>
+          <option value="thu">木曜</option>
+          <option value="fri">金曜</option>
+          <option value="sat">土曜</option>
+          <option value="sun">日曜</option>
+        </select>
+      </div>
+      <div class="field" id="rt-yearly-fields" style="display:none;">
+        <div class="field-label">毎年の月日</div>
+        <div style="display:flex;gap:8px;">
+          <select class="input" id="rt-month-of-year" style="flex:1;"></select>
+          <select class="input" id="rt-day-of-month-y" style="flex:1;"></select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">開始日（任意）</div>
+        <input class="input" id="rt-start" type="date">
+      </div>
+      <div class="field">
+        <div class="field-label">終了日（任意）</div>
+        <input class="input" id="rt-end" type="date">
+      </div>
+      <div class="field">
+        <div class="field-label">メモ</div>
+        <input class="input" id="rt-memo" placeholder="例：銀行A から自動引落" maxlength="60">
+      </div>
+      <div class="field">
+        <div class="field-label">有効/無効</div>
+        <select class="input" id="rt-enabled">
+          <option value="true">有効（資金繰りに反映）</option>
+          <option value="false">無効（一時停止）</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-recurring-tx')">キャンセル</button>
+        <button class="btn btn-primary btn-block" onclick="saveRecurringTx()">保存</button>
+      </div>
+      <button id="rt-delete-btn" class="btn btn-ghost btn-block" onclick="deleteRecurringTxFromModal()" style="display:none;color:var(--red);margin-top:6px;">この固定収支を削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wave 60: 月初残高設定モーダル -->
+<div id="m-opening-balance" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">月初残高を設定</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label" id="ob-month-label">対象月</div>
+        <input type="hidden" id="ob-month">
+      </div>
+      <div class="field">
+        <div class="field-label">開始残高（円）</div>
+        <input class="input" id="ob-amount" type="number" inputmode="numeric" step="1000" placeholder="例：100000">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin:4px 0 8px;">
+        ※ 月初時点の合計残高（現金 + 銀行残高など）の概算で OK です。<br>
+        資金繰りはあくまで見込みとして表示されます。
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-opening-balance')">キャンセル</button>
+        <button class="btn btn-primary btn-block" onclick="saveOpeningBalance()">保存</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3720,9 +3884,15 @@ let S = {
   shoppingHistory: [],  // 購入履歴（最新順で append）
   shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
   members: null,        // Wave 59: 動的メンバーリスト（null=DEFAULT_MEMBERS 使用）
+  recurringTxs: [],     // Wave 60: 毎月◯日 / 毎月末 / 毎週 / 毎年 等の固定収支テンプレート
+  cashflowSettings: {   // Wave 60: 資金繰り表の月初残高設定
+    openingBalances: {},      // 'YYYY-MM' → 数値
+    defaultOpeningBalance: 0
+  },
+  budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab'];
 
 function saveS() {
   const d = {};
@@ -3960,7 +4130,7 @@ function refresh(id) {
     case 's-cal':     renderCal(); break;
     case 's-board':        renderBoard(); break;
     case 's-board-detail': renderBoardDetail(); break;
-    case 's-budget':  renderBudget(); break;
+    case 's-budget':  renderBudget(); setBudgetTab(S.budgetTab || 'normal'); break;
     case 's-health':  renderHealth(); break;
     case 's-prep':    renderPrep(); break;
     case 's-ch':      renderChildren(); break;
@@ -6656,6 +6826,628 @@ function renderBudget() {
   }).join('');
 }
 
+/* ============================================================
+   Wave 60 — 固定収支 + 資金繰り
+   - S.txs[] は実績、S.recurringTxs[] はテンプレート（月ごとに展開）
+   - 資金繰り = 月初残高 + （実績収入 + 予定収入） - （実績支出 + 予定支出）
+   ============================================================ */
+
+function _ensureRecurring() {
+  if(!Array.isArray(S.recurringTxs)) S.recurringTxs = [];
+  if(!S.cashflowSettings) S.cashflowSettings = { openingBalances:{}, defaultOpeningBalance:0 };
+  if(!S.cashflowSettings.openingBalances) S.cashflowSettings.openingBalances = {};
+}
+
+function setBudgetTab(tab) {
+  if(['normal','recurring','cashflow'].indexOf(tab) < 0) return;
+  S.budgetTab = tab;
+  document.querySelectorAll('#budget-tabs [data-budget-tab]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-budget-tab') === tab);
+  });
+  const norm = document.getElementById('budget-section-normal');
+  const rec  = document.getElementById('budget-section-recurring');
+  const cf   = document.getElementById('budget-section-cashflow');
+  if(norm) norm.style.display = (tab === 'normal')    ? '' : 'none';
+  if(rec)  rec.style.display  = (tab === 'recurring') ? '' : 'none';
+  if(cf)   cf.style.display   = (tab === 'cashflow')  ? '' : 'none';
+  saveS();
+  if(tab === 'recurring') renderRecurringSection();
+  else if(tab === 'cashflow') renderCashflowSection();
+}
+
+/* 家計画面の + ボタン：タブによって動作分岐 */
+function onBudgetFabTap() {
+  const tab = S.budgetTab || 'normal';
+  if(tab === 'recurring')  { openRecurringTxModal(null); return; }
+  if(tab === 'cashflow')   { openOpeningBalanceModal(_budgetMonthKey()); return; }
+  openTxModal();
+}
+
+function _budgetMonthKey() {
+  const y = S.budgetY || (new Date()).getFullYear();
+  const m = (S.budgetM != null ? S.budgetM : (new Date()).getMonth());
+  return y + '-' + String(m + 1).padStart(2, '0');
+}
+
+/* ── 固定収支：CRUD ── */
+function addRecurringTx(data) {
+  _ensureRecurring();
+  const now = new Date().toISOString();
+  const r = Object.assign({
+    id: 'rtx_' + uid(),
+    type: 'expense',
+    amount: 0,
+    cat: 'その他',
+    desc: '',
+    member: '', memberId: '',
+    frequency: 'monthly',
+    dayOfMonth: 1,
+    isMonthEnd: false,
+    dayOfWeek: null,
+    monthOfYear: null,
+    startDate: '',
+    endDate: '',
+    enabled: true,
+    memo: '',
+    createdAt: now,
+    updatedAt: now
+  }, data || {});
+  S.recurringTxs.push(r);
+  saveS();
+  return r;
+}
+function updateRecurringTx(id, patch) {
+  _ensureRecurring();
+  const r = S.recurringTxs.find(function(x){ return x.id === id; });
+  if(!r) return null;
+  Object.assign(r, patch || {});
+  r.updatedAt = new Date().toISOString();
+  saveS();
+  return r;
+}
+function deleteRecurringTx(id) {
+  _ensureRecurring();
+  S.recurringTxs = S.recurringTxs.filter(function(x){ return x.id !== id; });
+  saveS();
+}
+
+/* ── ある月で発生する recurring の occurrence を返す ── */
+function _daysInMonth(y, m0) {
+  return new Date(y, m0 + 1, 0).getDate();
+}
+function _formatDate(y, m0, d) {
+  return y + '-' + String(m0 + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+/* 戻り値：[{date:'YYYY-MM-DD', recurring}] */
+function expandRecurringForMonth(y, m0) {
+  _ensureRecurring();
+  const out = [];
+  const monthStart = new Date(y, m0, 1).getTime();
+  const monthEnd   = new Date(y, m0 + 1, 0, 23, 59, 59).getTime();
+  for(const r of S.recurringTxs) {
+    if(r.enabled === false) continue;
+    if(r.startDate) {
+      const sd = new Date(r.startDate + 'T00:00:00').getTime();
+      if(sd > monthEnd) continue;
+    }
+    if(r.endDate) {
+      const ed = new Date(r.endDate + 'T23:59:59').getTime();
+      if(ed < monthStart) continue;
+    }
+    if(r.frequency === 'monthly') {
+      const dim = _daysInMonth(y, m0);
+      const d = r.isMonthEnd ? dim : Math.min(dim, Math.max(1, parseInt(r.dayOfMonth, 10) || 1));
+      out.push({ date: _formatDate(y, m0, d), recurring: r });
+    } else if(r.frequency === 'weekly') {
+      const wMap = {sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6};
+      const target = wMap[r.dayOfWeek != null ? r.dayOfWeek : 'mon'];
+      if(target == null) continue;
+      const dim = _daysInMonth(y, m0);
+      for(let d = 1; d <= dim; d++) {
+        if(new Date(y, m0, d).getDay() === target) {
+          out.push({ date: _formatDate(y, m0, d), recurring: r });
+        }
+      }
+    } else if(r.frequency === 'yearly') {
+      const tgtMonth = parseInt(r.monthOfYear, 10);
+      if(!Number.isFinite(tgtMonth) || tgtMonth - 1 !== m0) continue;
+      const dim = _daysInMonth(y, m0);
+      const d = Math.min(dim, Math.max(1, parseInt(r.dayOfMonth, 10) || 1));
+      out.push({ date: _formatDate(y, m0, d), recurring: r });
+    } else if(r.frequency === 'daily') {
+      const dim = _daysInMonth(y, m0);
+      for(let d = 1; d <= dim; d++) out.push({ date: _formatDate(y, m0, d), recurring: r });
+    }
+  }
+  // 日付昇順
+  out.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  return out;
+}
+
+/* ── 重複判定：S.txs に source==='recurring' && 同 recurringId && 同 date があれば反映済み ── */
+function _isRecurringApplied(recurringId, date) {
+  return (S.txs || []).some(function(t){
+    return t && t.source === 'recurring' && t.recurringId === recurringId && t.date === date;
+  });
+}
+
+/* ── 該当月の occurrence を S.txs[] に反映（重複は除外） ── */
+function applyRecurringForMonth(y, m0, opts) {
+  const list = expandRecurringForMonth(y, m0);
+  const now = new Date().toISOString();
+  let added = 0;
+  for(const it of list) {
+    if(_isRecurringApplied(it.recurring.id, it.date)) continue;
+    if(opts && opts.onlyId && it.recurring.id !== opts.onlyId) continue;
+    if(opts && opts.skipDates && opts.skipDates.indexOf(it.date) >= 0) continue;
+    S.txs = S.txs || [];
+    S.txs.push({
+      id: uid(),
+      type: it.recurring.type,
+      amount: Number(it.recurring.amount) || 0,
+      cat: it.recurring.cat || 'その他',
+      desc: it.recurring.desc || it.recurring.cat || '固定収支',
+      date: it.date,
+      member: it.recurring.member || it.recurring.memberId || '',
+      memberId: it.recurring.memberId || '',
+      source: 'recurring',
+      recurringId: it.recurring.id,
+      createdAt: now,
+      updatedAt: now
+    });
+    added++;
+  }
+  if(added > 0) saveS();
+  return added;
+}
+
+/* ── 月次の資金繰り計算 ── */
+function computeMonthlyCashflow(y, m0) {
+  _ensureRecurring();
+  const monthKey = y + '-' + String(m0 + 1).padStart(2,'0');
+  const opening = Number((S.cashflowSettings.openingBalances || {})[monthKey]);
+  const openingBalance = Number.isFinite(opening) ? opening : (Number(S.cashflowSettings.defaultOpeningBalance) || 0);
+  // 実績
+  const txs = (S.txs || []).filter(function(t){
+    if(!t || !t.date) return false;
+    const d = new Date(t.date + 'T00:00:00');
+    return d.getFullYear() === y && d.getMonth() === m0;
+  });
+  let actualIncome = 0, actualExpense = 0;
+  txs.forEach(function(t){
+    const a = Number(t.amount) || 0;
+    if(t.type === 'income') actualIncome += a;
+    else actualExpense += a;
+  });
+  // 予定（recurring の occurrence、まだ実績反映されていないもの）
+  const occ = expandRecurringForMonth(y, m0);
+  let scheduledIncome = 0, scheduledExpense = 0;
+  const scheduledItems = [];
+  occ.forEach(function(it){
+    if(_isRecurringApplied(it.recurring.id, it.date)) return; // 二重計上を防ぐ
+    const a = Number(it.recurring.amount) || 0;
+    if(it.recurring.type === 'income') scheduledIncome += a;
+    else scheduledExpense += a;
+    scheduledItems.push(it);
+  });
+  const totalIncome  = actualIncome + scheduledIncome;
+  const totalExpense = actualExpense + scheduledExpense;
+  const netCashflow  = totalIncome - totalExpense;
+  const endingBalanceForecast = openingBalance + netCashflow;
+  return {
+    monthKey: monthKey,
+    openingBalance: openingBalance,
+    actualIncome: actualIncome,
+    actualExpense: actualExpense,
+    scheduledIncome: scheduledIncome,
+    scheduledExpense: scheduledExpense,
+    totalIncome: totalIncome,
+    totalExpense: totalExpense,
+    netCashflow: netCashflow,
+    endingBalanceForecast: endingBalanceForecast,
+    actualTxs: txs,
+    scheduledItems: scheduledItems
+  };
+}
+
+/* ── 固定収支セクションのレンダリング ── */
+function renderRecurringSection() {
+  _ensureRecurring();
+  const wrap = document.getElementById('budget-section-recurring');
+  if(!wrap) return;
+  const list = (S.recurringTxs || []).slice().sort(function(a,b){
+    if(a.type !== b.type) return a.type === 'income' ? -1 : 1;
+    return (a.dayOfMonth || 0) - (b.dayOfMonth || 0);
+  });
+  if(!list.length) {
+    wrap.innerHTML = '<div class="empty" style="padding:42px 24px;text-align:center;">'
+      + '<div class="empty-title">固定収支はまだありません</div>'
+      + '<div class="empty-desc" style="margin:6px 0 12px;">毎月の給料・家賃・保育料などを登録すると、今月のお金の見通しが分かりやすくなります。</div>'
+      + '<button class="btn btn-primary" onclick="openRecurringTxModal(null)" style="padding:10px 22px;border-radius:12px;font-size:13px;">＋ 固定収支を追加</button>'
+      + '</div>';
+    return;
+  }
+  // 種別ごとに合計
+  let totIn = 0, totEx = 0;
+  list.forEach(function(r){
+    if(r.enabled === false) return;
+    const a = Number(r.amount) || 0;
+    if(r.type === 'income') totIn += a; else totEx += a;
+  });
+  let html = '<div class="cf-card" style="margin-bottom:14px;">'
+    + '<div class="cf-row"><span class="cf-label">毎月の固定収入合計（有効分）</span><span class="cf-value pos">¥'+totIn.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">毎月の固定支出合計（有効分）</span><span class="cf-value neg">¥'+totEx.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">差額</span><span class="cf-value '+((totIn-totEx)>=0?'pos':'neg')+'">'+((totIn-totEx)>=0?'+':'-')+'¥'+Math.abs(totIn-totEx).toLocaleString()+'</span></div>'
+    + '</div>';
+  html += list.map(function(r){
+    const cycleLabel = _recurringCycleLabel(r);
+    const memName = r.memberId ? (memberNameById(r.memberId) || '') : '';
+    return '<div class="recurring-row '+(r.enabled===false?'disabled':'')+'">'
+      + '<div class="rr-main">'
+      +   '<div class="rr-name">'+H(r.desc || r.cat || '(無題)')+'</div>'
+      +   '<div class="rr-meta">'
+      +     '<span class="rr-chip '+(r.type==='income'?'income':'expense')+'">'+(r.type==='income'?'収入':'支出')+'</span>'
+      +     '<span class="rr-chip cycle">'+H(cycleLabel)+'</span>'
+      +     (r.cat ? '<span class="rr-chip">'+H(r.cat)+'</span>' : '')
+      +     (memName ? '<span class="rr-chip member">'+H(memName)+'</span>' : '')
+      +     (r.memo ? '<span class="rr-chip">📝 '+H(r.memo.slice(0,20))+'</span>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0;">'
+      +   '<div class="rr-amount '+(r.type==='income'?'income':'')+'">'+(r.type==='income'?'+':'')+'¥'+Number(r.amount||0).toLocaleString()+'</div>'
+      +   '<div class="rr-actions" style="margin-top:6px;">'
+      +     '<button onclick="openRecurringTxModal(\''+H(r.id)+'\')">編集</button>'
+      +     '<button onclick="toggleRecurringEnabled(\''+H(r.id)+'\')">'+(r.enabled===false?'有効化':'無効化')+'</button>'
+      +     '<button class="rr-del" onclick="confirmDeleteRecurringTx(\''+H(r.id)+'\')">削除</button>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  html += '<div style="margin:14px 16px 0;text-align:center;">'
+    + '<button class="btn btn-primary" onclick="openRecurringTxModal(null)" style="padding:10px 22px;border-radius:12px;font-size:13px;">＋ 固定収支を追加</button>'
+    + '</div>';
+  wrap.innerHTML = html;
+}
+function _recurringCycleLabel(r) {
+  if(r.frequency === 'monthly') return r.isMonthEnd ? '毎月末' : ('毎月' + (r.dayOfMonth || 1) + '日');
+  if(r.frequency === 'weekly')  return '毎週' + ({sun:'日',mon:'月',tue:'火',wed:'水',thu:'木',fri:'金',sat:'土'}[r.dayOfWeek] || '?');
+  if(r.frequency === 'yearly')  return '毎年' + (r.monthOfYear || 1) + '/' + (r.dayOfMonth || 1);
+  if(r.frequency === 'daily')   return '毎日';
+  return '一回限り';
+}
+
+/* ── 固定収支モーダル ── */
+let _rtEditingId = null;
+function openRecurringTxModal(id) {
+  _ensureRecurring();
+  _rtEditingId = id || null;
+  const r = id ? S.recurringTxs.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('m-recurring-tx-title').textContent = r ? '固定収支を編集' : '固定収支を追加';
+  document.getElementById('rt-id').value = r ? r.id : '';
+  rtSelectType(r ? r.type : 'expense');
+  document.getElementById('rt-desc').value   = r ? (r.desc || '') : '';
+  document.getElementById('rt-amount').value = r ? (r.amount || '') : '';
+  document.getElementById('rt-frequency').value = r ? (r.frequency || 'monthly') : 'monthly';
+  document.getElementById('rt-memo').value   = r ? (r.memo || '') : '';
+  document.getElementById('rt-enabled').value = r ? String(r.enabled !== false) : 'true';
+  document.getElementById('rt-start').value  = r ? (r.startDate || '') : '';
+  document.getElementById('rt-end').value    = r ? (r.endDate || '') : '';
+  // 日付セレクト構築
+  const domSel = document.getElementById('rt-day-of-month');
+  const domYrSel = document.getElementById('rt-day-of-month-y');
+  let domHtml = '';
+  for(let d = 1; d <= 31; d++) domHtml += '<option value="'+d+'">'+d+'日</option>';
+  domSel.innerHTML = domHtml;
+  domYrSel.innerHTML = domHtml;
+  document.getElementById('rt-day-of-month').value = r ? (r.dayOfMonth || 1) : 1;
+  document.getElementById('rt-day-of-month-y').value = r ? (r.dayOfMonth || 1) : 1;
+  document.getElementById('rt-is-month-end').checked = r ? !!r.isMonthEnd : false;
+  document.getElementById('rt-day-of-week').value = r ? (r.dayOfWeek || 'mon') : 'mon';
+  // 月セレクト
+  const moy = document.getElementById('rt-month-of-year');
+  let moyHtml = '';
+  for(let m = 1; m <= 12; m++) moyHtml += '<option value="'+m+'">'+m+'月</option>';
+  moy.innerHTML = moyHtml;
+  document.getElementById('rt-month-of-year').value = r ? (r.monthOfYear || 1) : 1;
+  // メンバーセレクト
+  const memSel = document.getElementById('rt-member');
+  memSel.innerHTML = '<option value="">指定なし</option>' + MEMBERS.map(function(m){
+    return '<option value="'+H(m.id)+'">'+H(m.name)+'</option>';
+  }).join('');
+  memSel.value = r ? (r.memberId || '') : '';
+  // カテゴリセレクト
+  rtUpdateCatOptions(r ? (r.type || 'expense') : 'expense', r ? (r.cat || '') : '');
+  rtUpdateFreqUi();
+  rtUpdateMonthEnd();
+  // 削除ボタン
+  document.getElementById('rt-delete-btn').style.display = r ? 'block' : 'none';
+  openModal('m-recurring-tx');
+  setTimeout(function(){ document.getElementById('rt-desc').focus(); }, 200);
+}
+function rtSelectType(type) {
+  document.getElementById('rt-type').value = type;
+  document.querySelectorAll('#m-recurring-tx .rt-type-btn').forEach(function(b){
+    b.classList.toggle('selected', b.dataset.type === type);
+  });
+  rtUpdateCatOptions(type, document.getElementById('rt-cat').value);
+}
+function rtUpdateCatOptions(type, current) {
+  const cats = type === 'income' ? CATS_IN : CATS_EX;
+  const sel = document.getElementById('rt-cat');
+  sel.innerHTML = cats.map(function(c){ return '<option value="'+H(c)+'">'+H(c)+'</option>'; }).join('');
+  if(current && cats.indexOf(current) >= 0) sel.value = current;
+}
+function rtUpdateFreqUi() {
+  const f = document.getElementById('rt-frequency').value;
+  document.getElementById('rt-monthly-fields').style.display = (f === 'monthly') ? '' : 'none';
+  document.getElementById('rt-weekly-fields').style.display  = (f === 'weekly')  ? '' : 'none';
+  document.getElementById('rt-yearly-fields').style.display  = (f === 'yearly')  ? '' : 'none';
+}
+function rtUpdateMonthEnd() {
+  const isEnd = document.getElementById('rt-is-month-end').checked;
+  document.getElementById('rt-day-of-month').disabled = isEnd;
+}
+function saveRecurringTx() {
+  const desc = document.getElementById('rt-desc').value.trim();
+  if(!desc) { showToast('名称を入力してください','error'); return; }
+  const amount = parseFloat(document.getElementById('rt-amount').value);
+  if(!Number.isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
+  const type = document.getElementById('rt-type').value === 'income' ? 'income' : 'expense';
+  const cat  = document.getElementById('rt-cat').value;
+  const frequency = document.getElementById('rt-frequency').value;
+  const memberId = document.getElementById('rt-member').value || '';
+  const memberName = memberId ? (memberNameById(memberId) || '') : '';
+  const isMonthEnd = document.getElementById('rt-is-month-end').checked;
+  const dayOfMonth = (frequency === 'monthly')
+    ? (isMonthEnd ? null : parseInt(document.getElementById('rt-day-of-month').value, 10))
+    : (frequency === 'yearly' ? parseInt(document.getElementById('rt-day-of-month-y').value, 10) : null);
+  const dayOfWeek  = (frequency === 'weekly') ? document.getElementById('rt-day-of-week').value : null;
+  const monthOfYear = (frequency === 'yearly') ? parseInt(document.getElementById('rt-month-of-year').value, 10) : null;
+  const data = {
+    type: type, amount: amount, cat: cat, desc: desc,
+    member: memberName, memberId: memberId,
+    frequency: frequency,
+    dayOfMonth: dayOfMonth, isMonthEnd: !!isMonthEnd,
+    dayOfWeek: dayOfWeek, monthOfYear: monthOfYear,
+    startDate: document.getElementById('rt-start').value || '',
+    endDate:   document.getElementById('rt-end').value   || '',
+    memo: document.getElementById('rt-memo').value.trim(),
+    enabled: document.getElementById('rt-enabled').value === 'true'
+  };
+  if(_rtEditingId) updateRecurringTx(_rtEditingId, data);
+  else             addRecurringTx(data);
+  _rtEditingId = null;
+  closeModal('m-recurring-tx');
+  renderRecurringSection();
+  if(typeof renderHome === 'function') renderHome();
+  showToast('固定収支を保存しました','success');
+}
+function deleteRecurringTxFromModal() {
+  if(!_rtEditingId) return;
+  if(!confirm('この固定収支を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
+  deleteRecurringTx(_rtEditingId);
+  _rtEditingId = null;
+  closeModal('m-recurring-tx');
+  renderRecurringSection();
+  showToast('削除しました','success');
+}
+function confirmDeleteRecurringTx(id) {
+  const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
+  if(!r) return;
+  if(!confirm('「'+ (r.desc || r.cat) +'」を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
+  deleteRecurringTx(id);
+  renderRecurringSection();
+  showToast('削除しました','success');
+}
+function toggleRecurringEnabled(id) {
+  const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
+  if(!r) return;
+  r.enabled = !r.enabled;
+  r.updatedAt = new Date().toISOString();
+  saveS();
+  renderRecurringSection();
+  showToast(r.enabled ? '有効にしました' : '無効にしました','success');
+}
+
+/* ── 月初残高モーダル ── */
+function openOpeningBalanceModal(monthKey) {
+  _ensureRecurring();
+  const cur = (S.cashflowSettings.openingBalances || {})[monthKey];
+  document.getElementById('ob-month').value = monthKey;
+  document.getElementById('ob-month-label').textContent = monthKey.slice(0,4) + '年' + parseInt(monthKey.slice(5,7), 10) + '月の月初残高';
+  document.getElementById('ob-amount').value = (cur != null) ? cur : '';
+  openModal('m-opening-balance');
+  setTimeout(function(){ document.getElementById('ob-amount').focus(); }, 200);
+}
+function saveOpeningBalance() {
+  _ensureRecurring();
+  const monthKey = document.getElementById('ob-month').value;
+  if(!monthKey) { closeModal('m-opening-balance'); return; }
+  const v = parseFloat(document.getElementById('ob-amount').value);
+  if(!Number.isFinite(v)) { showToast('金額を入力してください','error'); return; }
+  S.cashflowSettings.openingBalances[monthKey] = v;
+  saveS();
+  closeModal('m-opening-balance');
+  renderCashflowSection();
+  showToast('月初残高を保存しました','success');
+}
+
+/* ── 資金繰りセクションのレンダリング ── */
+function renderCashflowSection() {
+  _ensureRecurring();
+  const wrap = document.getElementById('budget-section-cashflow');
+  if(!wrap) return;
+  const y = S.budgetY || (new Date()).getFullYear();
+  const m0 = (S.budgetM != null ? S.budgetM : (new Date()).getMonth());
+  const cf = computeMonthlyCashflow(y, m0);
+  const monthKey = cf.monthKey;
+  const monthLabel = y + '年' + (m0 + 1) + '月';
+  const obSet = (S.cashflowSettings.openingBalances || {}).hasOwnProperty(monthKey);
+  let html = '';
+  // 月ナビ
+  html += '<div class="budget-header-bar" style="margin-bottom:10px;">'
+    + '<button class="budget-nav-btn" onclick="budgetChangeMonth(-1);renderCashflowSection();" title="前の月"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>'
+    + '<div class="budget-month-lbl">'+H(monthLabel)+'</div>'
+    + '<button class="budget-nav-btn" onclick="budgetChangeMonth(1);renderCashflowSection();" title="次の月"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>'
+    + '</div>';
+  // 警告
+  if(cf.endingBalanceForecast < 0) {
+    html += '<div class="cf-warn danger">⚠ '+H(monthLabel)+' は月末残高がマイナスになる見込みです（'+cf.endingBalanceForecast.toLocaleString()+' 円）。固定支出の見直しか開始残高の確認をおすすめします。</div>';
+  } else if(cf.totalExpense > cf.totalIncome) {
+    html += '<div class="cf-warn">注意：'+H(monthLabel)+' は支出予定（¥'+cf.totalExpense.toLocaleString()+'）が収入予定（¥'+cf.totalIncome.toLocaleString()+'）を超えています。</div>';
+  }
+  if(!obSet) {
+    html += '<div class="cf-warn">月初残高が未設定です。<button onclick="openOpeningBalanceModal(\''+monthKey+'\')" style="background:transparent;border:1px solid currentColor;padding:3px 10px;border-radius:6px;color:inherit;font-size:11px;cursor:pointer;margin-left:6px;">設定する</button></div>';
+  }
+  // サマリーカード
+  html += '<div class="cf-card">'
+    + '<div class="cf-row"><span class="cf-label">月初残高</span><span class="cf-value">¥'+cf.openingBalance.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">収入予定（実績+固定）</span><span class="cf-value pos">+¥'+cf.totalIncome.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">支出予定（実績+固定）</span><span class="cf-value neg">-¥'+cf.totalExpense.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">収支差額</span><span class="cf-value '+(cf.netCashflow>=0?'pos':'neg')+'">'+(cf.netCashflow>=0?'+':'-')+'¥'+Math.abs(cf.netCashflow).toLocaleString()+'</span></div>'
+    + '<div class="cf-row" style="padding-top:10px;"><span class="cf-label" style="font-size:13px;">月末残高見込み</span><span class="cf-value big '+(cf.endingBalanceForecast>=0?'pos':'neg')+'">¥'+cf.endingBalanceForecast.toLocaleString()+'</span></div>'
+    + '</div>';
+  // 内訳
+  html += '<div class="cf-card">'
+    + '<div class="cf-row"><span class="cf-label">実績の収入</span><span class="cf-value pos">+¥'+cf.actualIncome.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">実績の支出</span><span class="cf-value neg">-¥'+cf.actualExpense.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">固定収入の予定</span><span class="cf-value pos">+¥'+cf.scheduledIncome.toLocaleString()+'</span></div>'
+    + '<div class="cf-row"><span class="cf-label">固定支出の予定</span><span class="cf-value neg">-¥'+cf.scheduledExpense.toLocaleString()+'</span></div>'
+    + '</div>';
+  // 月初残高ボタン
+  html += '<div style="margin:0 16px 14px;display:flex;gap:8px;">'
+    + '<button class="btn btn-outline" onclick="openOpeningBalanceModal(\''+monthKey+'\')" style="flex:1;padding:9px;font-size:12px;border-radius:10px;">月初残高を設定</button>'
+    + '<button class="btn btn-primary" onclick="confirmApplyRecurring('+y+','+m0+')" style="flex:1;padding:9px;font-size:12px;border-radius:10px;">今月分の予定を実績へ反映</button>'
+    + '</div>';
+  // 予定明細
+  if(cf.scheduledItems && cf.scheduledItems.length) {
+    html += '<div class="cf-card"><div class="cf-row" style="border-bottom:1px solid var(--border-light);padding-bottom:8px;margin-bottom:4px;"><span class="cf-label" style="font-size:13px;font-weight:700;">未反映の固定収支（予定）</span></div>';
+    cf.scheduledItems.forEach(function(it){
+      const r = it.recurring;
+      const cls = r.type === 'income' ? 'pos' : 'neg';
+      const sign = r.type === 'income' ? '+' : '-';
+      const day = it.date.slice(8);
+      html += '<div class="cf-row"><span class="cf-label">'+H(day)+'日 '+H(r.desc || r.cat)+'</span><span class="cf-value '+cls+'">'+sign+'¥'+Number(r.amount||0).toLocaleString()+'</span></div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:8px 16px;">未反映の予定はありません</div>';
+  }
+  // 注釈
+  html += '<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:8px 16px 24px;">※ 数値はあくまで見込みです。固定収支の編集 / 月初残高で随時更新してください。</div>';
+  wrap.innerHTML = html;
+}
+
+function confirmApplyRecurring(y, m0) {
+  const monthLabel = y + '年' + (m0 + 1) + '月';
+  if(!confirm(monthLabel+' の未反映の固定収支を実績（家計）に追加しますか？\n（重複は自動でスキップします）')) return;
+  const added = applyRecurringForMonth(y, m0);
+  showToast(added>0 ? added+' 件を実績に反映しました' : '反映できる新規はありません', added>0?'success':'info');
+  renderCashflowSection();
+  if(typeof renderBudget === 'function') renderBudget();
+}
+
+/* ============================================================
+   Wave 60 — Hoku 連携：固定収支の自然文入力
+   ============================================================ */
+/* 「毎月25日に給料30万円」「毎月末にカード支払い12万円」「毎月1日に家賃8万円」 */
+function _hokuDetectRecurringBudget(text) {
+  if(!text) return null;
+  // type を推定する語
+  const isIncomeWord = /給料|給与|ボーナス|賞与|入金|振込|手当|お小遣い|児童手当|還付|副業|副収入/.test(text);
+  const isExpenseWord = /家賃|保育料|学費|月謝|レッスン代|引落|引き落とし|請求|カード|支払い|支払|サブスク|電気代|水道代|ガス代|光熱費|通信費|教育費/.test(text);
+  // 周期と日付
+  let frequency = null, dayOfMonth = null, isMonthEnd = false, dayOfWeek = null, monthOfYear = null;
+  if(/毎月末|月末/.test(text)) { frequency = 'monthly'; isMonthEnd = true; }
+  else if(/毎月\s*(\d{1,2})\s*日?/.test(text)) {
+    frequency = 'monthly';
+    dayOfMonth = parseInt(RegExp.$1, 10);
+  } else if(/毎週\s*(月|火|水|木|金|土|日)/.test(text)) {
+    frequency = 'weekly';
+    dayOfWeek = ({月:'mon',火:'tue',水:'wed',木:'thu',金:'fri',土:'sat',日:'sun'})[RegExp.$1];
+  } else if(/毎年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?/.test(text)) {
+    frequency = 'yearly';
+    monthOfYear = parseInt(RegExp.$1, 10);
+    dayOfMonth  = parseInt(RegExp.$2, 10);
+  } else if(/毎日/.test(text)) {
+    frequency = 'daily';
+  } else {
+    return null;
+  }
+  // 金額（必須：金額が無ければ recurring_budget intent ではない）
+  let amount = null;
+  const yenStr = (typeof voiceResolveAmount === 'function') ? voiceResolveAmount(text) : null;
+  if(Number.isFinite(yenStr)) amount = yenStr;
+  if(!amount) {
+    const m = text.match(/([\d,]+)\s*万円/);
+    if(m) amount = parseInt(m[1].replace(/,/g,''), 10) * 10000;
+  }
+  if(!amount) {
+    const m = text.match(/([\d,]+)\s*円/);
+    if(m) amount = parseInt(m[1].replace(/,/g,''), 10);
+  }
+  // 金額が無い、または金額関連のシグナル（収入語/支出語/円）が一切無いなら他 intent に譲る
+  if(!Number.isFinite(amount) || amount <= 0) return null;
+  if(!isIncomeWord && !isExpenseWord && !/円/.test(text)) return null;
+  // type 決定（収入語 > 支出語 > 既定支出）
+  const type = isIncomeWord && !isExpenseWord ? 'income' : (isExpenseWord ? 'expense' : (isIncomeWord ? 'income' : 'expense'));
+  // 名称（説明）
+  let desc = '';
+  const known = ['給料','給与','家賃','保育料','学費','月謝','カード支払い','カード','電気代','水道代','ガス代','通信費','光熱費','保険料','スイミング','ピアノ','英会話','学童','習い事','ボーナス','副業'];
+  for(const k of known) if(text.indexOf(k) >= 0) { desc = k; break; }
+  if(!desc) desc = type === 'income' ? '収入' : '支出';
+  // カテゴリ
+  let cat = '';
+  if(type === 'income') {
+    if(/給料|給与/.test(desc)) cat = '給与';
+    else if(/ボーナス|賞与/.test(desc)) cat = 'ボーナス';
+    else if(/副業|副収入/.test(desc)) cat = '副業';
+    else cat = 'その他';
+  } else {
+    if(/食費|食材|スーパー/.test(text)) cat = '食費';
+    else if(/家賃|住宅|住居/.test(text)) cat = '住居費';
+    else if(/保育|学費|月謝|教育/.test(text)) cat = '教育費';
+    else if(/医療|病院|薬/.test(text)) cat = '医療費';
+    else if(/電気|水道|ガス|光熱/.test(text)) cat = '光熱費';
+    else if(/通信|スマホ|wifi|wi-fi/i.test(text)) cat = '通信費';
+    else cat = 'その他';
+  }
+  return {
+    type: type,
+    amount: amount,
+    cat: cat,
+    desc: desc,
+    frequency: frequency,
+    dayOfMonth: dayOfMonth,
+    isMonthEnd: isMonthEnd,
+    dayOfWeek: dayOfWeek,
+    monthOfYear: monthOfYear
+  };
+}
+/* 固定収支登録の Hoku レスポンス */
+let _hokuPendingRecurring = null;
+function _hokuExecuteRecurringBudget(intent) {
+  const e = intent.entities && intent.entities.recurring;
+  if(!e || !Number.isFinite(e.amount) || e.amount <= 0) {
+    return { ok:false, message:'金額が読み取れませんでした。「毎月25日に給料30万円」のように金額も含めて教えてください。' };
+  }
+  _hokuPendingRecurring = e;
+  const cycle = _recurringCycleLabel({ frequency:e.frequency, dayOfMonth:e.dayOfMonth, isMonthEnd:e.isMonthEnd, dayOfWeek:e.dayOfWeek, monthOfYear:e.monthOfYear });
+  const sign = e.type === 'income' ? '+' : '-';
+  return {
+    ok: true,
+    message: cycle + ' に「'+e.desc+'」を '+sign+'¥'+Number(e.amount).toLocaleString()+' として'+(e.type==='income'?'固定収入':'固定支出')+'に登録しますか？\n\n[[ACTION_BUTTONS:rtxconfirm]]'
+  };
+}
+function _hokuRecurringConfirm() {
+  const e = _hokuPendingRecurring;
+  _hokuPendingRecurring = null;
+  if(!e) { showToast('登録できる内容が残っていません','info'); return; }
+  addRecurringTx(e);
+  showToast('固定収支を登録しました','success');
+  switchTab('s-budget');
+  setTimeout(function(){ setBudgetTab('recurring'); }, 100);
+}
 
 function setBudgetType(type) {
   S.budgetType = type;
@@ -11676,6 +12468,8 @@ const HOKU_INTENT_META = {
   shopping_add:           { uiCat:null,       store:'S.shoppingItems',    label:'買い物リスト',        isShopping:true },
   shopping_frequent_add:  { uiCat:null,       store:'S.shoppingFrequent', label:'よく購入するもの',     isShopping:true },
   shopping_purchased:     { uiCat:null,       store:'S.shoppingHistory',  label:'購入済み（履歴へ移動）', isShopping:true },
+  recurring_budget_add:   { uiCat:null,       store:'S.recurringTxs', label:'固定収支',  isRecurringBudget:true },
+  cashflow_view:          { uiCat:null,       store:null,             label:'資金繰り表' },
   external_calendar_help: { uiCat:null,       store:null,           label:'外部カレンダー連携案内' },
   settings_help:          { uiCat:null,       store:null,           label:'設定案内' },
   unknown:                { uiCat:null,       store:null,           label:'要確認' }
@@ -11834,6 +12628,16 @@ function parseHokuIntent(rawText, source) {
   }
   if(text.match(/(設定|プロフィール|家族構成|メンバー(追加|編集|削除)|アバター(変更|編集))/) && text.match(/(教えて|変えたい|変更|どうやって|どこ|やり方)/)) {
     return _hokuMakeIntent('settings_help', raw, text, source, 0.85, {});
+  }
+
+  // 1.4) Wave 60: 資金繰り表を見たい
+  if(/(資金繰り|お金の見通し|月末残高|今月の収支|今月.*いくら(残|入|出))/.test(text)) {
+    return _hokuMakeIntent('cashflow_view', raw, text, source, 0.85, {});
+  }
+  // 1.45) Wave 60: 固定収支（毎月◯日 / 毎月末 / 毎週X曜 / 毎年）の登録
+  const rb = _hokuDetectRecurringBudget(text);
+  if(rb) {
+    return _hokuMakeIntent('recurring_budget_add', raw, text, source, 0.88, { recurring: rb, title: rb.desc });
   }
 
   // 1.5) 買い物系（リスト追加 / よく買うもの / 購入済み）— ヘルプの直後で先に拾う
@@ -12014,6 +12818,15 @@ function executeHokuAction(intent) {
   // Wave 54: 買い物系（リスト追加 / よく購入する / 購入済み）
   if(intent.intentType === 'shopping_add' || intent.intentType === 'shopping_frequent_add' || intent.intentType === 'shopping_purchased') {
     return _hokuExecuteShopping(intent);
+  }
+  // Wave 60: 固定収支登録 / 資金繰り表
+  if(intent.intentType === 'recurring_budget_add') {
+    return _hokuExecuteRecurringBudget(intent);
+  }
+  if(intent.intentType === 'cashflow_view') {
+    switchTab('s-budget');
+    setTimeout(function(){ setBudgetTab('cashflow'); }, 100);
+    return { ok:true, message:'資金繰り表を開きます。月初残高を設定すると、月末残高の見込みが表示されます。\n\n※ あくまで見込みです。\n\n[[ACTION_BUTTONS:cashflow]]' };
   }
 
   // Wave 55: prep_routine_add で複数持ち物（「火曜は算数ノートと計算ドリル」等）が抽出できた場合は一括登録（要 confirm）
@@ -12669,6 +13482,19 @@ function classifierGuidance(category, q, secondary) {
    onclick 文字列で表現（switchTab/go/モーダル open）
    ────────────────────────────────────────────────── */
 function classifierActions(category, secondary) {
+  // Wave 60: 固定収支確定 / 資金繰り表
+  if(category === 'rtxconfirm') {
+    return [
+      { label: 'はい、登録する', onclick: '_hokuRecurringConfirm()' },
+      { label: 'キャンセル',     onclick: "_hokuPendingRecurring=null;showToast('キャンセルしました','info')" }
+    ];
+  }
+  if(category === 'cashflow') {
+    return [
+      { label: '資金繰りを開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('cashflow'); },100)" },
+      { label: '固定収支を開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('recurring'); },100)" }
+    ];
+  }
   // Wave 54: 買い物リスト系
   if(category === 'shopping' || category === 'shopchoice') {
     return classifierActionsShopping(category === 'shopchoice' ? 'shopchoice' : null);
