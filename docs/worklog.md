@@ -5526,3 +5526,52 @@ Wave 52.3: ホームのデフォルト 6 ボード化（買い物メモ + 準備
 
 ### コミット
 - メッセージ: `wave 52.3: seed default home boards (買い物メモ + 準備リスト) for all users`
+
+## 2026-05-07 19:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 53: タスク画面に音声入力導線を追加（既存 + ボタンは保持）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- タスク画面ヘッダー右に **マイクアイコンボタン**（id: tk-mic-btn）を追加。既存の「+」ボタンの左隣に配置
+- `#tk-mic-btn.listening` にパルスアニメーション CSS を追加（pulseMic keyframes）
+- `taskVoiceToggle()` を新設し、独立した SpeechRecognition インスタンスを使用（Hoku 画面側 `#hoku-mic` と干渉しない）
+- `handleTaskVoiceText(text)` で `parseVoiceIntent` を再利用してタイトル / 日付 / 担当を抽出 → 既存 `m-task-edit` モーダルを **prefill して開く**
+  - 「話してタスク追加 → 確認 → 保存」の 3 ステップを既存モーダルに集約することで「保存前確認」の要件を満たす
+  - タイトルは抽出できなければ生テキストをフォールバック投入
+  - カテゴリは簡易キーワード判定（学校/買い物/健康/行事/家事）
+- 既存 ＋ ボタン（onclick=openTaskModal(null)）は完全保持
+
+### 設計判断
+- 専用音声確認モーダルを別途作らず、既存 m-task-edit を確認 UX として再利用 → コード追加最小・見た目一貫
+- 担当 / 期日 / カテゴリが抽出できなくても、タイトルさえ取れれば保存可（spec の「タスクはシンプル優先」に準拠）
+- SpeechRecognition 非対応端末は toast 案内のみ（既存 + ボタンが代替動線）
+
+### テスト結果
+- 単一 `<script>` ブロック構文検証 PASS（1/1）
+- md5 同期：`244d35daabe7fe4f03a3e1246b7e190c`
+- iPhone Safari 実機での音声認識結果は実機要確認
+
+### iPhone 確認ポイント
+1. タスク画面ヘッダーに マイク と + が並んでいる
+2. マイクをタップ → トースト「🎙 タスク内容を話してください…」 + マイクが赤くパルス
+3. 「明日までに学校へ電話」と話す → m-task-edit が開きタイトル `学校へ電話` / 期日が翌日 prefill
+4. 確認 → [保存] でタスクに登録
+5. 「キャンセル」を押せば追加されない
+6. 既存の「+」ボタンも従来どおり押すと空の m-task-edit が開く
+7. 音声非対応端末ではトースト案内のみ（+ ボタンは生きている）
+
+### 未確認事項
+- iPhone 実機の SpeechRecognition 動作（Safari は webkitSpeechRecognition だが iOS Safari では権限ダイアログが出る場合あり）
+- 「明日まで」「金曜まで」など `parseVoiceIntent` の日付抽出が「までに」表記でも効くか（現在は「明日 / 金曜」単体マッチのため概ね OK だが要実機確認）
+
+### 次にやること
+- Wave 54：買い物リスト 3 タブ画面（リスト / よく購入するもの / 購入履歴）の新設
+
+### コミット
+- メッセージ: `wave 53: task screen voice input - mic button + prefill m-task-edit modal as confirmation`
