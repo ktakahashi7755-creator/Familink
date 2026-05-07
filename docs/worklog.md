@@ -6226,3 +6226,38 @@ Wave 60: 家計管理を「固定収支 + 資金繰り表」へ進化
 
 ### コミット
 - メッセージ: `wave 60: budget recurring transactions + monthly cashflow forecast + Hoku integration`
+
+## 2026-05-08 01:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.1: 家族メンバー管理から公式アバター・写真を選べるようにする
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- `m-member-edit` モーダル先頭に **アバター画像プレビュー + 「変更する」ボタン** を追加
+- `meRefreshAvatarPreview(memberId)`：現在のアバター（公式 / 写真 / カラー+イニシャル）と状態ラベルを描画
+- `meOpenAvatarSelect()`：
+  - 編集時：member-edit を閉じて `openOfficialAvatarModal(id)` を起動
+  - 新規時：先に名前必須チェック → `saveMemberEdit()` で永続化 → 直近追加 ID で `openOfficialAvatarModal` を開く
+- カラー欄ラベルに「（公式アバター/写真未設定時に使用）」の補足
+- 公式アバター確定時の `renderSettings + renderHome` に加え `renderChildren()` も呼び、家族メンバー管理画面で即時反映
+- 既存の openOfficialAvatarModal / S.userAvatars / S.userPhotos / S.userAvatarType の仕組みを再利用（追加データキー無し）
+
+### iPhone 確認ポイント
+1. 家族メンバー管理 → 既存メンバーの「編集」 → モーダル先頭にアバターと「変更する」ボタン
+2. 「変更する」 → 公式アバターギャラリー → 選択 → 設定 → メンバー一覧でアバターが新しい画像に
+3. 「+ メンバーを追加」 → 名前入力 → 「変更する」 → 自動保存 → ギャラリー → 選択
+4. プレミアム限定アバターは課金ゲート発動（既存挙動）
+5. カラー欄を変えても、公式アバター設定済みなら表示は変わらない（avHtml の優先度どおり）
+
+### テスト結果
+- 構文 1/1 PASS
+- smoke / scenario 27 / member-test 16 / wave60 30 / edge 76 全件 PASS（回帰なし）
+- md5 同期：`a8bc8346a407c7dd88791b142f1b6f29`
+
+### コミット
+- メッセージ: `wave 60.1: family-member modal can pick official avatar / photo (reuses gallery)`
