@@ -5734,3 +5734,68 @@ Wave 55: 準備リスト時間割化（教科 / 数量 / カテゴリ刷新 / Ho
 
 ### コミット
 - メッセージ: `wave 55: prep timetable - subject/quantity, category overhaul, sample seed, hoku multi-item routine`
+
+## 2026-05-07 21:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 55.1: prep_routine_add 解析バグ修正（「ルーティンがない」問題の根本対応）
+
+### 発覚した致命バグ（VM 実行検証で発見）
+1. 「毎週月曜、太郎の国語の教科書を準備に入れて」→ prepItems が `["毎週月曜","太郎の国語の教科書"]` で 2 件のゴミルーティンが保存されてしまう（「、」だけで誤分割）
+2. 「火曜は算数ノートと計算ドリル」→ `isRoutineLike` が「毎週」を要求していたため `prep_add` に降格、ルーティンタブに出ない
+3. 「水曜の時間割に図工セットを追加」→ items 検出語に「セット」が無く unknown
+4. 単一登録時の entities.title が「毎週月曜 太郎の国語の教科書」のように context が剥がれず、確認モーダルでも汚いまま
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- `_hokuParsePrepRoutine(text)` を新設：曜日 / メンバー名 / 「毎週」「時間割」マーカー / トリガー句を順番に剥がし、残った本文を items 配列に分割。教科は `_hokuExtractSubject` から
+- `isRoutineLike` の判定を緩和：「X曜は」「X曜の」を routine マーカーに加え、items 検出語に「教科書 / ノート / ドリル / セット / 筆箱 / 宿題 / 提出物」を追加
+- `parseHokuIntent` の prep 系分岐を新パーサー使用に置換：単品なら `prepSingleTitle` で entities.title を上書き、複数（≥2）なら従来通り `entities.prepItems` 経由で多重登録パスへ
+- `executeHokuAction` の多重登録分岐は変更なし（confirm() → addPrepRoutine）
+
+### 修正後の検証結果（Node VM 単体）
+| 入力 | intentType | weekday | title / items |
+|---|---|---|---|
+| 毎週月曜、太郎の国語の教科書を準備に入れて | prep_routine_add | 1 | title=`国語の教科書` (subject=国語) |
+| 火曜は算数ノートと計算ドリルを準備に追加 | prep_routine_add | 2 | items=['算数ノート','計算ドリル'] |
+| 水曜の時間割に図工セットを追加 | prep_routine_add | 3 | title=`図工セット` (subject=図工) |
+| 毎週金曜、太郎の体操服 | prep_routine_add | 5 | title=`体操服` |
+| 木曜は星斗の英語の教科書とノート | prep_routine_add | 4 | items=['星斗の英語の教科書','ノート']※ |
+
+※ MEMBERS に「星斗」が登録されていない既定ファミリーでは member 剥がしが効かない（カスタム登録すれば剥がせる）。Wave 55.2 で alias 経由の剥がしを検討。
+
+### 既存機能の手動検証（VM 経由）
+- 7 曜日カードレンダリング：12,839 字、各曜日表示、「📘 国語」グルーピング、教科外グループも OK
+- 空状態：4,025 字、「サンプル時間割を作成」「曜日ルーティンを作る」両ボタン表示
+- m-prep-routine モーダル開閉：プリフィル / save → S.prepRoutines 1 件追加 → renderPrepRoutinesSectionHtml で正しく曜日カードに反映
+
+### テスト結果
+- 構文検証 PASS（1/1）
+- VM 単体：6 ケースの routine 解釈と 1 件の修正後 end-to-end save flow PASS
+- md5 同期：`ae96f3a2c98d5a27673ee81b2bedbee0`
+
+### iPhone 確認ポイント（要再検証）
+1. ルーティン・時間割タブを開く → メンバーチップ + 「今日/明日に反映」ボタン + 7 曜日カードまたは空状態
+2. 空状態 →「+ サンプル時間割を作成」 → confirm → 12 件追加
+3. + 曜日ルーティンを作る → モーダルに 教科 / 数量 フィールド表示 → 保存後すぐに該当曜日カードに表示
+4. Hoku に「毎週月曜、太郎の国語の教科書を準備に入れて」 → 確認モーダルにタイトル `国語の教科書` のみが入る
+5. Hoku に「火曜は算数ノートと計算ドリル」 → 「太郎の火曜ルーティンとして 2 件を登録しますか？」ダイアログ → OK → 2 件登録
+6. Hoku に「水曜の時間割に図工セットを追加」 → unknown ではなく routine 確認モーダル → 図工セットが入る
+
+### 既存 538 自動テスト
+このリポジトリには tests/ 自動実行基盤が無いため CI 側 Playwright での回帰実行が前提。本 Wave は加算的バグ修正のため破壊変更なし。
+
+### 未確認事項
+- 「星斗」など MEMBERS に存在しない子供名の自動剥がし（カスタム登録待ち / alias 辞書併用）
+- 「毎週水曜、ピアノ教室」のような routine 意図だが「教室」で calendar 分類される境界
+
+### 次にやること
+- voiceResolveMember alias を _hokuParsePrepRoutine の member 剥がしにも適用
+- prep_add 多重分割 UX（今日/明日に複数持ち物を一括）
+
+### コミット
+- メッセージ: `wave 55.1: fix prep_routine_add - dedicated parser, accept 'X曜は' as routine marker, clean title`
