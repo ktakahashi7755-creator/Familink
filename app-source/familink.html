@@ -1800,6 +1800,70 @@ select.input {
   transition:var(--t-spring); white-space:nowrap;
 }
 .tk-filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+#tk-mic-btn.listening { color:#fff; background:var(--red); border-radius:50%; animation:pulseMic 1.2s ease-in-out infinite; }
+#tk-mic-btn.unsupported { opacity:.4; }
+@keyframes pulseMic {
+  0%,100% { box-shadow:0 0 0 0 rgba(255,107,107,.55); }
+  50%     { box-shadow:0 0 0 8px rgba(255,107,107,0); }
+}
+.tk-voice-banner {
+  margin:8px 16px 0; padding:8px 12px; border-radius:10px;
+  background:#FFF3E6; color:#7C3F0E; font-size:12px;
+  border:1px solid #FBD9B7; display:flex; align-items:center; gap:8px;
+}
+.tk-voice-banner .ico { width:14px; height:14px; flex-shrink:0; }
+
+/* Wave 54: 買い物リスト 3 タブ画面 */
+.shop-row {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg-card); border:1.5px solid var(--border-light);
+  border-radius:14px; padding:11px 12px; margin-bottom:8px;
+  box-shadow:var(--s-sm);
+}
+.shop-row .shop-main { flex:1; min-width:0; }
+.shop-row .shop-name { font-size:14px; font-weight:600; color:var(--text); line-height:1.3; word-break:break-word; }
+.shop-row .shop-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:3px; }
+.shop-row .shop-qty,
+.shop-row .shop-cat {
+  font-size:10.5px; padding:1px 7px; border-radius:999px;
+  background:var(--bg-muted); color:var(--text-muted);
+}
+.shop-row .shop-cat { background:#EEF2FF; color:#4F46E5; }
+.shop-chk {
+  flex-shrink:0; width:26px; height:26px; border-radius:50%;
+  background:var(--bg-muted); border:1.5px solid var(--border-light);
+  color:var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:var(--t-spring);
+}
+.shop-chk:active { transform:scale(.9); background:var(--primary); color:#fff; border-color:var(--primary); }
+.shop-iconbtn {
+  flex-shrink:0; width:30px; height:30px; border-radius:8px;
+  background:transparent; border:1px solid var(--border-light);
+  color:var(--text-muted); font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.shop-iconbtn:hover { color:var(--primary); border-color:var(--primary); }
+.shop-iconbtn.shop-del:hover { color:var(--red); border-color:var(--red); }
+.shop-addlist {
+  flex-shrink:0; padding:6px 11px; border-radius:999px;
+  background:var(--primary); color:#fff; border:none; cursor:pointer;
+  font-size:11.5px; font-weight:600; white-space:nowrap;
+}
+.shop-addlist:active { transform:scale(.95); }
+.shop-day {
+  font-size:11px; color:var(--text-muted); font-weight:600;
+  padding:8px 2px 4px; margin-top:6px;
+}
+.shop-row.shop-hist { opacity:.92; }
+.shop-empty {
+  text-align:center; padding:48px 20px 20px;
+  color:var(--text-muted);
+}
+.shop-empty-icon { font-size:38px; margin-bottom:10px; }
+.shop-empty-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.shop-empty-desc { font-size:12px; line-height:1.5; }
+.shop-empty-hint { font-size:11px; color:var(--primary); margin-top:8px; }
 .tk-card {
   background:var(--bg-card); border-radius:14px; margin:0 16px 8px;
   padding:13px 14px; box-shadow:var(--s-sm);
@@ -2448,6 +2512,9 @@ nav#tabbar.hidden { display: none !important; }
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title">タスク</div>
+    <button class="header-icon-btn" id="tk-mic-btn" onclick="taskVoiceToggle()" aria-label="音声でタスク追加" title="音声でタスク追加">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
     <button class="header-icon-btn" onclick="openTaskModal(null)" aria-label="タスクを追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -2742,6 +2809,61 @@ nav#tabbar.hidden { display: none !important; }
     <button class="tk-filter-btn" data-prep-tab="routine" onclick="setPrepTab('routine')">ルーティン・時間割</button>
   </div>
   <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(20px + env(safe-area-inset-bottom));"></div>
+</div>
+
+<!-- ===== Wave 54: 買い物リスト 3 タブ画面 ===== -->
+<div id="s-shopping" class="screen hidden">
+  <div class="header">
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">買い物リスト</div>
+    <button class="header-icon-btn" onclick="openShopAdd(null)" aria-label="買い物を追加" title="買い物を追加">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="shop-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
+    <button class="tk-filter-btn active" data-shop-tab="list"     onclick="setShopTab('list')">リスト</button>
+    <button class="tk-filter-btn"        data-shop-tab="frequent" onclick="setShopTab('frequent')">よく購入するもの</button>
+    <button class="tk-filter-btn"        data-shop-tab="history"  onclick="setShopTab('history')">購入履歴</button>
+  </div>
+  <div class="scroll-area" id="shop-body" style="flex:1;padding:12px 0 calc(80px + env(safe-area-inset-bottom));"></div>
+</div>
+
+<!-- ===== Wave 54: 買い物アイテム追加 / 編集モーダル ===== -->
+<div id="m-shop-add" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:80vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="m-shop-add-title">買い物を追加</div>
+    <input type="hidden" id="sa-id">
+    <input type="hidden" id="sa-mode" value="list">
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">商品名 <span style="color:var(--red)">*</span></div>
+        <input class="input" id="sa-name" placeholder="例：牛乳" maxlength="40" autocomplete="off">
+      </div>
+      <div class="field">
+        <div class="field-label">数量・メモ</div>
+        <input class="input" id="sa-qty" placeholder="例：1本 / 2パック" maxlength="40" autocomplete="off">
+      </div>
+      <div class="field">
+        <div class="field-label">カテゴリ</div>
+        <select class="input" id="sa-cat">
+          <option value="">カテゴリなし</option>
+          <option value="食品">食品</option>
+          <option value="日用品">日用品</option>
+          <option value="子ども用品">子ども用品</option>
+          <option value="薬・衛生">薬・衛生</option>
+          <option value="学校・園">学校・園</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-shop-add')">キャンセル</button>
+      <button class="btn btn-primary btn-block" onclick="saveShopAdd()">保存</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== CHILDREN ===== -->
@@ -3326,9 +3448,13 @@ let S = {
   boardItems: [],    // [{id,boardId,title,body,category,childId,status,order,createdAt}]
   boardSections: [], // [{id,boardId,title,order}]
   defaultCustomBoardsSeeded: false, // 初期 6 ボード（買い物メモ / 準備リスト）の自動投入済みフラグ
+  shoppingItems: [],    // 買い物リスト（active）
+  shoppingFrequent: [], // よく購入するもの（テンプレート）
+  shoppingHistory: [],  // 購入履歴（最新順で append）
+  shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab'];
 
 function saveS() {
   const d = {};
@@ -3530,6 +3656,7 @@ function refresh(id) {
     case 's-settings':renderSettings(); break;
     case 's-hoku':    renderHoku(); break;
     case 's-custom-board': renderCustomBoardDetail(); break;
+    case 's-shopping': renderShopping(); break;
   }
 }
 
@@ -4086,7 +4213,13 @@ function hoCardClick(bid) {
   if(bid==='b_task')   { switchTab('s-task');  return; }
   if(bid==='b_cal')    { switchTab('s-cal');   return; }
   if(bid==='b_health') { go('s-health');       return; }
-  if(bid.startsWith('cb_')) openCustomBoard(bid.slice(3));
+  if(bid.startsWith('cb_')) {
+    // Wave 54: shopping intent のカスタムボードは新画面 s-shopping へ統合導線
+    var customId = bid.slice(3);
+    var b = (S.customBoards||[]).find(function(x){ return x.id===customId; });
+    if(b && b.intent === 'shopping') { go('s-shopping'); return; }
+    openCustomBoard(customId);
+  }
 }
 
 /* カスタムボード追加時に homeOrder へ追記 */
@@ -7751,6 +7884,295 @@ function deleteCurrentHealth() {
 /* ============================================================
    PREP
    ============================================================ */
+/* ============================================================
+   Wave 54 — 買い物リスト 3 タブ画面（s-shopping）
+   ・S.shoppingItems / S.shoppingFrequent / S.shoppingHistory を独立管理
+   ・既存 S.boardItems / customBoards は触らない（後方互換）
+   ・home の「買い物メモ」カスタムボードカードは hoCardClick から s-shopping へ転送
+   ============================================================ */
+const SHOP_CATS = ['食品','日用品','子ども用品','薬・衛生','学校・園','その他'];
+
+function shopArrays() {
+  if(!S.shoppingItems)    S.shoppingItems = [];
+  if(!S.shoppingFrequent) S.shoppingFrequent = [];
+  if(!S.shoppingHistory)  S.shoppingHistory = [];
+}
+
+function renderShopping() {
+  shopArrays();
+  const tab = S.shoppingTab || 'list';
+  document.querySelectorAll('#shop-tabs [data-shop-tab]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-shop-tab') === tab);
+  });
+  // ＋ ボタンの表示制御（履歴タブでは隠す）
+  const addBtn = document.querySelector('#s-shopping .header .header-icon-btn[onclick*="openShopAdd"]');
+  if(addBtn) addBtn.style.visibility = (tab === 'history') ? 'hidden' : '';
+  const body = document.getElementById('shop-body');
+  if(!body) return;
+  if(tab === 'list')          body.innerHTML = renderShopListHtml();
+  else if(tab === 'frequent') body.innerHTML = renderShopFreqHtml();
+  else                        body.innerHTML = renderShopHistHtml();
+}
+
+function setShopTab(tab) {
+  if(['list','frequent','history'].indexOf(tab) < 0) return;
+  S.shoppingTab = tab;
+  saveS();
+  renderShopping();
+}
+
+/* ── タブ 1：リスト ── */
+function renderShopListHtml() {
+  const items = (S.shoppingItems || []).slice().sort(function(a,b){
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+  if(items.length === 0) {
+    return shopEmpty('🛒','買い物リストは空です','必要なものを追加して、買い忘れを防ぎましょう。','+ で買い物を追加');
+  }
+  return '<div style="padding:0 16px;">' + items.map(function(it){
+    const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
+    const qty = it.qty ? '<span class="shop-qty">'+H(it.qty)+'</span>' : '';
+    return '<div class="shop-row">'
+      + '<button class="shop-chk" onclick="shopMarkPurchased(\''+H(it.id)+'\')" aria-label="購入済み"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>'
+      + '<div class="shop-main">'
+      +   '<div class="shop-name">'+H(it.name)+'</div>'
+      +   '<div class="shop-meta">'+qty+cat+'</div>'
+      + '</div>'
+      + '<button class="shop-iconbtn" onclick="shopAddToFrequent(\''+H(it.id)+'\')" aria-label="よく買うへ追加" title="よく買うへ追加">★</button>'
+      + '<button class="shop-iconbtn" onclick="shopEditItem(\''+H(it.id)+'\')" aria-label="編集" title="編集">✎</button>'
+      + '<button class="shop-iconbtn shop-del" onclick="shopDeleteItem(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+/* ── タブ 2：よく購入するもの ── */
+function renderShopFreqHtml() {
+  const items = (S.shoppingFrequent || []).slice().sort(function(a,b){
+    return (a.order||0) - (b.order||0);
+  });
+  if(items.length === 0) {
+    return shopEmpty('⭐','よく購入するものはまだありません','牛乳・卵・おむつなど、よく買うものを登録しておくと便利です。','+ で「よく買うもの」を追加');
+  }
+  return '<div style="padding:0 16px;">' + items.map(function(it){
+    const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
+    const qty = it.defaultQty ? '<span class="shop-qty">'+H(it.defaultQty)+'</span>' : '';
+    return '<div class="shop-row">'
+      + '<div class="shop-main">'
+      +   '<div class="shop-name">'+H(it.name)+'</div>'
+      +   '<div class="shop-meta">'+qty+cat+'</div>'
+      + '</div>'
+      + '<button class="shop-addlist" onclick="shopFreqToList(\''+H(it.id)+'\')">リストへ追加</button>'
+      + '<button class="shop-iconbtn" onclick="shopFreqEdit(\''+H(it.id)+'\')" aria-label="編集" title="編集">✎</button>'
+      + '<button class="shop-iconbtn shop-del" onclick="shopFreqDelete(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+/* ── タブ 3：購入履歴 ── */
+function renderShopHistHtml() {
+  const items = (S.shoppingHistory || []).slice().sort(function(a,b){
+    return (b.purchasedAt||'').localeCompare(a.purchasedAt||'');
+  });
+  if(items.length === 0) {
+    return shopEmpty('🧾','購入履歴はまだありません','購入済みにしたものがここに表示されます。','');
+  }
+  // 日付でグループ化
+  const groups = {};
+  items.forEach(function(it){
+    const d = (it.purchasedAt||'').slice(0,10);
+    if(!groups[d]) groups[d] = [];
+    groups[d].push(it);
+  });
+  const days = Object.keys(groups).sort().reverse();
+  return '<div style="padding:0 16px;">' + days.map(function(d){
+    const dayLbl = d ? d.replace(/-/g,'/') : '日付不明';
+    return '<div class="shop-day">'+H(dayLbl)+'</div>'
+      + groups[d].map(function(it){
+        const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
+        const qty = it.qty ? '<span class="shop-qty">'+H(it.qty)+'</span>' : '';
+        return '<div class="shop-row shop-hist">'
+          + '<div class="shop-main">'
+          +   '<div class="shop-name">'+H(it.name)+'</div>'
+          +   '<div class="shop-meta">'+qty+cat+'</div>'
+          + '</div>'
+          + '<button class="shop-addlist" onclick="shopHistRepost(\''+H(it.id)+'\')">再追加</button>'
+          + '<button class="shop-iconbtn shop-del" onclick="shopHistDelete(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
+          + '</div>';
+      }).join('');
+  }).join('') + '</div>';
+}
+
+function shopEmpty(icon, title, desc, hint) {
+  return '<div class="shop-empty">'
+    + '<div class="shop-empty-icon">'+icon+'</div>'
+    + '<div class="shop-empty-title">'+H(title)+'</div>'
+    + '<div class="shop-empty-desc">'+H(desc)+'</div>'
+    + (hint ? '<div class="shop-empty-hint">'+H(hint)+'</div>' : '')
+    + '</div>';
+}
+
+/* ── 追加 / 編集モーダル ── */
+function openShopAdd(idOrPayload) {
+  shopArrays();
+  const tab = S.shoppingTab || 'list';
+  // 履歴タブでは追加 UI を隠している（renderShopping で visibility=hidden）
+  const isFreq = (tab === 'frequent');
+  const mode = isFreq ? 'frequent' : 'list';
+  document.getElementById('m-shop-add-title').textContent = isFreq ? 'よく購入するものを追加' : '買い物を追加';
+  document.getElementById('sa-mode').value = mode;
+  let id = '', name = '', qty = '', cat = '';
+  if(typeof idOrPayload === 'string' && idOrPayload) {
+    id = idOrPayload;
+    const arr = isFreq ? (S.shoppingFrequent||[]) : (S.shoppingItems||[]);
+    const it  = arr.find(function(x){ return x.id===id; });
+    if(it) {
+      name = it.name || '';
+      qty  = isFreq ? (it.defaultQty || '') : (it.qty || '');
+      cat  = it.category || '';
+    }
+  } else if(idOrPayload && typeof idOrPayload === 'object') {
+    name = idOrPayload.name || '';
+    qty  = idOrPayload.qty  || '';
+    cat  = idOrPayload.category || '';
+  }
+  document.getElementById('sa-id').value   = id;
+  document.getElementById('sa-name').value = name;
+  document.getElementById('sa-qty').value  = qty;
+  document.getElementById('sa-cat').value  = cat;
+  openModal('m-shop-add');
+  setTimeout(function(){ document.getElementById('sa-name').focus(); }, 200);
+}
+function shopEditItem(id) { S.shoppingTab = 'list';     openShopAdd(id); }
+function shopFreqEdit(id) { S.shoppingTab = 'frequent'; openShopAdd(id); }
+
+function saveShopAdd() {
+  shopArrays();
+  const id   = document.getElementById('sa-id').value;
+  const mode = document.getElementById('sa-mode').value;
+  const name = document.getElementById('sa-name').value.trim();
+  const qty  = document.getElementById('sa-qty').value.trim();
+  const cat  = document.getElementById('sa-cat').value;
+  if(!name) { showToast('商品名を入力してください','error'); return; }
+  const now = new Date().toISOString();
+  if(mode === 'frequent') {
+    if(id) {
+      const it = (S.shoppingFrequent||[]).find(function(x){ return x.id===id; });
+      if(it) { it.name = name; it.defaultQty = qty; it.category = cat; it.updatedAt = now; }
+    } else {
+      const order = (S.shoppingFrequent||[]).length;
+      S.shoppingFrequent.push({
+        id: 'freq_'+uid(), name: name, defaultQty: qty, category: cat, memo: '',
+        order: order, createdAt: now, updatedAt: now
+      });
+    }
+  } else {
+    if(id) {
+      const it = (S.shoppingItems||[]).find(function(x){ return x.id===id; });
+      if(it) { it.name = name; it.qty = qty; it.category = cat; it.updatedAt = now; }
+    } else {
+      S.shoppingItems.push({
+        id: 'shop_'+uid(), name: name, qty: qty, category: cat, memo: '',
+        assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+      });
+    }
+  }
+  saveS();
+  closeModal('m-shop-add');
+  renderShopping();
+  renderHome();
+  showToast(id ? '更新しました' : '追加しました','success');
+}
+
+/* ── アクション群 ── */
+function shopMarkPurchased(id) {
+  shopArrays();
+  const idx = (S.shoppingItems||[]).findIndex(function(x){ return x.id===id; });
+  if(idx < 0) return;
+  const it = S.shoppingItems[idx];
+  S.shoppingHistory.unshift({
+    id: 'hist_'+uid(), name: it.name, qty: it.qty, category: it.category, memo: it.memo||'',
+    purchasedAt: new Date().toISOString(), sourceItemId: it.id
+  });
+  S.shoppingItems.splice(idx, 1);
+  saveS();
+  renderShopping();
+  renderHome();
+  showToast('購入済みにしました','success');
+}
+
+function shopDeleteItem(id) {
+  if(!confirm('この買い物項目を削除しますか？')) return;
+  S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
+  saveS();
+  renderShopping();
+  renderHome();
+}
+
+function shopAddToFrequent(id) {
+  shopArrays();
+  const it = (S.shoppingItems||[]).find(function(x){ return x.id===id; });
+  if(!it) return;
+  const dup = (S.shoppingFrequent||[]).some(function(f){ return f.name === it.name; });
+  if(dup) { showToast('「'+it.name+'」は既によく買うものに登録されています','info'); return; }
+  const order = (S.shoppingFrequent||[]).length;
+  const now = new Date().toISOString();
+  S.shoppingFrequent.push({
+    id: 'freq_'+uid(), name: it.name, defaultQty: it.qty||'', category: it.category||'',
+    memo: it.memo||'', order: order, createdAt: now, updatedAt: now
+  });
+  saveS();
+  showToast('よく買うものに追加しました','success');
+  renderShopping();
+}
+
+function shopFreqDelete(id) {
+  if(!confirm('「よく購入するもの」から削除しますか？')) return;
+  S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
+  saveS();
+  renderShopping();
+}
+
+function shopFreqToList(id) {
+  shopArrays();
+  const f = (S.shoppingFrequent||[]).find(function(x){ return x.id===id; });
+  if(!f) return;
+  const dup = (S.shoppingItems||[]).some(function(it){ return it.name === f.name; });
+  if(dup) {
+    if(!confirm('「'+f.name+'」は既にリストにあります。それでも追加しますか？')) return;
+  }
+  const now = new Date().toISOString();
+  S.shoppingItems.push({
+    id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
+    memo: '', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+  });
+  saveS();
+  showToast('リストに追加しました','success');
+  renderShopping();
+  renderHome();
+}
+
+function shopHistDelete(id) {
+  if(!confirm('この履歴を削除しますか？')) return;
+  S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
+  saveS();
+  renderShopping();
+}
+
+function shopHistRepost(id) {
+  shopArrays();
+  const h = (S.shoppingHistory||[]).find(function(x){ return x.id===id; });
+  if(!h) return;
+  const now = new Date().toISOString();
+  S.shoppingItems.push({
+    id: 'shop_'+uid(), name: h.name, qty: h.qty||'', category: h.category||'',
+    memo: h.memo||'', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+  });
+  saveS();
+  showToast('リストに再追加しました','success');
+  renderShopping();
+  renderHome();
+}
+
 let _prepTab = 'today';
 
 function setPrepTab(tab) {
@@ -10393,6 +10815,108 @@ function parseVoiceIntent(rawText) {
 }
 
 /* ============================================================
+   Wave 53 — タスク画面の音声入力
+   ・既存 SpeechRecognition を独立して使う（Hoku 画面の音声 UI と干渉しない）
+   ・認識結果は parseVoiceIntent でタイトル / 期日 / 担当 / カテゴリを抽出
+   ・既存 m-task-edit モーダルへ prefill して開く（保存前確認 UX を踏襲）
+   ・既存 ＋ ボタンの導線は完全保持
+   ============================================================ */
+let _tkRec = null;
+let _tkRecListening = false;
+
+function tkMicSetState(state) {
+  const btn = document.getElementById('tk-mic-btn');
+  if(!btn) return;
+  btn.classList.toggle('listening', state === 'listening');
+  btn.classList.toggle('unsupported', state === 'unsupported');
+  btn.title = state === 'listening' ? '聞き取り中（タップで停止）'
+            : state === 'unsupported' ? '音声入力に対応していない端末です'
+            : '音声でタスク追加';
+}
+
+function taskVoiceToggle() {
+  if(!hokuVoiceSupport()) {
+    tkMicSetState('unsupported');
+    showToast('この端末では音声入力に対応していません。＋ボタンから入力してください。','error');
+    return;
+  }
+  if(_tkRecListening && _tkRec) {
+    try { _tkRec.stop(); } catch(e) {}
+    return;
+  }
+  try {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _tkRec = new SR();
+    _tkRec.lang = 'ja-JP';
+    _tkRec.interimResults = false;
+    _tkRec.continuous = false;
+    _tkRec.maxAlternatives = 1;
+    _tkRec.onstart = function() {
+      _tkRecListening = true;
+      tkMicSetState('listening');
+      showToast('🎙 タスク内容を話してください（例：明日までに学校へ電話）','info');
+    };
+    _tkRec.onresult = function(ev) {
+      const text = (ev.results && ev.results[0] && ev.results[0][0]) ? ev.results[0][0].transcript : '';
+      handleTaskVoiceText(text);
+    };
+    _tkRec.onerror = function() {
+      tkMicSetState('idle');
+      showToast('うまく聞き取れませんでした。もう一度お試しください。','error');
+    };
+    _tkRec.onend = function() {
+      _tkRecListening = false;
+      tkMicSetState('idle');
+    };
+    _tkRec.start();
+  } catch(e) {
+    tkMicSetState('idle');
+    showToast('音声入力を開始できませんでした','error');
+  }
+}
+
+/* 音声テキストをタスクとして解釈し、m-task-edit に prefill して開く（保存前確認） */
+function handleTaskVoiceText(text) {
+  if(!text || !text.trim()) {
+    showToast('内容を聞き取れませんでした。もう一度お試しください。','error');
+    return;
+  }
+  const v = parseVoiceIntent(text);
+  // タイトル抽出失敗時は確認のみ
+  if(!v.title && !v.member && !v.date) {
+    showToast('タスク内容として読み取れませんでした：' + text,'error');
+    return;
+  }
+  // 既存 m-task-edit モーダルを空で開いてから prefill
+  openTaskModal(null);
+  setTimeout(function() {
+    const titleEl = document.getElementById('te-title');
+    if(titleEl) titleEl.value = v.title || text.trim();
+    if(v.date) {
+      const dueEl = document.getElementById('te-due');
+      if(dueEl) dueEl.value = v.date;
+    }
+    if(v.member) {
+      // 担当ボタンの選択状態を反映
+      try { selectTeMember(v.member); } catch(e) {}
+    }
+    // カテゴリ推定（買い物 / 学校 / 健康）
+    const catEl = document.getElementById('te-cat');
+    if(catEl) {
+      const lower = text;
+      let cat = '';
+      if(/(学校|園|連絡帳|提出|保護者会|面談|宿題)/.test(lower)) cat = 'school';
+      else if(/(買|スーパー|コンビニ|薬局)/.test(lower)) cat = 'shopping';
+      else if(/(病院|医院|薬|診察|発熱|体温)/.test(lower)) cat = 'health';
+      else if(/(運動会|遠足|発表会|お祭り|誕生日)/.test(lower)) cat = 'event';
+      else if(/(掃除|洗濯|料理|片付け|ゴミ)/.test(lower)) cat = 'chore';
+      if(cat) catEl.value = cat;
+    }
+    showToast('音声から内容を反映しました。確認して保存してください。','success');
+  }, 120);
+}
+
+/* ============================================================
    Wave 52 — HOKU INTENT ENGINE (unified entry point)
    parseHokuIntent / executeHokuAction
    - テキスト・音声を共通シェイプへ
@@ -10410,10 +10934,41 @@ const HOKU_INTENT_META = {
   health_add:             { uiCat:'health',   store:'S.health',     label:'体調管理' },
   board_post_add:         { uiCat:'board',    store:'S.announces',  label:'家族ボード' },
   notification_add:       { uiCat:null,       store:'S.notifs',     label:'通知' },
+  shopping_add:           { uiCat:null,       store:'S.shoppingItems',    label:'買い物リスト',        isShopping:true },
+  shopping_frequent_add:  { uiCat:null,       store:'S.shoppingFrequent', label:'よく購入するもの',     isShopping:true },
+  shopping_purchased:     { uiCat:null,       store:'S.shoppingHistory',  label:'購入済み（履歴へ移動）', isShopping:true },
   external_calendar_help: { uiCat:null,       store:null,           label:'外部カレンダー連携案内' },
   settings_help:          { uiCat:null,       store:null,           label:'設定案内' },
   unknown:                { uiCat:null,       store:null,           label:'要確認' }
 };
+
+/* 「○○と○○」「○○、○○」「○○や○○」を商品名配列に分解 */
+function _hokuSplitShoppingNames(s) {
+  if(!s) return [];
+  return s.split(/[、,，]|\sand\s|\s?と\s?|\sや\s|\s?\/\s?/)
+          .map(function(t){ return t.replace(/[\s　]+/g,'').trim(); })
+          .filter(Boolean);
+}
+/* 買い物系 intent の検出 + 商品名抽出（タイトル前処理は parseVoiceIntent と独立） */
+function _hokuDetectShopping(text) {
+  if(!text) return null;
+  // 1) 「よく購入するもの / よく買うもの」に追加
+  let m = text.match(/^(.+?)\s*(?:を|が)?\s*(?:よく(?:買うもの|購入するもの|買う)に?|頻繁に買うもの[にへ]?)\s*(?:追加|登録|入れて)/);
+  if(m) return { type:'shopping_frequent_add', names:_hokuSplitShoppingNames(m[1]) };
+  // 2) 「買った / 購入済み / 買いました」→ 履歴へ
+  m = text.match(/^(.+?)\s*(?:を|は)?\s*(?:購入(?:済み|完了)|買った|買いました|購入しました)/);
+  if(m && !text.match(/予定|タスク/)) return { type:'shopping_purchased', names:_hokuSplitShoppingNames(m[1]) };
+  // 3) 「買い物リストに追加 / 買い物に追加 / 買い物メモに追加」
+  m = text.match(/^(.+?)\s*(?:を)?\s*買い物(?:リスト|メモ)?(?:に|へ)?\s*(?:追加|登録|入れて|入れる)/);
+  if(m) return { type:'shopping_add', names:_hokuSplitShoppingNames(m[1]) };
+  // 4) 「○○を買う」だけだとタスクとも曖昧 — Hoku 側で確認させるため shopping_add 候補のみ返す（ambiguous フラグで判定）
+  m = text.match(/^(.+?)\s*(?:を)?\s*買う$/);
+  if(m) {
+    const names = _hokuSplitShoppingNames(m[1]);
+    if(names.length) return { type:'shopping_add', names:names, ambiguous:true };
+  }
+  return null;
+}
 
 /* 曜日抽出ヘルパー（0=日 〜 6=土） */
 function _hokuExtractWeekday(text) {
@@ -10470,6 +11025,16 @@ function parseHokuIntent(rawText, source) {
   }
   if(text.match(/(設定|プロフィール|家族構成|メンバー(追加|編集|削除)|アバター(変更|編集))/) && text.match(/(教えて|変えたい|変更|どうやって|どこ|やり方)/)) {
     return _hokuMakeIntent('settings_help', raw, text, source, 0.85, {});
+  }
+
+  // 1.5) 買い物系（リスト追加 / よく買うもの / 購入済み）— ヘルプの直後で先に拾う
+  const shop = _hokuDetectShopping(text);
+  if(shop && shop.names && shop.names.length) {
+    const conf = shop.ambiguous ? 0.55 : 0.88;
+    return _hokuMakeIntent(shop.type, raw, text, source, conf, {
+      shoppingNames: shop.names,
+      title: shop.names[0] || ''
+    }, { ambiguous: !!shop.ambiguous });
   }
 
   // 2) 通知 / リマインド（弱い登録系）
@@ -10617,6 +11182,11 @@ function executeHokuAction(intent) {
     return { ok:false, message:'登録先を判定できませんでした。「予定」「タスク」「準備」「家計」「体調」「家族ボード」のいずれかを含めて、もう一度教えてください。' };
   }
 
+  // Wave 54: 買い物系（リスト追加 / よく購入する / 購入済み）
+  if(intent.intentType === 'shopping_add' || intent.intentType === 'shopping_frequent_add' || intent.intentType === 'shopping_purchased') {
+    return _hokuExecuteShopping(intent);
+  }
+
   // 保存系 → 既存の m-voice-confirm を再利用（_voiceParsed をセットして開く）
   const meta = HOKU_INTENT_META[intent.intentType];
   if(!meta || !meta.uiCat) return { ok:false, message:'対応する登録先がありません。' };
@@ -10647,6 +11217,150 @@ function executeHokuAction(intent) {
   voiceConfirmRender();
   openModal('m-voice-confirm');
   return { ok:true, message:'内容を確認してください。修正があればその場で編集できます。', opened:'m-voice-confirm' };
+}
+
+/* 買い物系 intent を確認付きで実行
+   - shopping_add: 商品 1 件 → m-shop-add に prefill して確認 / 複数 → 一括追加 + 件数を toast
+   - shopping_frequent_add: 同上の frequent モード版
+   - shopping_purchased: shoppingItems から名前一致を探し、購入済みダイアログで確認 → 履歴へ移動
+   - ambiguous（「○○を買う」）の場合、タスクか買い物か Hoku 側で再質問 */
+let _hokuPendingShopping = null;
+function _hokuExecuteShopping(intent) {
+  shopArrays();
+  const names = (intent.entities && intent.entities.shoppingNames) || [];
+  if(!names.length) return { ok:false, message:'商品名を読み取れませんでした。' };
+
+  // 曖昧（「○○を買う」のみ）→ Hoku に登録先を選ばせる
+  if(intent.ambiguous && intent.intentType === 'shopping_add') {
+    _hokuPendingShopping = names;
+    const dn = names.join('・');
+    return {
+      ok: true,
+      message: '「'+dn+'を買う」は、買い物リストに追加しますか？それともタスクとして登録しますか？\n\n[[ACTION_BUTTONS:shopchoice]]',
+      ambiguous: true
+    };
+  }
+
+  if(intent.intentType === 'shopping_purchased') {
+    // 履歴行を直接作成（リストにあれば消す）
+    let moved = 0, added = 0;
+    const now = new Date().toISOString();
+    names.forEach(function(nm){
+      const idx = (S.shoppingItems||[]).findIndex(function(x){ return x.name === nm; });
+      if(idx >= 0) {
+        const it = S.shoppingItems[idx];
+        S.shoppingHistory.unshift({
+          id:'hist_'+uid(), name: it.name, qty: it.qty||'', category: it.category||'',
+          memo: it.memo||'', purchasedAt: now, sourceItemId: it.id
+        });
+        S.shoppingItems.splice(idx, 1);
+        moved++;
+      } else {
+        S.shoppingHistory.unshift({
+          id:'hist_'+uid(), name: nm, qty:'', category:'', memo:'',
+          purchasedAt: now, sourceItemId: null
+        });
+        added++;
+      }
+    });
+    saveS();
+    if(typeof renderShopping === 'function') renderShopping();
+    if(typeof renderHome === 'function')     renderHome();
+    return { ok:true, message:'「'+names.join('・')+'」を購入履歴へ記録しました。買い物リストからも反映済みです。\n\n[[ACTION_BUTTONS:shopping]]' };
+  }
+
+  if(intent.intentType === 'shopping_frequent_add') {
+    if(names.length === 1) {
+      // 単品 → m-shop-add 確認モーダル（frequent モード）
+      S.shoppingTab = 'frequent';
+      saveS();
+      go('s-shopping');
+      setTimeout(function(){ openShopAdd({ name: names[0] }); }, 150);
+      return { ok:true, message:'「'+names[0]+'」をよく購入するものに追加します。確認画面で保存してください。' };
+    }
+    // 複数 → 確認なしで一括登録
+    const now = new Date().toISOString();
+    let added = 0;
+    names.forEach(function(nm){
+      const dup = (S.shoppingFrequent||[]).some(function(f){ return f.name === nm; });
+      if(dup) return;
+      const order = (S.shoppingFrequent||[]).length;
+      S.shoppingFrequent.push({
+        id:'freq_'+uid(), name: nm, defaultQty:'', category:'', memo:'',
+        order: order, createdAt: now, updatedAt: now
+      });
+      added++;
+    });
+    saveS();
+    return { ok:true, message:added+' 件を「よく購入するもの」に追加しました。\n\n[[ACTION_BUTTONS:shopping]]' };
+  }
+
+  // shopping_add（明示的に「買い物リストに追加」と言われた）
+  if(names.length === 1) {
+    S.shoppingTab = 'list';
+    saveS();
+    go('s-shopping');
+    setTimeout(function(){ openShopAdd({ name: names[0] }); }, 150);
+    return { ok:true, message:'「'+names[0]+'」を買い物リストに追加します。確認画面で保存してください。' };
+  }
+  // 複数 → 一括追加
+  const now = new Date().toISOString();
+  let added = 0;
+  names.forEach(function(nm){
+    S.shoppingItems.push({
+      id:'shop_'+uid(), name: nm, qty:'', category:'', memo:'',
+      assignedTo:'', status:'active', createdAt: now, updatedAt: now
+    });
+    added++;
+  });
+  saveS();
+  if(typeof renderShopping === 'function') renderShopping();
+  if(typeof renderHome === 'function')     renderHome();
+  return { ok:true, message:added+' 件を買い物リストに追加しました。\n\n[[ACTION_BUTTONS:shopping]]' };
+}
+
+/* 買い物アクションボタン群 */
+function classifierActionsShopping(secondary) {
+  if(secondary === 'shopchoice') {
+    return [
+      { label: '買い物リストに追加', onclick: "_hokuShoppingAddPending()" },
+      { label: 'タスクに追加',       onclick: "_hokuShoppingTaskPending()" }
+    ];
+  }
+  return [
+    { label: '買い物リストを開く', onclick: "go('s-shopping')" },
+    { label: 'リストにもう一品追加', onclick: "go('s-shopping');setTimeout(()=>openShopAdd(null),150)" }
+  ];
+}
+function _hokuShoppingAddPending() {
+  const names = (_hokuPendingShopping || []).slice();
+  _hokuPendingShopping = null;
+  if(!names.length) { showToast('対象が見つかりませんでした','error'); return; }
+  shopArrays();
+  const now = new Date().toISOString();
+  names.forEach(function(nm){
+    S.shoppingItems.push({ id:'shop_'+uid(), name:nm, qty:'', category:'', memo:'', assignedTo:'', status:'active', createdAt:now, updatedAt:now });
+  });
+  saveS();
+  if(typeof renderHome === 'function') renderHome();
+  showToast(names.length+' 件を買い物リストに追加しました','success');
+  go('s-shopping');
+}
+function _hokuShoppingTaskPending() {
+  const names = (_hokuPendingShopping || []).slice();
+  _hokuPendingShopping = null;
+  if(!names.length) { showToast('対象が見つかりませんでした','error'); return; }
+  S.tasks = S.tasks || [];
+  const now = todayStr();
+  names.forEach(function(nm){
+    S.tasks.unshift({ id:uid(), title:nm+'を買う', memo:'', assignedTo:'', dueDate:'', priority:'none', category:'shopping', status:'todo', order:0, completedAt:'', createdAt:now, updatedAt:now });
+  });
+  S.tasks.forEach(function(t,i){ t.order = i; });
+  saveS();
+  if(typeof renderTaskScreen === 'function') renderTaskScreen();
+  if(typeof renderHome === 'function')       renderHome();
+  showToast(names.length+' 件をタスクに追加しました','success');
+  switchTab('s-task');
 }
 
 /* カテゴリ別ラベル */
@@ -11082,6 +11796,10 @@ function classifierGuidance(category, q, secondary) {
    onclick 文字列で表現（switchTab/go/モーダル open）
    ────────────────────────────────────────────────── */
 function classifierActions(category, secondary) {
+  // Wave 54: 買い物リスト系
+  if(category === 'shopping' || category === 'shopchoice') {
+    return classifierActionsShopping(category === 'shopchoice' ? 'shopchoice' : null);
+  }
   const map = {
     calendar: [
       { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" },

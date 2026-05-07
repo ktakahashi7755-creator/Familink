@@ -5526,3 +5526,133 @@ Wave 52.3: ホームのデフォルト 6 ボード化（買い物メモ + 準備
 
 ### コミット
 - メッセージ: `wave 52.3: seed default home boards (買い物メモ + 準備リスト) for all users`
+
+## 2026-05-07 19:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 53: タスク画面に音声入力導線を追加（既存 + ボタンは保持）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- タスク画面ヘッダー右に **マイクアイコンボタン**（id: tk-mic-btn）を追加。既存の「+」ボタンの左隣に配置
+- `#tk-mic-btn.listening` にパルスアニメーション CSS を追加（pulseMic keyframes）
+- `taskVoiceToggle()` を新設し、独立した SpeechRecognition インスタンスを使用（Hoku 画面側 `#hoku-mic` と干渉しない）
+- `handleTaskVoiceText(text)` で `parseVoiceIntent` を再利用してタイトル / 日付 / 担当を抽出 → 既存 `m-task-edit` モーダルを **prefill して開く**
+  - 「話してタスク追加 → 確認 → 保存」の 3 ステップを既存モーダルに集約することで「保存前確認」の要件を満たす
+  - タイトルは抽出できなければ生テキストをフォールバック投入
+  - カテゴリは簡易キーワード判定（学校/買い物/健康/行事/家事）
+- 既存 ＋ ボタン（onclick=openTaskModal(null)）は完全保持
+
+### 設計判断
+- 専用音声確認モーダルを別途作らず、既存 m-task-edit を確認 UX として再利用 → コード追加最小・見た目一貫
+- 担当 / 期日 / カテゴリが抽出できなくても、タイトルさえ取れれば保存可（spec の「タスクはシンプル優先」に準拠）
+- SpeechRecognition 非対応端末は toast 案内のみ（既存 + ボタンが代替動線）
+
+### テスト結果
+- 単一 `<script>` ブロック構文検証 PASS（1/1）
+- md5 同期：`244d35daabe7fe4f03a3e1246b7e190c`
+- iPhone Safari 実機での音声認識結果は実機要確認
+
+### iPhone 確認ポイント
+1. タスク画面ヘッダーに マイク と + が並んでいる
+2. マイクをタップ → トースト「🎙 タスク内容を話してください…」 + マイクが赤くパルス
+3. 「明日までに学校へ電話」と話す → m-task-edit が開きタイトル `学校へ電話` / 期日が翌日 prefill
+4. 確認 → [保存] でタスクに登録
+5. 「キャンセル」を押せば追加されない
+6. 既存の「+」ボタンも従来どおり押すと空の m-task-edit が開く
+7. 音声非対応端末ではトースト案内のみ（+ ボタンは生きている）
+
+### 未確認事項
+- iPhone 実機の SpeechRecognition 動作（Safari は webkitSpeechRecognition だが iOS Safari では権限ダイアログが出る場合あり）
+- 「明日まで」「金曜まで」など `parseVoiceIntent` の日付抽出が「までに」表記でも効くか（現在は「明日 / 金曜」単体マッチのため概ね OK だが要実機確認）
+
+### 次にやること
+- Wave 54：買い物リスト 3 タブ画面（リスト / よく購入するもの / 購入履歴）の新設
+
+### コミット
+- メッセージ: `wave 53: task screen voice input - mic button + prefill m-task-edit modal as confirmation`
+
+## 2026-05-07 19:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 54: 買い物リスト 3 タブ画面（リスト / よく購入するもの / 購入履歴）+ Hoku 連携
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+**データモデル**
+- 新規 LocalStorage キー：`S.shoppingItems` / `S.shoppingFrequent` / `S.shoppingHistory` / `S.shoppingTab`
+- いずれも PERSIST に追加。既存 `S.boardItems` / `S.customBoards` は完全保持
+- アイテム構造は spec どおり（id / name / qty / category / memo / createdAt 等）
+
+**画面 `s-shopping`**
+- 新規スクリーン追加（戻る / 買い物リスト / +）
+- 3 タブ：`リスト` / `よく購入するもの` / `購入履歴`
+- 履歴タブでは + ボタンを `visibility:hidden`（追加先がないため）
+- `m-shop-add` モーダル：商品名・数量メモ・カテゴリ（食品/日用品/子ども用品/薬・衛生/学校・園/その他）
+- 既存 `hoCardClick` を拡張：`b.intent === 'shopping'` のカスタムボードカードは `s-shopping` へ転送（既存ボード画面は他用途のために残す）
+
+**操作（リストタブ）**
+- 追加（+ / m-shop-add）/ 編集（✎）/ 削除（× 確認あり）
+- 購入済み（✓）→ 即時に `S.shoppingHistory` へ移動
+- 「★」ボタンで「よく買うもの」へ即追加（重複防止）
+
+**操作（よく購入するもの）**
+- 追加 / 編集 / 削除（確認あり）
+- 「リストへ追加」ボタンで `S.shoppingItems` へ複製。既存と同名なら追加確認
+
+**操作（購入履歴）**
+- 日付ごとにグループ化、最新順
+- 「再追加」で `S.shoppingItems` へ複製
+- 個別削除（確認あり）
+
+**Hoku 連携**
+- 新 intent タイプ：`shopping_add` / `shopping_frequent_add` / `shopping_purchased`（HOKU_INTENT_META に追加）
+- `_hokuDetectShopping(text)`：「○○を買い物リストに追加」「○○をよく購入するものに登録」「○○買った」を検出 + 「○○と○○」を分割
+- `_hokuExecuteShopping`：単品なら `m-shop-add` を prefill して保存前確認、複数なら一括追加 + 件数 toast、「○○を買う」のみは ambiguous → タスクか買い物かをアクションボタンで選択
+- `[[ACTION_BUTTONS:shopchoice]]` 用の `classifierActionsShopping` を追加（既存 ACTION_BUTTONS マーカー機構を流用）
+- 曖昧時の payload は global `_hokuPendingShopping` で受け渡し（マーカー regex の制約を回避）
+
+### テスト結果
+- 単一 `<script>` 構文検証 PASS（1/1）
+- Node 単体 7 ケースで shopping intent 検出 PASS：
+  - 「牛乳を買い物リストに追加」→ shopping_add ['牛乳']
+  - 「卵とパンを買い物に追加」→ shopping_add ['卵','パン']
+  - 「おむつをよく購入するものに追加」→ frequent_add ['おむつ']
+  - 「ティッシュ買った」→ purchased ['ティッシュ']
+  - 「牛乳を購入済みに」→ purchased ['牛乳']
+  - 「卵とパンを買う」→ shopping_add ['卵','パン'] ambiguous
+- md5 同期：`19f21e6cf2e1086d93c6309d0748e585`
+
+### iPhone 確認ポイント
+1. ホーム → 「買い物メモ」カードをタップ → s-shopping が開く（カスタムボード詳細でなく）
+2. リストタブで + → 商品名/カテゴリ → 保存 → リストに反映
+3. ✓（購入済み）タップ → 履歴タブに即時移動、リストから消える
+4. ★ で「よく購入するもの」タブに移動して重複なく追加されている
+5. よく購入するもの → 「リストへ追加」 → リストに追加、同名は確認ダイアログ
+6. 履歴タブ → 日付グループ → 「再追加」でリストへ戻る
+7. 各タブの空状態文言がスクショの spec と一致
+8. iPhone SE / 13 / 15 Plus / Pro Max 幅で横スクロールが出ない
+9. Hoku に「牛乳とパンを買い物リストに追加」 → リストに 2 件、Hoku 返答に「買い物リストを開く」ボタン
+10. Hoku に「卵を買う」→ Hoku が「買い物リスト or タスク」を聞き返し、選択どおり登録
+11. リロード後もデータ保持
+
+### 未確認事項
+- 既存カスタムボード「買い物メモ」と `s-shopping` の役割整理 UI（カスタムボードの中身はそのまま、誘導は s-shopping に集約）
+- 「昨日おむつを買った」は `昨日おむつ` を商品名として拾う（時刻トークン除去は次 Wave）
+- iPhone Safari 実機で SpeechRecognition + 買い物導線の通し動作
+
+### 次にやること
+- 連結トークン分割（「明日18時」「昨日おむつ」など先頭時間表現の除去）
+- カスタムボード「買い物メモ」を s-shopping への純導線に変える（v1.0 候補）
+- 履歴の月別折りたたみ / 件数上限による圧縮表示（パフォーマンス）
+
+### コミット
+- メッセージ: `wave 54: shopping list 3-tab screen (list/frequent/history) + Hoku integration`
