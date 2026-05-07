@@ -3325,9 +3325,10 @@ let S = {
   customBoards: [],  // [{id,name,type,color,order,visible}]
   boardItems: [],    // [{id,boardId,title,body,category,childId,status,order,createdAt}]
   boardSections: [], // [{id,boardId,title,order}]
+  defaultCustomBoardsSeeded: false, // 初期 6 ボード（買い物メモ / 準備リスト）の自動投入済みフラグ
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded'];
 
 function saveS() {
   const d = {};
@@ -11586,9 +11587,46 @@ function buildHokuContext() {
 /* ============================================================
    INIT
    ============================================================ */
+/* ホームのデフォルト 6 ボード（家族ボード / タスク / 今週の予定 / 体調管理 + 買い物メモ / 準備リスト）を保証する。
+   - 既に同 intent / 同名のカスタムボードがあれば二重に作らない
+   - 一度実行したら defaultCustomBoardsSeeded フラグで以降スキップ
+   - homeOrder への追加は hoInitOrder が初回 render 時に拾うのでここでは行わない */
+function seedDefaultCustomBoards() {
+  if(S.defaultCustomBoardsSeeded) return;
+  if(!S.customBoards)   S.customBoards = [];
+  if(!S.boardSections)  S.boardSections = [];
+  const seeds = [
+    { intent:'shopping', name:'買い物メモ' },
+    { intent:'prep',     name:'準備リスト' }
+  ];
+  seeds.forEach(function(s) {
+    var exists = S.customBoards.some(function(b){
+      return (b.intent === s.intent) || (b.name === s.name);
+    });
+    if(exists) return;
+    var meta = (typeof INTENT_META !== 'undefined') ? INTENT_META[s.intent] : null;
+    if(!meta) return;
+    var id = uid();
+    S.customBoards.push({
+      id: id, name: s.name, intent: s.intent, type: meta.baseType,
+      order: S.customBoards.length, visible: true, createdAt: todayStr()
+    });
+    if(meta.sections && meta.sections.length) {
+      meta.sections.forEach(function(title, idx){
+        S.boardSections.push({
+          id: uid(), boardId: id, title: title, order: idx, createdAt: todayStr()
+        });
+      });
+    }
+  });
+  S.defaultCustomBoardsSeeded = true;
+  saveS();
+}
+
 function init() {
   loadS();
   migrateTaskData(); // タスクデータ移行
+  seedDefaultCustomBoards(); // 既定 6 ボードを担保
   if(S.loggedIn && S.user) {
     seedDemo();
     document.getElementById('tabbar').classList.remove('hidden');
