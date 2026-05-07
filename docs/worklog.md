@@ -5904,3 +5904,49 @@ Wave 57: 設定再編 + ホーム通知ベル + 書類保管庫復活 + アル�
 
 ### コミット
 - メッセージ: `wave 57: settings reshuffle + home notification bell + bring back 書類保管庫 + new アルバム`
+
+## 2026-05-07 22:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 57.2: バックアップ取得（v3.1 / Wave 57.1 スナップショット）
+
+### 変更ファイル
+- docs/worklog.md（このエントリのみ）
+- リポジトリに backup ブランチを追加：`backup/014-v3.1-near-ideal-archive-album`
+
+### 内容
+- 「現段階でバックアップを取り確実に保存してください」の依頼に応じてリモートにバックアップ枝を作成
+- 起点：default branch `claude/merge-and-push-main-u44Ty` の HEAD = `da0ad96`
+- ブランチ：`backup/014-v3.1-near-ideal-archive-album`
+- ローカル / リモート（origin）双方に存在を確認
+- docs/index.html md5：`01bda90a2230c325cb1af5b5867ad8cb`（バックアップ先・現在の default 一致）
+- タグ `v3.1-wave57` も付与しようとしたが、Git プロキシが tag push を 403 で拒否したためタグはローカルのみ。**ブランチでの保存は成功**しているので復元・参照は問題なし
+
+### バックアップに含まれる主な機能（Wave 53〜57.1）
+- Wave 53: タスク画面の音声入力（マイク + m-task-edit prefill）
+- Wave 54: 買い物リスト 3 タブ画面（リスト / よく購入するもの / 購入履歴 / Hoku 連携）
+- Wave 55: 準備リスト時間割化（subject / quantity / カテゴリ刷新 / サンプル時間割 / Hoku 多重持ち物）
+- Wave 55.1: prep_routine_add パーサーバグ修正（X曜は対応 / クリーン title）
+- Wave 56: 設定・メニューから重複ナビ削除（ホーム/カレンダー/タスク/家族ボード/準備/体調/家計/Hoku）
+- Wave 57: 通知 + はじめてガイド削除 / ホーム右上の通知ベル / 書類保管庫復活 / アルバム新設
+- Wave 57.1: フッター v3.1 表示（キャッシュ判別用）
+
+### 復元方法（メモ）
+```
+git fetch origin
+git checkout -b restore-from-backup origin/backup/014-v3.1-near-ideal-archive-album
+# または default に戻すなら：
+git checkout claude/merge-and-push-main-u44Ty
+git reset --hard origin/backup/014-v3.1-near-ideal-archive-album
+```
+
+### 既存バックアップ系列との関係
+- 013-perfect-100（Wave 11 期、過去）
+- 014-v3.1-near-ideal-archive-album（**今回**：Wave 57.1 / v3.1）
+
+### 次にやること
+- ユーザーが iPhone Safari のキャッシュを破棄して v3.1 表記を確認 → 通知が消えていることを目視確認
+- アルバム / 書類保管庫の実機操作（撮影 → アップロード → 表示 → 削除）
+
+### コミット
+- メッセージ: バックアップ枝作成のみのため、本ブランチ（unicorn-product）への新規コミットは worklog 追記用 1 件
