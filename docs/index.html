@@ -1959,6 +1959,16 @@ select.input {
 .shop-empty-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
 .shop-empty-desc { font-size:12px; line-height:1.5; }
 .shop-empty-hint { font-size:11px; color:var(--primary); margin-top:8px; }
+/* Wave 60.13: 数量入力ワンタップ chip */
+.qty-chip {
+  border:1.5px solid var(--border-light); background:#fff; color:var(--text);
+  border-radius:999px; padding:6px 14px; font-size:13px; font-weight:700;
+  cursor:pointer; transition:var(--t-spring); min-width:38px;
+}
+.qty-chip:active { transform:scale(.92); }
+.qty-chip:hover { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+.qty-chip.qty-chip-clear { color:var(--text-muted); border-style:dashed; padding:6px 12px; font-size:11px; min-width:auto; }
+.qty-chip.qty-chip-clear:hover { color:var(--red); border-color:var(--red); background:transparent; }
 .tk-card {
   background:var(--bg-card); border-radius:14px; margin:0 16px 8px;
   padding:13px 14px; box-shadow:var(--s-sm);
@@ -3190,6 +3200,25 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">数量・メモ</div>
         <input class="input" id="sa-qty" placeholder="例：1本 / 2パック" maxlength="40" autocomplete="off">
+        <!-- Wave 60.13: ワンタップ数量入力 chip（数字 + 単位） -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:600;width:100%;">タップで入力</span>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(1)">1</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(2)">2</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(3)">3</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(4)">4</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(5)">5</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(6)">6</button>
+          <button type="button" class="qty-chip" onclick="saSetQtyNumber(10)">10</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('本')">本</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('パック')">パック</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('個')">個</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('袋')">袋</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('箱')">箱</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('kg')">kg</button>
+          <button type="button" class="qty-chip" onclick="saAppendUnit('g')">g</button>
+          <button type="button" class="qty-chip qty-chip-clear" onclick="saClearQty()">クリア</button>
+        </div>
       </div>
       <div class="field">
         <div class="field-label">カテゴリ</div>
@@ -9340,6 +9369,44 @@ function openShopAdd(idOrPayload) {
 }
 function shopEditItem(id) { S.shoppingTab = 'list';     openShopAdd(id); }
 function shopFreqEdit(id) { S.shoppingTab = 'frequent'; openShopAdd(id); }
+
+/* Wave 60.13: ワンタップ数量入力 — キーボード起動を最小化
+   - saSetQtyNumber(n)：先頭の数字を n に置換／無ければ n を先頭に挿入
+   - saAppendUnit(u)：末尾に単位を付与（既に同じ単位で終わっていれば no-op）
+   - saClearQty()：クリア */
+function saSetQtyNumber(n) {
+  const el = document.getElementById('sa-qty');
+  if(!el) return;
+  const cur = el.value || '';
+  // 先頭の数字部分を抽出（小数 OK）→ 置換
+  const m = cur.match(/^[\s　]*(\d+(?:\.\d+)?)\s*(.*)$/);
+  if(m) {
+    el.value = String(n) + (m[2] ? m[2] : '');
+  } else {
+    el.value = String(n) + cur;
+  }
+}
+function saAppendUnit(u) {
+  const el = document.getElementById('sa-qty');
+  if(!el) return;
+  let v = (el.value || '').trim();
+  if(!v) { el.value = u; return; }
+  // 既に同じ単位で終わっていれば no-op
+  if(v.endsWith(u)) return;
+  // 末尾が他の既知単位なら置換
+  const known = ['本','パック','個','袋','箱','kg','g','ml','L'];
+  for(const k of known) {
+    if(v.endsWith(k)) {
+      v = v.slice(0, -k.length);
+      break;
+    }
+  }
+  el.value = v + u;
+}
+function saClearQty() {
+  const el = document.getElementById('sa-qty');
+  if(el) el.value = '';
+}
 
 function saveShopAdd() {
   shopArrays();
