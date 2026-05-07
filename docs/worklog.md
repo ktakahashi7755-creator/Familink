@@ -5656,3 +5656,81 @@ Wave 54: 買い物リスト 3 タブ画面（リスト / よく購入するも�
 
 ### コミット
 - メッセージ: `wave 54: shopping list 3-tab screen (list/frequent/history) + Hoku integration`
+
+## 2026-05-07 20:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 55: 準備リスト時間割化（教科 / 数量 / カテゴリ刷新 / Hoku 複数持ち物 / サンプル）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/prep-routine-timetable.md（新規）
+- docs/worklog.md
+
+### 既存維持
+- `S.prep[]` の構造は無変更（subject/quantity を追加任意フィールドとして拡張のみ）
+- 「今日 / 明日 / すべて / ルーティン・時間割」タブ構成・既存導線・既存ルーティン CRUD はそのまま
+- リロード後の互換性：subject/quantity が未定義のレガシールーティンも従来通り表示
+
+### 変更内容
+**スキーマ**
+- `S.prepRoutines[]` に `subject` / `quantity` を任意で追加（既定空文字、後方互換）
+- `S.prep[]` も `applyPrepRoutinesForDate` 経由で `subject` / `quantity` を引き継ぐ
+
+**カテゴリ刷新**
+- `PREP_CATEGORIES` を spec に合わせて再編：教科書 / ノート / 教材 / 学校用品 / 提出物 / 体育 / 給食 / 習い事 / 園用品 + 既存（学校 / 幼稚園 / 保育園 / 部活 / 病院 / お出かけ / その他）
+- モーダル `m-prep-routine` の選択肢も同期
+
+**教科 / 数量フィールド**
+- モーダルに教科セレクト（PREP_SUBJECTS）と数量入力を追加
+- ルーティン CRUD（addPrepRoutine / updatePrepRoutine / open / save）が subject/quantity を扱う
+
+**時間割表示の教科グループ化**
+- `renderPrepRoutinesSectionHtml` の各日カード内で `subject` ごとにサブヘッダー（📘 国語 等）を出してから行を並べる。教科未設定は末尾「教科外の持ち物」グループに集約
+- 行の右側に数量チップ（黄色 #FEF3C7）を表示
+
+**サンプル作成**
+- 空状態に「＋ サンプル時間割を作成」を追加 → `seedPrepSampleRoutines(memberHint)`
+- 月・火・水の代表 12 件（国語/算数 教科書・ノート、生活、音楽、体操服、給食袋、水筒、連絡帳、鍵盤ハーモニカ）
+- 必ず confirm() ダイアログで承認後に追加。重複は memberId+dayOfWeek+title で判定して二重作成しない
+
+**Hoku 連携**
+- `_hokuExtractSubject(text)` / `_hokuGuessPrepCategory(title)` を新設
+- `parseHokuIntent` で prep_routine_add / prep_add のとき subject + prepItems を entities に格納
+- 「○曜は」「と」「や」「、」での複数持ち物分割（2 件以上のときのみ多重登録パス）
+- `executeHokuAction` の prep_routine_add 多重登録分岐：confirm() で確認 → `addPrepRoutine` を回す → 件数 toast
+- 単一登録パス（m-voice-confirm 経由）も Wave 55 で正規スキーマ（dayOfWeek / category / subject / showTiming）に統一。これまでの `weekday`(数値) / `cat` / `notify` 形式での保存（曜日カードに出ない不整合）を解消
+
+### テスト結果
+- 単一 `<script>` 構文検証 PASS（1/1）
+- Node 単体で複数持ち物分割 PASS：
+  - 「毎週火曜は算数ノートと計算ドリルを準備に追加」→ ['算数ノート','計算ドリル']
+  - 「火曜は星斗の国語の教科書とノートと連絡帳」→ ['教科書','ノート','連絡帳']（subject=国語）
+  - 単一の「毎週月曜の星斗の国語の教科書を準備に入れて」→ [] → 単一登録パスへ
+- md5 同期：`91b3037d038579e371e7341d7470cbe8`
+
+### iPhone 確認ポイント
+1. ルーティン・時間割タブで 7 曜日カードが表示される（今日カードが primary 色）
+2. 月曜カードに「+」 → モーダルでメンバー / 曜日 / 持ち物 / カテゴリ（教科書/ノート/教材/学校用品/...）/ 教科 / 数量 / 表示タイミング / 有効・無効が選べる
+3. 教科 = 国語 にすると曜日カード内で「📘 国語」サブヘッダーにグルーピングされる
+4. 数量「1冊」を入れると行末に黄色チップで表示される
+5. 空状態 →「＋ サンプル時間割を作成」→ 確認ダイアログ → 12 件登録（重複再投入なし）
+6. ルーティン編集 → 削除 → 確認ダイアログ → 既存反映済みは残ること
+7. 「今日の準備に反映」「明日の準備に反映」が showTiming 通りに動く
+8. Hoku に「火曜は算数ノートと計算ドリルを準備に追加」 → confirm 後に 2 件作成、ルーティンタブ火曜に表示
+9. Hoku に「毎週月曜、星斗の国語の教科書を準備に入れて」 → m-voice-confirm 経由で月曜に正しく登録（subject=国語）
+10. iPhone SE / 13 / 15 Plus / Pro Max 幅で横スクロール無し
+
+### 未確認事項
+- 「明日の準備に国語と算数を追加」の prep_add 多重分割は今回 prep_routine_add のみ実装（次 Wave 候補）
+- 既存の単一ルーティン voice 保存パスを正規スキーマに切替えたため、過去の voice 経由で作成したレガシー（weekday=数値）データは表示にブレが出る可能性あり（影響範囲は voice routine のみ）
+
+### 次にやること
+- prep_add 多重分割（今日/明日に複数持ち物を一括）
+- ルーティン管理の period（時間割の 1〜6 限）対応
+- 前夜 / 当朝のリマインド通知（Wave 56 候補、要 CTO 判断）
+- 写真付き持ち物（プレミアム候補）
+
+### コミット
+- メッセージ: `wave 55: prep timetable - subject/quantity, category overhaul, sample seed, hoku multi-item routine`

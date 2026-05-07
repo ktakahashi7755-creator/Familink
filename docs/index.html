@@ -3179,16 +3179,45 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">カテゴリ</div>
         <select class="input" id="prm-cat">
-          <option value="学校">📚 学校</option>
+          <option value="教科書">📕 教科書</option>
+          <option value="ノート">📓 ノート</option>
+          <option value="教材">✏️ 教材・ドリル</option>
+          <option value="学校用品">🎒 学校用品</option>
+          <option value="提出物">📄 提出物</option>
+          <option value="体育">🏃 体育・体操服</option>
+          <option value="給食">🍱 給食</option>
+          <option value="習い事">🎵 習い事</option>
+          <option value="園用品">🌱 園用品（幼稚園・保育園）</option>
+          <option value="学校">📚 学校（汎用）</option>
           <option value="幼稚園">🌱 幼稚園</option>
           <option value="保育園">🏠 保育園</option>
-          <option value="習い事">🎵 習い事</option>
-          <option value="部活">🏃 部活</option>
+          <option value="部活">🏆 部活</option>
           <option value="病院">🏥 病院</option>
           <option value="お出かけ">🚗 お出かけ</option>
-          <option value="提出物">📄 提出物</option>
           <option value="その他">📦 その他</option>
         </select>
+      </div>
+      <div class="field">
+        <div class="field-label">教科（任意）</div>
+        <select class="input" id="prm-subject">
+          <option value="">教科なし</option>
+          <option value="国語">国語</option>
+          <option value="算数">算数</option>
+          <option value="生活">生活</option>
+          <option value="音楽">音楽</option>
+          <option value="図工">図工</option>
+          <option value="体育">体育</option>
+          <option value="道徳">道徳</option>
+          <option value="英語">英語</option>
+          <option value="理科">理科</option>
+          <option value="社会">社会</option>
+          <option value="書写">書写</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">数量（任意）</div>
+        <input class="input" id="prm-qty" placeholder="例：1冊・1本">
       </div>
       <div class="field">
         <div class="field-label">表示タイミング</div>
@@ -8342,8 +8371,9 @@ function renderPrepRoutinesSectionHtml() {
     const memName = isFiltered ? (memberNameById(memberId)||'') : '';
     html += `<div class="empty" style="padding:32px 24px;text-align:center;">
       <div class="empty-title">${isFiltered ? `${H(memName)}の曜日ルーティンはまだありません` : '曜日ごとの準備はまだありません'}</div>
-      <div class="empty-desc">${isFiltered ? 'このメンバー用の毎週ルーティンを登録できます。' : '毎週必要な持ち物を登録すると、今日・明日の準備に反映できます。'}</div>
+      <div class="empty-desc">${isFiltered ? 'このメンバー用の毎週ルーティンを登録できます。' : '教科書・ノート・体操服など、毎週必要なものを登録すると、今日/明日の準備に反映できます。'}</div>
       <button onclick="openPrepRoutineModal('${H(memberId==='all'?MEMBERS[0].id:memberId)}','mon')" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${isFiltered ? `${H(memName)}のルーティンを追加` : '曜日ルーティンを作る'}</button>
+      <button onclick="seedPrepSampleRoutines('${H(memberId==='all'?MEMBERS[0].id:memberId)}')" class="btn btn-ghost" style="margin-top:8px;padding:8px 16px;border-radius:10px;font-size:12px;">＋ サンプル時間割を作成</button>
     </div>`;
     return html;
   }
@@ -8373,13 +8403,33 @@ function renderPrepRoutinesSectionHtml() {
       <div style="padding:6px 0;">
         ${dayItems.length === 0
           ? `<div style="padding:10px 14px;color:var(--text-muted);font-size:12px;">まだ登録なし</div>`
-          : dayItems.map(r => `<div onclick="openPrepRoutineModal('${H(r.id)}')" data-routine-id="${H(r.id)}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;${r.enabled===false?'opacity:0.5;':''}">
-              <span style="font-size:11px;color:var(--text-muted);font-weight:600;min-width:48px;">${H(memberNameById(r.memberId)||'-')}</span>
-              <span style="flex:1;font-size:13px;color:var(--text);font-weight:600;">${H(r.title)}</span>
-              <span style="font-size:10px;color:#6366F1;background:#EEF2FF;padding:2px 7px;border-radius:6px;font-weight:700;">${H(r.category||'その他')}</span>
-              <span style="font-size:10px;color:var(--text-muted);">${H(PREP_TIMING_LABELS[r.showTiming]||'')}</span>
-              <button onclick="event.stopPropagation();togglePrepRoutineEnabled('${H(r.id)}')" title="${r.enabled===false?'有効化':'無効化'}" style="background:transparent;border:none;color:${r.enabled===false?'var(--text-muted)':'var(--primary)'};font-size:14px;cursor:pointer;">${r.enabled===false?'☐':'☑'}</button>
-            </div>`).join('')}
+          : (function(){
+              // Wave 55: 教科 (subject) でグルーピング — 教科なしは末尾「その他」グループ
+              const groups = {};
+              const order = [];
+              for(const r of dayItems) {
+                const key = r.subject || '__none__';
+                if(!groups[key]) { groups[key] = []; order.push(key); }
+                groups[key].push(r);
+              }
+              return order.map(function(key){
+                const list = groups[key];
+                const head = (key === '__none__')
+                  ? `<div style="padding:6px 14px 2px;font-size:11px;color:var(--text-muted);font-weight:700;">教科外の持ち物</div>`
+                  : `<div style="padding:6px 14px 2px;font-size:11px;color:#4F46E5;font-weight:700;">📘 ${H(key)}</div>`;
+                return head + list.map(function(r){
+                  const qtyChip = r.quantity ? `<span style="font-size:10px;color:#92400E;background:#FEF3C7;padding:2px 7px;border-radius:6px;font-weight:700;margin-left:4px;">${H(r.quantity)}</span>` : '';
+                  return `<div onclick="openPrepRoutineModal('${H(r.id)}')" data-routine-id="${H(r.id)}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;${r.enabled===false?'opacity:0.5;':''}">
+                    <span style="font-size:11px;color:var(--text-muted);font-weight:600;min-width:48px;">${H(memberNameById(r.memberId)||'-')}</span>
+                    <span style="flex:1;font-size:13px;color:var(--text);font-weight:600;">${H(r.title)}${qtyChip}</span>
+                    <span style="font-size:10px;color:#6366F1;background:#EEF2FF;padding:2px 7px;border-radius:6px;font-weight:700;">${H(r.category||'その他')}</span>
+                    <span style="font-size:10px;color:var(--text-muted);">${H(PREP_TIMING_LABELS[r.showTiming]||'')}</span>
+                    <button onclick="event.stopPropagation();togglePrepRoutineEnabled('${H(r.id)}')" title="${r.enabled===false?'有効化':'無効化'}" style="background:transparent;border:none;color:${r.enabled===false?'var(--text-muted)':'var(--primary)'};font-size:14px;cursor:pointer;">${r.enabled===false?'☐':'☑'}</button>
+                  </div>`;
+                }).join('');
+              }).join('');
+            })()
+        }
       </div>
     </div>`;
   }
@@ -8478,7 +8528,8 @@ const PREP_TIMING_LABELS = {
   previous_day: '前日',
   previous_day_and_today: '前日と当日'
 };
-const PREP_CATEGORIES = ['学校','幼稚園','保育園','習い事','部活','病院','お出かけ','提出物','その他'];
+const PREP_CATEGORIES = ['教科書','ノート','教材','学校用品','提出物','体育','給食','習い事','園用品','学校','幼稚園','保育園','部活','病院','お出かけ','その他'];
+const PREP_SUBJECTS = ['国語','算数','生活','音楽','図工','体育','道徳','英語','理科','社会','書写','その他'];
 
 let _prepRoutineMember = 'all';   // ルーティン管理画面で表示中のメンバー
 let _prepVisibleTab = null;        // 何かに使うかも（リスト用）
@@ -8539,6 +8590,8 @@ function addPrepRoutine(data) {
     dayOfWeek: 'mon',
     title: '',
     category: 'その他',
+    subject: '',     // Wave 55: 教科（国語/算数 等）任意
+    quantity: '',    // Wave 55: 数量（1冊・1本 等）任意
     memo: '',
     showTiming: 'previous_day_and_today',
     repeat: true,
@@ -8639,6 +8692,8 @@ function applyPrepRoutinesForDate(targetDateStr, opts) {
       id: uid(),
       text: r.title,
       cat: r.category || 'その他',
+      subject: r.subject || '',          // Wave 55: 教科を引き継ぐ
+      quantity: r.quantity || '',        // Wave 55: 数量を引き継ぐ
       done: false,
       date: targetDateStr,
       member: memberNameById(r.memberId) || '',
@@ -8660,6 +8715,44 @@ function applyPrepRoutinesForDate(targetDateStr, opts) {
   }
   return added;
 }
+/* Wave 55: 代表的な平日サンプル時間割を確認後に作成
+   - 月火水の主要持ち物（教科書/ノート/体操服/給食袋/水筒/連絡帳）を最小限で登録
+   - 既存 routine と完全一致する name/day/member は重複作成しない */
+function seedPrepSampleRoutines(memberHint) {
+  _ensurePrepRoutines();
+  const memberId = (memberHint && MEMBERS.some(function(m){return m.id===memberHint;})) ? memberHint : (MEMBERS[0]&&MEMBERS[0].id) || '';
+  const memName = memberNameById(memberId) || '対象メンバー';
+  const samples = [
+    // 月曜
+    {dayOfWeek:'mon', title:'国語の教科書', category:'教科書',     subject:'国語',  quantity:'1冊'},
+    {dayOfWeek:'mon', title:'国語ノート',   category:'ノート',       subject:'国語',  quantity:'1冊'},
+    {dayOfWeek:'mon', title:'算数の教科書', category:'教科書',       subject:'算数',  quantity:'1冊'},
+    {dayOfWeek:'mon', title:'算数ノート',   category:'ノート',       subject:'算数',  quantity:'1冊'},
+    {dayOfWeek:'mon', title:'体操服',       category:'体育',         subject:'体育',  quantity:'1セット'},
+    {dayOfWeek:'mon', title:'給食袋',       category:'給食',         subject:'',      quantity:''},
+    {dayOfWeek:'mon', title:'水筒',         category:'学校用品',     subject:'',      quantity:'1本'},
+    // 火曜
+    {dayOfWeek:'tue', title:'生活の教科書', category:'教科書',       subject:'生活',  quantity:'1冊'},
+    {dayOfWeek:'tue', title:'連絡帳',       category:'学校用品',     subject:'',      quantity:''},
+    {dayOfWeek:'tue', title:'水筒',         category:'学校用品',     subject:'',      quantity:'1本'},
+    // 水曜
+    {dayOfWeek:'wed', title:'音楽の教科書', category:'教科書',       subject:'音楽',  quantity:'1冊'},
+    {dayOfWeek:'wed', title:'鍵盤ハーモニカ', category:'教材',       subject:'音楽',  quantity:'1台'}
+  ];
+  if(!confirm(memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？\n後から自由に編集・削除できます。')) return;
+  let added = 0;
+  for(const s of samples) {
+    const dup = (S.prepRoutines||[]).some(function(r){
+      return r.memberId === memberId && r.dayOfWeek === s.dayOfWeek && r.title === s.title;
+    });
+    if(dup) continue;
+    addPrepRoutine(Object.assign({ memberId: memberId, showTiming: 'previous_day_and_today', enabled: true, repeat: true }, s));
+    added++;
+  }
+  showToast(added+' 件のサンプルを追加しました','success');
+  renderPrep();
+}
+
 function applyTodayRoutines() { applyPrepRoutinesForDate(todayStr()); }
 function applyTomorrowRoutines() {
   const t = new Date(); t.setDate(t.getDate()+1);
@@ -8679,11 +8772,16 @@ function openPrepRoutineModal(idOrMemberHint, dayHint) {
   }
   _prepEditingRoutineId = r ? r.id : null;
   document.getElementById('prm-title').value = r ? (r.title||'') : '';
-  document.getElementById('prm-cat').value   = r ? (r.category||'その他') : '学校';
+  document.getElementById('prm-cat').value   = r ? (r.category||'その他') : '教科書';
   document.getElementById('prm-memo').value  = r ? (r.memo||'') : '';
   document.getElementById('prm-day').value   = r ? (r.dayOfWeek||'mon') : (dayHint || 'mon');
   document.getElementById('prm-timing').value = r ? (r.showTiming||'previous_day_and_today') : 'previous_day_and_today';
   document.getElementById('prm-enabled').value = r ? String(r.enabled !== false) : 'true';
+  // Wave 55: 教科 / 数量
+  const subjEl = document.getElementById('prm-subject');
+  if(subjEl) subjEl.value = r ? (r.subject || '') : '';
+  const qtyEl  = document.getElementById('prm-qty');
+  if(qtyEl)  qtyEl.value  = r ? (r.quantity || '') : '';
   // メンバー
   const memSel = document.getElementById('prm-member');
   memSel.innerHTML = MEMBERS.map(m => `<option value="${H(m.id)}">${H(m.name)}</option>`).join('');
@@ -8709,6 +8807,8 @@ function savePrepRoutineFromModal() {
     dayOfWeek:   document.getElementById('prm-day').value,
     title:       title,
     category:    document.getElementById('prm-cat').value,
+    subject:     (document.getElementById('prm-subject')?.value || '').trim(),
+    quantity:    (document.getElementById('prm-qty')?.value || '').trim(),
     memo:        document.getElementById('prm-memo').value.trim(),
     showTiming:  document.getElementById('prm-timing').value,
     enabled:     document.getElementById('prm-enabled').value === 'true',
@@ -10949,6 +11049,29 @@ function _hokuSplitShoppingNames(s) {
           .map(function(t){ return t.replace(/[\s　]+/g,'').trim(); })
           .filter(Boolean);
 }
+
+/* Wave 55: 教科 (subject) を本文から抽出 */
+function _hokuExtractSubject(text) {
+  if(!text) return '';
+  for(const s of (typeof PREP_SUBJECTS !== 'undefined' ? PREP_SUBJECTS : [])) {
+    if(s === 'その他') continue;
+    if(text.indexOf(s) >= 0) return s;
+  }
+  return '';
+}
+/* Wave 55: 「教科書」「ノート」などのカテゴリを推測 */
+function _hokuGuessPrepCategory(title) {
+  if(!title) return '';
+  if(/教科書/.test(title)) return '教科書';
+  if(/ノート/.test(title)) return 'ノート';
+  if(/ドリル|プリント/.test(title)) return '教材';
+  if(/体操服|体操着|赤白帽|ハチマキ/.test(title)) return '体育';
+  if(/給食袋|エプロン|マスク/.test(title)) return '給食';
+  if(/連絡帳|筆箱|下敷き|上履き|図書バッグ|水筒/.test(title)) return '学校用品';
+  if(/絵の具|習字|鍵盤ハーモニカ|プールバッグ/.test(title)) return '教材';
+  if(/宿題|提出物|集金|同意書/.test(title)) return '提出物';
+  return '';
+}
 /* 買い物系 intent の検出 + 商品名抽出（タイトル前処理は parseVoiceIntent と独立） */
 function _hokuDetectShopping(text) {
   if(!text) return null;
@@ -11083,6 +11206,24 @@ function parseHokuIntent(rawText, source) {
   const budgetCat = (intentType === 'budget_add') ? _hokuExtractBudgetCategory(text) : null;
   const txType = (intentType === 'budget_add') ? _hokuExtractTxType(text) : null;
   const weekday = (intentType === 'prep_routine_add') ? _hokuExtractWeekday(text) : null;
+  // Wave 55: prep / prep_routine_add 用に教科 + 持ち物の複数分割を抽出
+  const prepSubject = (intentType === 'prep_routine_add' || intentType === 'prep_add') ? _hokuExtractSubject(text) : '';
+  let prepItems = [];
+  if(intentType === 'prep_routine_add' || intentType === 'prep_add') {
+    // 「○○曜は ○○ノートと計算ドリル」→ ['○○ノート','計算ドリル']
+    let body = text;
+    const sep = body.match(/(月|火|水|木|金|土|日)曜は\s*/);
+    if(sep) body = body.slice(body.indexOf(sep[0]) + sep[0].length);
+    body = body.replace(/^(?:[一-龯ぁ-んァ-ヶ]+の|星[斗旺汰愛][のは]?)/, '');
+    body = body.replace(/(?:を)?\s*(?:準備|持ち物)?\s*に?\s*(?:追加|入れて|登録|入れる).*$/, '');
+    body = body.replace(/(?:準備|持ち物)$/, '').trim();
+    if(body && /[、,，や]|と/.test(body)) {
+      prepItems = body.split(/[、,，]|\sand\s|\s?と\s?|\sや\s/)
+                      .map(function(s){ return s.replace(/[\s　]+/g,'').trim(); })
+                      .filter(Boolean);
+    }
+    if(prepItems.length < 2) prepItems = [];
+  }
 
   const entities = {
     memberId: v.member || null,
@@ -11097,6 +11238,8 @@ function parseHokuIntent(rawText, source) {
     symptoms: symptoms,
     medicine: medicine,
     weekday: weekday,
+    subject: prepSubject,
+    prepItems: prepItems,
     memo: ''
   };
 
@@ -11187,6 +11330,33 @@ function executeHokuAction(intent) {
     return _hokuExecuteShopping(intent);
   }
 
+  // Wave 55: prep_routine_add で複数持ち物（「火曜は算数ノートと計算ドリル」等）が抽出できた場合は一括登録（要 confirm）
+  if(intent.intentType === 'prep_routine_add' && intent.entities && Array.isArray(intent.entities.prepItems) && intent.entities.prepItems.length >= 2 && intent.entities.weekday != null) {
+    const items = intent.entities.prepItems;
+    const memberId = intent.entities.memberId || (MEMBERS[0] && MEMBERS[0].id) || '';
+    const memName  = memberNameById(memberId) || '対象メンバー';
+    const dowMap = ['sun','mon','tue','wed','thu','fri','sat'];
+    const dow = dowMap[intent.entities.weekday];
+    const dayLabel = PREP_DAY_LABELS_JA[dow] || '';
+    if(!confirm(memName+'の'+dayLabel+'曜ルーティンとして '+items.length+' 件を登録しますか？\n・'+items.join('\n・'))) {
+      return { ok:true, message:'登録をキャンセルしました。' };
+    }
+    let added = 0;
+    for(const t of items) {
+      const cat = _hokuGuessPrepCategory(t) || 'その他';
+      const subj = (intent.entities.subject || '');
+      addPrepRoutine({
+        memberId: memberId, dayOfWeek: dow, title: t,
+        category: cat, subject: subj, quantity: '',
+        showTiming: 'previous_day_and_today', enabled: true, repeat: true
+      });
+      added++;
+    }
+    showToast(added+' 件のルーティンを追加しました','success');
+    if(typeof renderPrep === 'function') renderPrep();
+    return { ok:true, message: added+' 件を毎週'+dayLabel+'曜の'+memName+'のルーティンとして登録しました。\n\n[[ACTION_BUTTONS:prep]]' };
+  }
+
   // 保存系 → 既存の m-voice-confirm を再利用（_voiceParsed をセットして開く）
   const meta = HOKU_INTENT_META[intent.intentType];
   if(!meta || !meta.uiCat) return { ok:false, message:'対応する登録先がありません。' };
@@ -11208,6 +11378,7 @@ function executeHokuAction(intent) {
     confidence: intent.confidence >= 0.85 ? 'high' : (intent.confidence >= 0.55 ? 'medium' : 'low'),
     isRoutine: !!meta.isRoutine,
     weekday: intent.entities.weekday,
+    subject: intent.entities.subject || '',
     medicine: intent.entities.medicine,
     symptoms: intent.entities.symptoms || [],
     budgetCat: intent.entities.category,
@@ -11506,14 +11677,23 @@ function voiceConfirmSave() {
       const _mName = member ? (memberNameById(member) || '') : '';
       const _now = new Date().toISOString();
       if(_isRoutine) {
-        if(!Array.isArray(S.prepRoutines)) S.prepRoutines = [];
+        // Wave 55: 正規スキーマ（dayOfWeek/category/subject/quantity/showTiming）で登録し
+        // 曜日タブ表示・ルーティン候補バナーと整合させる
         const wd = (_voiceParsed && Number.isInteger(_voiceParsed.weekday)) ? _voiceParsed.weekday : 1; // 既定：月曜
-        S.prepRoutines.push({
-          id:uid(), memberId: member || '',
-          weekday: wd, // 0=日 〜 6=土
-          title: prepText, cat:'学校',
-          notify:'both', enabled:true,
-          createdAt:_now, updatedAt:_now
+        const dowMap = ['sun','mon','tue','wed','thu','fri','sat'];
+        const dow = dowMap[wd] || 'mon';
+        const subj = (_voiceParsed && _voiceParsed.subject) || '';
+        const cat  = _hokuGuessPrepCategory(prepText) || 'その他';
+        addPrepRoutine({
+          memberId: member || '',
+          dayOfWeek: dow,
+          title: prepText,
+          category: cat,
+          subject: subj,
+          quantity: '',
+          showTiming: 'previous_day_and_today',
+          enabled: true,
+          repeat: true
         });
       } else {
         const prepItem = { id:uid(), text:prepText, cat:'学校', done:false, date };
