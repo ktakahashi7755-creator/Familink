@@ -4893,7 +4893,7 @@ function renderCalDetail(ds) {
         <div class="cal-det-time">${H(timeLabel)}</div>
         <div class="cal-det-title">${H(e.title)}</div>
         <div class="cal-det-meta">
-          <div class="cal-det-av" style="background:${H(mem.grad)}">${H(mem.av)}</div>
+          ${avHtml(mem.id, 16, 8, 'display:inline-flex;')}
           <span class="cal-det-mem-name">${H(mem.name)}</span>
         </div>
         ${e.note ? `<div class="cal-det-note">${H(e.note)}</div>` : ''}
@@ -9529,7 +9529,7 @@ function renderPrep() {
   for(const m of MEMBERS) {
     const on = visibleMembers.indexOf(m.id) >= 0;
     html += `<button class="te-mem-btn ${on?'selected':''}" data-pmid="${H(m.id)}" onclick="togglePrepMemberVisible('${H(m.id)}')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px 5px 5px;font-size:12px;font-weight:700;background:${on?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${on?'var(--primary)':'var(--border)'};cursor:pointer;opacity:${on?'1':'0.55'};">
-      <span style="width:22px;height:22px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${H(m.av)}</span>
+      ${avHtml(m.id, 22, 10)}
       <span>${H(m.name)}</span>
     </button>`;
   }
@@ -9633,7 +9633,7 @@ function renderPrepRoutinesSectionHtml() {
   for(const m of MEMBERS) {
     const sel = memberId === m.id;
     html += `<button onclick="setPrepRoutineMember('${H(m.id)}')" class="te-mem-btn ${sel?'selected':''}" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:700;background:${sel?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${sel?'var(--primary)':'var(--border)'};cursor:pointer;">
-      <span style="width:20px;height:20px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">${H(m.av)}</span>
+      ${avHtml(m.id, 20, 9)}
       <span>${H(m.name)}</span>
     </button>`;
   }
@@ -10129,7 +10129,7 @@ function openPrepMembersModal() {
   wrap.innerHTML = MEMBERS.map(m => {
     const on = visible.indexOf(m.id) >= 0;
     return `<button onclick="togglePrepMemberVisible('${H(m.id)}');openPrepMembersModal();" class="bm-mgr-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;width:100%;background:transparent;border:1px solid var(--border-light);border-radius:10px;margin-bottom:6px;cursor:pointer;text-align:left;">
-      <span style="width:28px;height:28px;border-radius:50%;background:${m.grad};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${H(m.av)}</span>
+      ${avHtml(m.id, 28, 12)}
       <span style="flex:1;color:var(--text);font-weight:600;">${H(m.name)}</span>
       <span style="font-size:11px;padding:3px 9px;border-radius:10px;${on?'background:var(--primary);color:#fff;':'background:var(--bg-muted);color:var(--text-muted);'}">${on?'表示中':'非表示'}</span>
     </button>`;
@@ -10370,7 +10370,7 @@ function goChildDetail(id) {
 
   document.getElementById('cdetail-body').innerHTML = `
     <div class="cdetail-hero" style="background:${H(c.grad)}">
-      <div class="cdetail-avatar">${H(c.av)}</div>
+      <div class="cdetail-avatar" style="overflow:hidden;padding:0;background:transparent;">${avHtml(c.id, 70, 28, 'border:none;')}</div>
       <div class="cdetail-name">${H(c.name)}</div>
       <div class="cdetail-sub">${c.role==='parent'?'保護者':'こども'}</div>
     </div>
@@ -10527,7 +10527,7 @@ function renderSettings() {
     <!-- Footer -->
     <div class="menu-footer">
       <div class="menu-footer-tagline">家族の毎日を、少しだけラクに。</div>
-      Familink v3.1（Wave 57 / 設定再編・書類保管庫・アルバム）<br>
+      Familink v3.2（Wave 60.4 / 資金繰り・アバター写真・全画面紐付け）<br>
       <span style="font-size:10px">家族運営AI「Hoku」が、毎日の段取りをそっと支えます。</span>
     </div>`;
 }

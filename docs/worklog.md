@@ -6385,3 +6385,62 @@ Wave 60.2 で写真アップロードを実装したが、タスク画面のメ�
 
 ### コミット
 - メッセージ: `wave 60.3: avatar - propagate custom photo to ALL screens (12 raw renders → avHtml)`
+
+## 2026-05-08 02:15  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.4: 残り 5 箇所のアバター紐付けバグ修正 + フッター v3.2 表記
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 発覚した残バグ（end-to-end render テストで検出）
+Wave 60.3 の bulk replace は `class="av"` を持つ raw 描画のみを対象にしていた。
+**`class="av"` を持たない raw 描画 5 箇所** が漏れていた:
+
+1. **L4896**：カレンダー予定詳細パネルの `cal-det-av`（16px）→ ユーザー報告の「カレンダーで パパ アイコンが反映されない」の真因
+2. **L9532**：準備リストのメンバーチップ（22px）
+3. **L9636**：準備ルーティンのメンバータブ（20px）
+4. **L10132**：準備メンバー管理モーダルの行（28px）
+5. **L10373**：メンバー詳細画面のヒーローアバター（76px）
+
+これら 5 箇所を `avHtml(id, W, FS)` に統一。
+
+### 検出ツール（E2E render テスト）を新設
+- 実際の `renderTaskScreen` / `renderCal` / `renderHealth` / `renderBudget` / `renderPrep` / `renderHome` を mock DOM 下で実行
+- 各画面の innerHTML に `S.userPhotos[id]` の dataUrl が含まれているかを確認
+- 7 画面 × 写真検出 = **10 件全 PASS**（各画面で写真が正しく紐付くことを保証）
+
+### フッター更新
+`Familink v3.1（Wave 57 ...）` → `Familink v3.2（Wave 60.4 / 資金繰り・アバター写真・全画面紐付け）`
+ユーザーがキャッシュ状態を目視確認できるように。
+
+### 累計テスト結果（189 / 189 PASS）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| **e2e-render (新)** | **10** |
+| **合計** | **189 / 189 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`3c92a2dd60284aae1c652fddd1791351`
+
+### iPhone 確認ポイント
+1. 設定画面下部のフッターが **v3.2** に更新されていること（キャッシュ判別）
+2. 設定 → 家族メンバー管理 → パパ → 編集 → 「変更する」 → 写真をアップロード
+3. **タスク画面**：メンバーフィルタの「パ」チップ → 写真表示
+4. **カレンダー画面**：予定詳細の「パ」アイコン → 写真表示 ← Wave 60.4 で修正
+5. **準備リスト**：メンバーチップ → 写真表示 ← Wave 60.4 で修正
+6. **メンバー詳細画面**（タップで開く）：ヒーローエリアの大きなアバター → 写真表示 ← Wave 60.4 で修正
+7. ホーム / 体調 / 家計 / 家族ボード も従来どおり写真表示
+
+### コミット
+- メッセージ: `wave 60.4: cover the last 5 raw avatar render sites (calendar / prep / member detail) + footer v3.2`
