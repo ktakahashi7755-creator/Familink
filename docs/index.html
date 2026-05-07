@@ -10655,14 +10655,78 @@ function confirmAvatarSelect() {
   if(!S.userAvatarType) S.userAvatarType = {};
   S.userAvatars[_avatarSelectTarget]   = _avatarSelectedId;
   S.userAvatarType[_avatarSelectTarget] = 'official';
+  // Wave 60.2: 公式アバター選択時は写真も外す（種別の取り違え防止）
+  if(S.userPhotos && S.userPhotos[_avatarSelectTarget]) delete S.userPhotos[_avatarSelectTarget];
   saveS();
   closeModal('m-avatar-select');
   document.getElementById('m-avatar-select')?.classList.add('hidden');
-  renderSettings();
-  renderHome();
-  // Wave 60.1: 家族メンバー管理画面で開いていた場合は再描画
-  try { if(typeof renderChildren === 'function') renderChildren(); } catch(e) {}
+  refreshAllAvatarsAcrossScreens();
   showToast('アバターを設定しました ✨', 'success');
+}
+
+/* Wave 60.2: 写真アップロードでアバター設定（avHtml が S.userPhotos[id] を読むので全画面に自動反映） */
+function onAvatarPhotoPicked(ev) {
+  const f = ev && ev.target && ev.target.files && ev.target.files[0];
+  if(!f) return;
+  if(!_avatarSelectTarget) { showToast('対象メンバーが指定されていません','error'); return; }
+  // Wave 58 の downscale 関数で 1280px / JPEG 0.85 へ自動圧縮
+  downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
+    if(!dataUrl) { showToast('画像を読み込めませんでした','error'); return; }
+    if(!S.userPhotos)     S.userPhotos     = {};
+    if(!S.userAvatarType) S.userAvatarType = {};
+    S.userPhotos[_avatarSelectTarget]      = dataUrl;
+    S.userAvatarType[_avatarSelectTarget]  = 'customPhoto';
+    const ok = saveS();
+    if(!ok) {
+      // 保存失敗（容量超過）→ ロールバック
+      delete S.userPhotos[_avatarSelectTarget];
+      delete S.userAvatarType[_avatarSelectTarget];
+      showToast('容量不足のため保存できませんでした。古い写真を整理してください。','error');
+      return;
+    }
+    closeModal('m-avatar-select');
+    document.getElementById('m-avatar-select')?.classList.add('hidden');
+    refreshAllAvatarsAcrossScreens();
+    showToast('写真を設定しました 📷','success');
+  });
+  ev.target.value = '';
+}
+
+/* Wave 60.2: アバター設定をクリア → カラー＋イニシャル既定に戻す */
+function resetAvatarToDefault() {
+  if(!_avatarSelectTarget) return;
+  const m = MEMBERS.find(function(x){ return x.id === _avatarSelectTarget; });
+  if(!confirm((m ? m.name : 'メンバー') + 'のアバターを既定（カラー＋イニシャル）に戻しますか？\n設定済みの写真や公式アバターはクリアされます。')) return;
+  if(S.userPhotos)     delete S.userPhotos[_avatarSelectTarget];
+  if(S.userAvatars)    delete S.userAvatars[_avatarSelectTarget];
+  if(S.userAvatarType) delete S.userAvatarType[_avatarSelectTarget];
+  saveS();
+  closeModal('m-avatar-select');
+  document.getElementById('m-avatar-select')?.classList.add('hidden');
+  refreshAllAvatarsAcrossScreens();
+  showToast('既定に戻しました','success');
+}
+
+/* Wave 60.2: アバター変更を全画面に伝播 */
+function refreshAllAvatarsAcrossScreens() {
+  try { if(typeof renderHome === 'function')        renderHome(); } catch(e) {}
+  try { if(typeof renderSettings === 'function')    renderSettings(); } catch(e) {}
+  try { if(typeof renderChildren === 'function')    renderChildren(); } catch(e) {}
+  // 現在開いている画面の再描画
+  const cur = (typeof S !== 'undefined' && S.screen) ? S.screen : '';
+  const map = {
+    's-task':    function(){ if(typeof renderTaskScreen === 'function') renderTaskScreen(); },
+    's-cal':     function(){ if(typeof renderCal === 'function') renderCal(); },
+    's-board':   function(){ if(typeof renderBoard === 'function') renderBoard(); },
+    's-budget':  function(){ if(typeof renderBudget === 'function') renderBudget(); },
+    's-health':  function(){ if(typeof renderHealth === 'function') renderHealth(); },
+    's-prep':    function(){ if(typeof renderPrep === 'function') renderPrep(); },
+    's-shopping':function(){ if(typeof renderShopping === 'function') renderShopping(); },
+    's-album':   function(){ if(typeof renderAlbum === 'function') renderAlbum(); },
+    's-archive': function(){ if(typeof renderArchive === 'function') renderArchive(); },
+    's-notif':   function(){ if(typeof renderNotif === 'function') renderNotif(); }
+  };
+  if(map[cur]) try { map[cur](); } catch(e) {}
 }
 
 
@@ -14842,10 +14906,20 @@ document.addEventListener('touchcancel', () => {
     <div style="position:sticky;top:0;background:#fff;z-index:1;padding:18px 20px 0;border-radius:28px 28px 0 0;">
       <div class="modal-grip" style="margin-bottom:14px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-size:17px;font-weight:800;color:var(--text);">公式アバターを選ぶ</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text);">アバターを選ぶ</div>
         <button onclick="closeModal('m-avatar-select')" style="background:var(--bg-muted);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text-muted);">✕</button>
       </div>
+      <!-- Wave 60.2: 写真アップロード / 既定に戻す -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button onclick="document.getElementById('av-photo-input').click()" style="flex:1;padding:10px;border-radius:12px;border:1.5px dashed var(--border);background:var(--bg-muted);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          写真をアップロード
+        </button>
+        <button onclick="resetAvatarToDefault()" style="padding:10px 14px;border-radius:12px;border:1px solid var(--border-light);background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">既定に戻す</button>
+      </div>
+      <input type="file" id="av-photo-input" accept="image/*" style="display:none;" onchange="onAvatarPhotoPicked(event)">
       <!-- カテゴリタブ -->
+      <div style="font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px;">公式アバター</div>
       <div id="avatar-cat-tabs" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none;"></div>
     </div>
     <!-- アバターグリッド -->
