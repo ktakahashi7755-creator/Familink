@@ -1967,6 +1967,20 @@ select.input {
   background:#fff; cursor:pointer; font-size:12px; font-weight:600;
   color:var(--text-sub); transition:var(--t-spring); }
 .te-mem-btn.selected { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+/* Wave 59: 家族メンバー管理 */
+.member-row { display:flex; align-items:center; gap:12px; background:var(--bg-card); border:1.5px solid var(--border-light); border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--s-sm); }
+.member-row .mr-name { flex:1; font-size:15px; font-weight:700; color:var(--text); min-width:0; word-break:break-word; }
+.member-row .mr-role { font-size:11px; padding:2px 8px; border-radius:999px; color:var(--text-muted); background:var(--bg-muted); }
+.member-row .mr-role.parent { background:#EBF4FF; color:#2563EB; }
+.member-row .mr-role.child  { background:#FEF3C7; color:#92400E; }
+.member-row .mr-actions { display:flex; gap:4px; }
+.member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 10px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
+.member-row .mr-actions button:hover { color:var(--primary); border-color:var(--primary); }
+.member-row .mr-actions .mr-del:hover { color:var(--red); border-color:var(--red); }
+.me-role-btn { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-size:13px; font-weight:700; cursor:pointer; color:var(--text-muted); transition:var(--t-spring); }
+.me-role-btn.selected { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+.me-grad-swatch { width:38px; height:38px; border-radius:50%; cursor:pointer; transition:var(--t-spring); border:3px solid transparent; }
+.me-grad-swatch.selected { border-color:var(--primary); transform:scale(1.05); }
 .tk-pri-btn {
   flex:1; padding:8px 4px; border-radius:10px;
   border:1.5px solid var(--border); background:#fff;
@@ -3019,9 +3033,45 @@ nav#tabbar.hidden { display: none !important; }
 <div id="s-ch" class="screen hidden">
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
-    <div class="header-title">こどもたち</div>
+    <div class="header-title">家族メンバー管理</div>
+    <button class="header-icon-btn" onclick="openMemberEdit(null)" aria-label="メンバーを追加" title="メンバーを追加">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
   </div>
   <div class="scroll-area" id="children-list" style="padding:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+</div>
+
+<!-- Wave 59: メンバー追加 / 編集モーダル -->
+<div id="m-member-edit" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="m-member-edit-title">メンバーを追加</div>
+    <input type="hidden" id="me-id">
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">名前 <span style="color:var(--red)">*</span></div>
+        <input class="input" id="me-name" placeholder="例：太郎" maxlength="20" autocomplete="off">
+      </div>
+      <div class="field">
+        <div class="field-label">役割</div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="me-role-btn" data-role="child"  onclick="meSelectRole('child')">こども</button>
+          <button type="button" class="me-role-btn" data-role="parent" onclick="meSelectRole('parent')">保護者</button>
+        </div>
+        <input type="hidden" id="me-role" value="child">
+      </div>
+      <div class="field">
+        <div class="field-label">アバターのカラー</div>
+        <div id="me-grad-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+        <input type="hidden" id="me-grad" value="">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-member-edit')">キャンセル</button>
+        <button class="btn btn-primary btn-block" onclick="saveMemberEdit()">保存</button>
+      </div>
+      <button id="me-delete-btn" class="btn btn-ghost btn-block" onclick="confirmDeleteMember()" style="display:none;color:var(--red);margin-top:6px;">このメンバーを削除</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== CHILD DETAIL ===== -->
@@ -3492,14 +3542,52 @@ nav#tabbar.hidden { display: none !important; }
    ============================================================ */
 const SK = 'familink_v3';
 
-const MEMBERS = [
+/* Wave 59: メンバーを動的化（追加・削除可能）
+   - DEFAULT_MEMBERS は初期値（変更不可）
+   - MEMBERS は実行時の現在値（let）
+   - S.members に永続化された配列があれば applyMembersFromS() でそれを採用 */
+const DEFAULT_MEMBERS = [
   { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
   { id:'seiai',   name:'ママ',  role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
   { id:'seito',   name:'太郎',  role:'child',  av:'太', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
   { id:'seio',    name:'花子',  role:'child',  av:'花', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
   { id:'seitaro', name:'健太',  role:'child',  av:'健', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
 ];
-const CHILDREN = MEMBERS.filter(m => m.role === 'child');
+let MEMBERS = DEFAULT_MEMBERS.slice();
+const MEMBER_GRADIENTS = [
+  'linear-gradient(135deg,#4A90E2,#7BB3F5)',
+  'linear-gradient(135deg,#F07CB3,#FDA4AF)',
+  'linear-gradient(135deg,#FF9B4E,#FFB800)',
+  'linear-gradient(135deg,#52C47A,#86EFAC)',
+  'linear-gradient(135deg,#9B7EDE,#C4B5FD)',
+  'linear-gradient(135deg,#EC4899,#F472B6)',
+  'linear-gradient(135deg,#0EA5E9,#38BDF8)',
+  'linear-gradient(135deg,#F59E0B,#FCD34D)',
+  'linear-gradient(135deg,#10B981,#34D399)',
+  'linear-gradient(135deg,#8B5CF6,#A78BFA)',
+];
+function applyMembersFromS() {
+  if(Array.isArray(S.members) && S.members.length > 0) {
+    // 防御的コピー + 必須フィールドの補完
+    MEMBERS = S.members.map(function(m){
+      return {
+        id: m.id || ('mem_'+(Math.random().toString(36).slice(2))),
+        name: m.name || '名無し',
+        role: m.role === 'parent' ? 'parent' : 'child',
+        av: m.av || (m.name ? m.name.charAt(0) : '?'),
+        grad: m.grad || MEMBER_GRADIENTS[0]
+      };
+    });
+  } else {
+    MEMBERS = DEFAULT_MEMBERS.slice();
+  }
+}
+function persistMembersToS() {
+  S.members = MEMBERS.map(function(m){
+    return { id:m.id, name:m.name, role:m.role, av:m.av, grad:m.grad };
+  });
+}
+
 
 /* ============================================================
    OFFICIAL AVATARS — Familink 公式アバター
@@ -3631,9 +3719,10 @@ let S = {
   shoppingFrequent: [], // よく購入するもの（テンプレート）
   shoppingHistory: [],  // 購入履歴（最新順で append）
   shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
+  members: null,        // Wave 59: 動的メンバーリスト（null=DEFAULT_MEMBERS 使用）
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members'];
 
 function saveS() {
   const d = {};
@@ -9244,13 +9333,181 @@ function openPrepMembersModal() {
 /* ============================================================
    CHILDREN
    ============================================================ */
+/* Wave 59: 家族メンバー管理 — 全員（保護者+こども）を表示、追加/編集/削除可能 */
 function renderChildren() {
   const el = document.getElementById('children-list');
-  el.innerHTML = CHILDREN.map(c=>`<div class="settings-item" onclick="goChildDetail('${H(c.id)}')">
-    ${avHtml(c.id, 46, 20)}
-    <div class="settings-item-label">${H(c.name)}</div>
-    <div class="settings-arrow">›</div>
-  </div>`).join('');
+  if(!el) return;
+  // 役割別にグループ化（保護者 → こども）
+  const parents  = MEMBERS.filter(m => m.role === 'parent');
+  const children = MEMBERS.filter(m => m.role === 'child');
+  function rowHtml(m) {
+    const roleLabel = m.role === 'parent' ? '保護者' : 'こども';
+    return '<div class="member-row" onclick="goChildDetail(\''+H(m.id)+'\')">'
+      + avHtml(m.id, 46, 20)
+      + '<div class="mr-name">'+H(m.name)+'</div>'
+      + '<span class="mr-role '+m.role+'">'+roleLabel+'</span>'
+      + '<div class="mr-actions" onclick="event.stopPropagation()">'
+      +   '<button onclick="openMemberEdit(\''+H(m.id)+'\')">編集</button>'
+      +   '<button class="mr-del" onclick="confirmDeleteMemberFromList(\''+H(m.id)+'\')">削除</button>'
+      + '</div>'
+      + '</div>';
+  }
+  let html = '';
+  html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:4px 4px 8px;letter-spacing:.5px;">保護者 ('+parents.length+'名)</div>';
+  html += parents.length ? parents.map(rowHtml).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px;">保護者は登録されていません</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:14px 4px 8px;letter-spacing:.5px;">こども ('+children.length+'名)</div>';
+  html += children.length ? children.map(rowHtml).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px;">こどもは登録されていません</div>';
+  html += '<div style="margin-top:18px;text-align:center;">'
+    + '<button class="btn btn-primary" onclick="openMemberEdit(null)" style="padding:10px 22px;border-radius:12px;font-size:13px;">＋ メンバーを追加</button>'
+    + '</div>';
+  el.innerHTML = html;
+}
+
+/* Wave 59: メンバー追加 / 編集モーダル */
+let _meEditingId = null;
+function openMemberEdit(id) {
+  _meEditingId = id || null;
+  let m = null;
+  if(id) m = MEMBERS.find(function(x){ return x.id===id; });
+  document.getElementById('m-member-edit-title').textContent = m ? 'メンバーを編集' : 'メンバーを追加';
+  document.getElementById('me-id').value = m ? m.id : '';
+  document.getElementById('me-name').value = m ? m.name : '';
+  meSelectRole(m ? m.role : 'child');
+  // カラー候補
+  const used = new Set(MEMBERS.map(function(x){ return x.grad; }));
+  const wrap = document.getElementById('me-grad-list');
+  const initialGrad = m ? m.grad : (MEMBER_GRADIENTS.find(function(g){ return !used.has(g); }) || MEMBER_GRADIENTS[0]);
+  document.getElementById('me-grad').value = initialGrad;
+  wrap.innerHTML = MEMBER_GRADIENTS.map(function(g){
+    return '<button type="button" class="me-grad-swatch '+(g===initialGrad?'selected':'')+'" data-g="'+g+'" onclick="meSelectGrad(this)" style="background:'+g+';"></button>';
+  }).join('');
+  // 削除ボタン（編集時のみ）
+  const delBtn = document.getElementById('me-delete-btn');
+  if(delBtn) delBtn.style.display = m ? 'block' : 'none';
+  openModal('m-member-edit');
+  setTimeout(function(){ document.getElementById('me-name').focus(); }, 200);
+}
+function meSelectRole(role) {
+  document.getElementById('me-role').value = role;
+  document.querySelectorAll('#m-member-edit .me-role-btn').forEach(function(b){
+    b.classList.toggle('selected', b.dataset.role === role);
+  });
+}
+function meSelectGrad(btn) {
+  if(!btn) return;
+  const g = btn.dataset.g;
+  document.getElementById('me-grad').value = g;
+  document.querySelectorAll('#me-grad-list .me-grad-swatch').forEach(function(b){ b.classList.toggle('selected', b===btn); });
+}
+function saveMemberEdit() {
+  const name = document.getElementById('me-name').value.trim();
+  if(!name) { showToast('名前を入力してください','error'); return; }
+  const role = document.getElementById('me-role').value === 'parent' ? 'parent' : 'child';
+  const grad = document.getElementById('me-grad').value || MEMBER_GRADIENTS[0];
+  const av   = name.charAt(0);
+  if(_meEditingId) {
+    const m = MEMBERS.find(function(x){ return x.id===_meEditingId; });
+    if(m) { m.name = name; m.role = role; m.grad = grad; m.av = av; }
+  } else {
+    const id = 'mem_' + Math.random().toString(36).slice(2, 9);
+    MEMBERS.push({ id:id, name:name, role:role, av:av, grad:grad });
+  }
+  persistMembersToS();
+  saveS();
+  closeModal('m-member-edit');
+  // 全画面に反映
+  refreshAfterMemberChange();
+  showToast(_meEditingId ? '更新しました' : 'メンバーを追加しました','success');
+  _meEditingId = null;
+}
+function confirmDeleteMember() {
+  if(!_meEditingId) return;
+  const m = MEMBERS.find(function(x){ return x.id===_meEditingId; });
+  if(!m) return;
+  if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
+  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
+  unlinkMemberFromAllData(_meEditingId);
+  MEMBERS = MEMBERS.filter(function(x){ return x.id !== _meEditingId; });
+  persistMembersToS();
+  saveS();
+  closeModal('m-member-edit');
+  refreshAfterMemberChange();
+  showToast(m.name+' を削除しました','success');
+  _meEditingId = null;
+}
+function confirmDeleteMemberFromList(id) {
+  const m = MEMBERS.find(function(x){ return x.id===id; });
+  if(!m) return;
+  if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
+  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
+  unlinkMemberFromAllData(id);
+  MEMBERS = MEMBERS.filter(function(x){ return x.id !== id; });
+  persistMembersToS();
+  saveS();
+  refreshAfterMemberChange();
+  showToast(m.name+' を削除しました','success');
+}
+
+/* 削除されたメンバーIDを参照しているデータをクリア（履歴は残し、紐付けだけ外す） */
+function unlinkMemberFromAllData(deletedId) {
+  if(!deletedId) return;
+  const arrFields = [
+    {arr:'events',         keys:['member','memberId','assignedTo']},
+    {arr:'tasks',          keys:['assignedTo','memberId']},
+    {arr:'health',         keys:['child','memberId','member']},
+    {arr:'prep',           keys:['memberId','member']},
+    {arr:'prepRoutines',   keys:['memberId']},
+    {arr:'boardItems',     keys:['childId','memberId','assignee']},
+    {arr:'txs',            keys:['member','memberId']},
+    {arr:'shoppingItems',  keys:['assignedTo','memberId']},
+    {arr:'announces',      keys:['author','authorId']},
+    {arr:'posts',          keys:['author','authorId']},
+  ];
+  arrFields.forEach(function(f){
+    const list = S[f.arr];
+    if(!Array.isArray(list)) return;
+    list.forEach(function(item){
+      f.keys.forEach(function(k){
+        if(item && item[k] === deletedId) item[k] = '';
+      });
+    });
+  });
+  // 可視メンバーリスト
+  if(S.userProfile && Array.isArray(S.userProfile.prepVisibleMembers)) {
+    S.userProfile.prepVisibleMembers = S.userProfile.prepVisibleMembers.filter(function(x){ return x !== deletedId; });
+  }
+  if(Array.isArray(S.tkVisibleMembers))     S.tkVisibleMembers     = S.tkVisibleMembers.filter(function(x){ return x !== deletedId; });
+  if(Array.isArray(S.budgetVisibleMembers)) S.budgetVisibleMembers = S.budgetVisibleMembers.filter(function(x){ return x !== deletedId; });
+  // アバター個別設定
+  if(S.userPhotos && S.userPhotos[deletedId])     delete S.userPhotos[deletedId];
+  if(S.userAvatars && S.userAvatars[deletedId])   delete S.userAvatars[deletedId];
+  if(S.userAvatarType && S.userAvatarType[deletedId]) delete S.userAvatarType[deletedId];
+  // S.user が削除対象の場合は先頭メンバーへフォールバック
+  if(S.user && S.user.id === deletedId) {
+    const fallback = MEMBERS.find(function(x){ return x.id !== deletedId; });
+    if(fallback) S.user = fallback;
+  }
+}
+
+/* メンバー変更後の全画面再描画。今表示中の画面 + ホームを更新 */
+function refreshAfterMemberChange() {
+  try { renderChildren(); } catch(e) {}
+  try { renderHome(); } catch(e) {}
+  const cur = (typeof S !== 'undefined' && S.screen) ? S.screen : '';
+  const refreshers = {
+    's-task':     function(){ if(typeof renderTaskScreen === 'function') renderTaskScreen(); },
+    's-cal':      function(){ if(typeof renderCal === 'function') renderCal(); },
+    's-board':    function(){ if(typeof renderBoard === 'function') renderBoard(); },
+    's-budget':   function(){ if(typeof renderBudget === 'function') renderBudget(); },
+    's-health':   function(){ if(typeof renderHealth === 'function') renderHealth(); },
+    's-prep':     function(){ if(typeof renderPrep === 'function') renderPrep(); },
+    's-shopping': function(){ if(typeof renderShopping === 'function') renderShopping(); },
+    's-album':    function(){ if(typeof renderAlbum === 'function') renderAlbum(); },
+    's-archive':  function(){ if(typeof renderArchive === 'function') renderArchive(); },
+    's-settings': function(){ if(typeof renderSettings === 'function') renderSettings(); },
+    's-notif':    function(){ if(typeof renderNotif === 'function') renderNotif(); }
+  };
+  if(refreshers[cur]) try { refreshers[cur](); } catch(e) {}
 }
 
 function goChildDetail(id) {
@@ -12959,6 +13216,7 @@ function seedDefaultCustomBoards() {
 
 function init() {
   loadS();
+  applyMembersFromS();        // Wave 59: 永続化済みメンバーを採用
   migrateTaskData(); // タスクデータ移行
   seedDefaultCustomBoards(); // 既定 6 ボードを担保
   if(S.loggedIn && S.user) {

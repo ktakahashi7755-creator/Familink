@@ -6018,3 +6018,87 @@ calendar_add 5 / task_add 2 / shopping系 5 / budget_add 2 / health_add 2 / prep
 
 ### コミット
 - メッセージ: `wave 58: world-class quality sweep - classifier accuracy + storage resilience + 27 scenario tests`
+
+## 2026-05-07 23:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 59: 家族メンバー管理を完全な追加・編集・削除に対応（全画面紐付け）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+
+**メンバー動的化**
+- 旧 `const MEMBERS = [...]` / `const CHILDREN = ...` を撤廃
+- `const DEFAULT_MEMBERS = [...]`（不変の初期値 5 名）+ `let MEMBERS = DEFAULT_MEMBERS.slice()` に変更
+- `S.members` を新規追加（PERSIST 含む）：null = DEFAULT 使用 / 配列 = カスタムメンバー
+- `applyMembersFromS()`：起動時に S.members を MEMBERS に反映（init() の loadS() 直後）
+- `persistMembersToS()`：MEMBERS → S.members へ書き戻す
+- `MEMBER_GRADIENTS[10]` を新規定義（追加メンバー用のカラーパレット）
+- `CHILDREN` 参照は `MEMBERS.filter(m => m.role === 'child')` に直書きで置換
+
+**家族メンバー管理 UI（s-ch を全面刷新）**
+- ヘッダーに「+」ボタン（メンバーを追加）
+- 役割別グルーピング表示（保護者 / こども）
+- 各行：アバター / 名前 / 役割チップ / 編集ボタン / 削除ボタン
+- 行タップで詳細画面 (s-cdetail) へ
+- 末尾に大きな「+ メンバーを追加」ボタン
+
+**メンバー追加・編集モーダル `m-member-edit`**
+- 名前 / 役割（こども or 保護者） / アバターカラー（10 色から選択）
+- 編集時は「このメンバーを削除」も表示
+- アバターのイニシャル文字は名前の先頭から自動生成
+
+**削除時の全画面・全データ紐付け解除**
+`unlinkMemberFromAllData(deletedId)` が以下を全自動でクリア:
+- `S.events.member` / `S.tasks.assignedTo` / `S.health.child` / `S.prep.memberId` / `S.prepRoutines.memberId`
+- `S.boardItems.childId` / `S.txs.member` / `S.shoppingItems.assignedTo`
+- `S.announces.author` / `S.posts.author`
+- `S.userProfile.prepVisibleMembers` / `S.tkVisibleMembers` / `S.budgetVisibleMembers`
+- `S.userPhotos[id]` / `S.userAvatars[id]` / `S.userAvatarType[id]`
+- `S.user` が削除対象なら先頭メンバーへフォールバック
+
+履歴データ自体（イベント本体・タスク本体）は保持し、メンバー紐付けだけを外す方針。
+
+**全画面への即時反映**
+`refreshAfterMemberChange()` が現在画面に応じて適切な render を呼ぶ：
+- s-home / s-task / s-cal / s-board / s-budget / s-health / s-prep / s-shopping / s-album / s-archive / s-settings / s-notif
+
+### テスト結果（VM 単体）
+- 既存 27 シナリオ：全 PASS（回帰なし）
+- メンバー専用テスト 16/16 PASS：
+  - applyMembersFromS（null → 5 名 / custom → 任意）
+  - persist round-trip（追加 → S.members → 再読込）
+  - unlinkMemberFromAllData の 11 種類のデータクリア検証
+- 構文検証 1/1 PASS
+- md5 同期：`21cfde342fd716ff991d24b925dff039`
+
+### iPhone 確認ポイント
+1. 設定画面 → 家族メンバー管理 → 既存 5 名（パパ/ママ/太郎/花子/健太）が役割別に表示
+2. 「+ メンバーを追加」 → モーダル → 名前「おじいちゃん」/ 役割：保護者 / 色：橙 → 保存 → 一覧に追加
+3. ホーム → タスク追加で **担当者選択に追加メンバーが出る**
+4. カレンダー / 体調管理 / 準備リスト / 家計のメンバーフィルタにも自動的に出る
+5. 既存メンバーの「削除」 → 確認ダイアログ → 削除 → 全画面から名前が消える（紐付けはクリアされ履歴は残る）
+6. 編集 → 名前/役割/色を変更 → 全画面に新しい名前で反映
+7. 最後の 1 人は削除できない（toast で通知）
+8. リロード後も追加・削除・編集状態が保持
+
+### 既存機能との互換性
+- 既存ユーザーのデータ（events / tasks / etc）は無変更
+- 既存 MEMBERS 参照ロジック（avHtml / memberNameById / getMem 等）は変更不要 — `let` MEMBERS の更新が即時反映される
+- `CHILDREN` 削除に伴う変更は 1 箇所（renderChildren 内）のみで、API 影響なし
+
+### 未対応
+- 写真アバターの設定（既存 openOfficialAvatarModal で対応可能 / メンバー編集モーダルからの直接呼び出しは次 Wave）
+- メンバーの並び替え
+
+### 次にやること
+- メンバー編集モーダルから openOfficialAvatarModal 直接呼び出し
+- メンバーの順序ドラッグ並び替え
+- メンバー削除時の確認 UI を Hoku 経由のフローへ拡張
+
+### コミット
+- メッセージ: `wave 59: dynamic family members - full add/edit/delete with cross-screen propagation`
