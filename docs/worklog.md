@@ -7116,3 +7116,87 @@ input は通常通りキーボードでも編集可能。chip はあくまで補
 
 ### コミット
 - メッセージ: `wave 60.13: shopping qty - one-tap chips for numbers + units (1-10 / 本/パック/個/袋/箱/kg/g)`
+
+## 2026-05-08 09:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.14: ホーム買い物メモを「今すぐ × 2 件」「次の買い物 × 2 件」のセクション表示に紐付け
+
+### ユーザー要望
+ホームの買い物メモカードに「今すぐ」「次の買い物」のラベルがあるが、s-shopping から追加した項目がセクションに紐付けられず空表示になっていた。各セクション 上位 2 件で表示してほしい。
+
+### 真因
+Wave 60.11 で home card のデータソースを S.shoppingItems に統一したが、セクション情報を渡していなかったため `sectionId` が空 → どのセクションにも該当せず非表示。
+
+### 変更内容
+**1. shoppingItems スキーマ拡張**
+- 新フィールド `section: '今すぐ' | '次の買い物'`（既定 `'今すぐ'`）
+- 既存項目は section 未設定でも `'今すぐ'` 扱い（後方互換）
+
+**2. m-shop-add モーダルにセクション選択を追加**
+- 「いつ買う？」フィールドに 2 つのトグルボタン（今すぐ / 次の買い物）
+- frequent モード（よく購入するもの追加）では非表示
+- 初期値は '今すぐ'
+
+**3. ホームカードプレビューでセクション ID マッピング**
+- `S.boardSections` を boardId で絞り込み、`title → id` マップを作成
+- shoppingItem の `section` 名から sectionId を解決して boardItem 風オブジェクトにマップ
+- `renderBoardCardPreview` の prep 系セクション表示が正しくフィルタできるように
+
+**4. shopping-intent は 1 セクション 2 件まで**
+- 通常 prep（準備リスト）は 3 件、shopping は 2 件で家計とのバランス
+- 空セクションは「—」プレースホルダ表示
+- qty も併記（例：コーヒー 1袋）
+
+**5. マイグレーション拡張**
+- 旧 `boardItems.sectionId` → `boardSections.title` をたどり、新 `shoppingItems.section` に引き継ぎ
+- 「今すぐ」「次の買い物」以外の section 名は「今すぐ」にフォールバック
+
+**6. 全 push 経路で section を埋める**
+- saveShopAdd（m-shop-add 保存）：選択したセクション
+- shopFreqToList：'今すぐ'
+- shopHistRepost：'今すぐ'
+- Hoku 経由のショッピング追加：'今すぐ'
+
+### テスト結果（新 shop-section 13/13 PASS + 全 424 PASS）
+- ホームカードに「今すぐ」「次の買い物」両見出し表示
+- 各セクションに 2 件表示（5 件あっても今すぐは 2 件まで）
+- qty が併記される
+- 空セクションに「—」表示
+- section 未設定の旧データは今すぐ扱い
+- saSelectSection の動作（今すぐ / 次の買い物 / 不正値→今すぐ）
+
+### 全テストスイート（**424 / 424 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| member-rename | 7 |
+| shop-migrate | 14 |
+| notif | 16 |
+| qty-chip | 14 |
+| **shop-section (新)** | **13** |
+| **合計** | **424 / 424 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`0d866487634c001eb6b814ac763a91d5`
+
+### iPhone 確認シナリオ
+1. Safari 完全リロード
+2. ホーム → 買い物メモカード → 「今すぐ」「次の買い物」両セクション + 各 2 件まで表示
+3. カードタップ → s-shopping → 「+」 → 「いつ買う？」で 今すぐ / 次の買い物 を選んで保存
+4. ホームカードに該当セクションへ反映
+
+### コミット
+- メッセージ: `wave 60.14: shopping section binding (今すぐ/次の買い物 × 2 each on home card)`
