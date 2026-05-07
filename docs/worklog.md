@@ -5799,3 +5799,39 @@ Wave 55.1: prep_routine_add 解析バグ修正（「ルーティンがない」�
 
 ### コミット
 - メッセージ: `wave 55.1: fix prep_routine_add - dedicated parser, accept 'X曜は' as routine marker, clean title`
+
+## 2026-05-07 21:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 56: 設定・メニュー画面から重複ナビ（ホーム/カレンダー/タスク/家族ボード/準備/体調/家計/Hoku）を削除
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- `renderSettings` 内の「メニュー」セクション（s-home / s-cal / s-task / s-board / s-prep / s-health / s-budget / Hoku の 8 行）を丸ごと削除
+- これらは下部タブ（ホーム/タスク/カレンダー/家計/家族ボード）+ ホームの 6 ボードカード + Hoku FAB から常時アクセスできるため設定画面に並べる必要がない
+- 「アカウント・設定」セクション（アバター / 家族メンバー / 通知 / プロフィール / オンボード再表示 / ログアウト）と「Premium」カードはそのまま残存
+- メニュー section に依存していた `ni()` / `mc()` ヘルパーは関数スコープの const で残存（無害な dead code、安全のため即時削除はしない）
+
+### テスト結果
+- 構文検証 PASS（1/1）
+- md5 同期：`2464902cefc31ab1c80166473afe82e9`
+
+### iPhone 確認ポイント
+1. 右上のメニューアイコンタップ → 設定画面
+2. ブランドヘッダー → Premium カード → アカウント・設定（アバター / 家族メンバー / 通知 / プロフィール / 初回ガイド / ログアウト） の順で表示
+3. ホーム / カレンダー / タスク等の重複ナビが**消えている**こと
+4. 各アクセスは下部タブ・ホームのボードカードで従来どおり可能
+
+### 未確認事項
+- なし（純粋な削除）
+
+### 次にやること
+- prep_routine_add 単一登録時のメンバー alias 強化
+- 自由形式 `/prep_add` 多重分割
+
+### コミット
+- メッセージ: `wave 56: settings - remove duplicate nav links (home/cal/task/board/prep/health/budget/hoku)`
