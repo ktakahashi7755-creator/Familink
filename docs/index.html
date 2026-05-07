@@ -195,6 +195,11 @@ body {
   z-index: 100;
   border: none;
 }
+/* Wave 60.6: モーダル表示中はタブバーを隠す（保存ボタン等が隠れないように） */
+body.modal-open #tabbar { display: none !important; }
+body.modal-open .home-bell,
+body.modal-open .fab,
+body.modal-open #hoku-fab { opacity: 0; pointer-events: none; transition: opacity .15s; }
 @media (max-width: 480px) {
   #tabbar {
     left: 16px;
@@ -4047,8 +4052,9 @@ function showToast(msg, type='success') {
    ============================================================ */
 function openModal(id) {
   document.getElementById(id)?.classList.add('open');
+  // Wave 60.6: モーダル表示中は下部タブバーを隠して保存ボタン等が確実に押せるように
+  document.body.classList.add('modal-open');
 }
-
 /* モーダル外側タップで閉じる（m-confirm / m-premium-gate は除外） */
 (function() {
   const NO_BACKDROP_CLOSE = ['m-confirm','m-premium-gate'];
@@ -4061,6 +4067,9 @@ function openModal(id) {
 })();
 function closeModal(id) {
   document.getElementById(id)?.classList.remove('open');
+  // Wave 60.6: 残っているモーダルが無ければタブバーを再表示
+  const stillOpen = document.querySelectorAll('.modal-backdrop.open').length;
+  if(stillOpen === 0) document.body.classList.remove('modal-open');
 }
 
 let _confirmCb = null;
@@ -10527,7 +10536,7 @@ function renderSettings() {
     <!-- Footer -->
     <div class="menu-footer">
       <div class="menu-footer-tagline">家族の毎日を、少しだけラクに。</div>
-      Familink v3.2（Wave 60.4 / 資金繰り・アバター写真・全画面紐付け）<br>
+      Familink v3.2.1（Wave 60.6 / モーダル表示時にタブバー自動非表示）<br>
       <span style="font-size:10px">家族運営AI「Hoku」が、毎日の段取りをそっと支えます。</span>
     </div>`;
 }

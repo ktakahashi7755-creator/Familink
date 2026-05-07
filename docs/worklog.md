@@ -6512,3 +6512,51 @@ Wave 60.5: App Store 品質達成（系統的監査 + アクセシビリティ�
 
 ### コミット
 - メッセージ: `wave 60.5: App Store quality - aria-label on 2 buttons + 264 test suite 100% PASS`
+
+## 2026-05-08 07:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.6: モーダル表示中にタブバー自動非表示（保存ボタン隠れ問題の根本解決）
+
+### 報告された問題
+家族メンバー管理 → メンバー追加モーダルで、「保存」(青いボタン) が下部タブバーに隠れて押せない。
+
+### 真因
+- `#tabbar`：`position:fixed; bottom:14px+safe-area; height:68px; z-index:100`（フローティングタブバー）
+- `.modal-backdrop`：`z-index:200`、`align-items:flex-end` で画面下端に張り付く
+- iPhone Safari でフローティングタブバーが視覚的に modal-actions の上にかぶる現象（Stacking context まわりで稀に起こる）
+
+### 修正方針
+**モーダル表示中は下部タブバー + ホーム通知ベル + FAB を非表示**にする（iOS ネイティブのモーダル UX に準拠）。
+
+### 変更内容
+1. **openModal() / closeModal() を拡張**：
+   - openModal 時に `body` に `modal-open` クラスを追加
+   - closeModal 時に **残っているモーダルが 0 件**ならクラスを除去（多重モーダルの安全対応）
+2. **CSS 追加**：
+   ```css
+   body.modal-open #tabbar { display: none !important; }
+   body.modal-open .home-bell, body.modal-open .fab, body.modal-open #hoku-fab { opacity: 0; pointer-events: none; }
+   ```
+   ベル / + ボタン / Hoku FAB も透過にしてフォーカスをモーダルに集中
+3. **フッター更新**：`v3.2 → v3.2.1` (Wave 60.6) でキャッシュ判別
+
+### 影響範囲
+- すべてのモーダル（33 種）でタブバーが自動的に隠れる
+- モーダルを閉じると即座にタブバー / ベル / FAB が復帰
+- 多重モーダルでも `body.modal-open` がスコープ管理する
+
+### テスト結果
+- 構文 1/1 PASS
+- 264 テスト全 PASS（退行ゼロ）：smoke / scenario / member-test / wave60 / edge / avatar / avatar-propagation / e2e-render / integration / avatar-fullscreen
+- md5 同期：`9465d924835e3a3072c7aca1a429aac9`
+
+### iPhone 確認ポイント
+1. Safari 完全リロード → 設定フッターが **`v3.2.1`** に更新
+2. 設定 → 家族メンバー管理 → 「+ メンバーを追加」 → モーダル → 下部タブバーが**消える**
+3. キャンセル と **保存** の 2 ボタンが両方フル表示
+4. 保存 → 元の画面に戻るとタブバーが**復帰**
+5. すべてのモーダル（タスク追加 / 予定追加 / 買い物追加 / 書類追加 / 写真選択 / 固定収支 / 月初残高 ほか）で同じ挙動
+
+### コミット
+- メッセージ: `wave 60.6: hide tabbar / FAB while a modal is open (fixes hidden save button)`
