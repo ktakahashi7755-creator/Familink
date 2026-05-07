@@ -3913,6 +3913,7 @@ let S = {
   shoppingHistory: [],  // 購入履歴（最新順で append）
   shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
   members: null,        // Wave 59: 動的メンバーリスト（null=DEFAULT_MEMBERS 使用）
+  shoppingMigrated: false, // Wave 60.11: 旧 boardItems → S.shoppingItems マイグレ済フラグ
   recurringTxs: [],     // Wave 60: 毎月◯日 / 毎月末 / 毎週 / 毎年 等の固定収支テンプレート
   cashflowSettings: {   // Wave 60: 資金繰り表の月初残高設定
     openingBalances: {},      // 'YYYY-MM' → 数値
@@ -3921,7 +3922,7 @@ let S = {
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated'];
 
 function saveS() {
   const d = {};
@@ -4845,7 +4846,16 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
     if(!b) return '';
     var meta  = BOARD_TYPE_META[b.type]||BOARD_TYPE_META.memo;
     var iMeta = getIntentMeta(b);
-    var items = (S.boardItems||[]).filter(function(x){ return x.boardId===b.id; });
+    var items;
+    if(b.intent === 'shopping') {
+      // Wave 60.11: shopping-intent ボードは S.shoppingItems からプレビュー描画して
+      // s-shopping 画面と表示を一致させる（boardItems の混在を解消）
+      items = (S.shoppingItems||[]).map(function(it){
+        return { id:it.id, boardId:b.id, title:it.name, body:it.qty||'', category:it.category||'', childId:it.assignedTo||'', status:it.status||'', order:0, createdAt:it.createdAt };
+      });
+    } else {
+      items = (S.boardItems||[]).filter(function(x){ return x.boardId===b.id; });
+    }
     var prev  = renderBoardCardPreview(b, items, meta);
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:'+meta.color+';">'+boardTypeIcon(b.type,meta.iconColor)+'</div>'
@@ -14288,6 +14298,44 @@ function buildHokuContext() {
    - 既に同 intent / 同名のカスタムボードがあれば二重に作らない
    - 一度実行したら defaultCustomBoardsSeeded フラグで以降スキップ
    - homeOrder への追加は hoInitOrder が初回 render 時に拾うのでここでは行わない */
+/* Wave 60.11: shopping-intent カスタムボードの旧 S.boardItems[] を S.shoppingItems[] へ
+   一回だけマイグレーション。
+   - ホームの買い物メモカードと s-shopping 画面のデータ不一致を解消
+   - 既存データは破壊せず、shoppingItems に同名が無い項目のみコピー
+   - 完了後 shoppingMigrated フラグで二重実行を防ぐ */
+function migrateShoppingFromBoardItems() {
+  if(S.shoppingMigrated) return;
+  if(!Array.isArray(S.shoppingItems)) S.shoppingItems = [];
+  const shopBoards = (S.customBoards || []).filter(function(b){ return b && b.intent === 'shopping'; });
+  if(!shopBoards.length) { S.shoppingMigrated = true; saveS(); return; }
+  const boardIdSet = {};
+  shopBoards.forEach(function(b){ boardIdSet[b.id] = true; });
+  const items = (S.boardItems || []).filter(function(it){ return it && boardIdSet[it.boardId]; });
+  let migrated = 0;
+  const now = new Date().toISOString();
+  for(const it of items) {
+    const dup = S.shoppingItems.some(function(s){ return s.name === it.title; });
+    if(dup) continue;
+    S.shoppingItems.push({
+      id: 'shop_' + uid(),
+      name: it.title || '',
+      qty: it.body || '',
+      category: it.category || '',
+      memo: '',
+      assignedTo: it.childId || it.assignee || '',
+      status: 'active',
+      createdAt: it.createdAt || now,
+      updatedAt: now
+    });
+    migrated++;
+  }
+  S.shoppingMigrated = true;
+  saveS();
+  if(migrated > 0) {
+    try { console.log('Wave 60.11: migrated '+migrated+' shopping items from boardItems → shoppingItems'); } catch(e){}
+  }
+}
+
 function seedDefaultCustomBoards() {
   if(S.defaultCustomBoardsSeeded) return;
   if(!S.customBoards)   S.customBoards = [];
@@ -14325,6 +14373,7 @@ function init() {
   applyMembersFromS();        // Wave 59: 永続化済みメンバーを採用
   migrateTaskData(); // タスクデータ移行
   seedDefaultCustomBoards(); // 既定 6 ボードを担保
+  migrateShoppingFromBoardItems(); // Wave 60.11: 旧 boardItems → S.shoppingItems
   if(S.loggedIn && S.user) {
     seedDemo();
     document.getElementById('tabbar').classList.remove('hidden');

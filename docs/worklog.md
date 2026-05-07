@@ -6864,3 +6864,90 @@ function meOpenAvatarSelect() {
 
 ### コミット
 - メッセージ: `wave 60.10: fix meOpenAvatarSelect dropping the typed name on edit (健太→せた regression)`
+
+## 2026-05-08 08:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.11: ホーム買い物カードと s-shopping のデータ不一致を解消（boardItems → shoppingItems 統一）
+
+### ユーザー報告
+ホームの「買い物メモ」カードには「今すぐ：コーヒー / 次の買い物：牛乳, 納豆」が表示されているのに、カードをタップして s-shopping を開くと「買い物リストは空です」になる。
+
+### 真因
+**2 つの別々のデータストアが並行存在**していた:
+- ホームの買い物メモカード = カスタムボード（`S.boardItems[]` を boardId フィルタで読む）
+- s-shopping 画面 = 新キー `S.shoppingItems[]` を読む
+
+ユーザーは旧 UX でカスタムボードに項目を追加しており、新画面はそれを認識していなかった。
+
+### 修正内容
+**1. 起動時マイグレーション `migrateShoppingFromBoardItems()`**
+- shopping-intent カスタムボードに紐付く `S.boardItems[]` の項目を `S.shoppingItems[]` へコピー
+- 既存 `S.shoppingItems[]` と同名の項目はスキップ（dedup）
+- 数量（body）/カテゴリ/担当も引き継ぐ
+- 一回限り（`S.shoppingMigrated` フラグで二重実行ガード）
+- `init()` の `seedDefaultCustomBoards()` の直後で実行
+- 旧 `boardItems` は破壊しない（後方互換）
+
+**2. ホームカードプレビューを統一**
+shopping-intent カスタムボードの home card プレビューを、`S.boardItems` ではなく **`S.shoppingItems` から描画**するよう変更:
+```js
+if(b.intent === 'shopping') {
+  items = (S.shoppingItems||[]).map(it => ({
+    id:it.id, boardId:b.id, title:it.name, body:it.qty||'',
+    category:it.category||'', childId:it.assignedTo||'', ...
+  }));
+} else {
+  items = (S.boardItems||[]).filter(x => x.boardId===b.id);
+}
+```
+
+これでホーム + s-shopping が**完全に同じデータ**を表示する。
+
+**3. データキー追加**
+- `S.shoppingMigrated: false` を S 初期値と PERSIST に追加
+
+### テスト結果（新 shop-migrate 14 PASS + 全 381 PASS）
+- 旧 boardItems 3 件 → shoppingItems に 3 件マイグレ
+- 数量・カテゴリ・担当が引き継がれる
+- 二重実行で重複なし
+- 既存 shoppingItems と同名の場合はスキップ
+- ホームカードが shoppingItems から「パン」を表示
+- shopping-intent ボード無しならフラグだけ立つ
+
+### 全テストスイート（**381 / 381 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| member-rename | 7 |
+| **shop-migrate (新)** | **14** |
+| **合計** | **381 / 381 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`4699e9e7f9d8da7475f487457ed37f69`
+
+### iPhone 確認シナリオ
+1. Safari 完全リロード → 起動時に自動マイグレーション実行
+2. 家族ボード → 買い物メモ ホームカードで「コーヒー / 牛乳 / 納豆」が見える
+3. カードをタップ → s-shopping 画面 → **同じ 3 件が「リスト」タブに表示**される
+4. リストタブで購入済み・削除 → ホームカードにも即時反映
+5. リロード後もマイグレ済（再実行されない）
+
+### 既存データへの影響
+- 旧 `boardItems` は完全保持（マイグレ後も残る、後方互換）
+- 既に s-shopping で項目を追加していた人：同名項目は重複コピーされない
+
+### コミット
+- メッセージ: `wave 60.11: unify home card and s-shopping (boardItems → shoppingItems migration + render switch)`
