@@ -5479,3 +5479,50 @@ Wave 52.2: Hoku チャットの bot アイコンを正式 Hoku（IMGS.hoku）に
 
 ### コミット
 - メッセージ: `wave 52.2: hoku chat bot avatar - use official Hoku (IMGS.hoku) instead of small star face`
+
+## 2026-05-07 18:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 52.3: ホームのデフォルト 6 ボード化（買い物メモ + 準備リストを既定で表示）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- `S.defaultCustomBoardsSeeded` フラグを `S` の初期値と PERSIST に追加
+- `seedDefaultCustomBoards()` を新設し `init()` の `loadS()` 直後に実行
+  - `customBoards` に「買い物メモ（intent: shopping）」「準備リスト（intent: prep）」を未登録なら投入
+  - 既に同 intent または同名のボードがあれば二重作成しない（既存ユーザー保護）
+  - prep/shopping の既定セクションを INTENT_META.sections から自動生成
+  - 一度実行したらフラグを true にして次回以降スキップ
+- `hoInitOrder()` が次回 render で新規 cb_ キーを homeOrder 末尾に自動追加するため homeOrder の手書きは不要
+- 結果のホーム並び：家族ボード / タスク / 今週の予定 / 体調管理 / 買い物メモ / 準備リスト（スクリーンショットと一致）
+
+### テスト結果
+- 単一 `<script>` ブロックの構文検証 PASS（1/1）
+- md5 同期：`66f07b716dcc52d238525dc8cd243704`
+- 既存ユーザー（既に 6 ボード保有）：exists 判定で重複作成されず、フラグだけ立つ
+- 新規ユーザー：6 ボードが自動表示される
+- 既存ユーザー（カスタム未作成）：onboard 後の初回起動で 2 ボードが追加される
+
+### iPhone 確認ポイント
+1. 一度ログアウト → 再オンボード → ホームに 6 ボードがデフォルト表示
+2. 既存アカウントでログイン → 既に持っている 6 ボードに変化なし（重複されない）
+3. 「買い物メモ」をタップ → セクション「今すぐ / 次の買い物」が初期表示
+4. 「準備リスト」（カスタムボード版）をタップ → セクション「今日の準備 / 明日の準備」が初期表示
+   ※ 既存の独立ページ「準備リスト（s-prep）」とは別物。ボード版はカスタムボードのプレビュー UI
+5. ボードをドラッグして並び替えても保存される（既存挙動）
+
+### 未確認事項
+- カスタム版「準備リスト」と独立ページの「準備リスト（s-prep）」が共存することによる文言の混乱（次 Wave で導線整理を検討）
+
+### 次にやること
+- 連結トークン分割（「明日18時」を「明日」「18時」に分割）
+- 確認モーダルにタイトル候補 chip UI
+- prep_routine_add 保存後の「今すぐ反映」導線
+- カスタム版「準備リスト」と独立ページ s-prep の役割整理
+
+### コミット
+- メッセージ: `wave 52.3: seed default home boards (買い物メモ + 準備リスト) for all users`
