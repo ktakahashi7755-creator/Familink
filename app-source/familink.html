@@ -549,6 +549,67 @@ select.input {
   border-radius: 1px; background: var(--text); transition: var(--t);
 }
 .home-header-mid { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-left: 4px; }
+/* Wave 57: 通知ベル（ホーム右上） */
+.home-bell {
+  position:relative; width:40px; height:40px; border-radius:50%;
+  background:var(--bg-muted); border:1px solid var(--border-light);
+  color:var(--text); cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:var(--t-spring);
+}
+.home-bell:active { transform:scale(.92); }
+.home-bell-badge {
+  position:absolute; top:4px; right:4px;
+  min-width:16px; height:16px; padding:0 4px; border-radius:999px;
+  background:var(--red); color:#fff;
+  font-size:10px; font-weight:700; line-height:16px;
+  text-align:center; box-shadow:0 0 0 2px #fff;
+}
+/* Wave 57: 書類保管庫 / アルバム */
+.archive-row {
+  background:var(--bg-card); border:1.5px solid var(--border-light);
+  border-radius:14px; padding:11px 12px; margin-bottom:10px;
+  box-shadow:var(--s-sm); display:flex; gap:10px; align-items:flex-start;
+}
+.archive-row .archive-thumb {
+  width:54px; height:54px; border-radius:10px; overflow:hidden;
+  background:var(--bg-muted); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; color:var(--text-muted);
+}
+.archive-row .archive-thumb img { width:100%; height:100%; object-fit:cover; }
+.archive-row .archive-main { flex:1; min-width:0; }
+.archive-row .archive-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:2px; word-break:break-word; }
+.archive-row .archive-cat   { display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:999px; background:#EEF2FF; color:#4F46E5; margin-right:6px; }
+.archive-row .archive-meta  { font-size:11px; color:var(--text-muted); margin-top:3px; }
+.archive-row .archive-memo  { font-size:12px; color:var(--text); margin-top:4px; line-height:1.4; word-break:break-word; }
+.archive-row .archive-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+.archive-row .archive-actions button {
+  background:transparent; border:1px solid var(--border-light);
+  border-radius:8px; padding:4px 8px; font-size:11px; color:var(--text-muted);
+  cursor:pointer;
+}
+.archive-row .archive-actions button.del:hover { color:var(--red); border-color:var(--red); }
+
+.album-grid {
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;
+}
+.album-cell {
+  position:relative; aspect-ratio:1/1; overflow:hidden;
+  border-radius:10px; background:var(--bg-muted); cursor:pointer;
+}
+.album-cell img { width:100%; height:100%; object-fit:cover; display:block; }
+.album-cell .album-date {
+  position:absolute; left:4px; bottom:4px;
+  font-size:10px; color:#fff; padding:1px 6px; border-radius:6px;
+  background:rgba(0,0,0,.55); font-weight:600;
+}
+.album-empty, .archive-empty {
+  text-align:center; padding:48px 20px 20px; color:var(--text-muted);
+}
+.album-empty .icon, .archive-empty .icon { font-size:38px; margin-bottom:10px; }
+.album-empty .title, .archive-empty .title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.album-empty .desc, .archive-empty .desc { font-size:12px; line-height:1.5; }
 .home-camera-btn {
   width: 38px; height: 38px; border-radius: 12px;
   background: var(--bg-muted); border: 1px solid var(--border-light);
@@ -2441,11 +2502,99 @@ nav#tabbar.hidden { display: none !important; }
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid"></span>
+    <!-- Wave 57: 通知ベル（常時表示）→ s-notif -->
+    <button class="home-bell" onclick="go('s-notif')" id="home-bell-btn" aria-label="通知">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="home-bell-badge" id="home-bell-badge" style="display:none;"></span>
+    </button>
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-grid" id="home-grid"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
+  </div>
+</div>
+
+<!-- ===== Wave 57: 書類保管庫 ===== -->
+<div id="s-archive" class="screen hidden">
+  <div class="header">
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">書類保管庫</div>
+    <button class="header-icon-btn" onclick="openArchiveAdd(null)" aria-label="書類を追加">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="scroll-area" id="archive-body" style="flex:1;padding:14px 16px calc(80px + env(safe-area-inset-bottom));"></div>
+</div>
+
+<!-- ===== Wave 57: アルバム ===== -->
+<div id="s-album" class="screen hidden">
+  <div class="header">
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">アルバム</div>
+    <button class="header-icon-btn" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <input type="file" id="album-file" accept="image/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
+  <div class="scroll-area" id="album-body" style="flex:1;padding:12px;"></div>
+</div>
+
+<!-- アルバム単写真ビューア -->
+<div id="m-album-view" class="modal-backdrop hidden" onclick="closeModal('m-album-view')">
+  <div class="modal" style="max-height:90vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div id="m-album-view-meta" style="font-size:12px;opacity:.85;"></div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="albumDeleteCurrent()" style="background:rgba(255,107,107,.85);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">削除</button>
+        <button onclick="closeModal('m-album-view')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
+      </div>
+    </div>
+    <img id="m-album-view-img" src="" style="width:100%;max-height:75vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
+  </div>
+</div>
+
+<!-- 書類追加 / 編集モーダル -->
+<div id="m-archive-add" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="m-archive-add-title">書類を追加</div>
+    <input type="hidden" id="aa-id">
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">タイトル <span style="color:var(--red)">*</span></div>
+        <input class="input" id="aa-title" placeholder="例：保育園の同意書" maxlength="60">
+      </div>
+      <div class="field">
+        <div class="field-label">カテゴリ</div>
+        <select class="input" id="aa-cat">
+          <option value="園・学校">園・学校</option>
+          <option value="医療">医療</option>
+          <option value="保険">保険</option>
+          <option value="行政">行政</option>
+          <option value="家計">家計</option>
+          <option value="習い事">習い事</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">メモ</div>
+        <textarea class="input" id="aa-memo" rows="3" placeholder="例：5/15 までに提出"></textarea>
+      </div>
+      <div class="field">
+        <div class="field-label">写真（任意）</div>
+        <input type="file" id="aa-photo" accept="image/*" onchange="archiveOnPhotoPicked(event)">
+        <div id="aa-photo-preview" style="margin-top:8px;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-archive-add')">キャンセル</button>
+        <button class="btn btn-primary btn-block" onclick="saveArchiveAdd()">保存</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3463,7 +3612,8 @@ let S = {
   _viewFolder: null,
   events: [], tasks: [], txs: [], posts: [], announces: [],
   health: [], prep: [], notifs: [],
-  folders: [], docs: [],
+  folders: [], docs: [],         // Wave 57: 書類保管庫を再活性化（Wave 15 で UI 撤廃 → Wave 57 で復活）
+  albumPhotos: [],               // Wave 57: アルバム（{id, dataUrl, takenAt, memberId, caption}）
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   budgetVisibleMembers: null, // Wave 42：null=全員表示
@@ -3483,7 +3633,7 @@ let S = {
   shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab'];
 
 function saveS() {
   const d = {};
@@ -3686,6 +3836,8 @@ function refresh(id) {
     case 's-hoku':    renderHoku(); break;
     case 's-custom-board': renderCustomBoardDetail(); break;
     case 's-shopping': renderShopping(); break;
+    case 's-archive':  renderArchive(); break;
+    case 's-album':    renderAlbum(); break;
   }
 }
 
@@ -4045,6 +4197,16 @@ function renderHome() {
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
   const badge = document.getElementById('notif-badge');
   if(badge) badge.style.display = unread > 0 ? 'block' : 'none';
+  // Wave 57: ホーム右上の通知ベル
+  const bellBadge = document.getElementById('home-bell-badge');
+  if(bellBadge) {
+    if(unread > 0) {
+      bellBadge.textContent = unread > 99 ? '99+' : String(unread);
+      bellBadge.style.display = 'block';
+    } else {
+      bellBadge.style.display = 'none';
+    }
+  }
   // ホームのアバターボタン
   const avatarBtn = document.getElementById('home-avatar-btn');
   if(avatarBtn) {
@@ -8187,6 +8349,177 @@ function shopHistDelete(id) {
   renderShopping();
 }
 
+/* ============================================================
+   Wave 57 — 書類保管庫（s-archive）
+   ・S.docs[] を再活性化（Wave 15 撤廃 → Wave 57 復活）
+   ・写真は base64 dataUrl で持つ（外部依存なし）
+   ・既存 S.folders は将来のフォルダ分けに備え温存
+   ============================================================ */
+function _ensureArchive() {
+  if(!Array.isArray(S.docs))    S.docs = [];
+  if(!Array.isArray(S.folders)) S.folders = [];
+}
+function renderArchive() {
+  _ensureArchive();
+  const items = (S.docs||[]).slice().sort(function(a,b){
+    return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||'');
+  });
+  const body = document.getElementById('archive-body');
+  if(!body) return;
+  if(!items.length) {
+    body.innerHTML = '<div class="archive-empty"><div class="icon">📂</div><div class="title">書類はまだありません</div><div class="desc">同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。</div></div>';
+    return;
+  }
+  body.innerHTML = items.map(function(d){
+    const thumb = d.photo
+      ? '<img src="'+H(d.photo)+'" alt="">'
+      : '📄';
+    return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
+      + '<div class="archive-thumb">'+thumb+'</div>'
+      + '<div class="archive-main">'
+      +   '<div class="archive-title">'+H(d.title||'(無題)')+'</div>'
+      +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
+      +   (d.memo ? '<div class="archive-memo">'+H(d.memo)+'</div>' : '')
+      + '</div>'
+      + '<div class="archive-actions">'
+      +   '<button class="del" onclick="event.stopPropagation();archiveDelete(\''+H(d.id)+'\')">削除</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+let _archiveEditId = null;
+let _archivePhotoBuf = null;
+function openArchiveAdd(id) {
+  _ensureArchive();
+  _archiveEditId = null;
+  _archivePhotoBuf = null;
+  let title='', cat='園・学校', memo='', photo='';
+  if(id) {
+    const d = (S.docs||[]).find(function(x){ return x.id===id; });
+    if(d) { _archiveEditId = id; title = d.title||''; cat = d.cat||'園・学校'; memo = d.memo||''; photo = d.photo||''; }
+  }
+  document.getElementById('m-archive-add-title').textContent = id ? '書類を編集' : '書類を追加';
+  document.getElementById('aa-id').value = id || '';
+  document.getElementById('aa-title').value = title;
+  document.getElementById('aa-cat').value   = cat;
+  document.getElementById('aa-memo').value  = memo;
+  document.getElementById('aa-photo').value = '';
+  document.getElementById('aa-photo-preview').innerHTML = photo
+    ? '<img src="'+H(photo)+'" style="max-width:100%;max-height:140px;border-radius:8px;">'
+    : '';
+  _archivePhotoBuf = photo || null;
+  openModal('m-archive-add');
+  setTimeout(function(){ document.getElementById('aa-title').focus(); }, 200);
+}
+function archiveOnPhotoPicked(ev) {
+  const f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    _archivePhotoBuf = String(reader.result || '');
+    document.getElementById('aa-photo-preview').innerHTML = '<img src="'+H(_archivePhotoBuf)+'" style="max-width:100%;max-height:140px;border-radius:8px;">';
+  };
+  reader.readAsDataURL(f);
+}
+function saveArchiveAdd() {
+  _ensureArchive();
+  const title = document.getElementById('aa-title').value.trim();
+  if(!title) { showToast('タイトルを入力してください','error'); return; }
+  const cat   = document.getElementById('aa-cat').value;
+  const memo  = document.getElementById('aa-memo').value.trim();
+  const now   = new Date().toISOString();
+  if(_archiveEditId) {
+    const d = (S.docs||[]).find(function(x){ return x.id===_archiveEditId; });
+    if(d) { d.title=title; d.cat=cat; d.memo=memo; if(_archivePhotoBuf!=null) d.photo=_archivePhotoBuf; d.updatedAt=now; }
+  } else {
+    S.docs.push({ id:'doc_'+uid(), title:title, cat:cat, memo:memo, photo:_archivePhotoBuf||'', folderId:'', createdAt:now, updatedAt:now });
+  }
+  saveS();
+  closeModal('m-archive-add');
+  renderArchive();
+  showToast(_archiveEditId ? '更新しました' : '保存しました','success');
+  _archiveEditId = null;
+  _archivePhotoBuf = null;
+}
+function archiveDelete(id) {
+  if(!confirm('この書類を削除しますか？写真も一緒に削除されます。')) return;
+  S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
+  saveS();
+  renderArchive();
+}
+
+/* ============================================================
+   Wave 57 — アルバム（s-album）
+   ・写真を base64 dataUrl で S.albumPhotos[] に保存
+   ・複数選択対応 / グリッド表示 / 削除
+   ============================================================ */
+function _ensureAlbum() {
+  if(!Array.isArray(S.albumPhotos)) S.albumPhotos = [];
+}
+function renderAlbum() {
+  _ensureAlbum();
+  const items = (S.albumPhotos||[]).slice().sort(function(a,b){
+    return (b.takenAt||'').localeCompare(a.takenAt||'');
+  });
+  const body = document.getElementById('album-body');
+  if(!body) return;
+  if(!items.length) {
+    body.innerHTML = '<div class="album-empty"><div class="icon">🖼</div><div class="title">写真はまだありません</div><div class="desc">家族の思い出をここにまとめておけます。<br>右上の + から写真を追加してください。</div></div>';
+    return;
+  }
+  body.innerHTML = '<div class="album-grid">' + items.map(function(p){
+    const dt = (p.takenAt||'').slice(5,10).replace('-','/');
+    return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
+      + '<img src="'+H(p.dataUrl)+'" alt="">'
+      + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
+      + '</div>';
+  }).join('') + '</div>';
+}
+function albumOnFilesPicked(ev) {
+  _ensureAlbum();
+  const files = ev.target.files;
+  if(!files || !files.length) return;
+  const now = new Date().toISOString();
+  let pending = files.length;
+  for(let i=0; i<files.length; i++) {
+    const f = files[i];
+    const reader = new FileReader();
+    reader.onload = function() {
+      S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:String(reader.result||''), takenAt:now, memberId:'', caption:'' });
+      pending--;
+      if(pending === 0) {
+        saveS();
+        renderAlbum();
+        showToast(files.length+' 枚追加しました','success');
+      }
+    };
+    reader.onerror = function() { pending--; };
+    reader.readAsDataURL(f);
+  }
+  ev.target.value = '';
+}
+let _albumViewId = null;
+function albumOpenView(id) {
+  _ensureAlbum();
+  const p = (S.albumPhotos||[]).find(function(x){ return x.id===id; });
+  if(!p) return;
+  _albumViewId = id;
+  const img = document.getElementById('m-album-view-img');
+  if(img) img.src = p.dataUrl || '';
+  const meta = document.getElementById('m-album-view-meta');
+  if(meta) meta.textContent = (p.takenAt||'').slice(0,10).replace(/-/g,'/');
+  openModal('m-album-view');
+}
+function albumDeleteCurrent() {
+  if(!_albumViewId) return;
+  if(!confirm('この写真を削除しますか？')) return;
+  S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
+  saveS();
+  _albumViewId = null;
+  closeModal('m-album-view');
+  renderAlbum();
+}
+
 function shopHistRepost(id) {
   shopArrays();
   const h = (S.shoppingHistory||[]).find(function(x){ return x.id===id; });
@@ -9006,18 +9339,27 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#FF6B9D')}</div>
         <div class="settings-item-label">家族メンバー管理</div><div class="settings-arrow">›</div>
       </div>
-      <div class="settings-item" onclick="go('s-notif')">
-        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>','#4A90E2')}</div>
-        <div class="settings-item-label">通知</div><div class="settings-arrow">›</div>
-      </div>
       <div class="settings-item" onclick="openProfileEdit()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
         <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
       </div>
-      <div class="settings-item" onclick="reopenOnboarding()">
-        <div class="settings-item-icon" style="background:#EBF4FF">${si('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>','#4A90E2')}</div>
-        <div class="settings-item-label">はじめての方ガイドを見る</div><div class="settings-arrow">›</div>
+    </div>
+
+    <!-- Wave 57: 過去機能の復活 -->
+    <div class="settings-section">
+      <div class="settings-title">家族の保管</div>
+      <div class="settings-item" onclick="go('s-archive')">
+        <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>','#F59E0B')}</div>
+        <div class="settings-item-label">書類保管庫</div><div class="settings-arrow">›</div>
       </div>
+      <div class="settings-item" onclick="go('s-album')">
+        <div class="settings-item-icon" style="background:#FCE7F3">${si('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>','#EC4899')}</div>
+        <div class="settings-item-label">アルバム</div><div class="settings-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">その他</div>
       <div class="settings-item" onclick="doLogout()">
         <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
         <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
