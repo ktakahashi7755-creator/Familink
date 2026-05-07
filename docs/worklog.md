@@ -6774,3 +6774,93 @@ Wave 60.9: 全データ種別 × 写真 × 文章 × 追加/編集/削除 の完
 
 ### コミット
 - メッセージ: `wave 60.9: persistence audit suite - 72/72 PASS for all 17 data types × CRUD × reload`
+
+## 2026-05-08 08:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.10: 健太 → せた リネームが消えるバグ修正（meOpenAvatarSelect の保存抜け）
+
+### ユーザー報告
+家族メンバー管理で 1 番下のメンバーを「せた」で登録したはずが「健太」に戻っている。
+
+### 真因
+`meOpenAvatarSelect()` の編集パス（既存メンバー編集中）が、入力された **名前を保存せず** モーダルを閉じてアバター選択モーダルを開いていた:
+
+```js
+// 旧コード
+function meOpenAvatarSelect() {
+  const id = document.getElementById('me-id').value;
+  if(!id) {
+    // 新規 → 保存して開く（OK）
+    saveMemberEdit();
+    openOfficialAvatarModal(...);
+    return;
+  }
+  closeModal('m-member-edit');           // ← BUG：入力を破棄して閉じる
+  setTimeout(()=>openOfficialAvatarModal(id), 200);
+}
+```
+
+### 再現手順
+1. 健太の「編集」をタップ → モーダルが開き name="健太"
+2. ユーザーが「せた」と書き換え（input は "せた" になる）
+3. 「変更する」ボタンをタップしてアバター画像を選びたい
+4. → モーダルが閉じてアバター選択モーダルが開く（**入力した「せた」は破棄**）
+5. アバター写真を選んで戻る → 健太のまま
+
+### 修正内容
+新規・編集どちらも、まず `saveMemberEdit()` で入力を保存してからアバターモーダルを開くよう統一:
+
+```js
+function meOpenAvatarSelect() {
+  const id = document.getElementById('me-id').value;
+  const name = document.getElementById('me-name').value.trim();
+  if(!name) { showToast('先に名前を入力してください','error'); return; }
+  saveMemberEdit();   // ← 新規・編集どちらも先に保存
+  const targetId = id || (MEMBERS[MEMBERS.length-1]?.id);
+  if(targetId) setTimeout(()=>openOfficialAvatarModal(targetId), 200);
+}
+```
+
+副次的効果：
+- 編集時に名前空白で「変更する」を押した場合のガードも追加（toast 警告）
+- 役割やカラーも同時に保存される
+
+### テスト結果（新 member-rename 7/7 PASS + 全 367 件 PASS）
+- 健太→せた リネーム + 「変更する」 → MEMBERS と S.members 両方に反映
+- 新規追加 + 「変更する」 → 名前保持 + ID 採番 + アバターモーダル起動
+- 名前空で「変更する」 → toast 警告
+- 通常の保存ボタン経路は変わらず動作
+- リロード後も「せた」が永続化
+
+### 全テストスイート（**367 / 367 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| **member-rename (新)** | **7** |
+| **合計** | **367 / 367 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`c9db405e861f58511265b8dc68675a55`
+
+### iPhone 再現テスト
+1. 設定 → 家族メンバー管理 → 健太 → 編集
+2. 名前欄を「健太」→「せた」に書き換え
+3. 「変更する」をタップ → アバター選択モーダルが開く
+4. 写真をアップロード or 公式アバター選択 → 「このアイコンにする」
+5. 戻る → 健太の位置が **「せた」+ 新アバター** で表示される ← 修正点
+
+### コミット
+- メッセージ: `wave 60.10: fix meOpenAvatarSelect dropping the typed name on edit (健太→せた regression)`
