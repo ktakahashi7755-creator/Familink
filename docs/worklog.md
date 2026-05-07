@@ -6696,3 +6696,81 @@ Wave 60.8: 設定・メニューがプロフィール表示名を反映しない
 
 ### コミット
 - メッセージ: `wave 60.8: settings shows displayName from userProfile (fixes name not reflecting after edit)`
+
+## 2026-05-08 08:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.9: 全データ種別 × 写真 × 文章 × 追加/編集/削除 の完全往復保存確認（72 件 PASS）
+
+### ユーザー要望
+「写真や文章も追加したり削除したらしっかり保存できる様にしてね（現状出来てるが一応）」
+
+### 内容
+新規 persistence.js テストスイートで、**全 17 データ種別 × CRUD × LocalStorage 往復** を網羅検証。コード変更なし — 既存の保存ロジックが完全に正しく動いていることを証明する **回帰防止スイート** として位置付け。
+
+### 検証範囲（**72 / 72 PASS**）
+
+| # | データ種別 | 検証内容 | 件数 |
+|---|---|---|---:|
+| 1 | タスク | タイトル/メモ/担当/期日/優先度/カテゴリ → 削除 | 7 |
+| 2 | カレンダー | タイトル/日付/時刻/担当 → 削除 | 4 |
+| 3 | 家計取引 | 金額/種別 (income/expense) | 3 |
+| 4 | 固定収支 (recurring) | desc/frequency/dayOfMonth/enabled | 2 |
+| 5 | 月初残高 (cashflowSettings) | 月別 openingBalances | 2 |
+| 6 | 準備リスト | text/cat/memberId | 1 |
+| 7 | 準備ルーティン | subject/quantity/dayOfWeek | 3 |
+| 8 | 買い物 (3 タブ) | items / frequent / history すべて | 3 |
+| 9 | **書類保管庫 + 写真** | title/memo/photo dataUrl → メモ編集 → 写真のみ削除 → メモ保持 | 9 |
+| 10 | アルバム | dataUrl/caption → 個別削除 | 4 |
+| 11 | **メンバーアバター写真** | userPhotos[id] / userAvatarType → 削除 | 4 |
+| 12 | カスタムメンバー | name/role 永続化 | 2 |
+| 13 | 家族ボード | title/body/isPinned | 4 |
+| 14 | カスタムボード + 項目 | name/intent → boardItem.title | 3 |
+| 15 | 体調記録 | temp/memo/memberId | 3 |
+| 16 | 通知 | read 状態 | 2 |
+| 17 | プロフィール | displayName/familyName/roleId | 3 |
+| 18 | **ストレステスト** | tasks 50 件 + events 30 件 + recurring 10 件 同時 | 5 |
+| 19 | 空配列 round-trip | delete-all 後も `[]` が保持される | 3 |
+| 20 | **Unicode/特殊文字** | 絵文字😀/改行/スラッシュ/「」引用符 | 5 |
+
+### 重要な検証ポイント
+- 写真（base64 dataUrl）の往復：書類・アルバム・アバター すべて完全復元
+- 写真**のみ**削除しても文章メタデータ（タイトル/メモ）は保持
+- 編集後の保存が反映され、同フィールドの旧値で上書きされない
+- 大量データ（90 件混在）でも全件保持
+- 空配列が `null` ではなく `[]` として復元される
+- 日本語・絵文字・特殊文字が文字化けしない
+
+### 全テストスイート（**360 / 360 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| **persistence (新)** | **72** |
+| **合計** | **360 / 360 PASS** |
+
+### コード変更
+- なし（テストスイート追加のみ）
+- 既存の `saveS()` / `loadS()` / `PERSIST` 配列が完璧に動作することを証明
+
+### iPhone 確認シナリオ（手動再現用）
+1. タスクに「テストタスク」追加 → Safari 完全終了 → 再起動 → タスクが残る
+2. 書類保管庫で写真 + メモ追加 → 再起動 → 両方残る
+3. メモだけ編集 → 写真は変わらず残る
+4. 写真だけ削除 → メモ・タイトルは残る
+5. アルバムに 5 枚追加 → 1 枚削除 → 残り 4 枚復元
+6. メンバーアバターを写真化 → 再起動 → 全画面で写真継続
+7. 表示名「けんや」変更 → 再起動 → 全画面で「けんや」
+
+### コミット
+- メッセージ: `wave 60.9: persistence audit suite - 72/72 PASS for all 17 data types × CRUD × reload`
