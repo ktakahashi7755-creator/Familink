@@ -5835,3 +5835,72 @@ Wave 56: 設定・メニュー画面から重複ナビ（ホーム/カレンダ�
 
 ### コミット
 - メッセージ: `wave 56: settings - remove duplicate nav links (home/cal/task/board/prep/health/budget/hoku)`
+
+## 2026-05-07 22:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 57: 設定再編 + ホーム通知ベル + 書類保管庫復活 + アルバム新設
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+
+**設定・メニュー再編**
+- 削除：「通知」「はじめての方ガイドを見る」（重複・常用導線あり）
+- 残存：「アバター設定 / 家族メンバー管理 / プロフィールを編集 / ログアウト / Premium」
+- 追加：「家族の保管」セクション（書類保管庫 / アルバム）
+
+**ホーム右上の通知ベル**
+- `home-bell` を home-header 末尾に追加（→ s-notif）
+- 未読件数バッジを `renderHome` から動的更新（99+ で頭打ち）
+- 設定からの通知導線を撤廃した代替
+
+**書類保管庫（s-archive 復活）**
+- Wave 15 で UI のみ撤廃されていた `S.docs[]` を再活性化（データキー保持）
+- 新画面 `s-archive` + 追加・編集モーダル `m-archive-add`
+- 項目：タイトル / カテゴリ（園・学校 / 医療 / 保険 / 行政 / 家計 / 習い事 / その他）/ メモ / 写真（base64 dataUrl）
+- 一覧：写真サムネ + タイトル + カテゴリチップ + 日付 + メモ + 削除ボタン（confirm）
+- 空状態：「書類はまだありません / 同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。」
+
+**アルバム（s-album 新設）**
+- 新キー `S.albumPhotos[]`（PERSIST に追加）
+- 新画面 `s-album` + 全画面ビューア `m-album-view`
+- + ボタンで `<input type="file" multiple>` を起動 → 複数同時に base64 化して `S.albumPhotos` に push
+- 3 列グリッド表示、左下に MM/DD バッジ
+- セルタップで全画面表示 → 削除ボタン（confirm）
+
+### LocalStorage
+- `S.docs[]` 再活性化（既存キー、未削除）
+- `S.albumPhotos[]` を PERSIST に追加（新規）
+- 既存データは全保持
+
+### テスト結果
+- 構文検証 PASS（1/1）
+- Node VM 単体：
+  - renderArchive で 1 件サンプルが正しく行レンダリング
+  - renderAlbum で 1 件サンプルがグリッドにレンダリング
+- md5 同期：`c7c24d028eef4bce883a182b72e28c80`
+
+### iPhone 確認ポイント
+1. ホーム右上に **ベルアイコン** が表示される。未読があれば赤バッジ（数字）
+2. ベルタップ → 通知画面（s-notif）に遷移
+3. 設定画面：通知 / はじめての方ガイド が**消えている**
+4. 設定画面：「家族の保管」セクションに **書類保管庫 / アルバム** が並んでいる
+5. 書類保管庫 → + → タイトル「保育園同意書」+ 写真 → 保存 → 一覧に出る → 行タップで編集 → 削除
+6. アルバム → + → 写真 1〜3 枚選択 → グリッドに追加 → セルタップで全画面 → 削除ボタンで個別削除
+7. リロード後も全データ保持
+
+### 未確認事項
+- iPhone Safari の `<input type=file accept="image/*">` でカメラ起動の挙動
+- 写真 dataUrl による LocalStorage 容量（端末で容量が逼迫すると失敗の可能性 → 将来 IndexedDB 化）
+
+### 次にやること
+- 書類保管庫のフォルダ分け（S.folders 復活）
+- アルバムにメンバータグ・キャプション
+- 写真ストレージを IndexedDB へ移し容量制約を緩和
+
+### コミット
+- メッセージ: `wave 57: settings reshuffle + home notification bell + bring back 書類保管庫 + new アルバム`
