@@ -6642,3 +6642,57 @@ Wave 60.7: 容量不足の根本対応（ストレージ管理画面 + 一括整
 
 ### コミット
 - メッセージ: `wave 60.7: storage management screen with breakdown + bulk cleanup actions`
+
+## 2026-05-08 08:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.8: 設定・メニューがプロフィール表示名を反映しないバグの修正
+
+### 報告された問題
+プロフィール編集で「パパ → けんや」へ表示名を変更したところ、ホームは正しく「けんや」表示なのに、設定・メニューは「パパさん」のままだった。
+
+### 真因
+- 設定画面のユーザー行が `${H(u.name)}さん` と書かれていた
+- `u = S.user || MEMBERS[0]` なので、これは初期値の `MEMBERS[0].name`（"パパ"）固定
+- ホーム画面は `(S.userProfile.displayName) || m.name` で正しく fallback していたが、設定画面は同じロジックを使っていなかった
+
+### 修正
+- `${H(u.name)}さん` → `${H(displayName())}さん` に置換
+- 既存ヘルパー `displayName()` は `userProfile.displayName || S.user.name || 'ゲスト'` の優先順位
+- 全画面で表示名 fallback を統一
+
+### 検証結果（新 displayname テスト 7/7 PASS）
+- displayName() 単体：未設定→S.user.name / 設定済→userProfile.displayName / 空文字→fallback
+- renderSettings：menu-user-name に「けんや」が出る、「パパさん」は消えている
+- renderHome：greeting にも「けんや」が反映
+- XSS：表示名に `<script>` を入れても `H()` でエスケープされる
+
+### 全テスト（**288 / 288 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| **displayname (新)** | **7** |
+| **合計** | **288 / 288 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`6c54cab3dc21823f4f03e6206fffacf3`
+
+### iPhone 確認ポイント
+1. Safari 完全リロード（フッターは v3.2.2 のまま）
+2. 設定 → プロフィール編集 → 表示名「けんや」 → 保存
+3. **設定画面のユーザー行が「けんやさん」になる** ← 今回修正
+4. ホーム画面の挨拶も「けんやさん」（既に正しく動いていた）
+5. 表示名を空にして保存 → 元の「パパさん」に fallback
+
+### コミット
+- メッセージ: `wave 60.8: settings shows displayName from userProfile (fixes name not reflecting after edit)`
