@@ -6261,3 +6261,64 @@ Wave 60.1: 家族メンバー管理から公式アバター・写真を選べる
 
 ### コミット
 - メッセージ: `wave 60.1: family-member modal can pick official avatar / photo (reuses gallery)`
+
+## 2026-05-08 01:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.2: アバターに写真アップロード対応 + 全画面紐付け
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/worklog.md
+
+### 変更内容
+- `m-avatar-select` モーダルのタイトルを「公式アバターを選ぶ」→「**アバターを選ぶ**」に変更
+- 上部に **「📷 写真をアップロード」** 大型ボタンと「既定に戻す」サブボタンを追加
+- `<input type="file" accept="image/*">` を hidden で配置
+- `onAvatarPhotoPicked(ev)`：選択ファイルを `downscaleImageFile(1280px / JPEG 0.85)`（Wave 58）で圧縮 → `S.userPhotos[memberId]` + `S.userAvatarType[memberId] = 'customPhoto'` に保存 → 容量超過なら自動ロールバック
+- `resetAvatarToDefault()`：confirm 後、写真 / 公式アバター / type をすべて削除 → カラー＋イニシャル既定に戻す
+- `refreshAllAvatarsAcrossScreens()` を新設：home / settings / children + 現在開いている画面（task / cal / board / budget / health / prep / shopping / album / archive / notif）を一括再描画
+- `confirmAvatarSelect()`（公式アバター確定）でも、既存の写真があれば自動クリア（種別の取り違え防止）+ refreshAllAvatarsAcrossScreens を呼ぶように統一
+
+### 全画面紐付けの仕組み
+`avHtml(memberId, ...)` は既に以下の優先順位で表示：
+1. **customPhoto**（`S.userPhotos[id]`）→ `<img>` で表示
+2. **official**（`S.userAvatars[id]`）→ 公式画像
+3. **default** → グラデ + イニシャル
+
+そのため `S.userPhotos[id]` / `S.userAvatarType[id]` を保存するだけで、ホーム / カレンダー / タスク / 体調 / 準備 / 買い物 / 家族ボード / 設定 / アバター行 など **既存の avHtml 呼び出し全箇所に自動反映**。`refreshAllAvatarsAcrossScreens` は再描画トリガーのみ。
+
+### テスト結果
+- 構文 1/1 PASS
+- smoke / scenario 27 / member 16 / wave60 30 / edge 76 全 PASS（回帰なし）
+- 新 avatar テスト **11 / 11 PASS**：
+  - 既定 → グラデ+イニシャル
+  - 写真設定 → `<img src="data:...">`
+  - 既定リセット → 写真 / 公式 / type すべてクリア
+  - メンバー間で独立（member1 と member2 が干渉しない）
+  - 公式アバター選択時に旧 photo を自動クリア
+  - refreshAllAvatarsAcrossScreens が throw しない
+- md5 同期：`41a03ead5cc865da21147eb27027b4f5`
+
+### iPhone 確認ポイント
+1. 設定 → 家族メンバー管理 → 太郎 編集 → モーダル先頭「変更する」→ アバター選択モーダル
+2. 上部「📷 写真をアップロード」→ 写真選択 → 自動圧縮 → 設定完了
+3. ホームのアバター / カレンダーのメンバーチップ / タスクの担当アイコン / 家計のメンバータブ にも **同じ写真** が表示
+4. 「既定に戻す」 → 確認ダイアログ → カラー＋イニシャルへ戻る
+5. 公式アバターを選ぶと既存の写真は自動でクリア
+6. リロード後も写真が保持される
+
+### 累計テスト件数
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| **avatar (new)** | **11** |
+| **合計** | **160 / 160 PASS** |
+
+### コミット
+- メッセージ: `wave 60.2: avatar - photo upload from member modal, propagates to all screens`
