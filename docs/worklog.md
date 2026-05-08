@@ -7200,3 +7200,58 @@ Wave 60.11 で home card のデータソースを S.shoppingItems に統一し�
 
 ### コミット
 - メッセージ: `wave 60.14: shopping section binding (今すぐ/次の買い物 × 2 each on home card)`
+
+## 2026-05-08 10:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.15: 全体系統テスト + 星愛さん共有用バックアップ作成
+
+### 全体テスト結果
+**424 / 424 PASS、退行ゼロ**
+
+| スイート | 件数 |
+|---|---:|
+| smoke (13 画面) | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| member-rename | 7 |
+| shop-migrate | 14 |
+| notif | 16 |
+| qty-chip | 14 |
+| shop-section | 13 |
+| **合計** | **424 / 424 PASS** |
+
+### 静的整合性
+- 構文 1/1 PASS
+- 画面 ID：20 定義 / 20 参照 / 0 missing
+- モーダル ID：34 定義 / 31 参照 / 0 missing
+- ファイルサイズ：1,507 KB（単一 HTML 維持）
+- md5 同期：`0d866487634c001eb6b814ac763a91d5`
+
+### バックアップ
+**新規バックアップ枝**：`backup/018-share-with-seiai-final`
+- 起点コミット：default branch の `79dbb99`（Wave 60.14 完了状態）
+- 対応する旧枝：`backup/017-v3.2-app-store-quality`（同一 SHA で並行保持）
+
+### 公開 URL（星愛さんに送付可能）
+- メイン：`https://ktakahashi7755-creator.github.io/Familink/`
+- 直接：`https://ktakahashi7755-creator.github.io/Familink/app-source/familink.html`
+- QA デバッグ：`https://ktakahashi7755-creator.github.io/Familink/#qa-debug`
+
+GitHub Pages Workflow（`.github/workflows/pages.yml`）が default branch
+への push で自動デプロイ。Wave 60.14 までの全機能（Hoku 意図 13 種 / 写真
+全画面紐付け / 資金繰り / 買い物 3 タブ + セクション分け / モーダル中タブ
+バー自動非表示 / ストレージ管理）すべて反映済み。
+
+### コミット
+- メッセージ：worklog のみの追記、コード変更なし
