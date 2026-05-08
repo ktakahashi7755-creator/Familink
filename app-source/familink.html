@@ -3981,6 +3981,8 @@ let S = {
   shoppingTab: 'list',  // 現在の買い物タブ: list / frequent / history
   members: null,        // Wave 59: 動的メンバーリスト（null=DEFAULT_MEMBERS 使用）
   shoppingMigrated: false, // Wave 60.11: 旧 boardItems → S.shoppingItems マイグレ済フラグ
+  hokuContext: null,       // Wave 61: 直近 5 ターン会話文脈（lastIntentType/lastEntities/turns）
+  hokuQuickSave: false,    // Wave 61: 低リスク項目をワンタップ保存（OFF 既定 / 設定で有効化想定）
   recurringTxs: [],     // Wave 60: 毎月◯日 / 毎月末 / 毎週 / 毎年 等の固定収支テンプレート
   cashflowSettings: {   // Wave 60: 資金繰り表の月初残高設定
     openingBalances: {},      // 'YYYY-MM' → 数値
@@ -3989,7 +3991,7 @@ let S = {
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave'];
 
 function saveS() {
   const d = {};
@@ -12028,9 +12030,18 @@ async function sendHokuMsg(text) {
   try {
     let reply;
 
-    // 確認待ちアクションへの返答
+    // Wave 61: 直近文脈で短文修正を解釈（「やっぱ星旺で」「明日にして」「支出で」など）
+    const ctxIntent = (typeof applyHokuContext === 'function') ? applyHokuContext(text) : null;
     if(_pendingAction) {
       reply = handleConfirmation(text);
+    } else if(ctxIntent) {
+      // 文脈から再構築した intent を直接実行
+      try {
+        const r = executeHokuAction(ctxIntent);
+        reply = (r && r.message) || getHokuShortReply(ctxIntent.intentType) || 'OK、変更したよ。';
+      } catch(e) {
+        reply = 'ごめん、変更できなかった。もう一回試して。';
+      }
     } else {
       // インテント分類 → 回答 or アクション
       const intent = detectIntent(text);
@@ -12043,9 +12054,18 @@ async function sendHokuMsg(text) {
 
     _hokuMsgs = _hokuMsgs.filter(m => m.role !== 'loading');
     _hokuMsgs.push({role:'assistant', content: reply});
+
+    // Wave 61: 文脈を更新（直近 5 ターン）
+    try {
+      if(typeof updateHokuContext === 'function') {
+        const lastIntent = ctxIntent || (typeof parseHokuIntent==='function' ? (function(){ try{return parseHokuIntent(text,'text');}catch(_){return null;}})() : null);
+        updateHokuContext('user', text, null);
+        updateHokuContext('hoku', reply, lastIntent);
+      }
+    } catch(e) {}
   } catch(err) {
     _hokuMsgs = _hokuMsgs.filter(m => m.role !== 'loading');
-    _hokuMsgs.push({role:'assistant', content:'ちょっとエラーが出たみたい。もう一回試してみて。'});
+    _hokuMsgs.push({role:'assistant', content:'ごめん、うまくいかなかった。もう一回試して。'});
   } finally {
     _hokuBusy = false;
     if(sendBtn) sendBtn.disabled = false;
@@ -12483,10 +12503,8 @@ function renderHokuMsgs() {
 
   if(!msgs.length) {
     el.innerHTML = `<div style="text-align:center;padding:32px 20px 0;color:var(--text-muted);font-size:13px;line-height:1.9;">
-      Familinkのことならお気軽にどうぞ。<br>
-      予定・タスク・家計・準備の確認、<br>
-      持ち物整理・体調メモ・節約のコツも相談できます。<br>
-      <span style="display:inline-block;margin-top:10px;padding:4px 10px;background:var(--bg-muted);border-radius:999px;font-size:11px;">マイクボタンで音声入力もできます</span>
+      何する？予定・タスク・家計、声でもいけるよ。<br>
+      <span style="display:inline-block;margin-top:10px;padding:4px 10px;background:var(--bg-muted);border-radius:999px;font-size:11px;">🎤 マイクで音声入力もできる</span>
     </div>`;
     return;
   }
@@ -12975,7 +12993,7 @@ function taskVoiceToggle() {
     };
     _tkRec.onerror = function() {
       tkMicSetState('idle');
-      showToast('うまく聞き取れませんでした。もう一度お試しください。','error');
+      showToast('ごめん、聞き取れなかった。もう一回いける？','error');
     };
     _tkRec.onend = function() {
       _tkRecListening = false;
@@ -13368,33 +13386,170 @@ function _hokuMakeIntent(intentType, raw, text, source, confidence, entities, ex
   };
 }
 
+/* ============================================================
+   Wave 61 — Hoku 刷新：短文・ラフ・文脈・実行型
+   ・回答 20–80 字程度、説明より次の行動
+   ・直近 5 ターンの会話文脈を保持し短い追加入力（やっぱ星旺で / 明日にして 等）を解釈
+   ・confidence ≥ 0.85 は聞き返さず確認へ、0.40–0.84 は登録先選択、それ未満は短く再入力依頼
+   ・医療 / 税務 / 外部連携のガードレールは短文で必ず添える
+   ============================================================ */
+
+const HOKU_SHORT_REPLY = {
+  calendar_add:           '予定に入れられるよ。',
+  task_add:               'タスクに追加するね。',
+  budget_add:             '家計に入れるね。',
+  health_add:             '体調メモに残すね。不安なら医療機関に相談してね。',
+  prep_add:               '準備リストに入れるね。',
+  prep_routine_add:       '曜日ルーティンに登録するね。',
+  shopping_add:           '買い物リストに追加するね。',
+  shopping_frequent_add:  'よく買うものに登録するね。',
+  shopping_purchased:     '購入履歴に入れるね。',
+  recurring_budget_add:   '固定収支に登録するね。',
+  cashflow_view:          '資金繰りを開くね。',
+  notification_add:       '通知センターに残すね（OS プッシュは v1.0 以降）。',
+  external_calendar_help: '今は ICS の取込・書き出しに対応。完全自動同期は今後対応予定。',
+  settings_help:          '設定から変えられるよ。開く？',
+  unknown:                ''
+};
+const HOKU_CONFIRM_TITLE = {
+  calendar:    'この予定を追加する？',
+  task:        'このタスクを追加する？',
+  budget:      'この金額で記録する？',
+  health:      '体調メモに残す？',
+  prep:        '準備に追加する？',
+  shopping:    '買い物リストに追加する？',
+  recurring:   '固定収支に登録する？',
+  default:     'これで保存する？'
+};
+function getHokuShortReply(intentType) {
+  return HOKU_SHORT_REPLY[intentType] || HOKU_SHORT_REPLY.unknown;
+}
+function getHokuConfirmTitle(uiCat) {
+  return HOKU_CONFIRM_TITLE[uiCat] || HOKU_CONFIRM_TITLE.default;
+}
+
+/* ============================================================
+   Wave 61: Hoku 文脈エンジン
+   - S.hokuContext に直近 5 ターンを保持
+   - 10 分以内・直近 3 ターン以内の文脈を delta utterance に適用
+   ============================================================ */
+function _ensureHokuContext() {
+  if(!S.hokuContext) S.hokuContext = { turns:[], lastIntentType:null, lastEntities:null, lastUpdatedAt:null };
+  if(!Array.isArray(S.hokuContext.turns)) S.hokuContext.turns = [];
+}
+function updateHokuContext(role, text, intent) {
+  _ensureHokuContext();
+  const now = new Date().toISOString();
+  S.hokuContext.turns.push({ role:role, text:String(text||'').slice(0,200), at:now });
+  // 直近 5 件のみ保持
+  if(S.hokuContext.turns.length > 5) S.hokuContext.turns = S.hokuContext.turns.slice(-5);
+  if(intent && intent.intentType && intent.intentType !== 'unknown') {
+    S.hokuContext.lastIntentType = intent.intentType;
+    // entities は安全コピー（写真等の重い値は持たない）
+    const e = intent.entities || {};
+    S.hokuContext.lastEntities = {
+      memberId: e.memberId || null, memberName: e.memberName || '',
+      title: e.title || '', date: e.date || null, time: e.time || null,
+      amount: e.amount != null ? e.amount : null, weekday: e.weekday != null ? e.weekday : null,
+      subject: e.subject || '', category: e.category || '', txType: e.txType || null
+    };
+    S.hokuContext.lastUpdatedAt = now;
+  }
+  try { saveS(); } catch(_){}
+}
+
+/* 「やっぱ星旺で」「明日にして」「支出で」のような短い修正入力を直前文脈に適用
+   - 適用できた場合：修正後の intent を返す（呼び出し側で確認モーダルを開く）
+   - 適用不可：null */
+function applyHokuContext(text) {
+  _ensureHokuContext();
+  const ctx = S.hokuContext;
+  if(!ctx.lastIntentType || !ctx.lastEntities) return null;
+  if(!ctx.lastUpdatedAt) return null;
+  const ageMs = Date.now() - new Date(ctx.lastUpdatedAt).getTime();
+  if(ageMs > 10 * 60 * 1000) return null; // 10 分超えは捨てる
+  const t = String(text||'').trim();
+  if(!t || t.length > 30) return null; // 短文のみ対象
+
+  // メンバー切替（「やっぱ星旺で」「星斗で」「太郎にして」）
+  if(/^(やっぱ|やっぱり)?\s*[一-龯ぁ-んァ-ヶ]{1,8}\s*(で|にして|に変えて|に変更)?$/.test(t)) {
+    const mid = (typeof voiceResolveMember === 'function') ? voiceResolveMember(t) : null;
+    if(mid) {
+      const e = Object.assign({}, ctx.lastEntities, { memberId:mid, memberName:(typeof memberNameById==='function'?memberNameById(mid):'') });
+      return _hokuRebuildIntent(ctx.lastIntentType, e, 0.78, text);
+    }
+  }
+  // 日付切替
+  if(/(明日|今日|明後日|来週|月曜|火曜|水曜|木曜|金曜|土曜|日曜)に(?:して|変えて|変更)/.test(t) || /^(明日|今日|明後日)$/.test(t)) {
+    const d = (typeof voiceResolveDate === 'function') ? voiceResolveDate(t) : null;
+    if(d) {
+      const e = Object.assign({}, ctx.lastEntities, { date:d });
+      return _hokuRebuildIntent(ctx.lastIntentType, e, 0.78, text);
+    }
+  }
+  // 時刻切替
+  const tm = t.match(/^(\d{1,2})時$|(\d{1,2})時に(?:して|変えて)?/);
+  if(tm) {
+    const h = parseInt(tm[1] || tm[2], 10);
+    if(Number.isFinite(h) && h >= 0 && h <= 23) {
+      const e = Object.assign({}, ctx.lastEntities, { time:String(h).padStart(2,'0')+':00' });
+      return _hokuRebuildIntent(ctx.lastIntentType, e, 0.78, text);
+    }
+  }
+  // 支出 / 収入切替（直前が budget の時）
+  if(ctx.lastIntentType === 'budget_add') {
+    if(/^支出(で|にして)?$/.test(t)) {
+      return _hokuRebuildIntent('budget_add', Object.assign({}, ctx.lastEntities, {txType:'expense'}), 0.85, text);
+    }
+    if(/^収入(で|にして)?$/.test(t)) {
+      return _hokuRebuildIntent('budget_add', Object.assign({}, ctx.lastEntities, {txType:'income'}), 0.85, text);
+    }
+  }
+  // タスク化（直前カレンダー → タスクへ）
+  if(/^やっぱ?タスク(にして|で)?$/.test(t)) {
+    return _hokuRebuildIntent('task_add', ctx.lastEntities, 0.78, text);
+  }
+  return null;
+}
+function _hokuRebuildIntent(intentType, entities, confidence, raw) {
+  const meta = HOKU_INTENT_META[intentType] || HOKU_INTENT_META.unknown;
+  return {
+    rawText: raw, normalizedText: raw, source:'context',
+    intentType: intentType, confidence: confidence,
+    needsConfirmation: !!meta.uiCat,
+    missingFields: [], ambiguous: false, secondary: null, score: 0,
+    entities: entities,
+    action: { targetStore: meta.store, operation: meta.uiCat ? 'add' : 'help' }
+  };
+}
+
 /* 不足情報がある場合の Hoku 質問文（短文返答） */
 function _hokuAskBackMessage(intent) {
   const t = intent && intent.intentType;
-  if(t === 'budget_add')   return '金額が読み取れませんでした。「○○円」のように金額を含めて教えてください。\n例：スーパーで3,200円使った';
-  if(t === 'health_add')   return '誰の体調を記録しますか？体温・症状・薬名のいずれかも一緒に教えてください。\n例：星汰が37.8度で咳あり';
-  if(t === 'prep_add')     return '準備リストに何を追加しますか？\n例：明日、星斗の体操服を準備に追加';
-  if(t === 'calendar_add') return 'スケジュールの内容を教えてください。日付・時刻・対象が分かるとそのまま登録できます。\n例：金曜18時、星旺のスイミング';
-  if(t === 'task_add')     return 'どんなタスクを追加しますか？\n例：明日までに学校へ電話';
-  return '内容をもう少し詳しく教えてください。';
+  if(t === 'budget_add')   return '金額だけ教えて。';
+  if(t === 'health_add')   return '誰の体調？';
+  if(t === 'prep_add')     return '何を追加する？';
+  if(t === 'calendar_add') return '日付か時刻だけ足りない。教えて？';
+  if(t === 'task_add')     return 'タスク名だけ教えて。';
+  return 'もう少し詳しく教えて。';
 }
 
 /* 統一ディスパッチャ — intent.intentType に応じて処理を実行 */
 function executeHokuAction(intent) {
   if(!intent || !intent.intentType) return { ok:false, message:'内容を読み取れませんでした。' };
 
-  // 案内系（保存しない）
+  // Wave 61: 案内系（保存しない）— 短文化
   if(intent.intentType === 'external_calendar_help') {
-    return { ok:true, message: classifierGuidance('calendar', intent.normalizedText, null) || '' };
+    return { ok:true, message: '今は ICS の取込・書き出しに対応。完全自動同期は今後対応予定。\n\n[[ACTION_BUTTONS:calendar]]' };
   }
   if(intent.intentType === 'settings_help') {
-    return { ok:true, message: '家族構成 / プロフィール / アバターは「設定」画面から変更できます。\n設定 → プロフィール / 家族メンバーの順で進んでください。' };
+    return { ok:true, message: '設定から変えられるよ。開く？' };
   }
   if(intent.intentType === 'notification_add') {
-    return { ok:true, message: 'リマインドの内容として承りました。\n現状の Familink ではアプリを開いた時の通知センター表示が中心で、OS のプッシュ通知は v1.0 以降で対応予定です。\n忘れたくない予定は、まずカレンダーへ登録しておくことをおすすめします。' };
+    return { ok:true, message: '通知センターに残すね（OS プッシュは v1.0 以降）。\n忘れたくないなら、まずカレンダーに入れておくと安心。\n\n[[ACTION_BUTTONS:calendar]]' };
   }
   if(intent.intentType === 'unknown') {
-    return { ok:false, message:'登録先を判定できませんでした。「予定」「タスク」「準備」「家計」「体調」「家族ボード」のいずれかを含めて、もう一度教えてください。' };
+    return { ok:false, message:'どこに入れる？' };
   }
 
   // Wave 54: 買い物系（リスト追加 / よく購入する / 購入済み）
@@ -13408,7 +13563,7 @@ function executeHokuAction(intent) {
   if(intent.intentType === 'cashflow_view') {
     switchTab('s-budget');
     setTimeout(function(){ setBudgetTab('cashflow'); }, 100);
-    return { ok:true, message:'資金繰り表を開きます。月初残高を設定すると、月末残高の見込みが表示されます。\n\n※ あくまで見込みです。\n\n[[ACTION_BUTTONS:cashflow]]' };
+    return { ok:true, message:'資金繰りを開くね。※ 見込み値だよ。' };
   }
 
   // Wave 55: prep_routine_add で複数持ち物（「火曜は算数ノートと計算ドリル」等）が抽出できた場合は一括登録（要 confirm）
@@ -13468,7 +13623,9 @@ function executeHokuAction(intent) {
   hokuVoiceSetPhase('confirming');
   voiceConfirmRender();
   openModal('m-voice-confirm');
-  return { ok:true, message:'内容を確認してください。修正があればその場で編集できます。', opened:'m-voice-confirm' };
+  // Wave 61: intent 別の短い返答
+  const shortReply = (typeof getHokuShortReply === 'function') ? getHokuShortReply(intent.intentType) : '';
+  return { ok:true, message: shortReply || 'これで保存する？', opened:'m-voice-confirm' };
 }
 
 /* 買い物系 intent を確認付きで実行
@@ -13518,7 +13675,7 @@ function _hokuExecuteShopping(intent) {
     saveS();
     if(typeof renderShopping === 'function') renderShopping();
     if(typeof renderHome === 'function')     renderHome();
-    return { ok:true, message:'「'+names.join('・')+'」を購入履歴へ記録しました。買い物リストからも反映済みです。\n\n[[ACTION_BUTTONS:shopping]]' };
+    return { ok:true, message:'「'+names.join('・')+'」を購入履歴に入れたよ。\n\n[[ACTION_BUTTONS:shopping]]' };
   }
 
   if(intent.intentType === 'shopping_frequent_add') {
@@ -13544,7 +13701,7 @@ function _hokuExecuteShopping(intent) {
       added++;
     });
     saveS();
-    return { ok:true, message:added+' 件を「よく購入するもの」に追加しました。\n\n[[ACTION_BUTTONS:shopping]]' };
+    return { ok:true, message:added+' 件、よく買うものに入れたよ。\n\n[[ACTION_BUTTONS:shopping]]' };
   }
 
   // shopping_add（明示的に「買い物リストに追加」と言われた）
@@ -13568,7 +13725,7 @@ function _hokuExecuteShopping(intent) {
   saveS();
   if(typeof renderShopping === 'function') renderShopping();
   if(typeof renderHome === 'function')     renderHome();
-  return { ok:true, message:added+' 件を買い物リストに追加しました。\n\n[[ACTION_BUTTONS:shopping]]' };
+  return { ok:true, message:added+' 件、買い物リストに追加したよ。\n\n[[ACTION_BUTTONS:shopping]]' };
 }
 
 /* 買い物アクションボタン群 */
@@ -13633,7 +13790,7 @@ const VOICE_STATE_TEXT = {
   thinking:    '🧠 Hoku が整理しています…',
   confirming:  '✏️ 内容を確認してください',
   saved:       '✅ 保存しました',
-  error:       '⚠ うまく聞き取れませんでした',
+  error:       '⚠ 聞き取れなかった。もう一回いける？',
   unsupported: '音声入力はこの端末では使えないため、テキストで相談してください'
 };
 function hokuVoiceSetPhase(phase) {
@@ -13657,6 +13814,11 @@ function hokuHandleVoiceText(text) {
 /* 確認モーダルの描画 */
 function voiceConfirmRender() {
   const p = _voiceParsed; if(!p) return;
+  // Wave 61: モーダルタイトルをカテゴリ別の短文へ動的更新
+  const titleEl = document.getElementById('vc-title');
+  if(titleEl && typeof getHokuConfirmTitle === 'function') {
+    titleEl.textContent = getHokuConfirmTitle(p.category || 'default');
+  }
   const recEl = document.getElementById('vc-recognized');
   if(recEl) recEl.textContent = p.raw || '';
   const corrEl = document.getElementById('vc-corrected');
@@ -13970,90 +14132,35 @@ function classifierGuidance(category, q, secondary) {
   switch(category) {
     case 'calendar':
       if (q && q.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|LINEカレンダー|\.ics|ics.*書き出|ics.*出力|ics.*取|ics.*読|取り込|インポート|import|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/i)) {
-        return '外部カレンダーとの連携は、書き出しと取り込みの両方に対応しています。'+NL+NL+
-          '【Familink から書き出す】'+NL+
-          '予定詳細 →「外部カレンダーに追加」'+NL+
-          '・Google カレンダー：追加 URL で即転送'+NL+
-          '・iPhone / Outlook / Yahoo / LINE：.ics 書き出しで取込'+NL+NL+
-          '【外部カレンダーから取り込む】'+NL+
-          'カレンダー画面 →「取込」ボタン'+NL+
-          '・Google / iPhone / Yahoo / Outlook で書き出した .ics ファイル / テキストを Familink に取り込めます'+NL+
-          '・取込前にプレビューで予定を確認・選択できます'+NL+NL+
-          '※ Google や iPhone カレンダーとの完全自動同期は、ネイティブ化や OAuth 対応の v1.0 以降で拡張予定です。Familink がユーザー許可なく外部カレンダーを読み取ることはありません。'+
-          ACTION('calendar');
+        // Wave 61: 短文化
+        return '今は ICS の取込・書き出しに対応。完全自動同期は v1.0 以降。' + ACTION('calendar');
       }
-      return '予定として整理できそうな内容ですね。'+NL+
-        '日時が分かる場合は、カレンダーに登録しておくと家族全員で確認しやすくなります。'+NL+NL+
-        '「予定追加して」と続けて話しかけると、カレンダーへの登録を進められます。'+
-        (secondary === 'health' ? NL+NL+'（補足：通院・健診の場合は、体調メモにも記録しておくと、あとで振り返りやすくなります。）' : '')+
-        ACTION('calendar');
+      // Wave 61: 短文化
+      return '予定に入れられるよ。' + ACTION('calendar');
     case 'task':
-      return 'やることとして管理するのに向いていそうです。'+NL+
-        '担当者と期限を決めてタスクに追加すると、家族内で抜け漏れを防ぎやすくなります。'+NL+NL+
-        '「タスク追加して」で登録を始められます。'+
-        ACTION('task');
+      return 'タスクに追加できるよ。' + ACTION('task');
     case 'prep':
-      return '準備リストにまとめておくと安心です。'+NL+
-        '今日必要なものと明日必要なものを分けておくと、朝のバタつきを減らせます。'+NL+
-        '未完了の準備は「明日に回す」で翌日に持ち越せます。'+NL+
-        '曜日ごとの持ち物（月曜：体操着、金曜：上履き持ち帰り など）は、項目を登録しておくと毎週確認しやすくなります。'+NL+NL+
-        '「準備リスト」画面の「今日 / 明日」タブから登録できます。'+
-        (secondary === 'calendar' ? NL+NL+'（補足：行事の予定がある場合は、カレンダーにも登録しておくと安心です。）' : '')+
-        (secondary === 'board' ? NL+NL+'（補足：習い事の様子や記録は、家族ボードの「習い事」タブに残すと振り返りやすくなります。）' : '')+
-        ACTION('prep');
+      return '準備リストに入れられるよ。' + ACTION('prep');
     case 'budget':
-      return '家計メモに残しておくと、あとで見直しやすくなります。'+NL+
-        '食費・固定費・急な出費のどれに近いかを分けて記録するのがおすすめです。'+NL+NL+
-        '金額が分かれば「○○円使った」と話しかけると、家計に登録できます。'+
-        ACTION('budget');
+      return '家計に入れられるよ。金額があればそのまま登録できる。' + ACTION('budget');
     case 'health':
-      // 過去ログ・フィルターの問い合わせには専用案内
+      // Wave 61: 短文化（医療免責は維持）
       if (q && q.match(/過去|履歴|ログ|振り返|見返|発熱.*(日|履歴)|薬.*(飲んだ|履歴)|病院.*(行った|履歴)|フィルタ/)) {
-        return '過去の体調ログは、体調管理画面の下部で確認できます。'+NL+NL+
-          '【絞り込み方法】'+NL+
-          '・メンバータブ：家族全員 / 子ども別'+NL+
-          '・期間：7日 / 30日 / すべて'+NL+
-          '・状態：発熱 / 薬あり / 病院 / 症状あり'+NL+NL+
-          '37.5℃以上は発熱、38.0℃以上は高熱として目立つように表示されます。'+NL+
-          'カードをタップすると編集・削除ができます。'+NL+NL+
-          '※ 体調記録は家族内の振り返り用です。診断や医療判断を行うものではありません。'+
-          ACTION('health');
+        return '過去ログは体調画面下部で、メンバー / 期間 / 状態で絞り込めるよ。\n※ 振り返り用、診断ではないよ。' + ACTION('health');
       }
-      return '体調メモに残しておくと安心です。'+NL+
-        '体温・食欲・水分・機嫌を一緒に記録しておくと、あとで状況を振り返りやすくなります。'+NL+NL+
-        '症状が強い場合や不安がある場合は、医療機関への相談も検討してください。'+
-        (secondary === 'calendar' ? NL+NL+'（補足：受診予定が決まったら、カレンダーにも登録しておくと安心です。）' : '')+
-        ACTION('health');
+      return '体調メモに残せるよ。不安なら医療機関に相談してね。' + ACTION('health');
     case 'board':
-      // 削除に関する問い合わせ
+      // Wave 61: 短文化
       if (q && q.match(/削除|消し|消す|消去/)) {
-        return '家族ボードの投稿・コメントは安全に削除できます。'+NL+NL+
-          '【投稿の削除】'+NL+
-          '投稿カード右上の「⋮」メニュー →「削除する」'+NL+
-          'または投稿詳細を開いて右上のメニューから削除'+NL+NL+
-          '【コメントの削除】'+NL+
-          '投稿詳細を開く → 自分のコメントの「削除」を押す'+NL+NL+
-          '削除前に確認が表示されます。コメント・リアクション付きやピン留め投稿の場合は警告文が出るので、誤削除を防げます。'+
-          ACTION('board');
+        return '投稿は ⋮ メニュー、コメントは右下「削除」から消せるよ（確認あり）。' + ACTION('board');
       }
-      return '家族ボードに共有するとよさそうです。'+NL+
-        'あとで見返したい出来事や、家族に伝えたい内容として残しておくと便利です。'+NL+
-        '習い事の様子や記録は「習い事」タブにまとめると、一覧で振り返りやすくなります。'+NL+NL+
-        '「家族ボード」画面から投稿できます。'+
-        ACTION('board');
+      return '家族ボードに共有できるよ。' + ACTION('board');
     case 'notification':
-      return 'リマインドの設定に向いている内容ですね。'+NL+
-        '忘れたくない時間が決まっている場合は、通知に登録しておくと安心です。'+NL+NL+
-        '通知の高度設定（時間指定など）は今後のプレミアム機能として検討中です。'+
-        ACTION('notification');
+      return '通知センターに残すね（OS プッシュは v1.0 以降）。' + ACTION('notification');
     case 'help':
-      return 'Hoku は、家族の予定・タスク・持ち物・体調・家計・家族共有の整理をお手伝いするアシスタントです。'+NL+
-        '話しかけた内容をもとに、どの機能に記録するとよいかを提案します。'+NL+NL+
-        '入力欄左のマイクボタンで音声入力もできます。';
+      return 'Hoku は家族の予定・タスク・準備・家計・体調をまとめる相棒。マイクで音声入力もできるよ。';
     case 'premium':
-      return 'プレミアムでは、家族ボードの追加・カスタムボード作成・準備リストの拡張・Hoku の高度な提案など、家族運営をより細かく管理できる機能を予定しています。'+NL+NL+
-        '無料版でも基本機能はそのままお使いいただけます。'+
-        ACTION('premium');
+      return 'プレミアムは月 480 円で、ボード追加・準備拡張・Hoku 強化を予定。無料でも基本は全部使えるよ。' + ACTION('premium');
     default:
       return null;
   }
@@ -14210,19 +14317,18 @@ function hokuLocalAnswer(q) {
       '従来どおり下部のタブバーや戻るボタンも使えます。';
   }
 
-  /* 挨拶 */
+  /* Wave 61: 挨拶 — 短文化 */
   if(q.match(/^(こんにちは|こんばんは|おはよう|hello|hi|やあ)/i)) {
     const h=new Date().getHours();
-    const g=h<12?'おはよう！':h<18?'やあ！':'こんばんは！';
+    const g=h<12?'おはよう。':h<18?'やあ。':'こんばんは。';
     const evs=ctx.today_events;
-    let r=g+' Hokuです。'+NL;
-    r+=evs.length?'今日の予定、'+evs.length+'件あります。':'今日は予定がありません。ゆっくり過ごせそうですね。';
-    if(ctx.tasks.overdue.length) r+=NL+'期限切れのタスクが'+ctx.tasks.overdue.length+'件あります。確認してみてくださいね。';
+    let r=g+(evs.length ? '今日の予定 '+evs.length+'件あるよ。' : '今日は予定なし。');
+    if(ctx.tasks.overdue.length) r+=' 期限切れタスク '+ctx.tasks.overdue.length+'件、確認する？';
     return r;
   }
 
-  /* ありがとう */
-  if(q.match(/ありがとう|助かった|さんきゅ/)) return 'どういたしまして。他にも気になることがあれば、いつでも話しかけてください。';
+  /* Wave 61: ありがとう — 短文化 */
+  if(q.match(/ありがとう|助かった|さんきゅ/)) return 'いつでもどうぞ。';
 
   /* ─────── スマート分類（暗黙的な内容を理解）── 既存ルールより優先、スコア閾値で安全 ─────── */
   const cls = classifyHokuInput(q);
@@ -15580,7 +15686,7 @@ document.addEventListener('touchcancel', () => {
 <div id="m-voice-confirm" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title">音声入力の内容を確認</div>
+    <div class="modal-title" id="vc-title">これで保存する？</div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">聞き取った内容</div>
     <div id="vc-recognized" style="background:rgba(74,144,226,.06);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);line-height:1.5;"></div>
     <div id="vc-corrected" style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;"></div>

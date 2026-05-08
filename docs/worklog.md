@@ -7328,3 +7328,97 @@ Wave 60.16: データの書き出し / 読み込み（端末間でデータを�
 
 ### コミット
 - メッセージ: `wave 60.16: data export/import as JSON for cross-device share`
+
+## 2026-05-08 11:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 61: Hoku 刷新（短文・ラフ・文脈・実行型エージェント）
+
+### ユーザー要望
+Hoku を「説明が長いヘルプ係」から「短く・自然・文脈を理解して各機能に反映する家族運営エージェント」へガラッと刷新。
+
+### 変更内容
+**1. 短文応答カタログを新設**
+- `HOKU_SHORT_REPLY` 定数（13 intent × 1 文）
+- `HOKU_CONFIRM_TITLE` 定数（カテゴリ別に確認モーダル冒頭文を動的化）
+
+**2. 文脈エンジン実装**
+- `S.hokuContext = { turns, lastIntentType, lastEntities, lastUpdatedAt }` を追加（PERSIST 含む）
+- `_ensureHokuContext` / `updateHokuContext(role, text, intent)` / `applyHokuContext(text)` / `_hokuRebuildIntent`
+- 「やっぱ花子で」「明日にして」「19時にして」「収入で」「やっぱタスクで」を直近 10 分・30 文字以下の短文として解釈
+- turn 履歴は最大 5 件で頭打ち
+
+**3. classifierGuidance を全カテゴリ短文化**
+| 旧 | 新 |
+|---|---|
+| 4–10 行の長文 | 1 文 + ACTION ボタン |
+| `予定として整理できそうな…` | `予定に入れられるよ。` |
+| `家計メモに残しておくと…` | `家計に入れられるよ。金額があればそのまま登録できる。` |
+| `体調メモに残しておくと安心です…` | `体調メモに残せるよ。不安なら医療機関に相談してね。` |
+| 外部カレンダー連携 14 行 | `今は ICS の取込・書き出しに対応。完全自動同期は v1.0 以降。` |
+
+**4. 確認モーダル (m-voice-confirm) タイトル動的化**
+- 旧：`音声入力の内容を確認`（固定）
+- 新：`voiceConfirmRender` が `getHokuConfirmTitle(p.category)` でカテゴリ別タイトル
+  - calendar → この予定を追加する？
+  - task → このタスクを追加する？
+  - budget → この金額で記録する？
+  - health → 体調メモに残す？
+  - prep → 準備に追加する？
+  - shopping → 買い物リストに追加する？
+  - default → これで保存する？
+
+**5. ask-back を短文化**
+- 旧：「金額が読み取れませんでした。「○○円」のように金額を含めて教えてください。例：…」
+- 新：「金額だけ教えて。」
+
+**6. 起動時メッセージ短文化**
+- 旧：3 行説明 + マイクボタン案内
+- 新：「何する？予定・タスク・家計、声でもいけるよ。」+ 🎤 chip
+
+**7. 挨拶 / ありがとう短文化**
+- 旧：「おはよう！ Hokuです。」+ 詳細
+- 新：「おはよう。今日の予定 N 件あるよ。」
+
+**8. 音声失敗・実行エラー短文化**
+- 旧：「うまく聞き取れませんでした。もう一度お試しください。」
+- 新：「ごめん、聞き取れなかった。もう一回いける？」
+
+**9. 文脈解決を sendHokuMsg に組み込み**
+sendHokuMsg は applyHokuContext を最初に呼んで短文修正を試行。成功すれば executeHokuAction で直接実行。両端で updateHokuContext を呼んで turn を蓄積。
+
+**10. データキー追加**
+- `S.hokuContext` (null 既定 / PERSIST 追加)
+- `S.hokuQuickSave` (false 既定 / 将来のワンタップ保存モード用)
+
+### テスト結果
+**新 hoku-redesign 29/29 PASS：**
+- 短文カタログ存在 (5)
+- 確認タイトル (4)
+- ガイダンス短文化（calendar < 100 / task < 80 / budget < 80 / health 過去ログ < 150）
+- ask-back 短文 (3)
+- 文脈解決：member 切替 / date 切替 / time 切替 / 30 分前は使わない / 長文は使わない / budget txType 反転 (6)
+- updateHokuContext turn 5 件頭打ち (4)
+- 既存意図実行短文化 (2)
+
+**全 21 スイート 477 / 477 PASS（退行ゼロ）**
+
+### 構文・整合性
+- 構文 1/1 PASS
+- md5 同期：`838ac0d5b6af5c08542008fde1a3405b`
+
+### 新ドキュメント
+`docs/hoku-agent-redesign.md` を新設（14 セクション + 旧 vs 新比較）
+
+### iPhone 確認シナリオ
+1. Hoku に「明日18時、太郎のスイミング」 → 「この予定を追加する？」（短い）
+2. 続けて「やっぱ花子で」 → 担当が花子に切替 + 「この予定を追加する？」
+3. 続けて「明日にして」 → 日付が翌日に切替
+4. 「スーパーで3200円」 → 「この金額で記録する？」+ 食費推定
+5. 続けて「収入で」 → 収入に切替
+6. 「ありがとう」 → 「いつでもどうぞ。」（1 行）
+7. 起動直後の Hoku 画面 → 短い 1 行 + 🎤 chip
+8. 音声失敗 → 「ごめん、聞き取れなかった。もう一回いける？」
+
+### コミット
+- メッセージ: `wave 61: hoku redesign - short replies, context engine, dynamic confirm title`
