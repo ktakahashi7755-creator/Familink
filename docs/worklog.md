@@ -7422,3 +7422,70 @@ sendHokuMsg は applyHokuContext を最初に呼んで短文修正を試行。�
 
 ### コミット
 - メッセージ: `wave 61: hoku redesign - short replies, context engine, dynamic confirm title`
+
+---
+
+## 2026-05-08 11:38  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 62 — Hoku 参照系 (`*_view`) intent 追加 + 入力バー被り / チップ溢れ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror)
+- /tmp/hoku-view.js (新 VM テスト)
+- docs/worklog.md (本エントリ)
+
+### 変更内容
+**A. View intent 6 種を追加（保存しない参照系）**
+- `calendar_view / task_view / budget_view / health_view / prep_view / shopping_view`
+- `HOKU_INTENT_META` に登録（`isView:true`、`uiCat:null` で保存系判定から除外）
+
+**B. parseHokuIntent に view-vs-add の優先振り分け（1.42）**
+- isViewVerb（教えて / 見たい / 見せて / 見直したい / 確認したい / チェック / 開いて / を見る / を確認）が含まれ、かつ isAddVerb（追加 / 入れて / 登録 / メモして / 残す / 記録 / 保存 等）を含まない場合は view 経路へ
+- `_hokuDetectViewIntent(text)` でドメイン判定（体調 → 家計 → 準備 → 買い物 → タスク → 予定）
+- 期間（today/tomorrow/dayafter/thisweek/nextweek/thismonth/lastmonth）と memberId 抽出
+
+**C. `_hokuExecuteView` 実行関数**
+- S.events / S.tasks / S.txs / S.health / S.prep / S.shoppingItems を読み取り
+- 件数 + 上位 5 件を短文要約、`[[ACTION_BUTTONS:cat]]` 付きで返却
+- 空のときは「〜まだないよ」短文 + ボタンのみ
+
+**D. unknown フォールバック（1.6 末尾）**
+「体調をメモしたい」「家計を残して」などドメイン語 + add 系動詞の組合せが unknown 落ちしないよう、低信頼 (0.45) で対応 *_add に振り直す。聞き返しに繋げる。
+
+**E. HOKU_SUGGESTIONS 刷新（11 件）**
+旧（曖昧な「〜したい」連発）→ 新（「明日の予定を見る」「タスクを追加したい」など、view 系 7 件 + add 系 3 件 + 「何ができる？」）
+
+**F. CSS 修正**
+- `.hoku-bar`：padding-bottom を 90px → 100px に拡張、`max-width:100%; box-sizing:border-box` を追加
+- `.hoku-sugg-wrap`：`max-width:100%; box-sizing:border-box` を追加してボディ横スクロール防止
+
+### テスト結果
+- 新 `/tmp/hoku-view.js`：**32 / 32 PASS**
+  - INTENT_META 登録 6 件
+  - DETECT 単体 7 件
+  - parse 統合 5 件
+  - EXECUTE 空 5 件 + データあり 3 件
+  - DISPATCH 経由 2 件
+  - SUGGESTIONS 4 件
+- 既存 VM スイート（hoku-redesign / wave60 / scenario / integration / persistence / member-test / displayname / avatar-propagation / notif / edge / qty-chip / audit / data-share / member-rename / avatar / avatar-fullscreen）：すべて従前通り PASS（退行ゼロ）
+- md5 同期：app-source/familink.html ⇔ docs/index.html `b6995ce5df336208fb250a930bc2a8d9`
+
+### 未確認事項
+- 実機（iPhone Safari）で `.hoku-bar` の余白が tabbar と被らないかを目視確認したい
+
+### iPhone 確認ポイント
+1. Hoku で「明日俺の予定を教えて」→ calendar_view に分類、件数表示 + 「カレンダーを見る」ボタン
+2. 「今週の予定を確認したい」→ calendar_view、5 件まで表示、それ以上は「…ほか N 件」
+3. 「子どもの体調をメモしたい」→ health_add に降格分類、「誰の体調？」と聞き返す（unknown ではない）
+4. 「今月の出費を見直したい」→ budget_view、収入/支出/差額の 2 行サマリー
+5. 入力バーが下部 tabbar と被らない（iPhone SE / 13 / 15+ / Pro Max）
+6. 提案チップが画面外に溢れず、chip 帯だけ横スクロールできる（body はスクロールしない）
+
+### 次にやること
+- iPhone 実機で 6 シナリオを目視確認、問題なければ default ブランチにマージしてバックアップ
+- 体調をメモしたい→health_add に振った後の `_hokuAskBackMessage` 文言が「誰の体調？」になることを実機で確認
+
+### コミット
+- 予定メッセージ: `wave 62: hoku view intents + input bar safe-area fix`
