@@ -141,3 +141,51 @@ S.hokuContext = {
 既存 19 スイート 448 件すべて PASS（退行ゼロ）。
 
 合計 **477 / 477 PASS**。
+
+---
+
+## 15. Wave 62 追補 — 参照系 intent (`*_view`) と入力レイアウト修正
+
+### 15.1 背景（実機スクショからの課題）
+- 「明日俺の予定を教えて」→ 追加系に誤分類
+- 「今週の予定を確認したい」→ 追加系に誤分類
+- 「子どもの体調をメモしたい」→ unknown で「どこに入れる？」（無情報）
+- Hoku 入力バーが下部 tabbar と被って見えない / 提案 chip が画面外へ溢れる
+
+### 15.2 追加 intent（6 種）
+| intentType | 表示内容 |
+|---|---|
+| `calendar_view`  | 期間内の予定（最大 5）+ 「カレンダーを見る」 |
+| `task_view`      | 未完了タスク（最大 5）+ 「タスクを見る」 |
+| `budget_view`    | 期間の収入 / 支出 / 差額 |
+| `health_view`    | 直近 3 件 + 医療免責 1 行 |
+| `prep_view`      | 今日 / 明日の準備リスト（最大 5） |
+| `shopping_view`  | 買い物リスト（最大 5） |
+
+すべて `HOKU_INTENT_META` に `isView:true`, `uiCat:null` で登録（保存系扱いしない）。
+
+### 15.3 振り分けルール
+1. `isViewVerb` ∈ {教えて, 見たい, 見せて, 見直したい, 確認したい, チェック, 何がある, 開いて, を見る, を確認}
+2. `isAddVerb` ∈ {追加, 入れて, 登録, 反映, 計上, 記録して, メモして, 残す, タスクに(追加|して), カレンダーに入れて}
+3. `isViewVerb && !isAddVerb` → view 経路 → `_hokuDetectViewIntent`
+4. それ以外で unknown 落ちし、かつ `isAddVerb` + ドメイン語あり → 低信頼 (0.45) で `*_add` に振り直す（ask-back に繋ぐ）
+
+### 15.4 期間 / 日付の解釈
+今日 / 明日 / 明後日 / 今週 / 来週 / 今月 / 先月 を識別（`e.date`）、無指定なら直近 7 日。
+
+### 15.5 結果フォーマット
+- 件数を最初に提示（例：「今週の予定 4 件あるよ。」）
+- 上位 5 件、超過分は「…ほか N 件」
+- `[[ACTION_BUTTONS:cat]]` で画面遷移ボタンを 1 つだけ
+- 空のときは短文 1 行 + ボタンのみ
+
+### 15.6 レイアウト修正
+- `.hoku-bar` padding-bottom: 90px → 100px、max-width:100%, box-sizing:border-box
+- `.hoku-sugg-wrap` に max-width:100%, box-sizing:border-box（横スクロールは chip 帯のみ）
+
+### 15.7 提案チップ刷新（HOKU_SUGGESTIONS）
+view 系 7 件 + add 系 3 件 + ヘルプ 1 件 = 計 11 件。
+"〜したい" を曖昧な誘導文として使わず、view と add を語尾で分離。
+
+### 15.8 テスト
+新 `/tmp/hoku-view.js` 32 / 32 PASS。既存 16+ VM スイートすべて従前通り PASS（退行ゼロ）。

@@ -7422,3 +7422,334 @@ sendHokuMsg は applyHokuContext を最初に呼んで短文修正を試行。�
 
 ### コミット
 - メッセージ: `wave 61: hoku redesign - short replies, context engine, dynamic confirm title`
+
+---
+
+## 2026-05-08 11:38  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 62 — Hoku 参照系 (`*_view`) intent 追加 + 入力バー被り / チップ溢れ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror)
+- /tmp/hoku-view.js (新 VM テスト)
+- docs/worklog.md (本エントリ)
+
+### 変更内容
+**A. View intent 6 種を追加（保存しない参照系）**
+- `calendar_view / task_view / budget_view / health_view / prep_view / shopping_view`
+- `HOKU_INTENT_META` に登録（`isView:true`、`uiCat:null` で保存系判定から除外）
+
+**B. parseHokuIntent に view-vs-add の優先振り分け（1.42）**
+- isViewVerb（教えて / 見たい / 見せて / 見直したい / 確認したい / チェック / 開いて / を見る / を確認）が含まれ、かつ isAddVerb（追加 / 入れて / 登録 / メモして / 残す / 記録 / 保存 等）を含まない場合は view 経路へ
+- `_hokuDetectViewIntent(text)` でドメイン判定（体調 → 家計 → 準備 → 買い物 → タスク → 予定）
+- 期間（today/tomorrow/dayafter/thisweek/nextweek/thismonth/lastmonth）と memberId 抽出
+
+**C. `_hokuExecuteView` 実行関数**
+- S.events / S.tasks / S.txs / S.health / S.prep / S.shoppingItems を読み取り
+- 件数 + 上位 5 件を短文要約、`[[ACTION_BUTTONS:cat]]` 付きで返却
+- 空のときは「〜まだないよ」短文 + ボタンのみ
+
+**D. unknown フォールバック（1.6 末尾）**
+「体調をメモしたい」「家計を残して」などドメイン語 + add 系動詞の組合せが unknown 落ちしないよう、低信頼 (0.45) で対応 *_add に振り直す。聞き返しに繋げる。
+
+**E. HOKU_SUGGESTIONS 刷新（11 件）**
+旧（曖昧な「〜したい」連発）→ 新（「明日の予定を見る」「タスクを追加したい」など、view 系 7 件 + add 系 3 件 + 「何ができる？」）
+
+**F. CSS 修正**
+- `.hoku-bar`：padding-bottom を 90px → 100px に拡張、`max-width:100%; box-sizing:border-box` を追加
+- `.hoku-sugg-wrap`：`max-width:100%; box-sizing:border-box` を追加してボディ横スクロール防止
+
+### テスト結果
+- 新 `/tmp/hoku-view.js`：**32 / 32 PASS**
+  - INTENT_META 登録 6 件
+  - DETECT 単体 7 件
+  - parse 統合 5 件
+  - EXECUTE 空 5 件 + データあり 3 件
+  - DISPATCH 経由 2 件
+  - SUGGESTIONS 4 件
+- 既存 VM スイート（hoku-redesign / wave60 / scenario / integration / persistence / member-test / displayname / avatar-propagation / notif / edge / qty-chip / audit / data-share / member-rename / avatar / avatar-fullscreen）：すべて従前通り PASS（退行ゼロ）
+- md5 同期：app-source/familink.html ⇔ docs/index.html `b6995ce5df336208fb250a930bc2a8d9`
+
+### 未確認事項
+- 実機（iPhone Safari）で `.hoku-bar` の余白が tabbar と被らないかを目視確認したい
+
+### iPhone 確認ポイント
+1. Hoku で「明日俺の予定を教えて」→ calendar_view に分類、件数表示 + 「カレンダーを見る」ボタン
+2. 「今週の予定を確認したい」→ calendar_view、5 件まで表示、それ以上は「…ほか N 件」
+3. 「子どもの体調をメモしたい」→ health_add に降格分類、「誰の体調？」と聞き返す（unknown ではない）
+4. 「今月の出費を見直したい」→ budget_view、収入/支出/差額の 2 行サマリー
+5. 入力バーが下部 tabbar と被らない（iPhone SE / 13 / 15+ / Pro Max）
+6. 提案チップが画面外に溢れず、chip 帯だけ横スクロールできる（body はスクロールしない）
+
+### 次にやること
+- iPhone 実機で 6 シナリオを目視確認、問題なければ default ブランチにマージしてバックアップ
+- 体調をメモしたい→health_add に振った後の `_hokuAskBackMessage` 文言が「誰の体調？」になることを実機で確認
+
+### コミット
+- 予定メッセージ: `wave 62: hoku view intents + input bar safe-area fix`
+
+---
+
+## 2026-05-08 11:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 63 — Hoku 精度向上（全角・漢数字・時間帯・短文 view・バリデーション強化）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror)
+- /tmp/hoku-precision.js / hoku-precision2.js / hoku-precision3.js（精度テスト 137 件）
+
+### 変更内容
+**A. voiceCorrectText 強化**
+- 全角英数字 → 半角自動変換（`[０-９]/[Ａ-Ｚａ-ｚ]`）
+- 新ヘルパー `_hokuKanjiNumNormalize`：漢数字（一〜九/十/百/千/万）→ アラビア数字
+  - 例：「八万円」→「8万円」、「三十七度八分」→「37度8分」、「三十万」→「30万」
+
+**B. parseVoiceIntent 拡張**
+- 時間帯ワード（朝/昼/夕方/夜/晩/午前/午後/今夜/今朝/今晩）→ calendar +1
+- 「連絡帳に書く / サインする / 押印」→ task +2（prep の連絡帳「持参」と区別）
+
+**C. parseHokuIntent の view 振り分け**
+- isViewVerb に「見直したい / チェック / 履歴」追加
+- isAddVerb に「メモして / 残す」追加（unknown 落ち防止）
+- isPeriodOnlyView 追加：`今日/明日/今夜/今週末` などの期間語のみで終わる短文は view へ
+- 短文落とし穴：「家計」「体調」「予定」など 1 語極短文は confidence ≤ 0.35 に抑え聞き返しへ
+
+**D. unknown フォールバック**
+add 動詞 + ドメイン語が unknown 落ちしないよう低信頼 (0.45) で `*_add` に振り直す。
+
+### テスト結果
+**新 precision suites 137 / 137 PASS**
+- /tmp/hoku-precision.js  : 61 件（10 ドメイン横断 / view-add 振り分け / 期間 / 金額 / 体温 / 曜日 / 文脈 / 否定 / ヘルプ / 安全装置）
+- /tmp/hoku-precision2.js : 39 件（全角・漢数字 / 時間帯 / 来週末 / 短文 ask-back / 連続文脈 / 5 件頭打ち）
+- /tmp/hoku-precision3.js : 37 件（多ドメイン衝突 / 助詞揺れ / 過去ログ / cashflow vs budget_view / 単調性）
+
+**既存 16 スイート 455 件すべて PASS（退行ゼロ）**
+hoku-redesign 29 / hoku-view 32 / wave60 30 / scenario 27 / integration 55 / persistence 72 / member-test 16 / displayname 7 / avatar-propagation 19 / notif 16 / edge 76 / qty-chip 14 / data-share 24 / member-rename 7 / avatar 11 / avatar-fullscreen 20
+
+**合計 592 / 592 PASS**
+
+### 構文・整合性
+- md5 同期：`e40642d5389b5784e0fb49ce8f22d08f`
+
+### 未確認事項
+- 漢数字の「億 / 兆」レベルは未対応（家計入力で使う範囲外と判断）
+- 「今夜」を 19:00 と決め打ちしている（家庭差あり、将来 settings で調整可）
+
+### iPhone確認ポイント
+1. 「家賃８万円」（全角）→ 80,000 円で記録
+2. 「太郎三十七度八分」→ 37.8 度で記録
+3. 「今夜の予定」→ calendar_view、当日 19:00 以降の予定をフィルタ（簡易）
+4. 「明後日、予防接種の予定」→ calendar_add（イベント名「予防接種」）
+5. 「予定」「家計」「体調」のみ送信 → 「どこに入れる？」聞き返し
+6. 「連絡帳を書く」→ task_add に分類（prep ではない）
+
+### 次にやること
+- 実機で 6 シナリオ目視
+- 問題なければ default ブランチへマージしてバックアップ
+- 将来：「億 / 兆」の漢数字対応 / 時間帯の家庭別調整
+
+### コミット
+- 予定メッセージ: `wave 63: hoku precision (zenkaku, kanji digits, time-of-day, period-only view, bare keyword damping)`
+
+---
+
+## 2026-05-08 12:18  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 64 — 外部カレンダー取込（Google / Apple / Yahoo + ICS）プロバイダ選択 UI + Hoku 取込ヘルプ
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror, md5: 6d9331111dc06a5cf42ca35b4c34ee2d)
+- docs/calendar-import-sync-roadmap.md（Wave 64 追補セクション追加）
+- /tmp/ics-import.js（新 VM テスト 57 件）
+
+### 変更内容
+**A. m-ics-import モーダルを 3 ステップ化**
+- ステップ1（select）：Google / Apple / Yahoo / ICS の 4 択カード + プライバシー説明
+- ステップ2（provider）：プロバイダ別ガイダンス + ファイル / テキスト入力 + プレビュー
+- ステップ3（done）：「N 件を取り込みました」+ 「カレンダーを見る」「続けて取り込む」
+
+**B. setIcsImportStep(step) 関数**
+- step を 'select' / 'google' / 'apple' / 'yahoo' / 'ics' / 'done' で切替
+- モーダルタイトルを動的更新
+- 入力欄リセット
+
+**C. _icsProviderGuideHtml(step) 関数**
+- 各プロバイダで「できること（ICS 取込）/ できないこと（自動同期）」を短く明示
+- 完全自動同期は v1.0 以降と必ず注記
+
+**D. PRODID プロバイダ推定バグ修正**
+旧コード `apple|icloud|mac|cal` で "YCalendar"（Yahoo）/ "Familink Calendar" が apple と誤判定。
+判定順を google → yahoo → familink → outlook → apple に変更（固有名詞優先）。
+apple は `apple|icloud|ical` に絞った。
+
+**E. executeIcsImport 改善**
+- 選択中プロバイダで externalProvider を上書き（unknown を補正）
+- 完了画面「done」ステップへ遷移（即閉じない）
+
+**F. Hoku 新 intent: calendar_import_help**
+- HOKU_INTENT_META に登録（uiCat:null / isView:true）
+- parseHokuIntent で「取り込み / 反映 / 読み込み」動詞 × カレンダー語で 0.92 信頼度発火
+- entities.provider = google / apple / yahoo / ''
+- HOKU_SHORT_REPLY に短文追加
+
+**G. ACTION_BUTTONS の cal_import 系（4 種）**
+- cal_import：取込画面を開く（select ステップから）
+- cal_import_google：Google ステップで開く
+- cal_import_apple / cal_import_yahoo：同上
+
+**H. external_calendar_help の応答ボタンを cal_import に変更**
+従来は「カレンダーを開く」だけだったが、「取込画面を開く」を追加。
+
+### テスト結果
+- 新 /tmp/ics-import.js: **57 / 57 PASS**
+  - ICS パーサー基本（11）+ TZID/UTC（5）+ RRULE（4）+ 折返し（1）+ エスケープ（3）
+  - 不正入力（4）+ PRODID 推定（4）
+  - Hoku intent 分類（6）+ executeHokuAction（5）+ ACTION ボタン（4）+ ガイダンス（4）
+  - メタ（3）+ 短文応答（3）
+- 既存 21 スイート 631 件すべて PASS（退行ゼロ）：
+  hoku-redesign 29 / hoku-view 32 / hoku-precision 61 / hoku-precision2 39 / hoku-precision3 37 /
+  wave60 30 / scenario 27 / integration 55 / persistence 72 / member-test 16 / displayname 7 /
+  avatar-propagation 19 / notif 16 / edge 76 / qty-chip 14 / data-share 24 / member-rename 7 /
+  avatar 11 / avatar-fullscreen 20
+
+**合計 688 / 688 PASS**
+
+### 構文・整合性
+- 構文 1/1 PASS
+- md5 同期：6d9331111dc06a5cf42ca35b4c34ee2d
+
+### 未確認事項
+- 実機で取込ボタンが iPhone SE / 13 / 15+ / Pro Max で崩れないか目視
+- 大きな ICS（500+ 予定）でプレビューが重くないか
+
+### iPhone確認ポイント
+1. カレンダー画面右上「📥 取込」ボタンが見える / 押せる
+2. モーダル冒頭にプライバシー説明が表示される
+3. Google / Apple / Yahoo / ICS の 4 択が見える
+4. 各プロバイダ選択でガイダンス + 完全自動同期注記が出る
+5. .ics ファイル選択で予定が解析される
+6. ICS テキスト貼り付けで予定が解析される
+7. プレビューで重複候補が ⚠ 付き + 初期 OFF
+8. 「選択した予定を取り込む」で done ステップへ
+9. 「カレンダーを見る」でカレンダー画面に戻る
+10. リロード後も取り込んだ予定が残る
+11. Hoku に「Googleカレンダーを取り込みたい」→ 「Googleから取込」ボタン
+12. Hoku に「iPhoneカレンダーを反映したい」→ 「iPhoneから取込」ボタン
+
+### 次にやること
+- iPhone 実機で 12 シナリオを目視
+- 問題なければ default ブランチへマージしてバックアップ
+- 将来：Google OAuth / Apple EventKit / Yahoo API 同期（v1.0 以降）
+
+### コミット
+- 予定メッセージ: `wave 64: external calendar import — provider selection UI + Hoku calendar_import_help`
+
+---
+
+## 2026-05-08 22:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+投資家向けデモピッチ HTML 作成（docs/pitch.html）
+
+### 変更ファイル
+- docs/pitch.html（新規作成、80,139 bytes / 1,650 行）
+- docs/worklog.md
+
+### 変更内容
+**スマホ最適化 1 枚完結ピッチ資料**を新規作成。
+依存ゼロ・単一 HTML・GitHub Pages からそのまま投資家へ URL 共有可能。
+
+**構成（10 セクション）**
+1. Hero — Familink タイトル + ホーム画面 phone モック
+2. Problem — 3 課題カード + バナー「家庭内オペレーションは、まだ DX されていない」
+3. Solution — 8 機能カード（カレンダー / タスク / 家計 / 体調 / 準備 / 買い物 / 家族ボード / Hoku）
+4. Product Demo — **8 画面 phone モック（横スワイプギャラリー）**
+5. Hoku AI — 5 つの入力例 → 反映先マッピング + 差別化 6 点
+6. Differentiation — 比較表（TimeTree / Google Cal / 家計簿 / LINE × Familink）
+7. Business Model — Free / Premium ¥480 の 2 プラン + 30 日トライアル + 上位プラン構想
+8. Market Opportunity — 3 仮説カード + 数値断定回避注記
+9. Roadmap — 短期（App Store 公開）/ 中期（家族同期 + 課金）/ 長期（B2B + 売却）
+10. Ask — ¥50万〜¥300万 想定 + 用途 5 件 + 代表者メッセージ + CTA
+
+**Phone モック（9 個）**
+1. Hero: ホーム画面（家族アバター / 統計 / 今日の予定 / Hoku FAB）
+2. Demo: ホーム / 2. カレンダー（月グリッド + イベントリスト + 取込ボタン）
+3. タスク（タブ + 5 項目 + 担当アバター）
+4. 家計（今月の支出 + 4 色バー + 固定収支 + 月末残高見込み）
+5. 体調（メンバー行 + 37.8℃ カード + 7 日チャート + 医療免責）
+6. 準備（教科グルーピング + 数量 chip）
+7. 買い物（今すぐ / 次の買い物 / よく買う chip）
+8. Hoku（3 ターン会話 + アクションボタン + マイク入力欄）
+
+**デザイン**
+- パレット：プライマリ #4A90E2 / コーラル #FF8B7A / クリーム #FAF8F5 / ゴールド #C8A35C
+- iPhone 風枠（angled 46px corner, notch, 44px tab bar）
+- グラデーション + ソフトシャドウで高級感
+- 横スクロール禁止 + safe-area-inset 対応
+- Reveal アニメ（IntersectionObserver）
+- 完全 system-font（外部フォント未使用 = ロード遅延ゼロ）
+
+**コピー方針**
+- 「家族 OS」「家庭内 DX」「家族運営」「家族向けスーパーアプリ」を主軸
+- 課金単価 ¥480 を「習慣化された家計支出」と表現
+- MVP / バックエンド未実装は正直に明示しつつ、可能性を訴求
+- 投資家向けに「少額で試させて」の入り口を ¥50万〜と明記
+
+### 検証結果
+- 構文 check：scripts 1/1 OK
+- HTML 構造：div 489/489, section 10/10, button 15/15, script/style 各 1/1
+- 必須セクション 10/10 OK
+- Phone モック 9 個（hero 1 + demo 8）
+- 設計/コピー要件：14/14 OK（mobile viewport / theme-color / safe-area / パレット / 月額480円 / App Store / MVP / Hoku 5 例 / 比較表 / CTA / 媒体リンク）
+- ファイルサイズ 78 KB（軽量）
+
+### 自己評価（10 観点）
+| 観点 | 評価 |
+|---|---|
+| 1. 投資家が 1 分で理解 | ◎ Hero + 課題 + 解決策で 30 秒、デモまで含めて 90 秒 |
+| 2. デモ画面の魅力 | ◎ 8 画面の現実的なモック、横スワイプで体験可能 |
+| 3. Hoku の価値 | ◎ 5 つの入力例 → 反映先マッピングで一目瞭然 |
+| 4. ファミリースーパーアプリ感 | ◎ 8 機能を 1 画面に集約 |
+| 5. ¥480 の妥当性 | ◎ 子育て期間 LTV + 高頻度を文章で接続 |
+| 6. 既存アプリ差別化 | ◎ 比較表で 8 機能 × 5 競合の優劣を可視化 |
+| 7. 弱点の正直さ | ◎ MVP / 同期未実装を明記しつつ可能性を訴求 |
+| 8. スマホ表示 | ◎ viewport / safe-area / 横スワイプ対応 |
+| 9. AI 感の抑制 | ◎ Hoku 🐻 をアクセントに留め、温かみ重視 |
+| 10. 投資家相談に値する品質 | ◎ App Store 公開水準の見栄え |
+
+**総合自己評価：93 / 100**
+- -3：実機写真ではなくモック（信頼性）
+- -2：数値根拠（TAM / SAM / SOM）が未提示
+- -2：競合比較は筆者主観の範囲
+
+### URL（GitHub Pages デプロイ後）
+https://ktakahashi7755-creator.github.io/Familink/pitch.html
+
+### デプロイ方法
+- GitHub Pages：docs/ 配信なので push 後数分で公開
+- Vercel / Netlify：このファイル単体をドロップでも動く
+- 共有：上記 URL を投資家にメール / DM で送付
+
+### 未確認事項
+- iPhone SE / 13 / Pro Max での実機目視
+- ダークモード環境での見え方（現状ライトモード固定）
+
+### iPhone確認ポイント
+1. Hero のスマホモックが画面内に収まる
+2. Demo セクションの 8 画面が横スワイプで全部見える
+3. 比較表が横スクロール 1 回で読める
+4. Ask セクションの CTA がタップしやすい
+
+### 次にやること
+- 投資家フィードバック反映
+- 実機スクショへの差し替え（App Store 公開後）
+- TAM / SAM / SOM の数値リサーチ
+
+### コミット
+- 予定メッセージ: `add investor pitch deck (docs/pitch.html) — 10 sections + 9 phone mockups`

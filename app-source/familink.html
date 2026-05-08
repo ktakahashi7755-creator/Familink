@@ -1334,6 +1334,7 @@ select.input {
   display: flex; gap: 7px; overflow-x: auto; padding: 10px 16px 8px;
   -webkit-overflow-scrolling: touch; flex-shrink: 0; scrollbar-width: none;
   border-bottom: 1px solid var(--border-light);
+  max-width: 100%; box-sizing: border-box;
 }
 .hoku-sugg-wrap::-webkit-scrollbar { display: none; }
 .hoku-sugg {
@@ -1382,10 +1383,11 @@ select.input {
 .hoku-bar {
   flex-shrink: 0;
   padding: 10px 14px;
-  /* タブバー（68px + 14px底間隔）の上に入力欄が来るようにクリア */
-  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  /* Wave 62: タブバー（fixed 68px + 14px 浮き + safe-area）と被らないよう余白を確保 */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
   background: #fff; border-top: 1px solid var(--border-light);
   display: flex; gap: 8px; align-items: flex-end;
+  max-width: 100%; box-sizing: border-box;
 }
 .hoku-input {
   flex: 1; min-height: 44px; max-height: 120px;
@@ -5906,8 +5908,80 @@ function cancelEventMove() {
    Familink の S.events 形式へ変換。
    ============================================================ */
 let _icsPreviewItems = [];
+let _icsCurrentProvider = '';   // Wave 64：選択中のプロバイダ ('google'|'apple'|'yahoo'|'ics')
 
-function openIcsImportModal() {
+/* Wave 64：取込モーダルのステップ切替（select / provider / done） */
+function setIcsImportStep(step) {
+  const sel  = document.getElementById('ics-step-select');
+  const prov = document.getElementById('ics-step-provider');
+  const done = document.getElementById('ics-step-done');
+  if(!sel || !prov || !done) return;
+  sel.style.display  = (step === 'select') ? 'block' : 'none';
+  done.style.display = (step === 'done')   ? 'block' : 'none';
+  prov.style.display = (step !== 'select' && step !== 'done') ? 'block' : 'none';
+  if(step !== 'select' && step !== 'done') {
+    _icsCurrentProvider = step;
+    const guideEl = document.getElementById('ics-provider-guide');
+    if(guideEl) guideEl.innerHTML = _icsProviderGuideHtml(step);
+    // 入力欄リセット
+    const fi = document.getElementById('ics-file-input');
+    const ti = document.getElementById('ics-text-input');
+    const pv = document.getElementById('ics-preview');
+    if(fi) fi.value = '';
+    if(ti) ti.value = '';
+    if(pv) pv.style.display = 'none';
+    _icsPreviewItems = [];
+  }
+  // モーダルタイトル
+  const titleEl = document.getElementById('ics-modal-title');
+  if(titleEl) {
+    titleEl.textContent = (step === 'google') ? 'Googleカレンダーから取り込み'
+      : (step === 'apple')  ? 'Apple / iPhoneカレンダーから取り込み'
+      : (step === 'yahoo')  ? 'Yahooカレンダーから取り込み'
+      : (step === 'ics')    ? 'ICSファイルから取り込み'
+      : (step === 'done')   ? '取り込みが完了しました'
+      : '外部カレンダーを取り込む';
+  }
+}
+
+/* Wave 64：プロバイダ別ガイダンス（短く・できる/できないを正しく） */
+function _icsProviderGuideHtml(step) {
+  if(step === 'google') {
+    return '<div style="font-weight:700;color:var(--text);margin-bottom:6px;">Googleカレンダーの予定を取り込む</div>'
+      + '<ol style="margin:0 0 8px 18px;padding:0;">'
+      + '<li>Googleカレンダー設定 → 「カレンダーをエクスポート」で .ics を保存</li>'
+      + '<li>下の「.ics ファイルを選択」で選ぶ（または内容を貼り付け）</li>'
+      + '<li>取り込み前にプレビューで確認</li>'
+      + '<li>必要な予定だけチェックして取り込み</li>'
+      + '</ol>'
+      + '<div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:8px 10px;border-radius:8px;">完全自動同期（OAuth + バックエンド連携）は v1.0 以降で対応予定。</div>';
+  }
+  if(step === 'apple') {
+    return '<div style="font-weight:700;color:var(--text);margin-bottom:6px;">iPhoneカレンダーの予定を取り込む</div>'
+      + '<ol style="margin:0 0 8px 18px;padding:0;">'
+      + '<li>iCloud.com でカレンダーを「公開」または「書き出し」で .ics を保存</li>'
+      + '<li>iPhone 標準カレンダーで個別予定を共有 → ICS ファイルを取得</li>'
+      + '<li>下の「.ics ファイルを選択」で取り込み</li>'
+      + '<li>プレビューで確認 → 必要な予定だけ取り込み</li>'
+      + '</ol>'
+      + '<div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:8px 10px;border-radius:8px;">App Store 版で iOS EventKit による直接連携を予定。現 Web 版は許可なしに iPhone カレンダーを読み取りません。</div>';
+  }
+  if(step === 'yahoo') {
+    return '<div style="font-weight:700;color:var(--text);margin-bottom:6px;">Yahooカレンダーの予定を取り込む</div>'
+      + '<ol style="margin:0 0 8px 18px;padding:0;">'
+      + '<li>Yahooカレンダーから .ics 形式で書き出し（対応している場合）</li>'
+      + '<li>下の「.ics ファイルを選択」で取り込み</li>'
+      + '<li>プレビューで確認 → 必要な予定だけ取り込み</li>'
+      + '</ol>'
+      + '<div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:8px 10px;border-radius:8px;">完全自動同期は対応 API / 認証方式の確認中。現時点は ICS 取込のみ。</div>';
+  }
+  // ics 直接
+  return '<div style="font-weight:700;color:var(--text);margin-bottom:6px;">ICSファイルを取り込む</div>'
+    + '<div style="margin-bottom:8px;">他のカレンダーアプリ（Outlook / Thunderbird / 学校・園からの配布 .ics 等）から書き出した .ics ファイル / テキストを直接取り込めます。</div>'
+    + '<div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:8px 10px;border-radius:8px;">対応形式：BEGIN:VCALENDAR / VEVENT、UID / SUMMARY / DTSTART / DTEND / DESCRIPTION / LOCATION / RRULE。</div>';
+}
+
+function openIcsImportModal(initialStep) {
   const fileInput = document.getElementById('ics-file-input');
   const textInput = document.getElementById('ics-text-input');
   const preview = document.getElementById('ics-preview');
@@ -5915,7 +5989,9 @@ function openIcsImportModal() {
   if(textInput) textInput.value = '';
   if(preview) preview.style.display = 'none';
   _icsPreviewItems = [];
+  _icsCurrentProvider = '';
   openModal('m-ics-import');
+  setIcsImportStep(initialStep || 'select');
 }
 
 function onIcsFileSelected(ev) {
@@ -6006,13 +6082,13 @@ function _icsToEvent(props, prodid) {
     else if(/FREQ=MONTHLY/.test(u)) repeat = 'monthly';
   }
 
-  // プロバイダ推定
+  // プロバイダ推定（順序：固有名詞が一意なものから判定 / Wave 64 で yahoo/familink を apple より先に）
   let provider = 'unknown';
   if(/google/i.test(prodid)) provider = 'google';
-  else if(/apple|icloud|mac|cal/i.test(prodid)) provider = 'apple';
   else if(/yahoo/i.test(prodid)) provider = 'yahoo';
-  else if(/outlook|microsoft/i.test(prodid)) provider = 'outlook';
   else if(/familink/i.test(prodid)) provider = 'familink';
+  else if(/outlook|microsoft/i.test(prodid)) provider = 'outlook';
+  else if(/apple|icloud|ical/i.test(prodid)) provider = 'apple';
 
   return {
     title: summary || '(無題の予定)',
@@ -6131,20 +6207,25 @@ function executeIcsImport() {
   if(!toImport.length) { showToast('取り込む予定を選択してください','error'); return; }
   const now = new Date().toISOString();
   if(!S.events) S.events = [];
+  // Wave 64：選択中プロバイダで上書き（unknown を Google / Apple / Yahoo で補正）
+  const userProvider = _icsCurrentProvider && _icsCurrentProvider !== 'ics' ? _icsCurrentProvider : '';
   let added = 0, skipped = 0;
   toImport.forEach(x => {
+    const ev = Object.assign({}, x.ev);
+    if(userProvider && (!ev.externalProvider || ev.externalProvider === 'unknown')) {
+      ev.externalProvider = userProvider;
+    }
     if(x.isDup && x.dupId) {
       // 重複は既存予定を上書き
-      const ex = S.events.find(e => e.id === x.dupId);
-      if(ex) {
-        Object.assign(ex, x.ev);
-        ex.id = ex.id; // 保持
-        ex.updatedAt = now;
-        ex.importedAt = now;
+      const exrec = S.events.find(e => e.id === x.dupId);
+      if(exrec) {
+        Object.assign(exrec, ev);
+        exrec.updatedAt = now;
+        exrec.importedAt = now;
         added++;
       } else { skipped++; }
     } else {
-      S.events.push(Object.assign({}, x.ev, {
+      S.events.push(Object.assign({}, ev, {
         id: 'event_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         importedAt: now,
         createdAt: now,
@@ -6154,9 +6235,13 @@ function executeIcsImport() {
     }
   });
   saveS();
-  closeModal('m-ics-import');
-  renderCal();
+  if(typeof renderCal === 'function') renderCal();
+  // Wave 64：完了ステップへ（即閉じない）
+  const doneEl = document.getElementById('ics-done-summary');
+  if(doneEl) doneEl.textContent = `${added} 件を取り込みました${skipped?` / ${skipped} 件スキップ`:''}`;
+  setIcsImportStep('done');
   showToast(`${added} 件を取り込みました${skipped?` / ${skipped} 件スキップ`:''}`);
+  return { added, skipped };
 }
 
 function selCalDayKeepView(ds) { S.calSel=ds; renderCal(); }
@@ -11997,15 +12082,18 @@ function saveBoardSection() {
    ============================================================ */
 
 /* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
+/* Wave 62: 見る系（_view）と 入れる系（_add）を分けて並べる */
 const HOKU_SUGGESTIONS = [
-  '明日の持ち物を整理したい',
-  '今週の予定を確認したい',
-  '子どもの体調をメモしたい',
-  '今月の出費を見直したい',
-  '家族に共有したいことがある',
-  '小学校の準備を進めたい',
-  '習い事の予定を整理したい',
-  '忘れないように通知したい',
+  '明日の予定を見る',
+  '今週の予定を見る',
+  '今日のタスクを見る',
+  '今月の家計を見る',
+  '体調を確認したい',
+  '買い物リストを見る',
+  '明日の準備を見る',
+  '予定を追加したい',
+  'タスクを追加したい',
+  '体調を記録したい',
   '何ができる？',
 ];
 
@@ -12770,8 +12858,49 @@ const VOICE_TERM_NORMALIZE = [
 function voiceCorrectText(raw) {
   if(!raw) return '';
   let t = String(raw).trim();
+  // Wave 63: 全角英数字 → 半角
+  t = t.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+       .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  // Wave 63: 漢数字 → アラビア数字（金額・体温抽出のため）
+  t = _hokuKanjiNumNormalize(t);
   for(const [re, to] of VOICE_TERM_NORMALIZE) t = t.replace(re, to);
   return t;
+}
+
+/* Wave 63: 漢数字混じり表現の正規化
+   ・「八万円」「三万円」「三十万」→ 「8万円」「3万円」「30万」
+   ・「三十七度八分」→ 「37度8分」
+   ・桁の組み合わせ（百千万）まで簡易対応（家計入力で使う範囲） */
+function _hokuKanjiNumNormalize(s) {
+  if(!s || !/[〇零一二三四五六七八九十百千万]/.test(s)) return s;
+  const digit = { '〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9 };
+  // 連続した漢数字（万・億は含まない）を 0..9999 へ
+  function smallToNum(seg) {
+    // seg は 一〜九/十/百/千 の組合せ。例「三十七」「百二十」「五百」
+    if(/^[〇零一二三四五六七八九]+$/.test(seg)) {
+      return seg.split('').map(c=>digit[c]).join('');
+    }
+    let n = 0, cur = 0;
+    for(let i=0;i<seg.length;i++){
+      const c = seg[i];
+      if(c==='千'){ n += (cur||1)*1000; cur=0; }
+      else if(c==='百'){ n += (cur||1)*100; cur=0; }
+      else if(c==='十'){ n += (cur||1)*10; cur=0; }
+      else if(digit[c]!=null){ cur = digit[c]; }
+      else { return null; }
+    }
+    return String(n + cur);
+  }
+  // 「N万 + 残り」 / 「N + 万 + M」 形式の前処理
+  // 例：「八万円」→ 「8万円」、「三万」→ 「3万」、「三十万」→ 「30万」、「三十七度八分」→ 「37度8分」
+  s = s.replace(/([〇零一二三四五六七八九十百千]+)万/g, (_, k) => {
+    const v = smallToNum(k); return v != null ? v + '万' : _;
+  });
+  // 度+分 のための残り漢数字（10 未満の数字 / 二桁）
+  s = s.replace(/([〇零一二三四五六七八九十百千]+)(度|分|円|時|本|個|枚|歳|才|人)/g, (_, k, suf) => {
+    const v = smallToNum(k); return v != null ? v + suf : _;
+  });
+  return s;
 }
 
 /* テキストから家族メンバー id を解決（複数 hit 時は最初の 1 件） */
@@ -13070,7 +13199,14 @@ const HOKU_INTENT_META = {
   shopping_purchased:     { uiCat:null,       store:'S.shoppingHistory',  label:'購入済み（履歴へ移動）', isShopping:true },
   recurring_budget_add:   { uiCat:null,       store:'S.recurringTxs', label:'固定収支',  isRecurringBudget:true },
   cashflow_view:          { uiCat:null,       store:null,             label:'資金繰り表' },
+  calendar_view:          { uiCat:null,       store:null,             label:'予定を確認',     isView:true },
+  task_view:              { uiCat:null,       store:null,             label:'タスクを確認',   isView:true },
+  budget_view:            { uiCat:null,       store:null,             label:'家計を確認',     isView:true },
+  health_view:            { uiCat:null,       store:null,             label:'体調を確認',     isView:true },
+  prep_view:              { uiCat:null,       store:null,             label:'準備を確認',     isView:true },
+  shopping_view:          { uiCat:null,       store:null,             label:'買い物を確認',   isView:true },
   external_calendar_help: { uiCat:null,       store:null,           label:'外部カレンダー連携案内' },
+  calendar_import_help:   { uiCat:null,       store:null,           label:'外部カレンダー取込案内', isView:true },
   settings_help:          { uiCat:null,       store:null,           label:'設定案内' },
   unknown:                { uiCat:null,       store:null,           label:'要確認' }
 };
@@ -13223,6 +13359,17 @@ function parseHokuIntent(rawText, source) {
   const text = voiceCorrectText(raw);
 
   // 1) ヘルプ系（先に判定）— 登録ではなく案内
+  // Wave 64: 取り込み / 反映 / 読み込み 系は calendar_import_help（取込画面へ誘導）。
+  // それ以外（連携 / 書き出し / 同期 / 一般質問）は external_calendar_help（案内のみ）。
+  const _importVerb = /(取り込|取込|読み込|読込|反映|インポート|import|読み取|入れたい|入れる)/i.test(text);
+  const _calendarKeyword = /Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|Apple.*カレンダー|Appleカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|\.ics|ics\b|カレンダー(?:を|から).*(取り込|取込|読み込|反映|インポート|入れ)/i.test(text);
+  if(_importVerb && _calendarKeyword) {
+    let pv = '';
+    if(/Google|google|グーグル/i.test(text)) pv = 'google';
+    else if(/iPhone|iphone|アイフォン|Apple|apple|iCloud/i.test(text)) pv = 'apple';
+    else if(/Yahoo|yahoo|ヤフー/i.test(text))  pv = 'yahoo';
+    return _hokuMakeIntent('calendar_import_help', raw, text, source, 0.92, { provider: pv });
+  }
   if(text.match(/Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|LINE.*カレンダー|\.ics|ics.*書き|ics.*取|カレンダー.*連携|カレンダー.*同期|カレンダー.*取込|カレンダー.*エクスポート/i)) {
     return _hokuMakeIntent('external_calendar_help', raw, text, source, 0.9, {});
   }
@@ -13233,6 +13380,18 @@ function parseHokuIntent(rawText, source) {
   // 1.4) Wave 60: 資金繰り表を見たい
   if(/(資金繰り|お金の見通し|月末残高|今月の収支|今月.*いくら(残|入|出))/.test(text)) {
     return _hokuMakeIntent('cashflow_view', raw, text, source, 0.85, {});
+  }
+  // 1.42) Wave 62: 参照系（教えて / 見たい / 確認したい / 何がある？ / 開いて）— 追加系より優先
+  // 「追加 / 入れて / 登録 / 反映 / 計上 / 記録して / リストに入れて / カレンダーに入れて」 が含まれている場合は除外
+  const isAddVerb = /(追加|入れて|登録|反映|計上|リスト.*入|カレンダー.*入|タスクに(?:して|追加)|保存|記録して|メモして|メモしたい|残す|残して)/.test(text);
+  const isViewVerb = /(教えて|見たい|見せて|見直(?:したい|して|す)?|確認(?:したい|して)?|何が(?:ある|入っ)|予定(?:は|が)?ある[？?]?$|予定[？?]$|何ある|履歴|過去.*ログ|開いて|を見る|を確認|チェック)/.test(text);
+  // Wave 63: 期間語 + の(予定|タスク|家計|準備|買い物|体調) で終わる短文も view（時刻/タイトルが無いので add ではない）
+  const isPeriodOnlyView = /^(今日|明日|明後日|今週|来週|今月|先月|今夜|今晩|今朝|今週末|来週末)(の|は)?(予定|タスク|家計|準備|買い物|体調|スケジュール)?[はが]?$/.test(text.trim());
+  if((isViewVerb || isPeriodOnlyView) && !isAddVerb) {
+    const v = _hokuDetectViewIntent(text);
+    if(v) {
+      return _hokuMakeIntent(v.type, raw, text, source, 0.88, v.entities || {});
+    }
   }
   // 1.45) Wave 60: 固定収支（毎月◯日 / 毎月末 / 毎週X曜 / 毎年）の登録
   const rb = _hokuDetectRecurringBudget(text);
@@ -13288,6 +13447,10 @@ function parseHokuIntent(rawText, source) {
   else confidence = 0.25;
   if(intentType === 'unknown') confidence = Math.min(confidence, 0.35);
   if(intentType === 'external_calendar_help' || intentType === 'settings_help') confidence = 0.9;
+  // Wave 63: ドメイン語 1 語だけの極短文（「家計」「体調」「予定」「タスク」）は信頼度を 0.4 未満に抑え、聞き返しへ
+  if(text.length <= 4 && /^(家計|体調|予定|タスク|準備|買い物)$/.test(text.trim())) {
+    confidence = Math.min(confidence, 0.35);
+  }
 
   // 7) Entities
   const memName = v.member ? (memberNameById(v.member) || '') : '';
@@ -13355,8 +13518,21 @@ function parseHokuIntent(rawText, source) {
   }
 
   // 9) 曖昧判定（best と secondary が拮抗）
-  const ambiguous = !!(v.secondary && v.score && (v.score - (v.score - 1)) < 2 && intentType !== 'unknown' && intentType !== 'external_calendar_help' && intentType !== 'settings_help'
+  const ambiguous = !!(v.secondary && v.score && (v.score - (v.score - 1)) < 2 && intentType !== 'unknown' && intentType !== 'external_calendar_help' && intentType !== 'calendar_import_help' && intentType !== 'settings_help'
     && (text.length <= 12 && !text.match(/カレンダー|タスク|準備|家計|体調|家族ボード/)));
+
+  // Wave 62: unknown だが add 動詞 + ドメイン語が拾えれば低信頼で _add に振る（聞き返しに繋ぐ）
+  if(intentType === 'unknown') {
+    const isAddVerbHint = /(追加|入れて|登録|反映|保存|メモ(?:して|したい)|残(?:す|して|したい)|記録)/.test(text);
+    if(isAddVerbHint) {
+      if(/(体調|体温|発熱|症状|薬)/.test(text)) { intentType = 'health_add'; confidence = Math.max(confidence, 0.45); }
+      else if(/(家計|出費|支出|収入|お金|円)/.test(text)) { intentType = 'budget_add'; confidence = Math.max(confidence, 0.45); }
+      else if(/(タスク|やること|TODO|todo)/i.test(text)) { intentType = 'task_add'; confidence = Math.max(confidence, 0.45); }
+      else if(/(予定|スケジュール|カレンダー)/.test(text)) { intentType = 'calendar_add'; confidence = Math.max(confidence, 0.45); }
+      else if(/(買い物|買物|ショッピング)/.test(text)) { intentType = 'shopping_add'; confidence = Math.max(confidence, 0.45); }
+      else if(/(持ち物|準備)/.test(text)) { intentType = 'prep_add'; confidence = Math.max(confidence, 0.45); }
+    }
+  }
 
   return _hokuMakeIntent(intentType, raw, text, source, confidence, entities, {
     missingFields,
@@ -13408,6 +13584,7 @@ const HOKU_SHORT_REPLY = {
   cashflow_view:          '資金繰りを開くね。',
   notification_add:       '通知センターに残すね（OS プッシュは v1.0 以降）。',
   external_calendar_help: '今は ICS の取込・書き出しに対応。完全自動同期は今後対応予定。',
+  calendar_import_help:   'カレンダー画面の「取込」から ICS で取り込めるよ。',
   settings_help:          '設定から変えられるよ。開く？',
   unknown:                ''
 };
@@ -13523,6 +13700,128 @@ function _hokuRebuildIntent(intentType, entities, confidence, raw) {
   };
 }
 
+/* Wave 62: 参照系 intent 検出（calendar/budget/health/prep/shopping/task の view 系を分類） */
+function _hokuDetectViewIntent(text) {
+  if(!text) return null;
+  // 期間 / 対象日
+  let period = 'day';
+  let date = null;
+  if(/今日/.test(text))             { period='day';   date='today'; }
+  else if(/明日/.test(text))         { period='day';   date='tomorrow'; }
+  else if(/明後日/.test(text))       { period='day';   date='dayafter'; }
+  else if(/今週/.test(text))         { period='week';  date='thisweek'; }
+  else if(/来週/.test(text))         { period='week';  date='nextweek'; }
+  else if(/今月/.test(text))         { period='month'; date='thismonth'; }
+  else if(/先月/.test(text))         { period='month'; date='lastmonth'; }
+  // メンバー
+  const memberId = (typeof voiceResolveMember === 'function') ? voiceResolveMember(text) : null;
+
+  // カテゴリ判定（優先順位：体調 → 家計 → 準備 → 買い物 → タスク → 予定）
+  if(/(体調|体温|発熱|症状|薬|病院|健康)/.test(text)) {
+    return { type:'health_view', entities:{ memberId: memberId, period: period, date: date }};
+  }
+  if(/(家計|出費|支出|収入|お金|いくら使|いくら入|食費|交通費|医療費|光熱費)/.test(text)) {
+    return { type:'budget_view', entities:{ memberId: memberId, period: period, date: date }};
+  }
+  if(/(持ち物|準備|準備リスト|準備物|忘れ物|時間割|ルーティン)/.test(text)) {
+    return { type:'prep_view', entities:{ memberId: memberId, period: period, date: date }};
+  }
+  if(/(買い物|買物|買うもの|ショッピング)/.test(text)) {
+    return { type:'shopping_view', entities:{ memberId: memberId }};
+  }
+  if(/(タスク|やること|TODO|todo|to-?do)/i.test(text)) {
+    return { type:'task_view', entities:{ memberId: memberId, period: period, date: date }};
+  }
+  if(/(予定|スケジュール|カレンダー|イベント)/.test(text) || date) {
+    // date がある場合は予定 view にデフォルト
+    return { type:'calendar_view', entities:{ memberId: memberId, period: period, date: date }};
+  }
+  return null;
+}
+
+/* Wave 62: view 系 intent の実行（短い結果テキスト + ACTION ボタン） */
+function _hokuExecuteView(intent) {
+  const t = intent.intentType;
+  const e = intent.entities || {};
+  const NL = '\n';
+  const fmtDate = s => s ? (s.slice(5).replace('-','/')) : '';
+  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+
+  // 期間レンジを date 文字列の比較関数として用意
+  function inPeriod(dateStr) {
+    if(!dateStr) return false;
+    if(e.date === 'today')      return dateStr === today;
+    if(e.date === 'tomorrow')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return dateStr === t.toISOString().slice(0,10); }
+    if(e.date === 'dayafter')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+2);return dateStr === t.toISOString().slice(0,10); }
+    if(e.date === 'thisweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()); const end=new Date(start); end.setDate(start.getDate()+6); const ds=start.toISOString().slice(0,10), de=end.toISOString().slice(0,10); return dateStr>=ds && dateStr<=de; }
+    if(e.date === 'nextweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()+7); const end=new Date(start); end.setDate(start.getDate()+6); const ds=start.toISOString().slice(0,10), de=end.toISOString().slice(0,10); return dateStr>=ds && dateStr<=de; }
+    if(e.date === 'thismonth')  return dateStr.slice(0,7) === today.slice(0,7);
+    if(e.date === 'lastmonth')  { const td=new Date(today+'T00:00:00');td.setMonth(td.getMonth()-1);return dateStr.slice(0,7) === td.toISOString().slice(0,7); }
+    // デフォルト：今後 1 週間
+    const td=new Date(today+'T00:00:00'); const end=new Date(td); end.setDate(td.getDate()+7);
+    return dateStr >= today && dateStr <= end.toISOString().slice(0,10);
+  }
+  const periodLabel = e.date === 'today' ? '今日' : e.date === 'tomorrow' ? '明日' : e.date === 'dayafter' ? '明後日'
+    : e.date === 'thisweek' ? '今週' : e.date === 'nextweek' ? '来週'
+    : e.date === 'thismonth' ? '今月' : e.date === 'lastmonth' ? '先月' : '直近';
+
+  if(t === 'calendar_view') {
+    const all = (S.events||[]).filter(ev => ev && ev.date && inPeriod(ev.date) && (!e.memberId || ev.member === e.memberId || ev.memberId === e.memberId));
+    all.sort((a,b)=> (a.date+a.time||'').localeCompare(b.date+b.time||''));
+    if(!all.length) return { ok:true, message: periodLabel+'の予定はまだないよ。\n\n[[ACTION_BUTTONS:calendar]]' };
+    const head = periodLabel+'の予定 '+all.length+' 件あるよ。';
+    const body = all.slice(0,5).map(ev => '・'+fmtDate(ev.date)+(ev.time?' '+ev.time:'')+' '+(ev.title||'(無題)')).join(NL);
+    const more = all.length>5 ? NL+'…ほか '+(all.length-5)+' 件' : '';
+    return { ok:true, message: head + NL + body + more + '\n\n[[ACTION_BUTTONS:calendar]]' };
+  }
+  if(t === 'task_view') {
+    const all = (S.tasks||[]).filter(x => x && x.status !== 'done' && (!e.memberId || x.assignedTo === e.memberId));
+    if(!all.length) return { ok:true, message:'未完了のタスクはないよ。\n\n[[ACTION_BUTTONS:task]]' };
+    const body = all.slice(0,5).map(x => '・'+(x.title||'(無題)')+(x.dueDate?' ('+x.dueDate.slice(5).replace('-','/')+')':'')).join(NL);
+    const more = all.length>5 ? NL+'…ほか '+(all.length-5)+' 件' : '';
+    return { ok:true, message:'未完了タスク '+all.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:task]]' };
+  }
+  if(t === 'budget_view') {
+    const txs = (S.txs||[]).filter(x => x && x.date && inPeriod(x.date) && (!e.memberId || x.member === e.memberId));
+    if(!txs.length) return { ok:true, message: periodLabel+'の家計はまだ記録なし。\n\n[[ACTION_BUTTONS:budget]]' };
+    let inc=0, exp=0;
+    txs.forEach(x => { const a=Number(x.amount)||0; if(x.type==='income') inc+=a; else exp+=a; });
+    const lines = [];
+    lines.push(periodLabel+'：収入 ¥'+inc.toLocaleString()+' / 支出 ¥'+exp.toLocaleString());
+    lines.push('差額 '+(inc-exp>=0?'+':'')+'¥'+(inc-exp).toLocaleString());
+    return { ok:true, message: lines.join(NL) + '\n\n[[ACTION_BUTTONS:budget]]' };
+  }
+  if(t === 'health_view') {
+    const all = (S.health||[]).filter(x => x && (!e.memberId || x.memberId === e.memberId || x.child === e.memberId)).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+    if(!all.length) return { ok:true, message:'体調記録はまだないよ。\n\n[[ACTION_BUTTONS:health]]' };
+    const body = all.slice(0,3).map(x => '・'+(x.date||'').slice(5).replace('-','/')+' '+(x.temp?x.temp+'℃':'')+(x.memo?' '+x.memo:'')).join(NL);
+    const more = all.length>3 ? NL+'…ほか '+(all.length-3)+' 件' : '';
+    return { ok:true, message:'直近の体調 '+all.length+' 件。'+NL+body+more+'\n※ 振り返り用、診断ではないよ。\n\n[[ACTION_BUTTONS:health]]' };
+  }
+  if(t === 'prep_view') {
+    const all = (S.prep||[]).filter(x => x && (!e.memberId || x.memberId === e.memberId));
+    const target = (e.date === 'tomorrow') ? '明日' : '今日/明日';
+    const filtered = all.filter(x => {
+      if(!x.date) return false;
+      if(e.date === 'today')    return x.date === today;
+      if(e.date === 'tomorrow') { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return x.date === t.toISOString().slice(0,10); }
+      return true;
+    });
+    if(!filtered.length) return { ok:true, message: target+'の準備はまだないよ。\n\n[[ACTION_BUTTONS:prep]]' };
+    const body = filtered.slice(0,5).map(x => (x.done?'✓ ':'・ ')+(x.text||'')).join(NL);
+    const more = filtered.length>5 ? NL+'…ほか '+(filtered.length-5)+' 件' : '';
+    return { ok:true, message: target+'の準備 '+filtered.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:prep]]' };
+  }
+  if(t === 'shopping_view') {
+    const items = (S.shoppingItems||[]).filter(x => x && (!e.memberId || x.assignedTo === e.memberId));
+    if(!items.length) return { ok:true, message:'買い物リストは空だよ。\n\n[[ACTION_BUTTONS:shopping]]' };
+    const body = items.slice(0,5).map(x => '・'+(x.name||'')+(x.qty?' '+x.qty:'')).join(NL);
+    const more = items.length>5 ? NL+'…ほか '+(items.length-5)+' 件' : '';
+    return { ok:true, message:'買い物リスト '+items.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:shopping]]' };
+  }
+  return { ok:false, message:'どこを見る？' };
+}
+
 /* 不足情報がある場合の Hoku 質問文（短文返答） */
 function _hokuAskBackMessage(intent) {
   const t = intent && intent.intentType;
@@ -13540,7 +13839,15 @@ function executeHokuAction(intent) {
 
   // Wave 61: 案内系（保存しない）— 短文化
   if(intent.intentType === 'external_calendar_help') {
-    return { ok:true, message: '今は ICS の取込・書き出しに対応。完全自動同期は今後対応予定。\n\n[[ACTION_BUTTONS:calendar]]' };
+    return { ok:true, message: '今は ICS の取込・書き出しに対応。完全自動同期は今後対応予定。\n\n[[ACTION_BUTTONS:cal_import]]' };
+  }
+  // Wave 64: 取込ヘルプ（プロバイダ別の取込画面へ誘導）
+  if(intent.intentType === 'calendar_import_help') {
+    const pv = (intent.entities && intent.entities.provider) || '';
+    if(pv === 'google') return { ok:true, message:'Googleカレンダーは ICS で書き出して取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_google]]' };
+    if(pv === 'apple')  return { ok:true, message:'iPhoneカレンダーは ICS で書き出して取り込めるよ。完全自動同期は App Store 版で対応予定。\n\n[[ACTION_BUTTONS:cal_import_apple]]' };
+    if(pv === 'yahoo')  return { ok:true, message:'Yahooカレンダーは ICS で書き出して取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_yahoo]]' };
+    return { ok:true, message:'カレンダー画面の「取込」から ICS で取り込めるよ。Google / Apple / Yahoo 別の手順も用意してる。\n\n[[ACTION_BUTTONS:cal_import]]' };
   }
   if(intent.intentType === 'settings_help') {
     return { ok:true, message: '設定から変えられるよ。開く？' };
@@ -13564,6 +13871,11 @@ function executeHokuAction(intent) {
     switchTab('s-budget');
     setTimeout(function(){ setBudgetTab('cashflow'); }, 100);
     return { ok:true, message:'資金繰りを開くね。※ 見込み値だよ。' };
+  }
+
+  // Wave 62: 参照系 view intent（calendar_view / task_view / budget_view / health_view / prep_view / shopping_view）
+  if(/_view$/.test(intent.intentType) && typeof _hokuExecuteView === 'function') {
+    return _hokuExecuteView(intent);
   }
 
   // Wave 55: prep_routine_add で複数持ち物（「火曜は算数ノートと計算ドリル」等）が抽出できた場合は一括登録（要 confirm）
@@ -14045,6 +14357,8 @@ function classifyHokuInput(q) {
   // ─── calendar: 日時 + 予定/場所のシグナル ───
   if(q.match(/明日|今日|来週|来月|今度|今週|あさって|明後日|来年|再来週/)) scores.calendar += 2;
   if(q.match(/\d{1,2}\/\d{1,2}|\d{1,2}日|\d{1,2}時|時から|時に|\d{1,2}月\d{1,2}|月曜|火曜|水曜|木曜|金曜|土曜|日曜|平日|週末/)) scores.calendar += 2;
+  // Wave 63: 時間帯ワード（朝/昼/夕方/夜/晩/午前/午後/今夜/今朝/今晩）も calendar 寄り
+  if(q.match(/(朝|昼|夕方|夜|晩|午前|午後|今夜|今朝|今晩)/)) scores.calendar += 1;
   if(q.match(/予定|スケジュール|集合|面談|行事|参観|発表会|遠足|入学式|卒園|卒業|健診|検診|診察|歯科|小児科|内科|眼科|耳鼻科|皮膚科|病院|医院|クリニック/)) scores.calendar += 2;
   if(q.match(/学校|幼稚園|保育園|園|塾|習い事|レッスン|ピアノ|スイミング|サッカー|英会話|そろばん|ダンス|空手|柔道|公文/)) scores.calendar += 1;
   if(q.match(/カレンダー/)) scores.calendar += 3;
@@ -14056,6 +14370,8 @@ function classifyHokuInput(q) {
   if(q.match(/やること|タスク|todo|ToDo/i)) scores.task += 3;
   if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える|電話する|電話して|問い合わせ|予約する|予約して|申し込む|申し込み|送る|送って/)) scores.task += 2;
   if(q.match(/書類|プリント|アンケート|申込|申し込み|提出物|宿題|課題/)) scores.task += 2;
+  // Wave 63: 連絡帳に書く / サインする / 押印 は task 寄り（prep の連絡帳「持参」と区別）
+  if(q.match(/連絡帳.*書|サイン|押印|捺印|スタンプ.*押/)) scores.task += 2;
   // Wave 58: 「電話」「連絡」など短い動詞単体も task 寄り（電話は calendar の発表会等と区別したい）
   if(q.match(/(?:^|[\s、,])(電話|連絡|送付|送金|振込|振り込み|キャンセル)(?:[\s、,]|$|して|する|を|に)/)) scores.task += 2;
   // 「○○までに〜動詞」は明確な期限付きタスク
@@ -14182,6 +14498,31 @@ function classifierActions(category, secondary) {
     return [
       { label: '資金繰りを開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('cashflow'); },100)" },
       { label: '固定収支を開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('recurring'); },100)" }
+    ];
+  }
+  // Wave 64: 外部カレンダー取込
+  if(category === 'cal_import') {
+    return [
+      { label: '取込画面を開く', onclick: "switchTab('s-cal');setTimeout(function(){ openIcsImportModal('select'); },200)" },
+      { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" }
+    ];
+  }
+  if(category === 'cal_import_google') {
+    return [
+      { label: 'Googleから取込', onclick: "switchTab('s-cal');setTimeout(function(){ openIcsImportModal('google'); },200)" },
+      { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" }
+    ];
+  }
+  if(category === 'cal_import_apple') {
+    return [
+      { label: 'iPhoneから取込', onclick: "switchTab('s-cal');setTimeout(function(){ openIcsImportModal('apple'); },200)" },
+      { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" }
+    ];
+  }
+  if(category === 'cal_import_yahoo') {
+    return [
+      { label: 'Yahooから取込', onclick: "switchTab('s-cal');setTimeout(function(){ openIcsImportModal('yahoo'); },200)" },
+      { label: 'カレンダーを開く', onclick: "switchTab('s-cal')" }
     ];
   }
   // Wave 54: 買い物リスト系
@@ -15597,36 +15938,110 @@ document.addEventListener('touchcancel', () => {
   </div>
 </div>
 
-<!-- ===== Wave 40：ICS インポートモーダル ===== -->
+<!-- ===== Wave 64：外部カレンダー取込モーダル（プロバイダ選択 + ICS 取込）===== -->
 <div id="m-ics-import" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title">外部カレンダーから取り込み</div>
+    <div class="modal-title" id="ics-modal-title">外部カレンダーを取り込む</div>
+
+    <!-- プライバシー説明（共通） -->
     <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;background:var(--bg-muted);padding:10px 12px;border-radius:10px;">
-      Familink は、ユーザーが選択した <b>.ics ファイル</b> または貼り付けたカレンダーデータのみを読み込みます。<br>
-      Google / iPhone / Yahoo カレンダーを自動で読み取ることはありません。<br>
-      Google Calendar / iPhone カレンダー / Yahoo カレンダー / Outlook 等から書き出した .ics ファイルを取り込めます。
+      Familink は、ユーザーが選択したファイルまたは貼り付けたカレンダーデータのみを読み込みます。<br>
+      現在の Web 版では、Google / Apple / Yahoo カレンダーを自動で読み取ることはありません。<br>
+      <span style="color:var(--text-sub);">完全自動同期は、明示的な許可と安全な認証基盤を用意したうえで対応予定です。</span>
     </div>
-    <div class="field">
-      <div class="field-label">.ics ファイルを選択</div>
-      <input type="file" id="ics-file-input" accept=".ics,text/calendar" onchange="onIcsFileSelected(event)" style="font-size:13px;">
-    </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
-    <div class="field">
-      <div class="field-label">.ics テキストを貼り付け</div>
-      <textarea class="input" id="ics-text-input" rows="4" placeholder="BEGIN:VCALENDAR ... END:VCALENDAR" style="font-family:monospace;font-size:11px;"></textarea>
-    </div>
-    <button class="btn btn-outline btn-block" onclick="parseIcsAndPreview()" style="margin-bottom:14px;">解析してプレビュー</button>
-    <div id="ics-preview" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;" id="ics-preview-summary"></div>
-      <div id="ics-preview-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff;"></div>
-      <div style="display:flex;gap:6px;margin-top:8px;font-size:11px;">
-        <button class="btn btn-ghost" onclick="icsPreviewSelectAll(true)" style="flex:1;padding:6px;">すべて選択</button>
-        <button class="btn btn-ghost" onclick="icsPreviewSelectAll(false)" style="flex:1;padding:6px;">すべて解除</button>
+
+    <!-- ステップ1：プロバイダ選択 -->
+    <div id="ics-step-select">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">どのカレンダーから取り込む？</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+        <button class="settings-item" onclick="setIcsImportStep('google')" style="border-radius:12px;padding:14px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:12px;width:100%;">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4285F4 0%,#34A853 50%,#FBBC04 75%,#EA4335 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">G</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);">Googleカレンダーから取り込む</div>
+              <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">ICS で書き出して取込</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+        <button class="settings-item" onclick="setIcsImportStep('apple')" style="border-radius:12px;padding:14px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:12px;width:100%;">
+            <div style="width:36px;height:36px;border-radius:10px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;flex-shrink:0;">􀉉</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);">Apple / iPhoneカレンダーから取り込む</div>
+              <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">ICS で書き出して取込</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+        <button class="settings-item" onclick="setIcsImportStep('yahoo')" style="border-radius:12px;padding:14px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:12px;width:100%;">
+            <div style="width:36px;height:36px;border-radius:10px;background:#6001D2;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">Y!</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);">Yahooカレンダーから取り込む</div>
+              <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">ICS で書き出して取込</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
+        <button class="settings-item" onclick="setIcsImportStep('ics')" style="border-radius:12px;padding:14px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:12px;width:100%;">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);">ICSファイル / テキストを直接取り込む</div>
+              <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">他のカレンダーアプリから書き出した .ics</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-muted);"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </button>
       </div>
-      <button class="btn btn-primary btn-block" onclick="executeIcsImport()" style="margin-top:10px;">選択した予定を取り込む</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-ics-import')" style="margin-top:4px;">キャンセル</button>
     </div>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-ics-import')" style="margin-top:8px;">閉じる</button>
+
+    <!-- ステップ2：プロバイダ別ガイダンス + ICS 入力 -->
+    <div id="ics-step-provider" style="display:none;">
+      <div id="ics-provider-guide" style="font-size:12px;color:var(--text-sub);line-height:1.7;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;"></div>
+
+      <div class="field">
+        <div class="field-label">.ics ファイルを選択</div>
+        <input type="file" id="ics-file-input" accept=".ics,text/calendar" onchange="onIcsFileSelected(event)" style="font-size:13px;">
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
+      <div class="field">
+        <div class="field-label">.ics テキストを貼り付け</div>
+        <textarea class="input" id="ics-text-input" rows="4" placeholder="BEGIN:VCALENDAR ... END:VCALENDAR" style="font-family:monospace;font-size:11px;"></textarea>
+      </div>
+      <button class="btn btn-outline btn-block" onclick="parseIcsAndPreview()" style="margin-bottom:14px;">解析してプレビュー</button>
+
+      <div id="ics-preview" style="display:none;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;" id="ics-preview-summary"></div>
+        <div id="ics-preview-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff;"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;font-size:11px;">
+          <button class="btn btn-ghost" onclick="icsPreviewSelectAll(true)" style="flex:1;padding:6px;">すべて選択</button>
+          <button class="btn btn-ghost" onclick="icsPreviewSelectAll(false)" style="flex:1;padding:6px;">すべて解除</button>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="executeIcsImport()" style="margin-top:10px;">選択した予定を取り込む</button>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-ghost" onclick="setIcsImportStep('select')" style="flex:1;">戻る</button>
+        <button class="btn btn-ghost" onclick="closeModal('m-ics-import')" style="flex:1;">閉じる</button>
+      </div>
+    </div>
+
+    <!-- ステップ3：取り込み完了案内 -->
+    <div id="ics-step-done" style="display:none;text-align:center;padding:14px 4px;">
+      <div style="font-size:36px;margin-bottom:6px;">✅</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;" id="ics-done-summary"></div>
+      <div style="font-size:12px;color:var(--text-sub);line-height:1.7;margin-bottom:14px;">取り込んだ予定はカレンダー画面で確認できるよ。</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-block" onclick="closeModal('m-ics-import');switchTab('s-cal');">カレンダーを見る</button>
+        <button class="btn btn-outline btn-block" onclick="setIcsImportStep('select')">続けて取り込む</button>
+      </div>
+    </div>
   </div>
 </div>
 
