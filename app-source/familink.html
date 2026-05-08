@@ -12775,8 +12775,49 @@ const VOICE_TERM_NORMALIZE = [
 function voiceCorrectText(raw) {
   if(!raw) return '';
   let t = String(raw).trim();
+  // Wave 63: 全角英数字 → 半角
+  t = t.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+       .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  // Wave 63: 漢数字 → アラビア数字（金額・体温抽出のため）
+  t = _hokuKanjiNumNormalize(t);
   for(const [re, to] of VOICE_TERM_NORMALIZE) t = t.replace(re, to);
   return t;
+}
+
+/* Wave 63: 漢数字混じり表現の正規化
+   ・「八万円」「三万円」「三十万」→ 「8万円」「3万円」「30万」
+   ・「三十七度八分」→ 「37度8分」
+   ・桁の組み合わせ（百千万）まで簡易対応（家計入力で使う範囲） */
+function _hokuKanjiNumNormalize(s) {
+  if(!s || !/[〇零一二三四五六七八九十百千万]/.test(s)) return s;
+  const digit = { '〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9 };
+  // 連続した漢数字（万・億は含まない）を 0..9999 へ
+  function smallToNum(seg) {
+    // seg は 一〜九/十/百/千 の組合せ。例「三十七」「百二十」「五百」
+    if(/^[〇零一二三四五六七八九]+$/.test(seg)) {
+      return seg.split('').map(c=>digit[c]).join('');
+    }
+    let n = 0, cur = 0;
+    for(let i=0;i<seg.length;i++){
+      const c = seg[i];
+      if(c==='千'){ n += (cur||1)*1000; cur=0; }
+      else if(c==='百'){ n += (cur||1)*100; cur=0; }
+      else if(c==='十'){ n += (cur||1)*10; cur=0; }
+      else if(digit[c]!=null){ cur = digit[c]; }
+      else { return null; }
+    }
+    return String(n + cur);
+  }
+  // 「N万 + 残り」 / 「N + 万 + M」 形式の前処理
+  // 例：「八万円」→ 「8万円」、「三万」→ 「3万」、「三十万」→ 「30万」、「三十七度八分」→ 「37度8分」
+  s = s.replace(/([〇零一二三四五六七八九十百千]+)万/g, (_, k) => {
+    const v = smallToNum(k); return v != null ? v + '万' : _;
+  });
+  // 度+分 のための残り漢数字（10 未満の数字 / 二桁）
+  s = s.replace(/([〇零一二三四五六七八九十百千]+)(度|分|円|時|本|個|枚|歳|才|人)/g, (_, k, suf) => {
+    const v = smallToNum(k); return v != null ? v + suf : _;
+  });
+  return s;
 }
 
 /* テキストから家族メンバー id を解決（複数 hit 時は最初の 1 件） */
@@ -13248,8 +13289,10 @@ function parseHokuIntent(rawText, source) {
   // 1.42) Wave 62: 参照系（教えて / 見たい / 確認したい / 何がある？ / 開いて）— 追加系より優先
   // 「追加 / 入れて / 登録 / 反映 / 計上 / 記録して / リストに入れて / カレンダーに入れて」 が含まれている場合は除外
   const isAddVerb = /(追加|入れて|登録|反映|計上|リスト.*入|カレンダー.*入|タスクに(?:して|追加)|保存|記録して|メモして|メモしたい|残す|残して)/.test(text);
-  const isViewVerb = /(教えて|見たい|見せて|見直(?:したい|して|す)?|確認(?:したい|して)?|何が(?:ある|入っ)|予定[はある？]*$|何ある|履歴|過去.*ログ|開いて|を見る|を確認|チェック)/.test(text);
-  if(isViewVerb && !isAddVerb) {
+  const isViewVerb = /(教えて|見たい|見せて|見直(?:したい|して|す)?|確認(?:したい|して)?|何が(?:ある|入っ)|予定(?:は|が)?ある[？?]?$|予定[？?]$|何ある|履歴|過去.*ログ|開いて|を見る|を確認|チェック)/.test(text);
+  // Wave 63: 期間語 + の(予定|タスク|家計|準備|買い物|体調) で終わる短文も view（時刻/タイトルが無いので add ではない）
+  const isPeriodOnlyView = /^(今日|明日|明後日|今週|来週|今月|先月|今夜|今晩|今朝|今週末|来週末)(の|は)?(予定|タスク|家計|準備|買い物|体調|スケジュール)?[はが]?$/.test(text.trim());
+  if((isViewVerb || isPeriodOnlyView) && !isAddVerb) {
     const v = _hokuDetectViewIntent(text);
     if(v) {
       return _hokuMakeIntent(v.type, raw, text, source, 0.88, v.entities || {});
@@ -13309,6 +13352,10 @@ function parseHokuIntent(rawText, source) {
   else confidence = 0.25;
   if(intentType === 'unknown') confidence = Math.min(confidence, 0.35);
   if(intentType === 'external_calendar_help' || intentType === 'settings_help') confidence = 0.9;
+  // Wave 63: ドメイン語 1 語だけの極短文（「家計」「体調」「予定」「タスク」）は信頼度を 0.4 未満に抑え、聞き返しへ
+  if(text.length <= 4 && /^(家計|体調|予定|タスク|準備|買い物)$/.test(text.trim())) {
+    confidence = Math.min(confidence, 0.35);
+  }
 
   // 7) Entities
   const memName = v.member ? (memberNameById(v.member) || '') : '';
@@ -14206,6 +14253,8 @@ function classifyHokuInput(q) {
   // ─── calendar: 日時 + 予定/場所のシグナル ───
   if(q.match(/明日|今日|来週|来月|今度|今週|あさって|明後日|来年|再来週/)) scores.calendar += 2;
   if(q.match(/\d{1,2}\/\d{1,2}|\d{1,2}日|\d{1,2}時|時から|時に|\d{1,2}月\d{1,2}|月曜|火曜|水曜|木曜|金曜|土曜|日曜|平日|週末/)) scores.calendar += 2;
+  // Wave 63: 時間帯ワード（朝/昼/夕方/夜/晩/午前/午後/今夜/今朝/今晩）も calendar 寄り
+  if(q.match(/(朝|昼|夕方|夜|晩|午前|午後|今夜|今朝|今晩)/)) scores.calendar += 1;
   if(q.match(/予定|スケジュール|集合|面談|行事|参観|発表会|遠足|入学式|卒園|卒業|健診|検診|診察|歯科|小児科|内科|眼科|耳鼻科|皮膚科|病院|医院|クリニック/)) scores.calendar += 2;
   if(q.match(/学校|幼稚園|保育園|園|塾|習い事|レッスン|ピアノ|スイミング|サッカー|英会話|そろばん|ダンス|空手|柔道|公文/)) scores.calendar += 1;
   if(q.match(/カレンダー/)) scores.calendar += 3;
@@ -14217,6 +14266,8 @@ function classifyHokuInput(q) {
   if(q.match(/やること|タスク|todo|ToDo/i)) scores.task += 3;
   if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える|電話する|電話して|問い合わせ|予約する|予約して|申し込む|申し込み|送る|送って/)) scores.task += 2;
   if(q.match(/書類|プリント|アンケート|申込|申し込み|提出物|宿題|課題/)) scores.task += 2;
+  // Wave 63: 連絡帳に書く / サインする / 押印 は task 寄り（prep の連絡帳「持参」と区別）
+  if(q.match(/連絡帳.*書|サイン|押印|捺印|スタンプ.*押/)) scores.task += 2;
   // Wave 58: 「電話」「連絡」など短い動詞単体も task 寄り（電話は calendar の発表会等と区別したい）
   if(q.match(/(?:^|[\s、,])(電話|連絡|送付|送金|振込|振り込み|キャンセル)(?:[\s、,]|$|して|する|を|に)/)) scores.task += 2;
   // 「○○までに〜動詞」は明確な期限付きタスク

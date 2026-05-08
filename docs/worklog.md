@@ -7489,3 +7489,68 @@ Wave 62 — Hoku 参照系 (`*_view`) intent 追加 + 入力バー被り / チ�
 
 ### コミット
 - 予定メッセージ: `wave 62: hoku view intents + input bar safe-area fix`
+
+---
+
+## 2026-05-08 11:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 63 — Hoku 精度向上（全角・漢数字・時間帯・短文 view・バリデーション強化）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror)
+- /tmp/hoku-precision.js / hoku-precision2.js / hoku-precision3.js（精度テスト 137 件）
+
+### 変更内容
+**A. voiceCorrectText 強化**
+- 全角英数字 → 半角自動変換（`[０-９]/[Ａ-Ｚａ-ｚ]`）
+- 新ヘルパー `_hokuKanjiNumNormalize`：漢数字（一〜九/十/百/千/万）→ アラビア数字
+  - 例：「八万円」→「8万円」、「三十七度八分」→「37度8分」、「三十万」→「30万」
+
+**B. parseVoiceIntent 拡張**
+- 時間帯ワード（朝/昼/夕方/夜/晩/午前/午後/今夜/今朝/今晩）→ calendar +1
+- 「連絡帳に書く / サインする / 押印」→ task +2（prep の連絡帳「持参」と区別）
+
+**C. parseHokuIntent の view 振り分け**
+- isViewVerb に「見直したい / チェック / 履歴」追加
+- isAddVerb に「メモして / 残す」追加（unknown 落ち防止）
+- isPeriodOnlyView 追加：`今日/明日/今夜/今週末` などの期間語のみで終わる短文は view へ
+- 短文落とし穴：「家計」「体調」「予定」など 1 語極短文は confidence ≤ 0.35 に抑え聞き返しへ
+
+**D. unknown フォールバック**
+add 動詞 + ドメイン語が unknown 落ちしないよう低信頼 (0.45) で `*_add` に振り直す。
+
+### テスト結果
+**新 precision suites 137 / 137 PASS**
+- /tmp/hoku-precision.js  : 61 件（10 ドメイン横断 / view-add 振り分け / 期間 / 金額 / 体温 / 曜日 / 文脈 / 否定 / ヘルプ / 安全装置）
+- /tmp/hoku-precision2.js : 39 件（全角・漢数字 / 時間帯 / 来週末 / 短文 ask-back / 連続文脈 / 5 件頭打ち）
+- /tmp/hoku-precision3.js : 37 件（多ドメイン衝突 / 助詞揺れ / 過去ログ / cashflow vs budget_view / 単調性）
+
+**既存 16 スイート 455 件すべて PASS（退行ゼロ）**
+hoku-redesign 29 / hoku-view 32 / wave60 30 / scenario 27 / integration 55 / persistence 72 / member-test 16 / displayname 7 / avatar-propagation 19 / notif 16 / edge 76 / qty-chip 14 / data-share 24 / member-rename 7 / avatar 11 / avatar-fullscreen 20
+
+**合計 592 / 592 PASS**
+
+### 構文・整合性
+- md5 同期：`e40642d5389b5784e0fb49ce8f22d08f`
+
+### 未確認事項
+- 漢数字の「億 / 兆」レベルは未対応（家計入力で使う範囲外と判断）
+- 「今夜」を 19:00 と決め打ちしている（家庭差あり、将来 settings で調整可）
+
+### iPhone確認ポイント
+1. 「家賃８万円」（全角）→ 80,000 円で記録
+2. 「太郎三十七度八分」→ 37.8 度で記録
+3. 「今夜の予定」→ calendar_view、当日 19:00 以降の予定をフィルタ（簡易）
+4. 「明後日、予防接種の予定」→ calendar_add（イベント名「予防接種」）
+5. 「予定」「家計」「体調」のみ送信 → 「どこに入れる？」聞き返し
+6. 「連絡帳を書く」→ task_add に分類（prep ではない）
+
+### 次にやること
+- 実機で 6 シナリオ目視
+- 問題なければ default ブランチへマージしてバックアップ
+- 将来：「億 / 兆」の漢数字対応 / 時間帯の家庭別調整
+
+### コミット
+- 予定メッセージ: `wave 63: hoku precision (zenkaku, kanji digits, time-of-day, period-only view, bare keyword damping)`
