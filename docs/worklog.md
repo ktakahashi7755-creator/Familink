@@ -7554,3 +7554,98 @@ hoku-redesign 29 / hoku-view 32 / wave60 30 / scenario 27 / integration 55 / per
 
 ### コミット
 - 予定メッセージ: `wave 63: hoku precision (zenkaku, kanji digits, time-of-day, period-only view, bare keyword damping)`
+
+---
+
+## 2026-05-08 12:18  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 64 — 外部カレンダー取込（Google / Apple / Yahoo + ICS）プロバイダ選択 UI + Hoku 取込ヘルプ
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (mirror, md5: 6d9331111dc06a5cf42ca35b4c34ee2d)
+- docs/calendar-import-sync-roadmap.md（Wave 64 追補セクション追加）
+- /tmp/ics-import.js（新 VM テスト 57 件）
+
+### 変更内容
+**A. m-ics-import モーダルを 3 ステップ化**
+- ステップ1（select）：Google / Apple / Yahoo / ICS の 4 択カード + プライバシー説明
+- ステップ2（provider）：プロバイダ別ガイダンス + ファイル / テキスト入力 + プレビュー
+- ステップ3（done）：「N 件を取り込みました」+ 「カレンダーを見る」「続けて取り込む」
+
+**B. setIcsImportStep(step) 関数**
+- step を 'select' / 'google' / 'apple' / 'yahoo' / 'ics' / 'done' で切替
+- モーダルタイトルを動的更新
+- 入力欄リセット
+
+**C. _icsProviderGuideHtml(step) 関数**
+- 各プロバイダで「できること（ICS 取込）/ できないこと（自動同期）」を短く明示
+- 完全自動同期は v1.0 以降と必ず注記
+
+**D. PRODID プロバイダ推定バグ修正**
+旧コード `apple|icloud|mac|cal` で "YCalendar"（Yahoo）/ "Familink Calendar" が apple と誤判定。
+判定順を google → yahoo → familink → outlook → apple に変更（固有名詞優先）。
+apple は `apple|icloud|ical` に絞った。
+
+**E. executeIcsImport 改善**
+- 選択中プロバイダで externalProvider を上書き（unknown を補正）
+- 完了画面「done」ステップへ遷移（即閉じない）
+
+**F. Hoku 新 intent: calendar_import_help**
+- HOKU_INTENT_META に登録（uiCat:null / isView:true）
+- parseHokuIntent で「取り込み / 反映 / 読み込み」動詞 × カレンダー語で 0.92 信頼度発火
+- entities.provider = google / apple / yahoo / ''
+- HOKU_SHORT_REPLY に短文追加
+
+**G. ACTION_BUTTONS の cal_import 系（4 種）**
+- cal_import：取込画面を開く（select ステップから）
+- cal_import_google：Google ステップで開く
+- cal_import_apple / cal_import_yahoo：同上
+
+**H. external_calendar_help の応答ボタンを cal_import に変更**
+従来は「カレンダーを開く」だけだったが、「取込画面を開く」を追加。
+
+### テスト結果
+- 新 /tmp/ics-import.js: **57 / 57 PASS**
+  - ICS パーサー基本（11）+ TZID/UTC（5）+ RRULE（4）+ 折返し（1）+ エスケープ（3）
+  - 不正入力（4）+ PRODID 推定（4）
+  - Hoku intent 分類（6）+ executeHokuAction（5）+ ACTION ボタン（4）+ ガイダンス（4）
+  - メタ（3）+ 短文応答（3）
+- 既存 21 スイート 631 件すべて PASS（退行ゼロ）：
+  hoku-redesign 29 / hoku-view 32 / hoku-precision 61 / hoku-precision2 39 / hoku-precision3 37 /
+  wave60 30 / scenario 27 / integration 55 / persistence 72 / member-test 16 / displayname 7 /
+  avatar-propagation 19 / notif 16 / edge 76 / qty-chip 14 / data-share 24 / member-rename 7 /
+  avatar 11 / avatar-fullscreen 20
+
+**合計 688 / 688 PASS**
+
+### 構文・整合性
+- 構文 1/1 PASS
+- md5 同期：6d9331111dc06a5cf42ca35b4c34ee2d
+
+### 未確認事項
+- 実機で取込ボタンが iPhone SE / 13 / 15+ / Pro Max で崩れないか目視
+- 大きな ICS（500+ 予定）でプレビューが重くないか
+
+### iPhone確認ポイント
+1. カレンダー画面右上「📥 取込」ボタンが見える / 押せる
+2. モーダル冒頭にプライバシー説明が表示される
+3. Google / Apple / Yahoo / ICS の 4 択が見える
+4. 各プロバイダ選択でガイダンス + 完全自動同期注記が出る
+5. .ics ファイル選択で予定が解析される
+6. ICS テキスト貼り付けで予定が解析される
+7. プレビューで重複候補が ⚠ 付き + 初期 OFF
+8. 「選択した予定を取り込む」で done ステップへ
+9. 「カレンダーを見る」でカレンダー画面に戻る
+10. リロード後も取り込んだ予定が残る
+11. Hoku に「Googleカレンダーを取り込みたい」→ 「Googleから取込」ボタン
+12. Hoku に「iPhoneカレンダーを反映したい」→ 「iPhoneから取込」ボタン
+
+### 次にやること
+- iPhone 実機で 12 シナリオを目視
+- 問題なければ default ブランチへマージしてバックアップ
+- 将来：Google OAuth / Apple EventKit / Yahoo API 同期（v1.0 以降）
+
+### コミット
+- 予定メッセージ: `wave 64: external calendar import — provider selection UI + Hoku calendar_import_help`

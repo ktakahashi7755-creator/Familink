@@ -277,3 +277,51 @@ Familink クライアント（HTML / JS）
 - 既存 LocalStorage 構造を壊さずに `S.events` を拡張、後方互換維持。
 
 「家族の予定を一元管理する」中核機能として、技術制約を踏まえた現実的なロードマップで段階実装を進める。
+
+---
+
+## ▼ Wave 64 追補（2026-05-08）— プロバイダ選択 UI / Hoku 取込ヘルプ
+
+### A. m-ics-import モーダルを 3 ステップ化
+- **select**：Google / Apple / Yahoo / ICS 直接の 4 択カードを表示（プライバシー説明を冒頭に固定）
+- **provider**：選択肢別のガイダンス（手順 1〜4 + 完全自動同期の v1.0 注記）+ ファイル / テキスト入力 + プレビュー
+- **done**：取込件数表示 + 「カレンダーを見る / 続けて取り込む」
+
+### B. プロバイダ別ガイダンス（_icsProviderGuideHtml）
+| プロバイダ | 主要メッセージ |
+|---|---|
+| google | エクスポートして取り込み / 自動同期は OAuth + バックエンドで v1.0 以降 |
+| apple  | iCloud 公開 or 共有 / EventKit 直接連携は App Store 版 |
+| yahoo  | ICS 書き出し / 完全同期は API 確認中 |
+| ics    | 任意 .ics ファイル / 対応プロパティ列挙 |
+
+### C. Hoku 連携：calendar_import_help intent
+- 取り込み / 反映 / 読み込み 動詞 × カレンダー語 で発火
+- entities.provider（google / apple / yahoo / ''）で応答を切替
+- ACTION_BUTTONS:cal_import / cal_import_google / cal_import_apple / cal_import_yahoo の 4 種
+
+### D. PRODID プロバイダ推定の優先順序を修正（バグ fix）
+旧コードは `apple|icloud|mac|cal` で「YCalendar / Familink Calendar」が apple と誤判定されていた。
+判定順を **google → yahoo → familink → outlook → apple** に変更（固有名詞優先）。
+apple の正規表現も `cal` を外して `apple|icloud|ical` に。
+
+### E. executeIcsImport の改善
+- 選択中プロバイダで `externalProvider` を補正（unknown を google/apple/yahoo に）
+- 取込後はモーダルを閉じず「done」ステップへ遷移（完了感 + 続行導線）
+
+### F. テスト
+新 `/tmp/ics-import.js` 57 件 PASS（パーサー / TZID / RRULE / エスケープ / 不正 / PRODID / Hoku intent / ACTION ボタン / ガイダンス）。
+既存 21 スイート 631 件すべて PASS（退行ゼロ）。
+
+合計 **688 / 688 PASS**。
+
+### G. 実装ファイル
+| 項目 | 場所 |
+|---|---|
+| 取込ボタン | `s-cal` ヘッダー（onclick=openIcsImportModal） |
+| モーダル | `m-ics-import` の 3 ステップ |
+| ステップ切替 | `setIcsImportStep(step)` |
+| ガイダンス | `_icsProviderGuideHtml(step)` |
+| Hoku intent | parseHokuIntent / executeHokuAction の calendar_import_help 分岐 |
+| ACTION ボタン | classifierActions の cal_import / cal_import_google/apple/yahoo |
+| 短文応答 | `HOKU_SHORT_REPLY.calendar_import_help` |
