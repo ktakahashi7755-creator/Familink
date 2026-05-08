@@ -15122,10 +15122,26 @@ function init() {
   migrateTaskData(); // タスクデータ移行
   seedDefaultCustomBoards(); // 既定 6 ボードを担保
   migrateShoppingFromBoardItems(); // Wave 60.11: 旧 boardItems → S.shoppingItems
+  // Wave 65: ?demo=1 でピッチデッキ用の自動ログイン + デモシード
+  const params = new URLSearchParams(location.search || '');
+  const demoMode = params.get('demo') === '1';
+  if(demoMode && (!S.loggedIn || !S.user)) {
+    S.loggedIn = true;
+    S.user = S.user || { name: 'けんや', email: 'demo@familink.app' };
+    try { saveS(); } catch(e) {}
+  }
   if(S.loggedIn && S.user) {
     seedDemo();
     document.getElementById('tabbar').classList.remove('hidden');
-    switchTab('s-home');
+    // Wave 65: ?screen=s-cal などで初期画面指定（ピッチ deck の iframe で使用）
+    const screen = params.get('screen');
+    const allowed = ['s-home','s-task','s-cal','s-budget','s-board','s-health','s-prep','s-shopping','s-hoku','s-notif','s-settings'];
+    switchTab(allowed.indexOf(screen) >= 0 ? screen : 's-home');
+    // Wave 65: ?chrome=off で tabbar / FAB を隠してスクショ風に見せる
+    if(params.get('chrome') === 'off') {
+      document.getElementById('tabbar')?.classList.add('hidden');
+      document.querySelectorAll('.fab, .cal-fab-btn, #hoku-fab, .home-bell').forEach(el => { el.style.display = 'none'; });
+    }
   } else {
     document.getElementById('tabbar').classList.add('hidden');
     showScreen('s-ob');
