@@ -7255,3 +7255,76 @@ GitHub Pages Workflow（`.github/workflows/pages.yml`）が default branch
 
 ### コミット
 - メッセージ：worklog のみの追記、コード変更なし
+
+## 2026-05-08 10:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 60.16: データの書き出し / 読み込み（端末間でデータを丸ごと共有）
+
+### ユーザー要望
+ローカルで使い込んだ Familink を URL で送れば受信側にも丸ごと届くか？
+→ URL は **アプリのコードのみ**。データは iPhone Safari の LocalStorage に
+あるため、別端末では見えない。受信側に丸ごと渡す手段が必要。
+
+### 解決策（実装済）
+**JSON ファイル経由の export / import** を新設。
+
+#### 設定 → 「データの書き出し / 読み込み」
+- 現在の状態サマリー（メンバー数 / 予定 / タスク / 家計 / 買い物 / 写真 / 全データサイズ）を冒頭に表示
+- **JSON ファイルを書き出す**（完全版：写真・公式アバター・全フィールド込み）
+- **写真を除いた軽量版を書き出す**（テキストのみ、容量が小さい）
+- **JSON ファイルから読み込む**（`<input type="file">` 経由）
+- 読み込み前に確認ダイアログで上書き同意を取得
+
+#### 関数
+- `exportFamilinkData()` / `exportFamilinkDataLight()`：PERSIST 全キーを集めて Blob → ダウンロードリンク
+- `_exportFamilinkInternal(includePhotos)`：includePhotos=false で albumPhotos / userPhotos / docs.photo を除外
+- `importFamilinkDataFromFile(ev)`：FileReader → JSON.parse → `_familink:true` 検証 → 確認 → S 上書き → saveS → applyMembersFromS → 全画面 re-render
+
+#### 共有フロー（star 愛さんに送る場合）
+1. 自分の iPhone：設定 → データの書き出し → JSON ダウンロード
+2. AirDrop / メール / LINE で JSON ファイルを送付
+3. 相手の iPhone：URL でアプリを開く → 設定 → データの読み込み → JSON ファイル選択 → 確認 → 完全再現
+
+### テスト結果（新 data-share 24/24 PASS + 全 448 PASS）
+- 完全版 export：tasks / events / albumPhotos / docs.photo / userPhotos / members / recurringTxs すべて含まれる
+- 軽量版 export：写真領域のみ空、タイトル・メモは保持
+- import round-trip：空状態 → import → 全項目復元
+- 不正な JSON 拒否（_familink フラグなし → エラー）
+- ガベージ JSON 拒否（解析エラー）
+
+### 全テストスイート（**448 / 448 PASS**）
+| スイート | 件数 |
+|---|---:|
+| smoke | エラーゼロ |
+| scenario | 27 |
+| member-test | 16 |
+| wave60 | 30 |
+| edge | 76 |
+| avatar | 11 |
+| avatar-propagation | 19 |
+| e2e-render | 10 |
+| integration | 55 |
+| avatar-fullscreen | 20 |
+| storage | 17 |
+| displayname | 7 |
+| persistence | 72 |
+| member-rename | 7 |
+| shop-migrate | 14 |
+| notif | 16 |
+| qty-chip | 14 |
+| shop-section | 13 |
+| **data-share (新)** | **24** |
+| **合計** | **448 / 448 PASS** |
+
+- 構文 1/1 PASS
+- md5 同期：`9e35ba1cc8fa66b9867c7a4b8acd5832`
+
+### iPhone 確認シナリオ
+1. 設定 → 家族の保管 → 「データの書き出し / 読み込み」
+2. 「JSON ファイルを書き出す」 → familink-full-2026-05-08T...json をダウンロード
+3. AirDrop / 共有でファイルを相手に送付
+4. 相手の iPhone：同じ URL でアプリを開く → データ読み込み → 確認 → 完全再現
+
+### コミット
+- メッセージ: `wave 60.16: data export/import as JSON for cross-device share`

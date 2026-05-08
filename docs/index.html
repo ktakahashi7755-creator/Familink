@@ -3138,6 +3138,34 @@ nav#tabbar.hidden { display: none !important; }
     </div>
   </div>
 </div>
+
+<!-- Wave 60.16: データ書き出し / 読み込み（端末間でデータを丸ごと共有） -->
+<div id="m-data-share" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">データの書き出し / 読み込み</div>
+    <div class="modal-form">
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--bg-muted);padding:10px 12px;border-radius:10px;">
+        Familink のデータは <strong>iPhone 内 (Safari LocalStorage)</strong> に保存されます。<br>
+        URL を送るだけでは <strong>データは共有されません</strong>。<br>
+        ここで JSON ファイルを書き出して送付し、受信側で読み込むと丸ごと再現できます。
+      </div>
+
+      <div style="font-size:12px;font-weight:700;margin:10px 4px 6px;letter-spacing:.5px;">📤 書き出す</div>
+      <div id="ds-export-info" style="font-size:11px;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:10px 12px;margin-bottom:6px;"></div>
+      <button class="btn btn-primary btn-block" onclick="exportFamilinkData()" style="margin-bottom:6px;">JSON ファイルを書き出す</button>
+      <button class="btn btn-outline btn-block" onclick="exportFamilinkDataLight()" style="margin-bottom:14px;font-size:12px;">写真を除いた軽量版を書き出す</button>
+
+      <div style="font-size:12px;font-weight:700;margin:0 4px 6px;letter-spacing:.5px;">📥 読み込む</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">既存データを<strong>すべて上書き</strong>します。事前に書き出してバックアップを取ることをおすすめします。</div>
+      <input type="file" id="ds-import-file" accept="application/json,.json" style="display:none;" onchange="importFamilinkDataFromFile(event)">
+      <button class="btn btn-outline btn-block" onclick="document.getElementById('ds-import-file').click()" style="margin-bottom:6px;">JSON ファイルから読み込む</button>
+    </div>
+    <div class="modal-actions" style="margin-top:8px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-data-share')">閉じる</button>
+    </div>
+  </div>
+</div>
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
@@ -4008,6 +4036,124 @@ function _fmtMB(bytes) {
   if(bytes < 1024) return bytes + ' B';
   if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+/* ============================================================
+   Wave 60.16: データの書き出し / 読み込み（端末間でデータを丸ごと共有）
+   - JSON で全 S を書き出して JSON ファイルとして配布
+   - 受信側が同じ JSON を読み込むことで全データを丸ごと再現
+   - 写真込みの完全版 + テキストのみ軽量版の 2 種類
+   ============================================================ */
+function openDataShareModal() {
+  // モーダルを開く前に書き出しサマリーを描画
+  const stats = getStorageStats();
+  const memCount = (typeof MEMBERS !== 'undefined' ? MEMBERS.length : 0);
+  const evCount  = (S.events||[]).length;
+  const tkCount  = (S.tasks||[]).length;
+  const txCount  = (S.txs||[]).length;
+  const shCount  = (S.shoppingItems||[]).length + (S.shoppingHistory||[]).length;
+  const photoCount = stats.albumCount + stats.docsCount + stats.photoCount;
+  const info = document.getElementById('ds-export-info');
+  if(info) {
+    info.innerHTML = '現在の状態：'
+      + '<br>・メンバー ' + memCount + ' 名'
+      + '・予定 ' + evCount + ' 件 ・タスク ' + tkCount + ' 件'
+      + '<br>・家計 ' + txCount + ' 件 ・買い物 ' + shCount + ' 件'
+      + '<br>・写真 ' + photoCount + ' 枚（' + _fmtMB(stats.albumBytes + stats.docsBytes + stats.photoBytes) + '）'
+      + '<br>・全データサイズ：<strong>' + _fmtMB(stats.totalBytes) + '</strong>';
+  }
+  openModal('m-data-share');
+}
+
+/* JSON 書き出し（完全版：写真込み） */
+function exportFamilinkData() {
+  _exportFamilinkInternal(true);
+}
+/* JSON 書き出し（軽量版：写真除外） */
+function exportFamilinkDataLight() {
+  _exportFamilinkInternal(false);
+}
+function _exportFamilinkInternal(includePhotos) {
+  const payload = { _familink: true, _version: 'v3.2', _exportedAt: new Date().toISOString() };
+  for(const k of PERSIST) {
+    let v = S[k];
+    if(!includePhotos) {
+      // 写真を含むキーは中身をクリア
+      if(k === 'albumPhotos') v = [];
+      else if(k === 'userPhotos') v = {};
+      else if(k === 'docs') v = (v||[]).map(d => ({...d, photo:''}));
+    }
+    payload[k] = (typeof v === 'undefined') ? null : v;
+  }
+  let json;
+  try { json = JSON.stringify(payload, null, 2); }
+  catch(e) { showToast('書き出しに失敗しました：' + e.message,'error'); return; }
+  const blob = new Blob([json], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const fname = 'familink-' + (includePhotos?'full':'light') + '-' + ts + '.json';
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(e) {}
+  }, 100);
+  const sizeKB = (blob.size/1024).toFixed(1);
+  showToast(fname + ' を書き出しました（' + sizeKB + ' KB）','success');
+}
+
+/* JSON 読み込み（ファイル選択 → 確認 → 上書き） */
+function importFamilinkDataFromFile(ev) {
+  const f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const text = String(reader.result || '');
+      const data = JSON.parse(text);
+      if(!data || data._familink !== true) {
+        showToast('Familink の書き出しファイルではありません','error');
+        return;
+      }
+      const summary = []
+        .concat((data.members||[]).length ? '・メンバー ' + (data.members||[]).length + ' 名' : [])
+        .concat((data.events||[]).length ? '・予定 ' + (data.events||[]).length + ' 件' : [])
+        .concat((data.tasks||[]).length ? '・タスク ' + (data.tasks||[]).length + ' 件' : [])
+        .concat((data.albumPhotos||[]).length ? '・アルバム ' + (data.albumPhotos||[]).length + ' 枚' : [])
+        .join('\n');
+      if(!confirm('以下の内容で現在のデータを上書きします。よろしいですか？\n\n' + summary + '\n\n※ 元には戻せません。事前にバックアップを書き出すことをおすすめします。')) {
+        ev.target.value = '';
+        return;
+      }
+      // PERSIST 列挙キーのみ取り込み
+      let imported = 0;
+      for(const k of PERSIST) {
+        if(typeof data[k] !== 'undefined' && data[k] !== null) {
+          S[k] = data[k];
+          imported++;
+        }
+      }
+      const ok = saveS();
+      if(!ok) {
+        showToast('保存に失敗しました（容量超過の可能性）','error');
+        return;
+      }
+      // メンバー反映
+      if(typeof applyMembersFromS === 'function') applyMembersFromS();
+      closeModal('m-data-share');
+      // 全画面再描画
+      try { renderHome(); } catch(e) {}
+      try { renderSettings(); } catch(e) {}
+      try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
+      showToast(imported + ' 種類のデータを読み込みました 🎉','success');
+    } catch(e) {
+      showToast('JSON の解析に失敗しました：' + e.message,'error');
+    }
+  };
+  reader.onerror = function() { showToast('ファイルの読み込みに失敗しました','error'); };
+  reader.readAsText(f);
+  ev.target.value = '';
 }
 
 function openStorageModal() {
@@ -10816,6 +10962,11 @@ function renderSettings() {
       <div class="settings-item" onclick="openStorageModal()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
         <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
+      </div>
+      <!-- Wave 60.16: データの書き出し / 読み込み -->
+      <div class="settings-item" onclick="openDataShareModal()">
+        <div class="settings-item-icon" style="background:#DCFCE7">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>','#22C55E')}</div>
+        <div class="settings-item-label">データの書き出し / 読み込み</div><div class="settings-arrow">›</div>
       </div>
     </div>
 
