@@ -7649,3 +7649,107 @@ apple は `apple|icloud|ical` に絞った。
 
 ### コミット
 - 予定メッセージ: `wave 64: external calendar import — provider selection UI + Hoku calendar_import_help`
+
+---
+
+## 2026-05-08 22:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+投資家向けデモピッチ HTML 作成（docs/pitch.html）
+
+### 変更ファイル
+- docs/pitch.html（新規作成、80,139 bytes / 1,650 行）
+- docs/worklog.md
+
+### 変更内容
+**スマホ最適化 1 枚完結ピッチ資料**を新規作成。
+依存ゼロ・単一 HTML・GitHub Pages からそのまま投資家へ URL 共有可能。
+
+**構成（10 セクション）**
+1. Hero — Familink タイトル + ホーム画面 phone モック
+2. Problem — 3 課題カード + バナー「家庭内オペレーションは、まだ DX されていない」
+3. Solution — 8 機能カード（カレンダー / タスク / 家計 / 体調 / 準備 / 買い物 / 家族ボード / Hoku）
+4. Product Demo — **8 画面 phone モック（横スワイプギャラリー）**
+5. Hoku AI — 5 つの入力例 → 反映先マッピング + 差別化 6 点
+6. Differentiation — 比較表（TimeTree / Google Cal / 家計簿 / LINE × Familink）
+7. Business Model — Free / Premium ¥480 の 2 プラン + 30 日トライアル + 上位プラン構想
+8. Market Opportunity — 3 仮説カード + 数値断定回避注記
+9. Roadmap — 短期（App Store 公開）/ 中期（家族同期 + 課金）/ 長期（B2B + 売却）
+10. Ask — ¥50万〜¥300万 想定 + 用途 5 件 + 代表者メッセージ + CTA
+
+**Phone モック（9 個）**
+1. Hero: ホーム画面（家族アバター / 統計 / 今日の予定 / Hoku FAB）
+2. Demo: ホーム / 2. カレンダー（月グリッド + イベントリスト + 取込ボタン）
+3. タスク（タブ + 5 項目 + 担当アバター）
+4. 家計（今月の支出 + 4 色バー + 固定収支 + 月末残高見込み）
+5. 体調（メンバー行 + 37.8℃ カード + 7 日チャート + 医療免責）
+6. 準備（教科グルーピング + 数量 chip）
+7. 買い物（今すぐ / 次の買い物 / よく買う chip）
+8. Hoku（3 ターン会話 + アクションボタン + マイク入力欄）
+
+**デザイン**
+- パレット：プライマリ #4A90E2 / コーラル #FF8B7A / クリーム #FAF8F5 / ゴールド #C8A35C
+- iPhone 風枠（angled 46px corner, notch, 44px tab bar）
+- グラデーション + ソフトシャドウで高級感
+- 横スクロール禁止 + safe-area-inset 対応
+- Reveal アニメ（IntersectionObserver）
+- 完全 system-font（外部フォント未使用 = ロード遅延ゼロ）
+
+**コピー方針**
+- 「家族 OS」「家庭内 DX」「家族運営」「家族向けスーパーアプリ」を主軸
+- 課金単価 ¥480 を「習慣化された家計支出」と表現
+- MVP / バックエンド未実装は正直に明示しつつ、可能性を訴求
+- 投資家向けに「少額で試させて」の入り口を ¥50万〜と明記
+
+### 検証結果
+- 構文 check：scripts 1/1 OK
+- HTML 構造：div 489/489, section 10/10, button 15/15, script/style 各 1/1
+- 必須セクション 10/10 OK
+- Phone モック 9 個（hero 1 + demo 8）
+- 設計/コピー要件：14/14 OK（mobile viewport / theme-color / safe-area / パレット / 月額480円 / App Store / MVP / Hoku 5 例 / 比較表 / CTA / 媒体リンク）
+- ファイルサイズ 78 KB（軽量）
+
+### 自己評価（10 観点）
+| 観点 | 評価 |
+|---|---|
+| 1. 投資家が 1 分で理解 | ◎ Hero + 課題 + 解決策で 30 秒、デモまで含めて 90 秒 |
+| 2. デモ画面の魅力 | ◎ 8 画面の現実的なモック、横スワイプで体験可能 |
+| 3. Hoku の価値 | ◎ 5 つの入力例 → 反映先マッピングで一目瞭然 |
+| 4. ファミリースーパーアプリ感 | ◎ 8 機能を 1 画面に集約 |
+| 5. ¥480 の妥当性 | ◎ 子育て期間 LTV + 高頻度を文章で接続 |
+| 6. 既存アプリ差別化 | ◎ 比較表で 8 機能 × 5 競合の優劣を可視化 |
+| 7. 弱点の正直さ | ◎ MVP / 同期未実装を明記しつつ可能性を訴求 |
+| 8. スマホ表示 | ◎ viewport / safe-area / 横スワイプ対応 |
+| 9. AI 感の抑制 | ◎ Hoku 🐻 をアクセントに留め、温かみ重視 |
+| 10. 投資家相談に値する品質 | ◎ App Store 公開水準の見栄え |
+
+**総合自己評価：93 / 100**
+- -3：実機写真ではなくモック（信頼性）
+- -2：数値根拠（TAM / SAM / SOM）が未提示
+- -2：競合比較は筆者主観の範囲
+
+### URL（GitHub Pages デプロイ後）
+https://ktakahashi7755-creator.github.io/Familink/pitch.html
+
+### デプロイ方法
+- GitHub Pages：docs/ 配信なので push 後数分で公開
+- Vercel / Netlify：このファイル単体をドロップでも動く
+- 共有：上記 URL を投資家にメール / DM で送付
+
+### 未確認事項
+- iPhone SE / 13 / Pro Max での実機目視
+- ダークモード環境での見え方（現状ライトモード固定）
+
+### iPhone確認ポイント
+1. Hero のスマホモックが画面内に収まる
+2. Demo セクションの 8 画面が横スワイプで全部見える
+3. 比較表が横スクロール 1 回で読める
+4. Ask セクションの CTA がタップしやすい
+
+### 次にやること
+- 投資家フィードバック反映
+- 実機スクショへの差し替え（App Store 公開後）
+- TAM / SAM / SOM の数値リサーチ
+
+### コミット
+- 予定メッセージ: `add investor pitch deck (docs/pitch.html) — 10 sections + 9 phone mockups`
