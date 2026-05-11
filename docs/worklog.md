@@ -7829,3 +7829,48 @@ Wave 65 — かんたんカレンダー連携 UX 改善（.ics をサブ導線�
 
 ### コミット
 - 予定メッセージ: `wave 65: easy calendar integration UX (3 provider cards + manual sub-flow)`
+
+---
+
+## 2026-05-08 23:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 65.1 — Hoku intent ルーティングのバグ修正（連携 / 同期 / まとめ を import 系へ）
+
+### 発見した問題
+全体テスト中、新規 VM テスト（手動 11 例文）で以下が誤分類：
+- 「Googleカレンダー連携したい」→ `external_calendar_help`（期待: `calendar_import_help`）
+- 「Appleカレンダーと同期したい」→ `external_calendar_help`
+- 「外部カレンダーをFamilinkにまとめたい」→ `external_calendar_help`
+
+原因：`_importVerb` 正規表現に「連携 / 同期 / まとめ」が含まれず、import 経路に入らなかった。
+Wave 65 で「連携」を主導線文言にしたが、Hoku 側の入口語彙が追いついていなかった。
+
+### 修正内容
+**A. parseHokuIntent の 2 つの正規表現を拡張**
+- `_importVerb`: `連携 / 同期 / まとめ / つなぐ・繋ぐ / つなげ・繋げ` を追加
+- `_calendarKeyword`: 終わり側の verb 群にも `連携 / 同期 / まとめ` を追加、接続助詞に `と / の` を追加
+
+**B. 既存テストの期待値を修正後動作に合わせ更新**
+- /tmp/hoku-precision.js: 2 件
+- /tmp/ics-import.js: 1 件
+- /tmp/edge.js: 1 件
+（旧テストは「`連携` という言葉は import 系に入らない」旧動作を許容していたため）
+
+### 検証結果
+- 修正後の意図分類（11 例文）：**11 / 11 PASS**
+  - Googleカレンダーを自動で反映したい / 連携したい / iPhoneカレンダーを取り込みたい
+  - Appleカレンダーと同期したい / Yahooカレンダーを反映したい
+  - 外部カレンダーをFamilinkにまとめたい / 外部カレンダーから予定を入れたい
+  - ICSを読み込みたい / カレンダー連携の方法を教えて / カレンダー連携したい / カレンダー同期したい
+- 全 22 スイート: **743 / 743 PASS**（退行ゼロ）
+- 構文 check: scripts 1/1 OK
+- md5 同期: 6e2276c5cbff7499bad5b23e26c61084
+
+### 自己評価
+ユーザー指示「全体テスト・バグ修正」で発見した、Wave 65 仕様と Hoku 実装の不整合バグ。
+影響：体験仕様書に明記された全 11 例文の中 6 例が誤分類。実機で確実に再現するレベル。
+修正：正規表現 2 箇所のみ + テスト期待値 4 件更新で完全解決。
+
+### コミット
+- 予定メッセージ: `wave 65.1: fix Hoku intent — 連携/同期/まとめ now route to calendar_import_help`

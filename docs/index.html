@@ -13405,8 +13405,8 @@ function parseHokuIntent(rawText, source) {
   // 1) ヘルプ系（先に判定）— 登録ではなく案内
   // Wave 64: 取り込み / 反映 / 読み込み 系は calendar_import_help（取込画面へ誘導）。
   // それ以外（連携 / 書き出し / 同期 / 一般質問）は external_calendar_help（案内のみ）。
-  const _importVerb = /(取り込|取込|読み込|読込|反映|インポート|import|読み取|入れたい|入れる)/i.test(text);
-  const _calendarKeyword = /Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|Apple.*カレンダー|Appleカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|\.ics|ics\b|カレンダー(?:を|から).*(取り込|取込|読み込|反映|インポート|入れ)/i.test(text);
+  const _importVerb = /(取り込|取込|読み込|読込|反映|インポート|import|読み取|入れたい|入れる|連携|同期|まとめ|つなぐ|繋ぐ|つなげ|繋げ)/i.test(text);
+  const _calendarKeyword = /Google.*カレンダー|googleカレンダー|グーグルカレンダー|iPhone.*カレンダー|iPhoneカレンダー|Apple.*カレンダー|Appleカレンダー|外部.*カレンダー|外部カレンダー|Yahoo.*カレンダー|Yahooカレンダー|LINE.*カレンダー|\.ics|ics\b|カレンダー(?:を|から|と|の)?.*(取り込|取込|読み込|反映|インポート|入れ|連携|同期|まとめ)/i.test(text);
   if(_importVerb && _calendarKeyword) {
     let pv = '';
     if(/Google|google|グーグル/i.test(text)) pv = 'google';
