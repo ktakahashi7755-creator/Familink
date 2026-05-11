@@ -7753,3 +7753,79 @@ https://ktakahashi7755-creator.github.io/Familink/pitch.html
 
 ### コミット
 - 予定メッセージ: `add investor pitch deck (docs/pitch.html) — 10 sections + 9 phone mockups`
+
+---
+
+## 2026-05-08 23:15  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 65 — かんたんカレンダー連携 UX 改善（.ics をサブ導線へ降格）
+
+### 変更ファイル
+- app-source/familink.html（モーダル再構成 + setIcsImportStep / _icsProviderGuideHtml / _icsRoadmapHtml）
+- docs/index.html（mirror）
+- docs/calendar-auto-sync-roadmap.md（新規作成）
+- /tmp/ics-import.js / wave64-systematic.js / wave64-journey.js / hoku-precision.js（テスト追従）
+
+### 変更内容
+**A. モーダル `m-ics-import` を 5 ステップ構成へ刷新**
+- `select`：主導線 3 カード（Google/iPhone/Yahoo と連携）+ サブ「予定ファイル（.ics）で取り込む」
+- `google` / `apple` / `yahoo`：「準備中」案内 — 「現在できること」「今後できるようにすること」+ 注意文
+  - ボタン：今すぐ手動で取り込む / 自動連携の設計を見る / 戻る
+- `manual`：実際の ICS 取り込み（ファイル + テキスト + プレビュー）
+- `roadmap`：v0.2 / v1.0 / v1.5 / v2.0 の段階表示（モーダル内で完結）
+- `done`：取り込み完了（絵文字✅を ✓ に変更）
+
+**B. カレンダー画面ヘッダー：「取込」→「連携」**
+タップ領域同じ、文言だけ変更。
+
+**C. Hoku 短文応答の刷新**
+- external_calendar_help: 「今は手動取り込みに対応してるよ。自動同期はログイン/認証対応後に追加予定。」
+- calendar_import_help:   「カレンダー画面の「連携」から開けるよ。今は手動取り込み対応、自動同期は準備中。」
+- プロバイダ別レスポンス：「Google連携は準備中。今は予定ファイルで取り込めるよ。」等
+
+**D. classifierActions のラベル刷新**
+- cal_import：「カレンダー連携を開く」「手動で取り込む」
+- cal_import_google：「Google連携を開く」「手動で取り込む」
+- 同 apple / yahoo
+
+**E. 文言一般化**
+- `.ics ファイルを選択` → `予定ファイルを選択`
+- `BEGIN:VCALENDAR ...` placeholder → `外部カレンダーからコピーした予定データ`
+- `.ics テキストを貼り付け` → `予定データを貼り付け`
+- ただし開発者向け補足では `.ics 形式` 表記を残す
+
+**F. 新ドキュメント `docs/calendar-auto-sync-roadmap.md`**
+全 10 セクション：現状の課題 / 理想 UX / Google OAuth 要件 / EventKit 要件 / Yahoo / 段階ロードマップ / プレミアム化 / プライバシー / 実装参照 / 関連ドキュメント。
+
+**G. 押せないボタンを排除**
+- 「自動連携の設計を見る」を押すと **モーダル内** で roadmap セクションが表示（行き先のない導線を回避）
+- ボタンはどれも closeModal / setIcsImportStep / executeIcsImport のどれかに必ず結ぶ
+
+### テスト結果
+- 全 22 スイート **743 / 743 PASS** （退行ゼロ）
+- 構文 check: scripts 1/1 OK
+- md5: 742ee4d96146b2cfddb9cbd066df15da（app ⇔ docs/index.html 一致）
+
+### 未確認事項
+- 実機 iPhone Safari でモーダル各ステップが画面内に収まるか
+- ステップ間の遷移アニメ（瞬時切替）が違和感ないか
+
+### iPhone確認ポイント
+1. カレンダー画面右上「📥 連携」ボタン押下でモーダル表示
+2. 3 つの主カード（Google/iPhone/Yahoo）が縦並びで表示
+3. 各カード押下で「現在できること / 今後できるようにすること」2 カード表示
+4. 「自動連携の設計を見る」で段階ロードマップ表示
+5. 「今すぐ手動で取り込む」で .ics 入力欄表示
+6. ファイル選択 / テキスト貼り付け / プレビュー / 取込が動作
+7. 取込完了 → 「カレンダーを見る」「続けて取り込む」
+8. Hoku「Googleカレンダー連携したい」→ 「Google連携を開く」ボタン
+9. iPhone SE / 13 / 15+ / Pro Max で崩れない
+
+### 次にやること
+- iPhone 実機で 9 シナリオ目視
+- 問題なければ default ブランチへマージしてバックアップ
+- v1.0 で App Store 版（Capacitor）+ EventKit 連携の着手検討
+
+### コミット
+- 予定メッセージ: `wave 65: easy calendar integration UX (3 provider cards + manual sub-flow)`
