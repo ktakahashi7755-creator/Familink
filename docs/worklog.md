@@ -8155,3 +8155,30 @@ Wave 71 — 自走改善②：アイコンのみボタンに aria-label を付�
 
 ### コミット
 - 予定メッセージ: `wave 71: add aria-label to icon-only add buttons (a11y)`
+
+---
+
+## 2026-05-09 02:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 72 — 自走改善（Wave 70-71）を巻き戻し、Wave 69 状態へ復帰
+
+### 経緯
+ユーザー判断により、自走改善（Wave 70 HTML 構造修正 / Wave 71 a11y）を
+取り消し、backup/020-wave69-pre-autonomous の状態へ巻き戻し。
+
+### 変更ファイル
+- app-source/familink.html（Wave 70-71 を revert → backup/020 と一致）
+- docs/index.html（mirror）
+
+### 検証
+- familink.html は backup/020-wave69-pre-autonomous と完全一致を確認
+- 構文 check：scripts 1/1 OK
+- worklog は追記専用のため履歴維持（本エントリを追加）
+
+### 補足
+- 現在の GitHub Pages 404 はコード起因ではなく Pages 設定起因のため、
+  本巻き戻しでは表示は復活しない（別途 Pages 設定確認が必要）
+
+### コミット
+- 予定メッセージ: `wave 72: roll back wave 70-71 to wave 69 state`
