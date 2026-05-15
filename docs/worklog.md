@@ -7964,3 +7964,39 @@ Wave 66 — 本物のログイン機能への移行設計 + ログアウト安�
 
 ### コミット
 - 予定メッセージ: `wave 66: real-login migration design — safe logout, data-reset split, auth scaffolding`
+
+---
+
+## 2026-05-09 00:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 67 — ウェルカム画面に Hoku（星キャラ）を馴染ませる
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+- ウェルカム（オンボーディング s-ob）の家族イラストは**変更せず**、
+  Hoku（星キャラ）を左下に重ねて配置
+- `.ob-hero` 内に `<img class="ob-star-left" id="ob-hoku-star">` を追加
+- 既存 CSS `.ob-star-left`（bottom:4% / left:3% / 17%幅 / rotate -6deg /
+  drop-shadow 2 段）を利用してイラストに自然に接地させる
+- `init()` で `IMGS.hoku` を src に設定（83KB の base64 を HTML に二重化しない）
+
+### テスト結果
+- 構文 check：scripts 1/1 OK
+- 主要回帰：wave66-auth 59 / hoku-redesign 29 / integration 55 / edge 76 /
+  persistence 72 / avatar 11 — すべて PASS
+- md5：fa1d80457ef305b8554113ebad5a5000
+
+### iPhone確認ポイント
+1. 起動時のウェルカム画面で家族イラストが従来通り表示される
+2. イラスト左下に Hoku（星）が少し傾いて接地して見える
+3. Hoku が大きすぎず・小さすぎず、影で馴染んでいる
+
+### 次にやること
+- iPhone 実機で Hoku の位置・サイズを目視確認
+
+### コミット
+- 予定メッセージ: `wave 67: blend Hoku star into the welcome screen illustration`
