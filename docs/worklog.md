@@ -8086,3 +8086,40 @@ Wave 69 — AI 駆動プロダクト開発フローの整備（Familink へ適�
 
 ### コミット
 - 予定メッセージ: `wave 69: establish AI-driven product dev flow for Familink`
+
+---
+
+## 2026-05-09 01:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 70 — 自走改善①：HTML 構造の不整合（余分な </div>）を解消
+
+### 経緯
+ユーザー指示で自走開発モードに移行。まず復元用バックアップブランチ
+`backup/020-wave69-pre-autonomous` を作成・push。その後の総点検で
+HTML 本体の `<div>` 開閉が 1 件不整合（`</div>` 過多）であることを検出。
+
+### 発見したバグ
+- 設定画面（s-settings）末尾に **余分な `</div>` と空コメント**が残存
+- 行 3366「<!-- 写真変更用 hidden input -->」+ 行 3367「</div>」
+- 過去に hidden file input 要素を削除した際、囲っていた div の閉じタグと
+  コメントが取り残されたもの（Wave 63 以前から存在）
+- ブラウザが自動補正するため表示は正常、538→743 テストも通っていたが、
+  HTML としては #app の div が早期に閉じる構造不正
+
+### 変更ファイル
+- app-source/familink.html（余分な </div> + 空コメント 2 行を削除）
+- docs/index.html（mirror）
+
+### 検証
+- HTML 本体の div 深さ：-1 → **0（完全バランス）**
+- 全タグバランス：button 157/157, nav 1/1, svg 31/31, span 32/32, ul 1/1 — 全 ✓
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- md5：2034fb7bc89679d199da4af5809ce18b
+
+### 復元方法
+問題があれば `git checkout backup/020-wave69-pre-autonomous` で自走前へ戻せる
+
+### コミット
+- 予定メッセージ: `wave 70: fix HTML structure — remove stray </div> in settings screen`
