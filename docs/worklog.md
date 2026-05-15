@@ -8263,3 +8263,50 @@ Wave 74 — コード残骸のクリーンアップ
 
 ### コミット
 - 予定メッセージ: `wave 74: remove the only code debris (migration console.log)`
+
+---
+
+## Wave 自律開発 2026-05-09 03:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+オーナー終日不在のため自走モードで安全な改善を実施。提供されたタスクセット
+（Task 1〜13）を現状に照らして取捨選択。
+
+- Task 1（現状診断）：回帰 743/743、Hoku view 系・カレンダー連携 UI・Hoku
+  レイアウト・サジェストチップ・ログアウト安全性 — すべて実装済み/良好を確認
+- Task 13（QA スイープ）：ランタイム例外監査 66/0、Hoku 異常系 42/0、
+  ハンドラ関数 223 種すべて定義済み、を確認。HTML 構造で **div 不整合 1 件検出**
+- HTML 構造修正：設定画面の余分な `</div>` + 空コメント（Wave 72 ロールバックで
+  再発した残骸）を除去 → div バランス 463/463 完全
+- Task 10：docs/storage-indexeddb-roadmap.md 新規作成
+- Task 12：docs/appstore-readiness-checklist.md 新規作成
+
+### 実施しなかったタスクと理由
+- Task 2/3/9/11（ログアウト文言変更・データ初期化モーダル・アカウント同期
+  セクション・認証設計 docs）：これらは Wave 66 で実装後、オーナー判断により
+  Wave 68 で「方針として」明示的に revert 済み。タスクセットは汎用テンプレートで
+  あり、オーナーの直近の明示的決定（revert）を優先（CLAUDE.md §9）。再追加せず。
+  ※ Task 2 の目的「ログアウトでデータが消えない」は現 doLogout が既に満たす。
+
+### 変更ファイル
+- app-source/familink.html（余分な </div> 除去）
+- docs/index.html（mirror）
+- docs/storage-indexeddb-roadmap.md（新規）
+- docs/appstore-readiness-checklist.md（新規）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- ランタイム例外監査：66/0 / Hoku 異常系：42/0
+- md5：c22771b38c2feab7c7ecb3b6a7fa5483（app ⇔ docs/index.html 一致）
+
+### 未対応 / オーナー確認が必要
+- 実機検証（iPhone SE/13/15+/Pro Max、Hoku 音声）
+- ログイン/認証/データ初期化 UI：再追加するか否かはオーナー判断待ち
+- IndexedDB 移行・クラウド Storage：LocalStorage 構造変更のため要確認
+- iOS ラッパー方式の決定
+
+### 次にやるべきこと
+- 実機検証 → appstore-readiness-checklist.md の ☐ を消化
+- プライバシーポリシー / 利用規約の最終化
+- 画像圧縮・容量警告（storage-indexeddb-roadmap.md v0.2 対策）の実装検討
