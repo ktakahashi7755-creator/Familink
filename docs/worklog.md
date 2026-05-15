@@ -7874,3 +7874,93 @@ Wave 65 で「連携」を主導線文言にしたが、Hoku 側の入口語彙�
 
 ### コミット
 - 予定メッセージ: `wave 65.1: fix Hoku intent — 連携/同期/まとめ now route to calendar_import_help`
+
+---
+
+## 2026-05-09 00:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 66 — 本物のログイン機能への移行設計 + ログアウト安全化 / データ初期化分離
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- docs/auth-cloud-sync-plan.md（新規 / 18 セクション）
+- docs/security-auth-notes.md（新規 / 10 セクション）
+- docs/hoku-intent-engine.md（Wave 66 追補）
+- /tmp/wave66-auth.js（新 VM テスト 59 件）
+
+### 変更内容
+**A. ログアウトの安全化**
+- 調査結果：現行 `doLogout()` は元々データを削除していなかった（誤解リスクのみ）
+- 確認文を「予定・タスク・家計などのデータは、この端末に残ります」に明記
+- 確定処理を `_logoutConfirmed()` に関数分離（テスト可能化）
+- トーストを「ログアウトしました（データは保持されています）」に変更
+
+**B. データ初期化をログアウトと完全分離**
+- 新 `openDataResetModal` / `execDataReset` / `_updateDataResetButton`
+- 二段階確認：危険性明記モーダル + 「削除」文字入力（一致時のみボタン有効化）
+- 家族データ系 20 キーのみ空に。authMode / onboard 等は保持しすぎず素状態へ
+
+**C. 設定に「アカウントと同期」セクション追加**
+- ローカルモード表示（緑ドット + 「この端末に保存中」）
+- ログインして同期 / データをバックアップ / ログアウト / データを初期化
+- 旧「その他」セクション（ログアウトのみ）を置換
+
+**D. 新モーダル 2 種**
+- `m-account-sync`：本物のログイン未実装を正直に説明（現在/今後の 2 リスト）
+- `m-data-reset`：データ初期化の二段階確認
+
+**E. S キー追加（PERSIST 登録済み）**
+- authMode（'local'）/ authUser（null）/ familyId（''）
+- syncStatus（'local'）/ lastSyncedAt（''）/ migrationStatus（object）
+
+**F. Hoku 新 intent 3 種**
+- login_help：ログイン / アカウント / 本物のログイン
+- sync_help：同期 / 共有したい / 別の端末で見たい / 夫婦で共有
+- backup_help：バックアップ / 機種変 / データが消えた / 引き継ぎ
+- 判定順 backup → sync → login（「ログアウトしたらデータ消えた」は backup 優先）
+- HOKU_INTENT_META / HOKU_SHORT_REPLY / executeHokuAction / classifierActions 登録
+- ACTION_BUTTONS:account_sync（アカウント設定を開く / データを書き出す）
+- ガードレール：「ログイン済み」「同期完了」など未実装機能の嘘をつかない
+
+**G. ドキュメント**
+- docs/auth-cloud-sync-plan.md：問題整理 / Supabase vs Firebase / ローカル・クラウド
+  2 モード / 家族グループ / 招待 / 移行設計 / DB テーブル / Storage / RLS /
+  プライバシー / v0.2-v2.0 ロードマップ
+- docs/security-auth-notes.md：Secret 非配置 / GitHub Pages 注意 / anon key と RLS /
+  家族データアクセス制御 / Storage / ログアウトでデータを消さない理由 / 初期化確認
+
+### テスト結果
+- 新 /tmp/wave66-auth.js：**59 / 59 PASS**
+  - S キー初期値 6 / PERSIST 登録 6
+  - ログアウトでデータ保持 12（events/tasks/txs/health/prep/shopping/docs/album/members）
+  - データ初期化 8（未入力で消えない / 「削除」で消去 / リセット状態）
+  - ボタン活性制御 3
+  - Hoku intent 10 / Hoku 応答（嘘なし）6 / classifierActions 3 / META 5
+- 全 23 スイート：**802 / 802 PASS**（退行ゼロ）
+- 構文 check：scripts 1/1 OK
+- md5：caa7ff53371a7b0d89166d8109779f5e
+
+### 未確認事項
+- iPhone 実機で「アカウントと同期」セクションの表示
+- m-data-reset の文字入力欄が iOS キーボードで隠れないか
+
+### iPhone確認ポイント
+1. 設定 →「アカウントと同期」セクションが表示される
+2. 緑ドット +「この端末に保存中（ローカルモード）」
+3. 「ログインして同期」→ m-account-sync（準備中の説明）
+4. 「データをバックアップ」→ データの書き出し / 読み込み
+5. 「ログアウト」→ 確認文に「データは残ります」明記、実行後もデータ保持
+6. 「データを初期化」→ m-data-reset、「削除」入力まではボタン無効
+7. Hoku「ログインできる？」→ ローカルモード説明 + アカウント設定ボタン
+8. Hoku「星愛と共有したい」→ クラウド同期が必要と案内
+9. Hoku「バックアップしたい」→ 書き出し案内
+
+### 次にやること
+- iPhone 実機で 9 シナリオ目視
+- 問題なければ default ブランチへマージ
+- v0.3：Supabase プロジェクト作成可否をユーザーに確認
+
+### コミット
+- 予定メッセージ: `wave 66: real-login migration design — safe logout, data-reset split, auth scaffolding`

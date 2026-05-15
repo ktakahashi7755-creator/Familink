@@ -3991,9 +3991,20 @@ let S = {
     defaultOpeningBalance: 0
   },
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
+  // Wave 66: 認証 / クラウド同期の準備（現状は local モードのみ稼働）
+  authMode: 'local',        // 'local' | 'cloud'
+  authUser: null,           // null | { id, email, displayName }
+  familyId: '',             // クラウド同期時の家族グループ ID
+  syncStatus: 'local',      // 'local' | 'syncing' | 'synced' | 'error'
+  lastSyncedAt: '',         // ISO 文字列
+  migrationStatus: {        // 既存 LocalStorage → クラウド移行の進捗
+    localToCloudPrompted: false,
+    lastMigrationAt: '',
+    migratedKeys: []
+  },
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','authMode','authUser','familyId','syncStatus','lastSyncedAt','migrationStatus'];
 
 function saveS() {
   const d = {};
@@ -4740,13 +4751,76 @@ function saveProfileEdit() {
 }
 
 function doLogout() {
-  showConfirm('ログアウト','ログアウトしますか？','ログアウトする', () => {
-    S.loggedIn = false; S.user = null;
-    saveS();
-    document.getElementById('tabbar').classList.add('hidden');
-    showScreen('s-ob');
-    showToast('ログアウトしました');
-  }, '');
+  // Wave 66: ログアウトはログイン状態のみ解除。家族データ（予定/タスク/家計/体調/
+  //          準備/買い物/書類/アルバム/メンバー 等）は一切削除しない。
+  showConfirm(
+    'ログアウト',
+    'ログアウトしますか？\n予定・タスク・家計などのデータは、この端末に残ります。',
+    'ログアウトする',
+    _logoutConfirmed,
+    ''
+  );
+}
+
+/* Wave 66: ログアウト確定処理（ログイン状態のみ解除、家族データは保持）*/
+function _logoutConfirmed() {
+  S.loggedIn = false;
+  S.user = null;
+  // authMode / familyId / 家族データはそのまま保持（再ログインで復元）
+  saveS();
+  const tb = document.getElementById('tabbar');
+  if(tb) tb.classList.add('hidden');
+  showScreen('s-ob');
+  showToast('ログアウトしました（データは保持されています）');
+}
+
+/* Wave 66: 「ログインして同期」— 本物のログインは未実装。
+   現状はローカルモードである旨と、将来の Supabase 連携予定を正直に説明する。 */
+function openAccountSyncModal() {
+  openModal('m-account-sync');
+}
+
+/* Wave 66: データ初期化 — ログアウトとは完全に分離した危険操作。
+   二段階確認（確認モーダル → 「削除」文字入力）を必須にする。 */
+function openDataResetModal() {
+  const inp = document.getElementById('data-reset-confirm-input');
+  if(inp) inp.value = '';
+  _updateDataResetButton();
+  openModal('m-data-reset');
+}
+
+function _updateDataResetButton() {
+  const inp = document.getElementById('data-reset-confirm-input');
+  const btn = document.getElementById('data-reset-exec-btn');
+  if(!inp || !btn) return;
+  const ok = inp.value.trim() === '削除';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.45';
+}
+
+function execDataReset() {
+  const inp = document.getElementById('data-reset-confirm-input');
+  if(!inp || inp.value.trim() !== '削除') {
+    showToast('「削除」と入力してください','error');
+    return;
+  }
+  // 家族データ系を空に。authMode / onboard / アプリ設定は保持しすぎず素の状態へ。
+  const wipeKeys = ['events','tasks','txs','recurringTxs','posts','announces','health',
+    'prep','prepRoutines','notifs','folders','docs','albumPhotos','customBoards',
+    'boardItems','boardSections','shoppingItems','shoppingFrequent','shoppingHistory',
+    'userPhotos','userAvatars'];
+  wipeKeys.forEach(k => {
+    if(Array.isArray(S[k])) S[k] = [];
+    else if(S[k] && typeof S[k] === 'object') S[k] = {};
+  });
+  S.syncStatus = 'local';
+  S.lastSyncedAt = '';
+  S.migrationStatus = { localToCloudPrompted:false, lastMigrationAt:'', migratedKeys:[] };
+  saveS();
+  closeModal('m-data-reset');
+  showToast('すべてのデータを初期化しました');
+  if(typeof renderSettings === 'function') renderSettings();
+  switchTab('s-home');
 }
 
 /* ============================================================
@@ -11101,11 +11175,33 @@ function renderSettings() {
       </div>
     </div>
 
+    <!-- Wave 66: アカウントと同期 -->
     <div class="settings-section">
-      <div class="settings-title">その他</div>
+      <div class="settings-title">アカウントと同期</div>
+      <div style="padding:12px 14px;background:var(--bg-muted);border-radius:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#22C55E;flex-shrink:0;"></span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);">この端末に保存中（ローカルモード）</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-sub);line-height:1.65;">
+          ログインすると、将来的に家族共有・別端末復元ができるようになります。
+        </div>
+      </div>
+      <div class="settings-item" onclick="openAccountSyncModal()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/><path d="M16 8l2 2 4-4"/>','#4A90E2')}</div>
+        <div class="settings-item-label">ログインして同期</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openDataShareModal()">
+        <div class="settings-item-icon" style="background:#DCFCE7">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>','#22C55E')}</div>
+        <div class="settings-item-label">データをバックアップ</div><div class="settings-arrow">›</div>
+      </div>
       <div class="settings-item" onclick="doLogout()">
-        <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
-        <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
+        <div class="settings-item-icon" style="background:#FFF1E0">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#E08F2A')}</div>
+        <div class="settings-item-label">ログアウト</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openDataResetModal()">
+        <div class="settings-item-icon" style="background:#FFE8E8">${si('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>','#FF6B6B')}</div>
+        <div class="settings-item-label" style="color:var(--red)">データを初期化</div><div class="settings-arrow">›</div>
       </div>
     </div>
 
@@ -13251,6 +13347,9 @@ const HOKU_INTENT_META = {
   shopping_view:          { uiCat:null,       store:null,             label:'買い物を確認',   isView:true },
   external_calendar_help: { uiCat:null,       store:null,           label:'外部カレンダー連携案内' },
   calendar_import_help:   { uiCat:null,       store:null,           label:'外部カレンダー取込案内', isView:true },
+  login_help:             { uiCat:null,       store:null,           label:'ログイン案内', isView:true },
+  sync_help:              { uiCat:null,       store:null,           label:'家族同期案内', isView:true },
+  backup_help:            { uiCat:null,       store:null,           label:'バックアップ案内', isView:true },
   settings_help:          { uiCat:null,       store:null,           label:'設定案内' },
   unknown:                { uiCat:null,       store:null,           label:'要確認' }
 };
@@ -13419,6 +13518,17 @@ function parseHokuIntent(rawText, source) {
   }
   if(text.match(/(設定|プロフィール|家族構成|メンバー(追加|編集|削除)|アバター(変更|編集))/) && text.match(/(教えて|変えたい|変更|どうやって|どこ|やり方)/)) {
     return _hokuMakeIntent('settings_help', raw, text, source, 0.85, {});
+  }
+  // 1.3) Wave 66: ログイン / 家族同期 / バックアップ の案内
+  //   バックアップ・同期を先に判定（「ログイン」語と重なる入力でも適切に振り分け）
+  if(/(バックアップ|backup|データ.*(保存|失|消|残|守|戻)|機種変|端末.*変|引き継ぎ|引継ぎ)/i.test(text)) {
+    return _hokuMakeIntent('backup_help', raw, text, source, 0.88, {});
+  }
+  if(/(同期|共有したい|一緒に見|同じ.*(予定|データ|タスク|体調)を見|別.*(スマホ|端末|デバイス).*見|家族.*共有|夫.*共有|妻.*共有|パートナー.*共有)/.test(text)) {
+    return _hokuMakeIntent('sync_help', raw, text, source, 0.88, {});
+  }
+  if(/(ログイン|ログアウト|サインイン|サインアップ|アカウント|新規登録|本物.*ログイン|メール.*登録)/i.test(text)) {
+    return _hokuMakeIntent('login_help', raw, text, source, 0.88, {});
   }
 
   // 1.4) Wave 60: 資金繰り表を見たい
@@ -13629,6 +13739,9 @@ const HOKU_SHORT_REPLY = {
   notification_add:       '通知センターに残すね（OS プッシュは v1.0 以降）。',
   external_calendar_help: '今は手動取り込みに対応してるよ。自動同期はログイン/認証対応後に追加予定。',
   calendar_import_help:   'カレンダー画面の「連携」から開けるよ。今は手動取り込み対応、自動同期は準備中。',
+  login_help:             '今はこの端末に保存するローカルモードだよ。本物のログインと家族同期は次の段階で対応予定。',
+  sync_help:              '家族で同じデータを見るにはクラウド同期が必要。Supabase 連携で実装予定だよ。',
+  backup_help:            '今は端末保存。「データの書き出し」で手動バックアップできる。クラウド保存は今後対応予定。',
   settings_help:          '設定から変えられるよ。開く？',
   unknown:                ''
 };
@@ -13894,6 +14007,16 @@ function executeHokuAction(intent) {
   }
   if(intent.intentType === 'settings_help') {
     return { ok:true, message: '設定から変えられるよ。開く？' };
+  }
+  // Wave 66: ログイン / 同期 / バックアップ案内（嘘をつかず、現状と将来を短く）
+  if(intent.intentType === 'login_help') {
+    return { ok:true, message:'今はこの端末に保存するローカルモードだよ。本物のログインと家族同期は次の段階で対応予定。\nログアウトしても家族データは消さないから安心してね。\n\n[[ACTION_BUTTONS:account_sync]]' };
+  }
+  if(intent.intentType === 'sync_help') {
+    return { ok:true, message:'家族で同じ予定・体調・家計を見るには、クラウド同期が必要だよ。Supabase 連携で実装予定。\n\n[[ACTION_BUTTONS:account_sync]]' };
+  }
+  if(intent.intentType === 'backup_help') {
+    return { ok:true, message:'今は端末保存だよ。「データの書き出し」で手動バックアップできる。クラウド保存は今後対応予定。\n\n[[ACTION_BUTTONS:account_sync]]' };
   }
   if(intent.intentType === 'notification_add') {
     return { ok:true, message: '通知センターに残すね（OS プッシュは v1.0 以降）。\n忘れたくないなら、まずカレンダーに入れておくと安心。\n\n[[ACTION_BUTTONS:calendar]]' };
@@ -14541,6 +14664,13 @@ function classifierActions(category, secondary) {
     return [
       { label: '資金繰りを開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('cashflow'); },100)" },
       { label: '固定収支を開く', onclick: "switchTab('s-budget');setTimeout(function(){ setBudgetTab('recurring'); },100)" }
+    ];
+  }
+  // Wave 66: アカウントと同期
+  if(category === 'account_sync') {
+    return [
+      { label: 'アカウント設定を開く', onclick: "switchTab('s-settings');setTimeout(function(){ openAccountSyncModal(); },200)" },
+      { label: 'データを書き出す',     onclick: "switchTab('s-settings');setTimeout(function(){ openDataShareModal(); },200)" }
     ];
   }
   // Wave 65: かんたんカレンダー連携
@@ -16128,6 +16258,63 @@ document.addEventListener('touchcancel', () => {
         <button class="btn btn-outline btn-block" onclick="setIcsImportStep('select')">続けて取り込む</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Wave 66: ログインして同期（本物のログインは未実装の旨を正直に案内）-->
+<div id="m-account-sync" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">ログインと家族同期</div>
+    <div style="font-size:13px;color:var(--text-sub);line-height:1.75;margin-bottom:14px;">
+      本物のログインと家族同期は、Supabase 連携で実装予定です。<br>
+      現在はこの端末にデータが保存されています（ローカルモード）。
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.04em;">いまできること（ローカルモード）</div>
+      <ul style="margin:6px 0 0;padding:0 0 0 18px;font-size:12.5px;color:var(--text-sub);line-height:1.7;">
+        <li>この端末に予定・タスク・家計などを保存</li>
+        <li>「データの書き出し / 読み込み」で手動バックアップ</li>
+      </ul>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.04em;">今後できるようにすること</div>
+      <ul style="margin:6px 0 0;padding:0 0 0 18px;font-size:12.5px;color:var(--text-sub);line-height:1.7;">
+        <li>メールアドレスでログイン</li>
+        <li>家族グループで予定・体調・家計を共有</li>
+        <li>別の端末でもログインしてデータを復元</li>
+        <li>写真・書類のクラウド保存</li>
+      </ul>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:8px 10px;border-radius:8px;line-height:1.6;margin-bottom:12px;">
+      安全な認証基盤（Supabase Auth + Row Level Security）を用意したうえで提供します。
+      設計の詳細は docs/auth-cloud-sync-plan.md にまとめています。
+    </div>
+    <button class="btn btn-outline btn-block" onclick="closeModal('m-account-sync');openDataShareModal();" style="margin-bottom:8px;">今は手動でバックアップする</button>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-account-sync')">閉じる</button>
+  </div>
+</div>
+
+<!-- Wave 66: データ初期化（二段階確認：モーダル + 「削除」文字入力）-->
+<div id="m-data-reset" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" style="color:var(--red);">データを初期化</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:8px;">
+      すべての Familink データを削除します。<br>
+      予定・タスク・家計・体調・準備・買い物・書類・アルバムも削除されます。
+    </div>
+    <div style="font-size:12px;color:var(--red);font-weight:700;line-height:1.7;margin-bottom:14px;">
+      この操作は元に戻せません。
+    </div>
+    <div style="font-size:11.5px;color:var(--text-sub);margin-bottom:6px;">
+      続けるには、下の欄に「削除」と入力してください。
+    </div>
+    <input type="text" class="input" id="data-reset-confirm-input" placeholder="削除"
+      oninput="_updateDataResetButton()" style="margin-bottom:14px;">
+    <button class="btn btn-block" id="data-reset-exec-btn" onclick="execDataReset()" disabled
+      style="background:var(--red);color:#fff;opacity:.45;margin-bottom:8px;">すべて削除する</button>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-data-reset')">キャンセル</button>
   </div>
 </div>
 
