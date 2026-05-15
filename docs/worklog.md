@@ -8224,3 +8224,42 @@ Wave 73 — バグ徹底洗い出し + 10 回検証サイクル
 
 ### コミット
 - 予定メッセージ: `wave 73: bug hunt — guard executeHokuAction against missing entities`
+
+---
+
+## 2026-05-09 03:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 74 — コード残骸のクリーンアップ
+
+### 経緯
+ユーザー指示で、コードの残骸・不要部分を削除し軽くクリーンに。
+
+### 残骸監査の結果
+- console.log：1 箇所のみ（shopping migration のデバッグログ）
+- debugger 文：0
+- TODO/FIXME コメント：0（grep ヒット 3 件はすべて Hoku 分類器の "todo" 入力語パターンで誤検出）
+- コメントアウトされたコード：0
+- 未使用関数：**0**（dead-function スキャンで 33 件候補が出たが、全件 onclick 経由で
+  使用中と確認 — スキャン側の誤検出。コードに死蔵関数なし）
+
+### 変更内容
+- shopping migration の `console.log`（try/catch + if ブロックごと）を削除
+  → migration ロジック自体（S.shoppingMigrated / saveS）は維持
+
+### 変更ファイル
+- app-source/familink.html（console.log 3 行削除）
+- docs/index.html（mirror）
+
+### 検証
+- 構文 check：scripts 1/1 OK
+- console.log 残数：0
+- 全 23 スイート：785 / 785 PASS（退行ゼロ）
+- runtime-hunt：例外 0
+
+### 結論
+コードベースは元々非常にクリーン。削除対象の実在残骸は console.log 1 件のみだった。
+未使用関数・コメントアウトコード・debugger は存在せず、508 関数すべて使用中。
+
+### コミット
+- 予定メッセージ: `wave 74: remove the only code debris (migration console.log)`

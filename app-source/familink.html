@@ -15124,9 +15124,6 @@ function migrateShoppingFromBoardItems() {
   }
   S.shoppingMigrated = true;
   saveS();
-  if(migrated > 0) {
-    try { console.log('Wave 60.11: migrated '+migrated+' shopping items from boardItems → shoppingItems'); } catch(e){}
-  }
 }
 
 function seedDefaultCustomBoards() {
