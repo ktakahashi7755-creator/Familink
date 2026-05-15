@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E1A33">
+<title>Familink — 投資家向けデータルーム</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+:root{
+  --bg:#F7F4EE;--bg-card:#fff;--ink:#0E1A33;--ink-3:#4B5570;--ink-4:#7B8298;
+  --line:#E2DCD0;--accent:#B8794A;--accent-soft:#F2E4D6;--primary:#2C4F80;--positive:#2C7B5A;
+  --sans:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Segoe UI",system-ui,sans-serif;
+  --serif:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
+}
+html,body{margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.8;
+  -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;font-feature-settings:"palt";}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px;}
+header{background:linear-gradient(160deg,#0E1A33,#1F2C4A 70%,#2C4F80);color:#fff;padding:64px 0 52px;}
+header .eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:#E8B284;margin-bottom:14px;}
+header h1{font-size:clamp(30px,5vw,46px);font-weight:700;letter-spacing:-.02em;margin:0 0 12px;line-height:1.15;}
+header p{font-size:15px;color:rgba(255,255,255,.82);margin:0;max-width:600px;line-height:1.8;}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:36px 0 8px;}
+.meta-grid .cell{background:var(--bg-card);padding:14px 16px;}
+.meta-grid .k{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--ink-4);text-transform:uppercase;}
+.meta-grid .v{font-size:14px;font-weight:600;color:var(--ink);margin-top:3px;}
+section{padding:40px 0;border-bottom:1px solid var(--line);}
+section:last-of-type{border-bottom:none;}
+h2{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  margin:0 0 6px;}
+h2 + .h2-title{font-size:23px;font-weight:700;letter-spacing:-.018em;margin:0 0 18px;color:var(--ink);}
+h3{font-size:16px;font-weight:700;margin:22px 0 8px;color:var(--ink);}
+p{margin:0 0 12px;color:var(--ink-3);}
+p.lead{color:var(--ink);font-size:16px;}
+ul,ol{margin:0 0 14px;padding-left:22px;color:var(--ink-3);}
+li{padding:3px 0;}
+b{color:var(--ink);font-weight:700;}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 16px;
+  background:var(--bg-card);border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);}
+th{background:#EFEAE0;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-4);text-transform:uppercase;}
+tr:last-child td{border-bottom:none;}
+td.ours,th.ours{background:rgba(184,121,74,.06);color:var(--accent);font-weight:700;}
+.callout{background:var(--ink);color:#fff;border-radius:14px;padding:20px 24px;
+  font-size:17px;font-weight:600;letter-spacing:-.01em;text-align:center;margin:18px 0;}
+.callout .a{color:#E8B284;}
+.toc{background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:32px 0 0;}
+.toc h3{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);}
+.toc ol{margin:0;padding-left:20px;font-size:13.5px;}
+.toc a{color:var(--primary);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+.note{font-size:12px;color:var(--ink-4);background:#EFEAE0;padding:12px 16px;border-radius:10px;line-height:1.7;}
+.ask-amount{background:linear-gradient(135deg,#0E1A33,#2C4F80);color:#fff;border-radius:14px;
+  padding:24px;text-align:center;margin:18px 0;}
+.ask-amount .v{font-size:28px;font-weight:700;letter-spacing:-.02em;}
+.ask-amount .n{font-size:12px;color:rgba(255,255,255,.7);margin-top:6px;}
+footer{padding:36px 24px 56px;text-align:center;font-size:12px;color:var(--ink-4);}
+.links{margin:10px 0;}
+.links a{color:var(--primary);margin:0 8px;text-decoration:none;font-weight:600;}
+.pill{display:inline-block;background:var(--accent-soft);color:var(--accent);
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
+.pos{color:var(--positive);font-weight:700;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Investor Data Room</div>
+    <h1>Familink — 投資家向けデータルーム</h1>
+    <p>家族の子育てをチームで回す、家族向けスーパーアプリ。本書は投資検討に必要な情報を 1 冊に集約した正本です。</p>
+    <div class="meta-grid">
+      <div class="cell"><div class="k">Stage</div><div class="v">MVP v3.x 稼働中</div></div>
+      <div class="cell"><div class="k">Category</div><div class="v">ファミリー SaaS</div></div>
+      <div class="cell"><div class="k">Brand AI</div><div class="v">Hoku</div></div>
+      <div class="cell"><div class="k">Price</div><div class="v">無料 + 月額 480 円</div></div>
+      <div class="cell"><div class="k">Tests</div><div class="v pos">785 / 785 PASS</div></div>
+      <div class="cell"><div class="k">Tech</div><div class="v">Single-page · Local-first</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toc">
+    <h3>目次</h3>
+    <ol>
+      <li><a href="#s1">エグゼクティブサマリー</a></li>
+      <li><a href="#s2">解決する課題</a></li>
+      <li><a href="#s3">ソリューション</a></li>
+      <li><a href="#s4">Hoku AI — 差別化の核</a></li>
+      <li><a href="#s5">既存アプリとの差別化</a></li>
+      <li><a href="#s6">ビジネスモデル</a></li>
+      <li><a href="#s7">市場機会</a></li>
+      <li><a href="#s8">プロダクト現状（トラクション）</a></li>
+      <li><a href="#s9">技術概要</a></li>
+      <li><a href="#s10">ロードマップ</a></li>
+      <li><a href="#s11">セキュリティ / プライバシー</a></li>
+      <li><a href="#s12">投資家への相談（Ask）</a></li>
+    </ol>
+  </div>
+
+  <section id="s1">
+    <h2>01 — Executive Summary</h2>
+    <div class="h2-title">エグゼクティブサマリー</div>
+    <p class="lead">Familink は、子育て家庭の <b>予定・タスク・家計・体調・準備・買い物</b> を、家族向け AI「Hoku」とともに一元管理する家族向けスーパーアプリです。</p>
+    <p>共働き・子育て家庭の毎日は、Google カレンダー / LINE / 紙のプリント / 家計簿アプリ / 口頭連絡 に情報が分散し、共有漏れが「朝の戦争」と夫婦間の摩擦を生んでいます。既存アプリはカレンダー特化・家計特化・メモ特化と <b>縦割り</b> で、「家族運営」という横軸を担うプロダクトが存在しません。</p>
+    <p>Familink はその横軸を、<b>8 機能の統合 + AI 入力支援</b> で埋めます。現在 MVP が稼働中で、自動テスト 785 件全 PASS の品質を確保。本ラウンドでは App Store 公開・実ユーザー検証・初期マーケティング検証の資金（相談ベース ¥50万〜¥300万）を求めています。</p>
+  </section>
+
+  <section id="s2">
+    <h2>02 — Problem</h2>
+    <div class="h2-title">解決する課題</div>
+    <p>子育て家庭は、1 日に管理する情報の種類が他の世代より圧倒的に多い。</p>
+    <table>
+      <tr><th>領域</th><th>現状の管理手段</th><th>問題</th></tr>
+      <tr><td>予定</td><td>Google / iPhone カレンダー（個人ごと）</td><td>家族で見るのに複数アプリ</td></tr>
+      <tr><td>タスク</td><td>LINE / 記憶</td><td>誰がいつまでにが曖昧</td></tr>
+      <tr><td>持ち物</td><td>紙のプリント / 記憶</td><td>朝の忘れ物・準備漏れ</td></tr>
+      <tr><td>体調</td><td>メモ / 記憶</td><td>発熱日・薬の記録が残らない</td></tr>
+      <tr><td>家計</td><td>別の家計簿アプリ</td><td>夫婦の一方しか把握しない</td></tr>
+      <tr><td>買い物</td><td>口頭 / メモ</td><td>共有漏れ・重複購入</td></tr>
+    </table>
+    <div class="callout">家庭内オペレーションは、まだ <span class="a">DX されていない。</span></div>
+  </section>
+
+  <section id="s3">
+    <h2>03 — Solution</h2>
+    <div class="h2-title">ソリューション</div>
+    <p>家族で使う 8 機能を 1 つのスマホアプリに統合。すべて家族メンバー単位で紐付き、「誰のために・誰がやり・いつ・いくら・何が必要か」が家族で共有されます。</p>
+    <table>
+      <tr><th>機能</th><th>価値</th></tr>
+      <tr><td>カレンダー</td><td>家族の予定を集約。外部カレンダー（Google/iPhone/Yahoo）も ICS 取込対応</td></tr>
+      <tr><td>タスク</td><td>誰が・いつまでに。完了チェックで分担を可視化</td></tr>
+      <tr><td>家計</td><td>単発取引 + 固定収支 + 月末残高見込みで不安を減らす</td></tr>
+      <tr><td>体調管理</td><td>体温・症状・薬を家族で記録（診断ではなく振り返り）</td></tr>
+      <tr><td>準備リスト</td><td>曜日別の持ち物・時間割。前夜に準備を完了</td></tr>
+      <tr><td>買い物リスト</td><td>今すぐ / 次の買い物 / よく買う の 3 階層</td></tr>
+      <tr><td>家族ボード</td><td>共有メモ・写真・スレッド</td></tr>
+      <tr><td>Hoku AI</td><td>一言で予定・家計・体調を整理する家族アシスタント</td></tr>
+    </table>
+  </section>
+
+  <section id="s4">
+    <h2>04 — Hoku AI</h2>
+    <div class="h2-title">Hoku AI — 差別化の核</div>
+    <p>Hoku は、家族向け文脈に最適化した軽量 AI アシスタント。短い自然な日本語を、適切な機能へ振り分けます。</p>
+    <table>
+      <tr><th>入力例</th><th>反映先</th></tr>
+      <tr><td>「明日18時、星旺スイミング」</td><td>カレンダー</td></tr>
+      <tr><td>「スーパーで3,200円」</td><td>家計</td></tr>
+      <tr><td>「星汰37.8度 咳」</td><td>体調管理</td></tr>
+      <tr><td>「明日の準備に体操服」</td><td>準備リスト</td></tr>
+      <tr><td>「牛乳追加」</td><td>買い物リスト</td></tr>
+    </table>
+    <h3>差別化ポイント</h3>
+    <ul>
+      <li>家族向け文脈に特化（メンバー名・体温・教科・期間・全角/漢数字を理解）</li>
+      <li>テキスト + 音声入力（Web Speech API、追加ハード不要）</li>
+      <li>会話の文脈を 5 ターン保持（「やっぱ花子で」が通じる）</li>
+      <li>確認モーダル必須で誤分類しても自動保存しない安全設計</li>
+      <li>医療・税務・薬の量は診断しないガードレール</li>
+      <li>外部 API 不要・完全ローカル実行（プライバシー最優先）</li>
+    </ul>
+  </section>
+
+  <section id="s5">
+    <h2>05 — Differentiation</h2>
+    <div class="h2-title">既存アプリとの差別化</div>
+    <table>
+      <tr><th>機能</th><th>TimeTree</th><th>Google Cal</th><th>家計簿</th><th>LINE/メモ</th><th class="ours">Familink</th></tr>
+      <tr><td>共有カレンダー</td><td>○</td><td>○</td><td>—</td><td>—</td><td class="ours">○</td></tr>
+      <tr><td>家計簿（固定収支+予測）</td><td>—</td><td>—</td><td>○</td><td>—</td><td class="ours">○</td></tr>
+      <tr><td>タスク管理</td><td>△</td><td>△</td><td>—</td><td>△</td><td class="ours">○</td></tr>
+      <tr><td>体調記録</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="ours">○</td></tr>
+      <tr><td>準備リスト/時間割</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="ours">○</td></tr>
+      <tr><td>買い物リスト</td><td>—</td><td>—</td><td>—</td><td>△</td><td class="ours">○</td></tr>
+      <tr><td>AI 自動入力（家族文脈）</td><td>—</td><td>—</td><td>△</td><td>—</td><td class="ours">○</td></tr>
+      <tr><td>家族メンバー紐付け</td><td>△</td><td>—</td><td>—</td><td>—</td><td class="ours">○</td></tr>
+    </table>
+    <p>立ち位置：<b>家族運営に特化した統合アプリ（家族 OS）</b>。<span class="note" style="display:inline">※ 各社 2026 年 5 月時点の主要機能による筆者比較。</span></p>
+  </section>
+
+  <section id="s6">
+    <h2>06 — Business Model</h2>
+    <div class="h2-title">ビジネスモデル</div>
+    <table>
+      <tr><th>プラン</th><th>価格</th><th>内容</th></tr>
+      <tr><td>Free</td><td>¥0/月</td><td>家族の習慣化に必要な機能（メンバー登録 / カレンダー / タスク / 家計 / 体調 / 準備 / 買い物 / Hoku 基本）</td></tr>
+      <tr><td>Premium</td><td>¥480/月</td><td>家族同期 / Hoku 高精度入力 / AI 週次サマリー / レポート / 容量拡張 / 通知強化 / 外部カレンダー完全同期</td></tr>
+    </table>
+    <ul>
+      <li>30 日全機能トライアル</li>
+      <li>将来の上位プラン候補：¥680 / ¥780 / ¥980（写真クラウド・教育記録・複数家族統合）</li>
+      <li>ポジショニング：家族単位の課金 = 共働き世代の「習慣化された家計支出」</li>
+      <li>LTV 仮説：子育て期間 10〜15 年 × 家族全員が日次利用の高頻度</li>
+    </ul>
+  </section>
+
+  <section id="s7">
+    <h2>07 — Market</h2>
+    <div class="h2-title">市場機会</div>
+    <ul>
+      <li>日本の共働き世帯：約 1,200 万世帯</li>
+      <li>子育て家庭は毎日複数の情報管理を行い、共有漏れによる夫婦間摩擦は普遍的</li>
+      <li>ChatGPT 普及で「自然言語で AI に頼む」体験が標準化 → 家庭領域への AI 浸透も加速</li>
+    </ul>
+    <div class="note">TAM / SAM / SOM の精緻化は今後リサーチ予定。本節は戦略仮説の提示にとどめます。</div>
+  </section>
+
+  <section id="s8">
+    <h2>08 — Traction</h2>
+    <div class="h2-title">プロダクト現状（トラクション）</div>
+    <ul>
+      <li>MVP v3.x が稼働中（GitHub Pages 配信、スマホで実機確認可能）</li>
+      <li>実装済み：18 画面 / 16+ モーダル / 8 中核機能 / Hoku AI / 外部カレンダー ICS 取込</li>
+      <li>品質：<b class="pos">自動テスト 785 / 785 PASS</b>（10 回連続実行で完全に決定論的・退行ゼロ）</li>
+      <li>コード健全性：未使用関数ゼロ / console.log ゼロ / debugger ゼロ / 構文エラーゼロ</li>
+      <li>正直な現状：実ユーザー検証前、家族同期・本物のログインは未実装（v1.0 以降）</li>
+    </ul>
+  </section>
+
+  <section id="s9">
+    <h2>09 — Technology</h2>
+    <div class="h2-title">技術概要</div>
+    <table>
+      <tr><th>項目</th><th>現状</th><th>将来</th></tr>
+      <tr><td>構成</td><td>単一 HTML / Vanilla JS / 依存ゼロ</td><td>App Store 版（Capacitor 等）</td></tr>
+      <tr><td>保存</td><td>LocalStorage（端末内）</td><td>Supabase DB / Storage</td></tr>
+      <tr><td>認証</td><td>ローカルモードのみ</td><td>Supabase Auth（メール / OAuth）</td></tr>
+      <tr><td>同期</td><td>なし</td><td>家族グループ単位のクラウド同期</td></tr>
+      <tr><td>AI</td><td>完全ローカル分類</td><td>端末ローカル LLM / 外部 API（opt-in）</td></tr>
+    </table>
+    <p>設計方針：依存を持たない軽量 MVP で素早く検証 → 検証後にバックエンドを段階導入。</p>
+  </section>
+
+  <section id="s10">
+    <h2>10 — Roadmap</h2>
+    <div class="h2-title">ロードマップ</div>
+    <table>
+      <tr><th>時期</th><th>範囲</th></tr>
+      <tr><td>短期（0–3 ヶ月）</td><td>App Store 公開 / TestFlight / 家族内βテスト / UI・Hoku 改善</td></tr>
+      <tr><td>中期（3–9 ヶ月）</td><td>家族同期（Supabase）/ プッシュ通知 / 有料課金本実装 / AI 週次サマリー / 初期マーケ検証</td></tr>
+      <tr><td>長期（9–24 ヶ月）</td><td>学校・園カレンダー連携 / B2B 展開 / AI 家族運営サマリー / 上位プラン / 事業売却・資金調達ステージ</td></tr>
+    </table>
+  </section>
+
+  <section id="s11">
+    <h2>11 — Security / Privacy</h2>
+    <div class="h2-title">セキュリティ / プライバシー方針</div>
+    <ul>
+      <li>現 Web 版はユーザーが選択したファイル / 入力データのみを扱い、外部送信しない</li>
+      <li>外部カレンダーを許可なく自動取得しない（ICS 手動取込のみ）</li>
+      <li>将来のクラウド化では Row Level Security による家族単位アクセス制御を前提</li>
+      <li>API Secret をフロントに置かない設計（GitHub Pages 公開前提）</li>
+    </ul>
+  </section>
+
+  <section id="s12">
+    <h2>12 — Ask</h2>
+    <div class="h2-title">投資家への相談</div>
+    <p>現在は MVP として主要機能を実装済み。次の段階は App Store 公開・実ユーザー検証・課金導線・初期マーケティングです。エンジェル投資家の方に、少額で「試す価値があるか」を判断いただきたいフェーズです。</p>
+    <h3>資金用途（相談ベース）</h3>
+    <ol>
+      <li>App Store 公開までの伴走（iOS ラッパー + 審査対応）</li>
+      <li>家族向けユーザーテスト（クローズドβ 30〜100 家族）</li>
+      <li>UI/UX・法務・課金導線の専門家アサイン</li>
+      <li>マーケティング初期検証（家族向け SNS / インフルエンサー）</li>
+      <li>家族同期バックエンド（Supabase）開発</li>
+    </ol>
+    <div class="ask-amount">
+      <div class="v">¥50万 〜 ¥300万</div>
+      <div class="n">想定投資額（相談ベース）。金額・条件はご相談で調整させてください。</div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="links">
+    <a href="../index.html">アプリ稼働デモ</a>
+    <a href="../pitch.html">投資家向けピッチ</a>
+  </div>
+  © 2026 Familink<br>
+  <span style="opacity:.7;font-size:11px;">本書は MVP 段階のプロトタイプ紹介を目的としています。記載の機能・価格・スケジュールは実装・調整中の項目を含み、数値は戦略仮説です。</span>
+</footer>
+
+</body>
+</html>
