@@ -8042,3 +8042,47 @@ Wave 68 — Wave 66（ログイン機能）の方針巻き戻し（revert）
 
 ### コミット
 - 予定メッセージ: `wave 68: revert wave 66 login/auth changes (keep wave 67 Hoku)`
+
+---
+
+## 2026-05-09 01:15  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 69 — AI 駆動プロダクト開発フローの整備（Familink へ適用）
+
+### 変更ファイル
+- docs/ai-dev-flow/README.md（新規・フロー正本）
+- docs/ai-dev-flow/template-task.md（新規・タスク分解テンプレート）
+- docs/ai-dev-flow/template-review.md（新規・レビューテンプレート）
+- docs/ai-dev-flow/template-test-design.md（新規・テスト設計テンプレート）
+
+### 変更内容
+ユーザー指示の「AI 駆動プロダクト開発フロー（12 フェーズ）」を Familink に適用する
+形で文書化。いきなり実装せず モック→要件→設計→タスク分解→実装→テスト の順で進める。
+
+**README.md（フロー正本）**
+- 12 フェーズの全体像 / 各フェーズの目的・成果物・完了条件
+- フォルダ構成（docs/ai-dev-flow/ 配下 mock/spec/design/tasks/test/review）
+- docs 配下 Markdown 一覧（計 30 ファイル想定）
+- モックアップの進め方（稼働中アプリを「モック」とみなす読み替え）
+- 進行ルール / 既存ドキュメントとの対応表
+
+**3 テンプレート**
+- template-task.md：1 タスク = 1 機能の分解形式 + AI 実行プロンプト
+- template-review.md：6 視点レビュー + 違和感リスト + 最終判定
+- template-test-design.md：10 テスト種別 + VM テスト雛形 + 回帰チェック
+
+### 完了条件
+- フロー全体像・各フェーズ完了条件・フォルダ構成・テンプレート 3 種が揃った
+- 次フェーズ（P1 画面棚卸し）に着手可能な状態
+
+### 未確認事項
+- ユーザーから「適用したいプロダクト内容」の具体指示待ち
+- 現状アプリ 18 画面の棚卸し（P1）は次セッションで着手
+
+### 次にやること
+- Phase 1：稼働中アプリの全画面を mock/screen-list.md に棚卸し
+- ユーザーが新機能を指定した場合はその機能から P1-P12 を回す
+
+### コミット
+- 予定メッセージ: `wave 69: establish AI-driven product dev flow for Familink`
