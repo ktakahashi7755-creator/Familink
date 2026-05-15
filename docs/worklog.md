@@ -8000,3 +8000,45 @@ Wave 67 — ウェルカム画面に Hoku（星キャラ）を馴染ませる
 
 ### コミット
 - 予定メッセージ: `wave 67: blend Hoku star into the welcome screen illustration`
+
+---
+
+## 2026-05-09 00:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 68 — Wave 66（ログイン機能）の方針巻き戻し（revert）
+
+### 経緯
+ユーザー判断により、Wave 66 で追加したログイン/認証関連の変更を「方針として」
+全面的に元に戻すことに決定。Wave 67（ウェルカム画面の Hoku 星）は保持。
+
+### 変更ファイル
+- app-source/familink.html（Wave 66 分を revert）
+- docs/index.html（mirror）
+- docs/hoku-intent-engine.md（Wave 66 追補を revert）
+- docs/auth-cloud-sync-plan.md（削除）
+- docs/security-auth-notes.md（削除）
+
+### 戻した内容（Wave 66 で入れたもの）
+- doLogout の文言変更 / _logoutConfirmed 分離 → 旧シンプル実装へ
+- データ初期化モーダル（openDataResetModal / execDataReset / m-data-reset）
+- 設定「アカウントと同期」セクション → 旧「その他」（ログアウトのみ）へ
+- m-account-sync モーダル / openAccountSyncModal
+- S.authMode / authUser / familyId / syncStatus / lastSyncedAt / migrationStatus
+  と PERSIST 登録
+- Hoku intent login_help / sync_help / backup_help（META/SHORT_REPLY/分岐/アクション）
+- docs/auth-cloud-sync-plan.md / security-auth-notes.md
+
+### 保持した内容
+- Wave 67：ウェルカム画面の Hoku 星（ob-hoku-star）はそのまま
+
+### 検証
+- `git revert 20f86d3` で実施（familink.html / index.html は自動マージ成功）
+- worklog のみ競合 → 追記専用方針で履歴を保持して解決
+- 構文 check：scripts 1/1 OK
+- Wave 66 痕跡ゼロ（authMode / login_help / m-account-sync / execDataReset 全消去）
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- md5：82eeb9419a2b96cf276284f4bc0fe83b
+
+### コミット
+- 予定メッセージ: `wave 68: revert wave 66 login/auth changes (keep wave 67 Hoku)`
