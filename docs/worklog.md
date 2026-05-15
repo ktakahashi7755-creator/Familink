@@ -8182,3 +8182,45 @@ Wave 72 — 自走改善（Wave 70-71）を巻き戻し、Wave 69 状態へ復�
 
 ### コミット
 - 予定メッセージ: `wave 72: roll back wave 70-71 to wave 69 state`
+
+---
+
+## 2026-05-09 02:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 73 — バグ徹底洗い出し + 10 回検証サイクル
+
+### 経緯
+ユーザー指示で、時間をかけてバグを洗い出し改善、テスト・検証を 10 回繰り返す。
+
+### 実施したバグ洗い出し
+1. ハンドラ関数参照監査：onclick 等 224 関数すべて定義済みを確認（未定義ゼロ）
+2. ランタイム例外監査（新 /tmp/bug-hunt-runtime.js）：render/update 系 58 関数 +
+   refresh 11 画面を VM 実行 → 例外ゼロ（item レンダラ 3 件は引数必須の偽陽性として除外）
+3. Hoku 異常系監査（新 /tmp/bug-hunt-hoku.js）：空文字 / 5000 字 / 絵文字 / XSS /
+   全角 / null 等 42 ケース
+
+### 発見・修正したバグ
+- **executeHokuAction が entities 欠落 intent で例外**
+  - `intent.entities.memberId` 等を entities 未定義のまま参照しクラッシュ
+  - 修正：関数冒頭で `if(!intent.entities) intent.entities = {}` の防御を追加
+  - 実コード（parseHokuIntent 経由）では entities 必ず付与されるが、
+    防御的堅牢化として対応
+
+### 変更ファイル
+- app-source/familink.html（executeHokuAction に entities 防御）
+- docs/index.html（mirror）
+- /tmp/bug-hunt-runtime.js / bug-hunt-hoku.js（新バグ洗い出しスイート）
+
+### 10 回検証サイクル結果
+全 23 スイート（既存 22 + bug-hunt-hoku）+ runtime-hunt を 10 回連続実行：
+- 回 1〜10 すべて **785 PASS / 0 FAIL**（完全に決定論的・フレーキーゼロ）
+- runtime-hunt：毎回 例外 0
+
+### 最終確認
+- 構文 check：scripts 1/1 OK
+- md5：768959441c84b7440f019f77639d0136（app ⇔ docs/index.html 一致）
+- .claude/settings.local.json：git 管理外
+
+### コミット
+- 予定メッセージ: `wave 73: bug hunt — guard executeHokuAction against missing entities`

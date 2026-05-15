@@ -13880,6 +13880,8 @@ function _hokuAskBackMessage(intent) {
 /* 統一ディスパッチャ — intent.intentType に応じて処理を実行 */
 function executeHokuAction(intent) {
   if(!intent || !intent.intentType) return { ok:false, message:'内容を読み取れませんでした。' };
+  // Wave 73: entities が欠落した intent でも例外を出さないよう防御
+  if(!intent.entities || typeof intent.entities !== 'object') intent.entities = {};
 
   // Wave 65: 案内系（保存しない）— 短文化 + 一般ユーザー文言
   if(intent.intentType === 'external_calendar_help') {
