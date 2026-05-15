@@ -8123,3 +8123,35 @@ HTML 本体の `<div>` 開閉が 1 件不整合（`</div>` 過多）であるこ
 
 ### コミット
 - 予定メッセージ: `wave 70: fix HTML structure — remove stray </div> in settings screen`
+
+---
+
+## 2026-05-09 01:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 71 — 自走改善②：アイコンのみボタンに aria-label を付与（アクセシビリティ）
+
+### 経緯
+自走総点検の続き。アクセシビリティ監査で、テキストが「＋」のみのアイコン
+ボタン 3 件に aria-label / title が無いことを検出（App Store 品質基準）。
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+アイコン（＋）のみのボタン 3 件に aria-label を追加：
+- 家計 FAB（onBudgetFabTap）→ aria-label="記録を追加"
+- 体調ヘッダー（openHealthModal）→ aria-label="体調を記録"
+- 準備ヘッダー（openPrepModal）→ aria-label="準備を追加"
+
+※ confirm-ok ボタンは JS でラベルを動的設定するため対象外（既存仕様）
+
+### 検証
+- アクセシビリティ監査：img alt 無し 0 件 / aria-label 無しアイコンボタン 4→1（残 1 は動的ラベル）
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- md5：4373ac618e29743679b9a583e1d06c73
+
+### コミット
+- 予定メッセージ: `wave 71: add aria-label to icon-only add buttons (a11y)`
