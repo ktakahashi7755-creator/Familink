@@ -3001,7 +3001,7 @@ nav#tabbar.hidden { display: none !important; }
     <div id="budget-section-cashflow"  style="display:none;padding:14px 0;"></div>
   </div>
   <div id="budget-fab" style="position:fixed;bottom:calc(98px + env(safe-area-inset-bottom));right:18px;">
-    <button class="fab" onclick="onBudgetFabTap()" aria-label="記録を追加">＋</button>
+    <button class="fab" onclick="onBudgetFabTap()">＋</button>
   </div>
 </div>
 
@@ -3173,7 +3173,7 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">体調管理</div>
-    <button class="header-icon-btn" onclick="openHealthModal()" aria-label="体調を記録">＋</button>
+    <button class="header-icon-btn" onclick="openHealthModal()">＋</button>
   </div>
   <div class="child-tabs" id="health-child-tabs"></div>
   <div class="scroll-area" id="health-list" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
@@ -3184,7 +3184,7 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">持ち物・準備リスト</div>
-    <button class="header-icon-btn" onclick="openPrepModal()" aria-label="準備を追加">＋</button>
+    <button class="header-icon-btn" onclick="openPrepModal()">＋</button>
   </div>
   <!-- 今日 / 明日 / すべて / ルーティン タブ -->
   <div id="prep-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
@@ -3362,6 +3362,8 @@ nav#tabbar.hidden { display: none !important; }
     <div class="header-title">設定・メニュー</div>
   </div>
   <div class="scroll-area" id="settings-body" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+</div>
+  <!-- 写真変更用 hidden input -->
 </div>
 
 <!-- ===== MODALS ===== -->
