@@ -231,3 +231,27 @@ executeHokuAction({ intentType, entities, ... })
 | `docs/hoku-quality-report-2026-05-02-wave8.md` | 過去の品質報告 |
 | `docs/hoku-voice-notes-2026-05-02.md` | 音声入力の設計メモ |
 | `docs/worklog.md` | Wave 52 の作業ログ |
+
+---
+
+## 14. Wave 66 追補 — 認証 / 同期 intent
+
+外部カレンダー（calendar_import_help）に続き、ログイン・家族同期・バックアップ
+についても Hoku が正しく案内できるよう intent を追加。
+
+| intent | トリガー語 | 応答方針 |
+|---|---|---|
+| `login_help`  | ログイン / ログアウト / アカウント / 新規登録 / 本物のログイン | 「今はローカルモード。本物のログインは次の段階で対応予定」 |
+| `sync_help`   | 同期 / 共有したい / 別の端末で見たい / 家族で共有 | 「家族で見るにはクラウド同期が必要。Supabase 連携で実装予定」 |
+| `backup_help` | バックアップ / 機種変 / データが消えた / 引き継ぎ | 「今は端末保存。書き出しで手動バックアップ可。クラウド保存は今後」 |
+
+判定順（parseHokuIntent §1.3）：backup_help → sync_help → login_help。
+「ログアウトしたらデータ消えた」のような複合語でも backup_help を優先し、
+データ保護の安心を伝える。
+
+応答ガードレール：
+- 「ログイン済み」「同期完了」など、未実装機能を完了したように偽らない
+- ACTION_BUTTONS:account_sync で設定の「アカウントと同期」へ誘導
+- 短文（HOKU_SHORT_REPLY に login_help / sync_help / backup_help を登録）
+
+関連：`docs/auth-cloud-sync-plan.md` / `docs/security-auth-notes.md`
