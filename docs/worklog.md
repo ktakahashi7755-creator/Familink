@@ -8437,3 +8437,47 @@ Hoku AI 化 Phase 3：Familink フロントに Hoku API クライアントを追
 
 ### 次にやるべきこと
 - API デプロイ先決定 → callHokuApi を sendHokuMsg に配線（Phase 3 完了）
+
+---
+
+## Wave 78 自律開発 2026-05-09 05:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 3 完了：Hoku API を設定 UI から有効化でき、sendHokuMsg に
+完全フォールバック付きで配線。既定（URL 空）は従来通りローカル動作。
+
+### 変更ファイル
+- app-source/familink.html
+  - 設定画面に「Hoku 連携（実験的）」セクション + ON/OFF 表示
+  - m-hoku-api モーダル（API URL 入力 / 保存 / 閉じる）
+  - openHokuApiModal / saveHokuApiUrl 関数
+  - sendHokuMsg に callHokuApi 配線（API がカテゴリ補正、項目抽出は
+    実績あるローカル parseHokuIntent、失敗/例外時はローカルへ完全フォールバック）
+- docs/index.html（mirror）
+
+### 配線の安全設計
+- S.hokuApiUrl 空（既定）→ API 経路を完全スキップ＝従来 100% 動作
+- URL 設定時のみ callHokuApi。API がカテゴリ補正（confidence ≥ 0.7）、
+  日付/金額/体温等の抽出は既存ローカル parseHokuIntent を使用
+- API 未応答 / 失敗 / 壊れた応答 / 例外 → 既存ローカルフローへフォールバック
+- 保存前確認モーダルは API 経由でも必ず表示（executeHokuAction 経由）
+- URL バリデーション（http(s):// 必須）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ＝既定休眠を実証）
+- div バランス 463/463・主要 UI 関数/モーダル存在を確認
+- hoku-api pytest：10 / 10 PASS（前 Wave 維持）
+- md5：91fcee1210b2e8a73346512344c2a455
+
+### Phase 3 状態
+- フロント側の Hoku API 連携は**コード上は完了**（設定 UI + 配線 + フォールバック）
+- 実利用には Hoku API のデプロイ + 設定画面での URL 入力が必要
+- デプロイ前でもアプリは完全動作（休眠）
+
+### 未対応 / オーナー確認が必要
+- Hoku API のデプロイ（Render / Fly.io 等）→ URL を設定画面に入力すれば即有効
+- LLM API 本連携（hoku-api/classifier の LLM 分岐）
+
+### 次にやるべきこと
+- API デプロイ → 設定で URL 入力 → 実機で 7 シナリオ確認
