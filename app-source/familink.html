@@ -12221,10 +12221,20 @@ async function sendHokuMsg(text) {
   try {
     let reply;
 
+    // Wave 84: 削除意図は文脈補正より先に判定（「明日の予定消して」等を確実に拾う）
+    let delReply = null;
+    if(!_pendingAction) {
+      try {
+        const delIntent = (typeof _hokuDetectDelete === 'function') ? _hokuDetectDelete(text) : null;
+        if(delIntent) delReply = _hokuHandleDelete(delIntent);
+      } catch(e) { delReply = null; }
+    }
     // Wave 61: 直近文脈で短文修正を解釈（「やっぱ星旺で」「明日にして」「支出で」など）
     const ctxIntent = (typeof applyHokuContext === 'function') ? applyHokuContext(text) : null;
     if(_pendingAction) {
       reply = handleConfirmation(text);
+    } else if(delReply) {
+      reply = delReply;
     } else if(ctxIntent) {
       // 文脈から再構築した intent を直接実行
       try {
@@ -12234,11 +12244,11 @@ async function sendHokuMsg(text) {
         reply = 'ごめん、変更できなかった。もう一回試して。';
       }
     } else {
+      reply = null;
       // Wave 77: Hoku API 連携（S.hokuApiUrl 設定時のみ）。
       // API がカテゴリを補正し、項目抽出は実績あるローカル parseHokuIntent を使う。
       // API 未設定 / 失敗 / 例外 → 既存ローカルフローへ完全フォールバック。
-      reply = null;
-      if(S.hokuApiUrl) {
+      if(reply == null && S.hokuApiUrl) {
         try {
           const apiRes = await callHokuApi(text);
           if(apiRes && apiRes.intent && apiRes.intent !== 'unknown') {
@@ -12605,6 +12615,7 @@ function handleAction(intent, q) {
 function handleConfirmation(text) {
   const action = _pendingAction;
   _pendingAction = null;
+  if(!action) return hokuLocalAnswer(text);
   const yes = text.match(/^(はい|うん|お願い|やって|OK|ok|よろしく|追加して|登録して|消して|完了|そうして|いいよ|ええ|あ|そう)/i);
   const no  = text.match(/^(いや|やめ|キャンセル|違|ちがう|no|NG|ng|やっぱり)/i);
   if(no) return 'わかった、やめておくね。';
@@ -12613,6 +12624,34 @@ function handleConfirmation(text) {
 }
 
 function continueAction(action, text) {
+  // Wave 84: 「さっきの何を消す？」への返答でカテゴリを確定
+  if(action.type==='hoku_delete_catpick') {
+    const cat = _hokuDeleteCategory(text);
+    if(!cat) {
+      _pendingAction = null;
+      return '「予定」「タスク」「家計」「準備」「買い物」「体調」のどれかで教えてね。';
+    }
+    const rep = _hokuHandleDelete({ category:cat, query:'', scope:action.params.scope||'last', all:false, raw:text });
+    return rep || 'それらしいものが見つからなかった。';
+  }
+  // Wave 84: 削除候補の絞り込み（番号 / キーワード / 全部）
+  if(action.type==='hoku_delete_pick') {
+    const cands = action.params.candidates || [];
+    if(/全部|すべて|全て|ぜんぶ/.test(text)) {
+      _pendingAction = { type:'hoku_delete', params:{ label:cands.length+'件', items:cands, category:action.params.category } };
+      return cands.length+' 件すべてを削除する？元には戻せないよ。';
+    }
+    let pick = null;
+    const numM = text.match(/(\d+)/);
+    if(numM) { const i = parseInt(numM[1])-1; if(i>=0 && i<cands.length) pick = cands[i]; }
+    if(!pick) pick = cands.find(function(c){ return _hokuLooseMatch(c.label, text); });
+    if(pick) {
+      _pendingAction = { type:'hoku_delete', params:{ label:pick.label, items:[pick], category:(pick.cat || action.params.category) } };
+      return '「'+pick.label+'」を削除する？元には戻せないけど大丈夫？';
+    }
+    _pendingAction = null;
+    return 'どれか分からなかった。もう一度、番号かキーワードで教えてね。';
+  }
   if(action.type==='create_task' && !action.params.assignee) {
     const m = extractMember(text);
     if(m) { action.params.assignee=m; _pendingAction=action; return `${m}担当で「${action.params.title}」、追加しておく？`; }
@@ -12686,11 +12725,212 @@ function executeAction(action) {
       return `準備リストに追加しました。${NL}・内容：${action.params.text}${NL+NL}「準備リスト」画面で確認できます。`;
     }
 
+    case 'hoku_delete': {
+      const items = action.params.items || [];
+      let n = 0;
+      items.forEach(function(it){
+        const arr = S[it.store];
+        if(Array.isArray(arr)){
+          const i = arr.findIndex(function(x){ return x && x.id === it.id; });
+          if(i >= 0){ arr.splice(i,1); n++; }
+        }
+      });
+      try { saveS(); } catch(_){}
+      ['s-cal','s-task','s-budget','s-prep','s-shopping','s-health'].forEach(function(s){ try{ refresh(s); }catch(_){} });
+      try { if(typeof renderHome === 'function') renderHome(); } catch(_){}
+      if(!n) return '対象が見つからなかった。もう一度試して。';
+      const _delCat = action.params.category || (items[0] && items[0].cat) || '';
+      const _btnCat = { event:'calendar', task:'task', budget:'budget', prep:'prep', shopping:'shopping', health:'health' }[_delCat] || '';
+      const _btn = _btnCat ? ('\n\n[[ACTION_BUTTONS:'+_btnCat+']]') : '';
+      const _msg = n>1 ? (n+'件、削除したよ。') : ('「'+(action.params.label||'')+'」を削除したよ。');
+      return _msg + _btn;
+    }
+
     default: return '処理が完了できませんでした。お手数ですが、もう一度お試しください。';
   }
 }
 
+/* ============================================================
+   Wave 84 — HOKU 削除エンジン（全カテゴリ対応）
+   予定 / タスク / 家計 / 準備 / 買い物 / 体調 をラフな言い方で削除。
+   見つけた候補を提示し、必ず確認してから削除する（AI は勝手に消さない）。
+   ============================================================ */
 
+const HOKU_DELETE_VERB = /(消して|消す|消去|削除|取り消|取消|キャンセル|なかったこと|間違え|まちがえ|要らない|いらない|不要|外して|抜いて|やめにして|取りやめ|ボツ|(?:今|さっき|それ|これ|あれ|やっぱ)の?なし)/;
+
+function _hokuHasDateToken(t){
+  return /今日|本日|明日|あした|明後日|昨日|[月火水木金土日]曜|来週|\d{1,2}[\/月]\d{1,2}/.test(t||'');
+}
+function _hokuExplicitDate(t){
+  if(!_hokuHasDateToken(t)) return null;
+  try { return parseDate(t).date; } catch(_) { return null; }
+}
+function _hokuNorm(s){ return String(s||'').replace(/[\s　]/g,''); }
+function _hokuLooseMatch(itemText, query){
+  const a=_hokuNorm(itemText), b=_hokuNorm(query);
+  if(!a||!b) return false;
+  if(a.indexOf(b)>=0 || b.indexOf(a)>=0) return true;
+  for(let i=0;i+2<=b.length;i++){ if(a.indexOf(b.substr(i,2))>=0) return true; }
+  return false;
+}
+function _hokuDateLabel(ds){
+  if(!ds) return '';
+  try {
+    const td=todayStr();
+    if(ds===td) return '今日';
+    if(ds===addDays(td,1)) return '明日';
+    if(ds===addDays(td,-1)) return '昨日';
+    const p=ds.split('-');
+    if(p.length===3) return parseInt(p[1])+'/'+parseInt(p[2]);
+  } catch(_){}
+  return ds;
+}
+function _hokuDeleteCategory(text){
+  if(/予定|カレンダー|スケジュール|イベント/.test(text)) return 'event';
+  if(/タスク|やること|TODO|todo/i.test(text)) return 'task';
+  if(/家計|出費|支出|収入|家計簿/.test(text)) return 'budget';
+  if(/準備|持ち物|忘れ物/.test(text)) return 'prep';
+  if(/買い物|買物|ショッピング/.test(text)) return 'shopping';
+  if(/体調|体温|発熱|症状/.test(text)) return 'health';
+  return null;
+}
+
+/* 削除意図の検出。削除動詞 + (カテゴリ or スコープ) が揃ったときのみ作動。 */
+function _hokuDetectDelete(text){
+  const t=String(text||'');
+  if(!HOKU_DELETE_VERB.test(t)) return null;
+  const strong = /(消して|消す|消去|削除|取り消|取消|キャンセル|外して)/.test(t);
+  const scope = /(さっき|直前|最後|今の|今追加|たった今|いま入れた|今入れた|いま登録|今登録)/.test(t) ? 'last' : null;
+  const all = /(全部|すべて|全て|まとめて|ぜんぶ)/.test(t);
+  const category = _hokuDeleteCategory(t);
+  let query=t
+    .replace(HOKU_DELETE_VERB,'')
+    .replace(/カレンダー|スケジュール|イベント|やること|家計簿|準備リスト|買い物リスト|体調管理|ショッピング/g,'')
+    .replace(/予定|タスク|家計|準備|持ち物|忘れ物|買い物|買物|体調|出費|支出|収入/g,'')
+    .replace(/さっき|直前|最後|今の|たった今|今追加した?|いま入れた|今入れた|いま登録した?|今登録した?|全部|すべて|全て|ぜんぶ|まとめて/g,'')
+    .replace(/今日|本日|明日|あした|明後日|昨日|来週|今週|[月火水木金土日]曜日?|\d{1,2}[\/月]\d{1,2}日?|\d{1,2}時\d{0,2}分?/g,'')
+    .replace(/(から|の中の|の中から|に入れた|に入れてた)/g,'')
+    .replace(/(になった|になりました|になっちゃった|でした|だった|です|ます)$/,'')
+    .replace(/[、,。.！!？?\s　]+/g,'')
+    .replace(/^[のはがをにへでとも]+|[のはがをにへでとも]+$/g,'')
+    .trim();
+  if(query.length<1) query='';
+  // カテゴリもスコープも無いとき：強い削除語 + 2文字以上のクエリなら全カテゴリ横断検索を許可
+  if(!category && !scope && !(strong && query.length>=2)) return null;
+  return { category:category, query:query, scope:scope, all:all, strong:strong, raw:t };
+}
+
+const _HOKU_DEL_STORES = {
+  event:    { key:'events',        screen:'s-cal' },
+  task:     { key:'tasks',         screen:'s-task' },
+  budget:   { key:'txs',           screen:'s-budget' },
+  prep:     { key:'prep',          screen:'s-prep' },
+  shopping: { key:'shoppingItems', screen:'s-shopping' },
+  health:   { key:'health',        screen:'s-health' }
+};
+function _hokuDelLabel(cat, it){
+  if(cat==='event')    return (_hokuDateLabel(it.date)+' '+(it.time||'')+' '+(it.title||'(無題)')).replace(/\s+/g,' ').trim();
+  if(cat==='task')     return it.title||'(無題)';
+  if(cat==='budget')   return (_hokuDateLabel(it.date)+' '+(it.desc||it.cat||'記録')+' ¥'+((it.amount||0).toLocaleString())).replace(/\s+/g,' ').trim();
+  if(cat==='prep')     return it.text||it.title||'(無題)';
+  if(cat==='shopping') return it.name||'(無題)';
+  if(cat==='health'){
+    const mn = it.memberName || (typeof memberNameById==='function' ? memberNameById(it.memberId||it.child) : '') || '';
+    return (_hokuDateLabel(it.date)+' '+mn+'の体調').replace(/\s+/g,' ').trim();
+  }
+  return '(無題)';
+}
+function _hokuDelText(cat, it){
+  if(cat==='event')    return it.title||'';
+  if(cat==='task')     return it.title||'';
+  if(cat==='budget')   return (it.desc||'')+(it.cat||'');
+  if(cat==='prep')     return it.text||it.title||'';
+  if(cat==='shopping') return it.name||'';
+  if(cat==='health')   return (it.memberName||'')+(it.cond||'')+(typeof memberNameById==='function'?(memberNameById(it.memberId||it.child)||''):'');
+  return '';
+}
+function _hokuDelDate(cat, it){
+  return (cat==='event'||cat==='budget'||cat==='health') ? (it.date||null) : null;
+}
+
+/* 削除対象を検索。戻り値：[{store,id,label}] */
+function _hokuFindDeleteTargets(d){
+  const cat=d.category;
+  if(!cat || !_HOKU_DEL_STORES[cat]) return [];
+  const def=_HOKU_DEL_STORES[cat];
+  const arr=Array.isArray(S[def.key])?S[def.key]:[];
+  const date=_hokuExplicitDate(d.raw);
+  const q=d.query;
+  const amM=(cat==='budget' && q) ? (q.match(/\d[\d,]*/)||[])[0] : null;
+  const amount=amM ? parseInt(String(amM).replace(/,/g,'')) : null;
+  const vague=(!q && !date && !d.all && !d.scope);
+  let res=[];
+  arr.forEach(function(it){
+    if(!it || !it.id) return;
+    let ok=false;
+    if(d.scope==='last' || vague || (d.all && !q && !date)){
+      ok=true;
+    } else {
+      const dOk = !date || _hokuDelDate(cat,it)===date;
+      let qOk;
+      if(!q){ qOk=!!date; }
+      else {
+        qOk=_hokuLooseMatch(_hokuDelText(cat,it), q);
+        if(!qOk && amount!=null && it.amount===amount) qOk=true;
+      }
+      ok = dOk && qOk;
+    }
+    if(ok) res.push({ store:def.key, id:it.id, label:_hokuDelLabel(cat,it), cat:cat });
+  });
+  if(d.scope==='last' && res.length) res=[res[res.length-1]];
+  if(vague && res.length>6) res=res.slice(-6);
+  return res;
+}
+
+/* 削除意図を処理。実行はせず確認モーダル相当の _pendingAction をセット。 */
+function _hokuHandleDelete(d){
+  if(!d) return null;
+  if(!d.category){
+    if(d.scope==='last'){
+      _pendingAction={ type:'hoku_delete_catpick', params:{ scope:'last' } };
+      return 'さっきの何を消す？「予定」「タスク」「家計」「準備」「買い物」「体調」のどれ？';
+    }
+    // カテゴリ語が無い（例：「歯医者キャンセルになった」）→ 全カテゴリ横断検索
+    if(d.query){
+      let hits=[];
+      ['event','task','budget','prep','shopping','health'].forEach(function(c){
+        _hokuFindDeleteTargets({ category:c, query:d.query, scope:null, all:false, raw:d.raw })
+          .forEach(function(h){ hits.push(h); });
+      });
+      if(!hits.length) return null;
+      if(hits.length===1){
+        _pendingAction={ type:'hoku_delete', params:{ label:hits[0].label, items:[hits[0]], category:hits[0].cat } };
+        return '「'+hits[0].label+'」を削除する？元には戻せないけど大丈夫？';
+      }
+      _pendingAction={ type:'hoku_delete_pick', params:{ candidates:hits.slice(0,6) } };
+      const lines=hits.slice(0,6).map(function(h,i){ return (i+1)+'. '+h.label; });
+      return 'どれを削除する？番号で教えてね。\n'+lines.join('\n')+'\n（全部なら「全部」）';
+    }
+    return null;
+  }
+  const targets=_hokuFindDeleteTargets(d);
+  const catLabel={ event:'予定', task:'タスク', budget:'家計', prep:'準備', shopping:'買い物', health:'体調' }[d.category];
+  if(!targets.length){
+    if(d.query) return '「'+d.query+'」に当てはまる'+catLabel+'が見つからなかった。別の言い方で教えて。';
+    return 'まだ'+catLabel+'は登録されてないみたい。';
+  }
+  if(targets.length===1){
+    _pendingAction={ type:'hoku_delete', params:{ label:targets[0].label, items:targets, category:d.category } };
+    return '「'+targets[0].label+'」を削除する？元には戻せないけど大丈夫？';
+  }
+  if(d.all){
+    _pendingAction={ type:'hoku_delete', params:{ label:targets.length+'件', items:targets, category:d.category } };
+    return catLabel+'を '+targets.length+' 件まとめて削除する？元には戻せないよ。';
+  }
+  _pendingAction={ type:'hoku_delete_pick', params:{ candidates:targets, category:d.category } };
+  const lines=targets.slice(0,6).map(function(t,i){ return (i+1)+'. '+t.label; });
+  return 'どれを削除する？番号で教えてね。\n'+lines.join('\n')+'\n（全部なら「全部」）';
+}
 
 /* ── UI関数 ── */
 function openHoku() { go('s-hoku'); renderHoku(); }
@@ -14601,7 +14841,7 @@ function classifierGuidance(category, q, secondary) {
     case 'notification':
       return '通知センターに残すね（OS プッシュは v1.0 以降）。' + ACTION('notification');
     case 'help':
-      return 'Hoku は家族の予定・タスク・準備・家計・体調をまとめる相棒。マイクで音声入力もできるよ。';
+      return 'Hoku は家族の予定・タスク・準備・家計・体調をまとめる相棒。\n話しかけるだけで登録も削除もできるよ。例：「明日15時に歯医者」「明日の歯医者の予定消して」。マイクで音声入力もOK。';
     case 'premium':
       return 'プレミアムは月 480 円で、ボード追加・準備拡張・Hoku 強化を予定。無料でも基本は全部使えるよ。' + ACTION('premium');
     default:
