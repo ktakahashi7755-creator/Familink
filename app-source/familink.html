@@ -11100,6 +11100,16 @@ function renderSettings() {
       </div>
     </div>
 
+    <!-- Wave 77: Hoku 連携（実験的）— 外部 Hoku API の URL 設定 -->
+    <div class="settings-section">
+      <div class="settings-title">Hoku 連携（実験的）</div>
+      <div class="settings-item" onclick="openHokuApiModal()">
+        <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
+        <div class="settings-item-label">Hoku API 連携</div>
+        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${(S.hokuApiUrl?'ON':'OFF')}</div>
+      </div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-title">その他</div>
       <div class="settings-item" onclick="doLogout()">
@@ -12175,6 +12185,26 @@ async function callHokuApi(text) {
   }
 }
 
+/* Wave 77: Hoku API 連携設定モーダル */
+function openHokuApiModal() {
+  const inp = document.getElementById('hoku-api-url-input');
+  if(inp) inp.value = (S.hokuApiUrl || '');
+  openModal('m-hoku-api');
+}
+function saveHokuApiUrl() {
+  const inp = document.getElementById('hoku-api-url-input');
+  let url = (inp && inp.value || '').trim().replace(/\/+$/, '');
+  if(url && !/^https?:\/\//i.test(url)) {
+    showToast('URL は http(s):// で始めてください','error');
+    return;
+  }
+  S.hokuApiUrl = url;
+  saveS();
+  closeModal('m-hoku-api');
+  showToast(url ? 'Hoku API 連携を有効にしました' : 'ローカル判定に戻しました');
+  if(typeof renderSettings === 'function') renderSettings();
+}
+
 async function sendHokuMsg(text) {
   if(_hokuBusy || !text.trim()) return;
   _hokuBusy = true;
@@ -12204,12 +12234,31 @@ async function sendHokuMsg(text) {
         reply = 'ごめん、変更できなかった。もう一回試して。';
       }
     } else {
-      // インテント分類 → 回答 or アクション
-      const intent = detectIntent(text);
-      if(intent.type === 'action') {
-        reply = handleAction(intent, text);
-      } else {
-        reply = hokuLocalAnswer(text);
+      // Wave 77: Hoku API 連携（S.hokuApiUrl 設定時のみ）。
+      // API がカテゴリを補正し、項目抽出は実績あるローカル parseHokuIntent を使う。
+      // API 未設定 / 失敗 / 例外 → 既存ローカルフローへ完全フォールバック。
+      reply = null;
+      if(S.hokuApiUrl) {
+        try {
+          const apiRes = await callHokuApi(text);
+          if(apiRes && apiRes.intent && apiRes.intent !== 'unknown') {
+            const localIntent = parseHokuIntent(text, 'text');
+            if((apiRes.confidence || 0) >= 0.7 && HOKU_INTENT_META[apiRes.intent]) {
+              localIntent.intentType = apiRes.intent;   // API がカテゴリ補正
+            }
+            const r = executeHokuAction(localIntent);
+            reply = (r && r.message) || getHokuShortReply(localIntent.intentType) || 'OK。';
+          }
+        } catch(e) { reply = null; }   // 例外時もローカルへフォールバック
+      }
+      if(reply == null) {
+        // インテント分類 → 回答 or アクション（既存ローカルフロー）
+        const intent = detectIntent(text);
+        if(intent.type === 'action') {
+          reply = handleAction(intent, text);
+        } else {
+          reply = hokuLocalAnswer(text);
+        }
       }
     }
 
@@ -16163,6 +16212,34 @@ document.addEventListener('touchcancel', () => {
         <button class="btn btn-outline btn-block" onclick="setIcsImportStep('select')">続けて取り込む</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Wave 77: Hoku API 連携設定（実験的）-->
+<div id="m-hoku-api" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">Hoku API 連携（実験的）</div>
+    <div style="font-size:13px;color:var(--text-sub);line-height:1.75;margin-bottom:12px;">
+      Hoku の意図判定を、外部の Hoku API（高精度）に切り替えられます。<br>
+      <b>URL を空にすると、これまで通り端末内のローカル判定で動きます。</b>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:9px 11px;border-radius:8px;line-height:1.6;margin-bottom:14px;">
+      ・API が応答しない時は自動でローカル判定にフォールバックします<br>
+      ・保存前の確認モーダルは API 経由でも必ず表示されます<br>
+      ・設計: docs/hoku-ai-assistant-plan.md
+    </div>
+    <div class="field">
+      <div class="field-label">Hoku API のベース URL</div>
+      <input type="url" class="input" id="hoku-api-url-input"
+        placeholder="例: https://your-hoku-api.example.com" inputmode="url"
+        style="font-size:13px;">
+      <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
+        末尾の / は不要。空欄で保存するとローカル判定に戻ります。
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveHokuApiUrl()" style="margin-bottom:8px;">保存</button>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-hoku-api')">閉じる</button>
   </div>
 </div>
 
