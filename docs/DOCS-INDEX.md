@@ -93,6 +93,7 @@
 | ファイル | 内容 |
 |---|---|
 | `worklog.md` | **作業ログ（追記のみ）** ⭐ |
+| `remaining-tasks.md` | **残タスク一覧（担当別・優先度別）** ⭐ |
 | `BACKUP-MANIFEST.md` | **全 Wave コミット参照表** ⭐ |
 | `code-cleanup-report-2026-05-03.md` | コードクリーンアップ詳細 |
 | `development-workflow.md` | 1 セッションの基本ループ |

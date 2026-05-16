@@ -8549,3 +8549,35 @@ App Store 公開準備：法務ドキュメントの HTML 化と検証
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 80: publish legal docs as HTML + verify release checklist`
+
+---
+
+## Wave 81 自律開発 2026-05-16 03:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+残タスクの一覧ドキュメント化
+
+### 変更ファイル
+- docs/remaining-tasks.md（新規）
+- docs/DOCS-INDEX.md（索引に追加）
+
+### 変更内容
+- 公開・拡張に向けた残作業を担当別（A:オーナー必須 / B:許可で実行可 /
+  C:Claude 自走可 / D:完了）・優先度別にまとめた進行管理票を作成
+- DOCS-INDEX に remaining-tasks.md を追加
+
+### テスト結果
+- ドキュメントのみの変更（アプリ・テストへの影響なし）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- なし（ドキュメント）
+
+### 次にやること
+- A1 実機検証 / A2-A3 アイコン・スクリーンショット（要オーナー）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 81: add consolidated remaining-tasks document`
