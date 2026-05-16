@@ -212,3 +212,26 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 
 ### バックアップカバー範囲
 **Wave 1 から MVP v0.1 まで全て復旧可能。データロスゼロ。**
+
+---
+
+## 最新バックアップブランチ（Wave 60 以降）
+
+| ブランチ | 内容 |
+|---|---|
+| `backup/016-v3.2-wave60-cashflow` | Wave 60 資金繰り表 |
+| `backup/017-v3.2-app-store-quality` | App Store 品質期 |
+| `backup/018-share-with-seiai-final` | 共有版 |
+| `backup/019-wave61-hoku-redesign` | Wave 61 Hoku 刷新 |
+| `backup/020-wave69-pre-autonomous` | 自走開発の着手前 |
+| `backup/021-wave85-hoku-delete-precision` | **Wave 85 — Hoku 削除エンジン + 意図分類精度強化（最新）** ⭐ |
+
+すべて remote（origin）に push 済み。`git checkout backup/021-wave85-hoku-delete-precision`
+で Wave 85 時点（コミット `6889932`）に即復元できる。
+
+### 復元例（Wave 85 の状態に戻す）
+
+```bash
+git checkout claude/familylink-unicorn-product-TzM1F
+git reset --hard origin/backup/021-wave85-hoku-delete-precision
+```
