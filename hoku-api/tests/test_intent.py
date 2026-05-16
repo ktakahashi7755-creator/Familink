@@ -146,3 +146,32 @@ def test_budget_man_yen_extracted():
     assert res.intent == "budget_add"
     assert res.data.get("amount") == 20000
 
+
+# ── 時刻補正（午後 / 夜 / N時半）─────────────────
+def test_time_pm_correction():
+    res = classify("明日午後3時に面談")
+    assert res.intent == "calendar_add"
+    assert res.data.get("time") == "15:00"
+
+
+def test_time_evening_correction():
+    res = classify("夜8時にお迎え")
+    assert res.intent == "calendar_add"
+    assert res.data.get("time") == "20:00"
+
+
+def test_time_half_hour():
+    res = classify("3時半に歯医者")
+    assert res.intent == "calendar_add"
+    assert res.data.get("time") == "03:30"
+
+
+def test_time_morning_keeps_hour():
+    res = classify("午前9時に予約")
+    assert res.intent == "calendar_add"
+    assert res.data.get("time") == "09:00"
+
+
+def test_task_obligation_phrase():
+    assert classify("宿題やらせなきゃ").intent == "task_add"
+
