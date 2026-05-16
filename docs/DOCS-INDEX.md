@@ -93,6 +93,7 @@
 | ファイル | 内容 |
 |---|---|
 | `worklog.md` | **作業ログ（追記のみ）** ⭐ |
+| `remaining-tasks.md` | **残タスク一覧（担当別・優先度別）** ⭐ |
 | `BACKUP-MANIFEST.md` | **全 Wave コミット参照表** ⭐ |
 | `code-cleanup-report-2026-05-03.md` | コードクリーンアップ詳細 |
 | `development-workflow.md` | 1 セッションの基本ループ |
@@ -105,9 +106,15 @@
 | ファイル | 内容 |
 |---|---|
 | `RELEASE-NOTES-MVP-v0.1.md` | **MVP v0.1 リリースノート** ⭐ |
+| `appstore-readiness-checklist.md` | **公開前チェックリスト** ⭐ |
 | `app-store-metadata.md` | App Store メタデータ草案 |
-| `privacy-policy.md` | プライバシーポリシー（要法務）|
-| `terms-of-use.md` | 利用規約（要法務）|
+| `privacy-policy.md` / `.html` | プライバシーポリシー（v0.2 草案・要法務）|
+| `terms-of-use.md` / `.html` | 利用規約（v0.2 草案・要法務）|
+| `legal-review-notes.md` | 法務レビュー論点の事前整理 |
+| `ios-wrapper-decision.md` | iOS ラッパー方式（Capacitor 推奨）|
+| `hoku-api-deployment-decision.md` | Hoku API デプロイ方針 |
+| `support.html` | サポートページ（FAQ + 問い合わせ）|
+| `assets/app-icon/` | アプリアイコン SVG 原本 + 全サイズ PNG |
 | `sales-pitch-materials.md` | App Store / LP / SNS / 投資家向け |
 
 ---
