@@ -8481,3 +8481,28 @@ Hoku AI 化 Phase 3 完了：Hoku API を設定 UI から有効化でき、sendH
 
 ### 次にやるべきこと
 - API デプロイ → 設定で URL 入力 → 実機で 7 シナリオ確認
+
+---
+
+## Wave 79 自律開発 2026-05-09 06:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku API（hoku-api/）の意図分類精度を強化。Familink 本体は無変更。
+
+### 変更ファイル
+- hoku-api/app/classifier.py
+  - 日付抽出 _extract_date（今日/明日/明後日/昨日/N月M日 → ISO 文字列）
+  - 時刻抽出 _extract_time（N時M分 / 朝・昼・夕方・夜）
+  - 対象者抽出 _extract_member（漢字・カタカナ連続、助詞・一般語・数字断片を除外）
+  - 各 intent の data に date/time/memberName を付与
+- hoku-api/tests/test_intent.py（抽出系テスト 6 件追加）
+
+### テスト
+- hoku-api pytest：16 / 16 PASS（7 シナリオ + Pydantic + 異常系 + 抽出系 6）
+- Familink 本体：無変更（回帰スイートも従来通り PASS）
+
+### 未対応 / オーナー確認が必要
+- LLM API 本連携 / Hoku API デプロイ（前 Wave から継続）
+
+### 次にやるべきこと
+- API デプロイ後、設定画面で URL を入力して実機検証
