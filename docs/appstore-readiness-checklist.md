@@ -10,7 +10,7 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 | 項目 | 状態 | 備考 |
 |---|---|---|
 | 主要 18 画面の表示確認 | ◐ | VM テストは緑、実機目視が残 |
-| 自動テスト全 PASS | ☑ | 785 件 PASS（VM スイート） |
+| 自動テスト全 PASS | ☑ | VM スイート全 PASS（exit 0）+ hoku-api pytest 16/16 |
 | 構文エラーゼロ | ☑ | scripts 1/1 OK |
 | HTML 構造の整合性 | ☑ | div バランス完全 |
 | 押せないボタン / 行き先なし導線ゼロ | ◐ | QA スイープ実施、実機で最終確認 |
@@ -41,8 +41,8 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 | 項目 | 状態 | 備考 |
 |---|---|---|
-| プライバシーポリシー | ◐ | docs/privacy-policy.md あり、最終化要 |
-| 利用規約 | ◐ | docs/terms-of-use.md あり、最終化要 |
+| プライバシーポリシー | ◐ | docs/privacy-policy.md + .html 公開済み（v0.2）、専門家レビュー要 |
+| 利用規約 | ◐ | docs/terms-of-use.md + .html 公開済み（v0.2）、専門家レビュー要 |
 | 年齢区分 | ☐ | 4+ 想定（要確定） |
 | カテゴリ | ☐ | ライフスタイル / 仕事効率化（要確定） |
 | アプリ説明文 | ◐ | docs/app-store-metadata.md あり |

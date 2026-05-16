@@ -8506,3 +8506,46 @@ Hoku API（hoku-api/）の意図分類精度を強化。Familink 本体は無変
 
 ### 次にやるべきこと
 - API デプロイ後、設定画面で URL を入力して実機検証
+
+---
+
+## Wave 80 自律開発 2026-05-16 03:42  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+App Store 公開準備：法務ドキュメントの HTML 化と検証
+
+### 変更ファイル
+- docs/privacy-policy.html（新規）
+- docs/terms-of-use.html（新規）
+- docs/privacy-policy.md（更新日 v0.2 に）
+- docs/terms-of-use.md（更新日 v0.2・バックアップ機能の記述を実態に修正）
+- docs/appstore-readiness-checklist.md（検証済み状態に更新）
+
+### 変更内容
+- App Store メタデータが参照する privacy-policy.html / terms-of-use.html が
+  未作成（.md のみ）でリンク切れ状態だったため、ブランド配色の HTML 版を作成
+- .md 正本も HTML 版と内容一致（更新日、データ書き出し/読み込みは実装済みの旨）
+- チェックリストの「自動テスト」「法務」項目を検証結果に合わせて更新
+
+### テスト結果
+- VM テストスイート：正規スイート全 PASS（exit 0）。errored 表示は
+  /tmp の stale ファイル（playwright 未導入の screenshot 系・旧 Wave66 auth）
+- hoku-api pytest：16/16 PASS
+- アプリ本体：console.log 0 / debugger 0 / div バランス 1275=1275 / 実 TODO 0
+- familink.html 無変更のため app-source ⇔ docs/index.html の md5 一致を維持
+
+### 未確認事項
+- privacy-policy / terms は法務専門家レビュー前（草案 v0.2）
+
+### iPhone確認ポイント
+- docs/privacy-policy.html・terms-of-use.html がスマホ幅で読みやすいか
+- 各ページ下部の相互リンク・アプリ復帰リンクの動作
+
+### 次にやること
+- App Store 用スクリーンショット／アイコン作成（要素材）
+- iOS ラッパー方式の決定（要オーナー確認）
+- Hoku API デプロイ可否の判断（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 80: publish legal docs as HTML + verify release checklist`
