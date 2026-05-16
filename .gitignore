@@ -35,3 +35,11 @@ yarn-error.log*
 # Coverage / test artifacts
 coverage/
 .nyc_output/
+
+# Python (hoku-api / Phase 2)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
