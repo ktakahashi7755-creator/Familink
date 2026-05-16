@@ -8634,3 +8634,40 @@ App Store 公開準備の一括前進（アイコン / サポート / 決定ド�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 82: app icon, support page, decision docs, verification`
+
+---
+
+## Wave 83 自律開発 2026-05-16 04:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+B1: dev ブランチを Pages 配信ブランチ / main へ反映
+
+### 変更ファイル
+- docs/worklog.md（本エントリ）
+
+### 変更内容
+- オーナー許可（「全部進めてOK」B1 含む）に基づき、Wave 80-82 の成果を
+  配信ブランチへマージ：
+  - claude/merge-and-push-main-u44Ty（GitHub Pages 配信元）← 3ba751e
+  - main ← 1379159
+- これにより法務 HTML（privacy-policy.html / terms-of-use.html）と
+  サポートページ（support.html）が本番 URL で公開される
+- マージは競合ゼロ（配信ブランチは該当ファイル未変更のため）
+
+### テスト結果
+- マージ後の dev ⇔ Pages ブランチ差分：なし（内容一致を確認）
+
+### 未確認事項
+- GitHub Pages の再ビルド反映に数分かかる場合あり
+
+### iPhone確認ポイント
+- https://ktakahashi7755-creator.github.io/Familink/docs/privacy-policy.html
+- https://ktakahashi7755-creator.github.io/Familink/docs/terms-of-use.html
+- https://ktakahashi7755-creator.github.io/Familink/docs/support.html
+
+### 次にやること
+- A1 実機検証 / A3 スクリーンショット撮影（要オーナー操作）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 83: record B1 branch sync to worklog`
