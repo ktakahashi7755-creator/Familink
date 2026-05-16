@@ -62,11 +62,27 @@ def _extract_date(text: str, today: datetime.date | None = None) -> str | None:
 
 
 def _extract_time(text: str) -> str | None:
-    """HH:MM 形式の時刻、または時間帯語を返す。"""
+    """HH:MM 形式の時刻、または時間帯語を返す。
+
+    「N時半」は 30 分、「午後 / 夜 / 夕方 + 12時未満」は 24 時間制へ補正する。
+    """
+    half = re.search(r"(\d{1,2})\s*時半", text)
     m = re.search(r"(\d{1,2})\s*時\s*(\d{0,2})\s*分?", text)
-    if m:
-        h = min(23, int(m.group(1)))
-        mi = min(59, int(m.group(2))) if m.group(2) else 0
+    if half or m:
+        if half:
+            h = min(23, int(half.group(1)))
+            mi = 30
+        else:
+            h = min(23, int(m.group(1)))
+            mi = min(59, int(m.group(2))) if m.group(2) else 0
+        is_pm = bool(re.search(r"午後|ごご|PM|pm", text)) or (
+            bool(re.search(r"夜|晩|夕方|夕", text)) and 1 <= h <= 11
+        )
+        is_am = bool(re.search(r"午前|AM|am|朝", text))
+        if is_pm and 1 <= h < 12:
+            h += 12
+        if is_am and h == 12:
+            h = 0
         return f"{h:02d}:{mi:02d}"
     if re.search(r"朝", text):
         return "08:00"
@@ -186,7 +202,8 @@ def classify_rule(text: str) -> IntentResponse:
     has_time = time is not None
     if (has_date or has_time) and re.search(
             r"(入れて|予定|スケジュール|歯医者|病院|スイミング|レッスン|"
-            r"発表会|参観|面談|遠足|塾|習い事|サッカー|ピアノ)", t):
+            r"発表会|参観|面談|遠足|塾|習い事|サッカー|ピアノ|お迎え|送迎|"
+            r"迎え|集合|健診|検診|運動会|参加|行事|アポ|予約)", t):
         data = {"raw": t}
         if date:
             data["date"] = date
@@ -199,9 +216,10 @@ def classify_rule(text: str) -> IntentResponse:
             summary="予定に追加します。",
             data=data, source="rule")
 
-    # 7) タスク（動詞 + やること）
-    if re.search(r"(やること|タスク|やっておく|提出|申し込|予約する|"
-                 r"片付け|電話する|連絡する)", t):
+    # 7) タスク（動詞 + やること / 義務表現）
+    if re.search(r"(やること|タスク|やっておく|提出|申し込|予約する|予約して|"
+                 r"片付け|電話する|電話して|連絡する|問い合わせ|返却|記入|"
+                 r"サインしな|手続き|(?:し|やら|させ|やらせ|出さ)(?:なきゃ|ないと|なくちゃ))", t):
         data = {"raw": t}
         if date:
             data["dueDate"] = date
