@@ -75,9 +75,9 @@ App Store / Google Play 提出用のメタデータ草案です。実際の提�
 
 ### サポート URL
 ```
-https://github.com/ktakahashi7755-creator/Familink
+https://ktakahashi7755-creator.github.io/Familink/docs/support.html
 ```
-※公開前に専用サポートページを作成推奨
+※`docs/support.html` 作成済み（FAQ + 問い合わせ導線）。Pages 反映後に有効
 
 ### マーケティング URL（任意）
 ```
@@ -88,7 +88,7 @@ https://ktakahashi7755-creator.github.io/Familink/
 ```
 https://ktakahashi7755-creator.github.io/Familink/docs/privacy-policy.html
 ```
-※`docs/privacy-policy.md` を HTML に変換してホスト
+※`docs/privacy-policy.html` 作成済み（v0.2）。Pages 反映後に有効
 
 ### カテゴリ
 - **プライマリ**：仕事効率化（Productivity）

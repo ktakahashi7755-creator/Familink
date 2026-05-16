@@ -8506,3 +8506,131 @@ Hoku API（hoku-api/）の意図分類精度を強化。Familink 本体は無変
 
 ### 次にやるべきこと
 - API デプロイ後、設定画面で URL を入力して実機検証
+
+---
+
+## Wave 80 自律開発 2026-05-16 03:42  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+App Store 公開準備：法務ドキュメントの HTML 化と検証
+
+### 変更ファイル
+- docs/privacy-policy.html（新規）
+- docs/terms-of-use.html（新規）
+- docs/privacy-policy.md（更新日 v0.2 に）
+- docs/terms-of-use.md（更新日 v0.2・バックアップ機能の記述を実態に修正）
+- docs/appstore-readiness-checklist.md（検証済み状態に更新）
+
+### 変更内容
+- App Store メタデータが参照する privacy-policy.html / terms-of-use.html が
+  未作成（.md のみ）でリンク切れ状態だったため、ブランド配色の HTML 版を作成
+- .md 正本も HTML 版と内容一致（更新日、データ書き出し/読み込みは実装済みの旨）
+- チェックリストの「自動テスト」「法務」項目を検証結果に合わせて更新
+
+### テスト結果
+- VM テストスイート：正規スイート全 PASS（exit 0）。errored 表示は
+  /tmp の stale ファイル（playwright 未導入の screenshot 系・旧 Wave66 auth）
+- hoku-api pytest：16/16 PASS
+- アプリ本体：console.log 0 / debugger 0 / div バランス 1275=1275 / 実 TODO 0
+- familink.html 無変更のため app-source ⇔ docs/index.html の md5 一致を維持
+
+### 未確認事項
+- privacy-policy / terms は法務専門家レビュー前（草案 v0.2）
+
+### iPhone確認ポイント
+- docs/privacy-policy.html・terms-of-use.html がスマホ幅で読みやすいか
+- 各ページ下部の相互リンク・アプリ復帰リンクの動作
+
+### 次にやること
+- App Store 用スクリーンショット／アイコン作成（要素材）
+- iOS ラッパー方式の決定（要オーナー確認）
+- Hoku API デプロイ可否の判断（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 80: publish legal docs as HTML + verify release checklist`
+
+---
+
+## Wave 81 自律開発 2026-05-16 03:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+残タスクの一覧ドキュメント化
+
+### 変更ファイル
+- docs/remaining-tasks.md（新規）
+- docs/DOCS-INDEX.md（索引に追加）
+
+### 変更内容
+- 公開・拡張に向けた残作業を担当別（A:オーナー必須 / B:許可で実行可 /
+  C:Claude 自走可 / D:完了）・優先度別にまとめた進行管理票を作成
+- DOCS-INDEX に remaining-tasks.md を追加
+
+### テスト結果
+- ドキュメントのみの変更（アプリ・テストへの影響なし）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- なし（ドキュメント）
+
+### 次にやること
+- A1 実機検証 / A2-A3 アイコン・スクリーンショット（要オーナー）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 81: add consolidated remaining-tasks document`
+
+---
+
+## Wave 82 自律開発 2026-05-16 04:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+App Store 公開準備の一括前進（アイコン / サポート / 決定ドキュメント / 検証）
+
+### 変更ファイル
+- docs/assets/app-icon/（新規）— app-icon.svg + icon-{20..1024}.png 全20サイズ + README.md
+- docs/support.html（新規）— サポートページ（FAQ + 問い合わせ）
+- docs/ios-wrapper-decision.md（新規）— A6 ラッパー方式（Capacitor 推奨）
+- docs/hoku-api-deployment-decision.md（新規）— A7 デプロイ方針（MVP は不要）
+- docs/legal-review-notes.md（新規）— A4 法務レビュー論点の事前整理
+- docs/appstore-readiness-checklist.md — 進捗反映
+- docs/app-store-metadata.md — サポート/プライバシー URL を実ファイルに更新
+- docs/remaining-tasks.md — Wave 82 進捗で全面更新
+- docs/DOCS-INDEX.md — 新規ドキュメントを索引に追加
+- hoku-api/tests/test_intent.py — リアル入力10シナリオ + 万円抽出テスト追加
+
+### 変更内容（オーナー許可「全部進めてOK」に基づく一括実施）
+- A2 アプリアイコン草案を作成（ハート＝家族の絆 / 3円＝家族 / 金の星＝Hoku）。
+  SVG 原本から cairosvg で全サイズ PNG を書き出し。1024 は RGB（アルファなし）
+- A5 サポートページ support.html を作成（FAQ 6件 + GitHub Issues 導線）
+- A6 iOS ラッパーは Capacitor を推奨する決定ドキュメントを作成
+- A7 Hoku API は「MVP ではデプロイ不要」を推奨する決定ドキュメントを作成
+- A4 法務レビューの論点（個人情報保護法・消費者契約法・特商法等）を整理
+- A8 年齢区分 4+ / カテゴリ 仕事効率化・ライフスタイル を確定推奨に
+- A1 自動レンダリング検証：5幅（320/375/390/430/440）×7画面=35/35 PASS
+- C1 hoku-api にリアル入力テストを追加（pytest 16→18 件）
+- C3 DOCS-INDEX を最新化
+
+### テスト結果
+- VM テストスイート：31 / 31 緑（exit 0）
+- width-sweep（5幅×7画面）：35 / 35 PASS
+- hoku-api pytest：18 / 18 PASS
+- familink.html 無変更 → app-source ⇔ docs/index.html の md5 一致を維持
+
+### 未確認事項
+- A3 スクリーンショットはサンドボックスに playwright 未導入のため未取得
+- A1 実機の目視・音声、A4 弁護士レビューは要オーナー
+
+### iPhone確認ポイント
+- docs/support.html / privacy-policy.html / terms-of-use.html のスマホ表示
+- アプリアイコン草案（docs/assets/app-icon/icon-1024.png）のデザイン確認
+
+### 次にやること
+- A1 実機検証 / A3 スクリーンショット撮影（要オーナー操作）
+- A6 Capacitor 実装の可否判断（Apple Developer Program 登録が前提）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 82: app icon, support page, decision docs, verification`

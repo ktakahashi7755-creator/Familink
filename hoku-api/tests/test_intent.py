@@ -119,3 +119,30 @@ def test_calendar_pianorecital_sports():
     assert classify("来週の土曜に太郎のサッカーの試合").intent == "calendar_add"
     assert classify("明日14時にピアノのレッスン入れて").intent == "calendar_add"
 
+
+# ── 子育て家庭のリアル入力（リグレッション固定）─────────
+REAL_SCENARIOS = [
+    ("来週の月曜に授業参観", "calendar_add"),
+    ("保育園の願書を提出する", "task_add"),
+    ("明日の遠足のおやつを買っといて", "shopping_add"),
+    ("星斗が鼻水出てる", "health_add"),
+    ("上履きを月曜に持たせる", "prep_add"),
+    ("電気代に8000円かかった", "budget_add"),
+    ("7時に起こして通知して", "notification_add"),
+    ("ありがとう", "unknown"),
+    ("2万円使った", "budget_add"),
+    ("明日の朝、給食袋を準備", "prep_add"),
+]
+
+
+def test_real_family_scenarios():
+    for text, expected in REAL_SCENARIOS:
+        res = classify(text)
+        assert res.intent == expected, f"{text!r} → {res.intent} (expected {expected})"
+
+
+def test_budget_man_yen_extracted():
+    res = classify("2万円使った")
+    assert res.intent == "budget_add"
+    assert res.data.get("amount") == 20000
+
