@@ -13454,6 +13454,10 @@ function parseHokuIntent(rawText, source) {
   // 2) 通知 / リマインド（弱い登録系）
   const isNotificationLike =
     text.match(/(通知|リマインド|思い出させて|あとで教えて|忘れないように.*知らせ|アラーム|朝に.*教えて|前日に.*教えて)/);
+  // Wave 75: 「通知して」「リマインドして」等の明示的な通知依頼は、他カテゴリ語（水筒・時刻等）が
+  //          混じっていても notification_add を最優先する
+  const isExplicitNotification =
+    text.match(/(通知して|通知し|通知お願い|リマインドして|リマインド入れ|リマインド設定|アラーム.*(かけ|セット|入れ)|知らせて)/);
 
   // 3) 準備ルーティン（毎週/毎月/時間割 + 曜日 OR "X曜は/X曜の" 自然表現 + 持ち物関連語）
   // Wave 55.1: 「火曜は算数ノート」「水曜の時間割に図工セット」など、「毎週」抜きでも routine と認識
@@ -13468,7 +13472,7 @@ function parseHokuIntent(rawText, source) {
   let intentType = 'unknown';
   if(isRoutineLike) {
     intentType = 'prep_routine_add';
-  } else if(isNotificationLike && (!v.category || v.category === 'notification')) {
+  } else if(isExplicitNotification || (isNotificationLike && (!v.category || v.category === 'notification'))) {
     intentType = 'notification_add';
   } else if(v.category) {
     const map = {
