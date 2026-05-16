@@ -79,3 +79,43 @@ def test_weird_input_does_not_crash():
             "calendar_add", "task_add", "budget_add", "health_add",
             "prep_add", "shopping_add", "notification_add", "unknown",
         }
+
+
+# ── 項目抽出（日付 / 時刻 / 対象者）─────────────────
+def test_calendar_extracts_date_and_time():
+    res = classify("明日の15時に星斗の歯医者入れて")
+    assert res.intent == "calendar_add"
+    assert res.data.get("time") == "15:00"
+    assert res.data.get("date")  # ISO 日付が入る
+    assert res.data.get("memberName") == "星斗"
+
+
+def test_notification_extracts_time():
+    res = classify("明日の朝7時に水筒忘れないように通知して")
+    assert res.intent == "notification_add"
+    assert res.data.get("time") == "07:00"
+
+
+def test_health_extracts_member():
+    res = classify("星旺が37.8度で咳あり")
+    assert res.intent == "health_add"
+    assert res.data.get("memberName") == "星旺"
+    assert res.data.get("temperature") == 37.8
+
+
+def test_budget_extracts_date():
+    res = classify("今日スーパーで4280円使った")
+    assert res.intent == "budget_add"
+    assert res.data.get("date")  # 今日 → ISO
+
+
+def test_general_words_not_taken_as_member():
+    # 「明日」「今日」等は対象者として誤抽出しない
+    res = classify("明日スーパーで3000円使った")
+    assert res.data.get("memberName") in (None,)
+
+
+def test_calendar_pianorecital_sports():
+    assert classify("来週の土曜に太郎のサッカーの試合").intent == "calendar_add"
+    assert classify("明日14時にピアノのレッスン入れて").intent == "calendar_add"
+
