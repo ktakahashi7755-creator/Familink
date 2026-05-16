@@ -8350,3 +8350,44 @@ Hoku AI アシスタント化の設計計画作成 + Phase 1（ローカル inte
 ### 次にやるべきこと
 - Phase 2：別リポジトリで Hoku API（FastAPI + Pydantic）の雛形作成
 - それまでは Familink 側でローカル intent 精度を継続改善（安全・無料）
+
+---
+
+## Wave 76 自律開発 2026-05-09 04:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 2：FastAPI スキャフォルドを新規ディレクトリ hoku-api/ に作成。
+Familink 本体（単一 HTML）には一切触れず、独立構成。
+
+### 変更ファイル
+- hoku-api/requirements.txt（FastAPI/Pydantic/uvicorn/httpx/pytest/dotenv のみ）
+- hoku-api/.env.example（API キーは .env=gitignore 済み）
+- hoku-api/app/models.py（Pydantic：IntentRequest/Response 等）
+- hoku-api/app/classifier.py（ルールベース分類・LLM フック点のみ）
+- hoku-api/app/main.py（FastAPI：/intent /chat /health）
+- hoku-api/tests/test_intent.py（7 シナリオ + 異常系）
+- hoku-api/README.md
+- .gitignore（Python 成果物パターン追加）
+
+### 設計方針
+- 意図分類は MVP ではルールベース（LLM API キー不要で動作）
+- LLM 分類は classifier.classify() にフック点のみ。本実装はオーナー確認後
+- requires_confirmation 常に True（AI は勝手に保存しない）
+- API キー直書き禁止・個人情報をログに残さない（security-auth-notes.md 準拠）
+
+### テスト
+- hoku-api pytest：10 / 10 PASS（7 シナリオ + Pydantic 検証 + 異常系）
+- Familink 本体 構文 check：scripts 1/1 OK
+- 本体回帰（主要 5 スイート）：301 / 301 PASS（hoku-api は本体に影響なし）
+
+### 未対応 / オーナー確認が必要
+- LLM API 呼び出しの本実装（classifier の LLM 分岐）
+- Hoku API のデプロイ先決定（Render / Fly.io 等）
+- Phase 3：Familink フロントからの callHokuApi() 接続
+
+### 次にやるべきこと
+- Phase 3：フロント連携（ローカル優先→曖昧時 API→失敗時フォールバック）
+- LLM 連携・デプロイはオーナー確認後
+
+### コミット
+- 予定メッセージ: `wave 76: Hoku API Phase 2 scaffold (FastAPI, rule-based, 10 tests)`
