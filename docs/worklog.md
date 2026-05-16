@@ -8391,3 +8391,49 @@ Familink 本体（単一 HTML）には一切触れず、独立構成。
 
 ### コミット
 - 予定メッセージ: `wave 76: Hoku API Phase 2 scaffold (FastAPI, rule-based, 10 tests)`
+
+---
+
+## Wave 77 自律開発 2026-05-09 05:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 3：Familink フロントに Hoku API クライアントを追加。
+**完全休眠設計** — S.hokuApiUrl が空（既定）の場合は外部通信せず、従来通り
+100% ローカル動作。URL 設定時のみ API を試行し、失敗時はローカルへフォールバック。
+
+### 変更ファイル
+- app-source/familink.html
+  - S.hokuApiUrl = ''（既定空）を追加 + PERSIST 登録
+  - callHokuApi(text) 関数を追加（sendHokuMsg の直前）
+- docs/index.html（mirror）
+
+### callHokuApi の設計
+- S.hokuApiUrl 空 → 即 null（fetch を一切呼ばない＝完全休眠）
+- URL 設定時のみ POST /api/hoku/intent を試行
+- AbortController で 3 秒タイムアウト
+- 失敗 / タイムアウト / 壊れた応答 → null（呼び出し側はローカル parseHokuIntent へ）
+- 外部 API が落ちていてもアプリは停止しない
+
+### Phase 3 の現状と残り
+- API クライアント（callHokuApi）は実装・テスト済みで「使える状態」
+- sendHokuMsg への本配線は未実施（意図的）。理由：
+  - Hoku API がまだ未デプロイ（hoku-api/ はスキャフォルドのみ）
+  - API 応答 {intent,data} → executeHokuAction の intent 形へのマッピングは
+    API デプロイ + ホスティング決定後に確定すべき
+- 既定 URL 空のため、本配線しても現状は実行されない死パス。デプロイ後に
+  オーナー確認のうえ Phase 3 完了タスクとして配線する
+
+### テスト
+- callHokuApi VM 検証：4/4 PASS（休眠 / 空文字 / 失敗フォールバック / PERSIST）
+- Familink 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- 構文 check：scripts 1/1 OK
+- hoku-api pytest：10 / 10 PASS
+- md5：0b7e78c004dfb6e7203ab5eb38d66d79
+
+### 未対応 / オーナー確認が必要
+- Hoku API のデプロイ（Render / Fly.io 等）+ S.hokuApiUrl への URL 設定
+- sendHokuMsg への hybrid 配線（デプロイ後）
+- LLM API 本連携
+
+### 次にやるべきこと
+- API デプロイ先決定 → callHokuApi を sendHokuMsg に配線（Phase 3 完了）
