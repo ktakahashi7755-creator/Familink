@@ -43,20 +43,20 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 |---|---|---|
 | プライバシーポリシー | ◐ | docs/privacy-policy.md + .html 公開済み（v0.2）、専門家レビュー要 |
 | 利用規約 | ◐ | docs/terms-of-use.md + .html 公開済み（v0.2）、専門家レビュー要 |
-| 年齢区分 | ☐ | 4+ 想定（要確定） |
-| カテゴリ | ☐ | ライフスタイル / 仕事効率化（要確定） |
+| 年齢区分 | ◐ | **4+** で確定推奨（暴力/性的/ギャンブル要素なし、サーバ介在の通信なし）。App Store Connect 入力時に確定 |
+| カテゴリ | ◐ | プライマリ **仕事効率化** / セカンダリ **ライフスタイル** で確定推奨 |
 | アプリ説明文 | ◐ | docs/app-store-metadata.md あり |
-| スクリーンショット | ☐ | 各デバイスサイズで作成要 |
-| アプリアイコン | ☐ | 各解像度で書き出し要 |
-| サポート URL / 連絡先 | ☐ | 要準備 |
+| スクリーンショット | ☐ | 各デバイスサイズで作成要（実機/シミュレータ推奨。本サンドボックスは playwright 未導入で取得不可）|
+| アプリアイコン | ◐ | docs/assets/app-icon/ に SVG 原本 + 全サイズ PNG（草案 v1）。最終はオーナー確認 |
+| サポート URL / 連絡先 | ◐ | docs/support.html 作成済み（FAQ + 問い合わせ）。本番 URL は Pages 反映後 |
 
 ## 5. 技術 / 配信
 
 | 項目 | 状態 | 備考 |
 |---|---|---|
-| iOS ラッパー（Capacitor / WKWebView）| ☐ | 要オーナー確認 |
+| iOS ラッパー（Capacitor / WKWebView）| ☐ | **Capacitor 推奨**（docs/ios-wrapper-decision.md）。本実装は要オーナー確認 |
 | TestFlight 配布 | ☐ | ラッパー後 |
-| GitHub Pages 配信 | ◐ | Pages の Source 設定確認要 |
+| GitHub Pages 配信 | ☑ | Deploy from a branch で公開中（site live 確認済み）|
 | オフライン動作 | ☑ | 単一 HTML / LocalStorage で完結 |
 
 ## 6. 課金 / 同期（v1.0 以降・要オーナー確認）
@@ -79,12 +79,19 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 ## 8. MVP 公開可否判断
 
-現時点の結論：**実機検証 + 法務最終化 + iOS ラッパー** が公開の必須残作業。
-プロダクト品質（コード・テスト）は公開水準に到達。次の優先：
-1. 実機検証（4 デバイス幅 + 音声）
-2. プライバシーポリシー / 利用規約の最終化
-3. iOS ラッパー方式の決定（要オーナー確認）
-4. スクリーンショット / アイコン作成
+現時点の結論：**実機検証 + 法務専門家レビュー + iOS ラッパー実装** が公開の
+必須残作業。プロダクト品質（コード・テスト）・メタデータ・アイコン・法務文書
+草案・サポートページは整備済み。次の優先：
+1. 実機検証（4 デバイス幅 + 音声）— 要実機
+2. スクリーンショット作成（実機/シミュレータ）
+3. 法務専門家レビュー（docs/legal-review-notes.md に論点整理済み）
+4. iOS ラッパー実装（Capacitor 推奨・要オーナー確認）
+
+関連決定ドキュメント：
+- iOS ラッパー：`ios-wrapper-decision.md`
+- Hoku API デプロイ：`hoku-api-deployment-decision.md`
+- 法務レビュー論点：`legal-review-notes.md`
+- 残タスク全体：`remaining-tasks.md`
 
 ---
 
