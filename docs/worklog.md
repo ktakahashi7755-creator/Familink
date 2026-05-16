@@ -8310,3 +8310,43 @@ Wave 74 — コード残骸のクリーンアップ
 - 実機検証 → appstore-readiness-checklist.md の ☐ を消化
 - プライバシーポリシー / 利用規約の最終化
 - 画像圧縮・容量警告（storage-indexeddb-roadmap.md v0.2 対策）の実装検討
+
+---
+
+## Wave 75 自律開発 2026-05-09 04:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI アシスタント化の設計計画作成 + Phase 1（ローカル intent 強化）実装。
+
+- docs/hoku-ai-assistant-plan.md 新規作成（全 15 セクション）
+  awesome-python を参考に技術選定（採用/将来候補/不採用の 3 段階）。
+  MVP 構成・intent 設計・JSON スキーマ・API 設計・フロント連携・6 フェーズ
+  ロードマップ・セキュリティ・課金設計を整理。
+- Phase 1 実装：parseHokuIntent に isExplicitNotification を追加。
+  「通知して」「リマインドして」「アラームかけて」等の明示的な通知依頼を、
+  他カテゴリ語（水筒・時刻等）が混じっていても notification_add 最優先に。
+
+### 発見・修正したバグ
+- 「明日の朝7時に水筒忘れないように通知して」が calendar_add に誤分類
+  （水筒=prep語 + 時刻 が calendar/prep スコアを押し上げていた）
+  → isExplicitNotification で明示依頼を最優先化し notification_add に修正
+
+### 変更ファイル
+- app-source/familink.html（parseHokuIntent に notification 明示優先）
+- docs/index.html（mirror）
+- docs/hoku-ai-assistant-plan.md（新規）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- Hoku 7 シナリオ：7/7 PASS
+  （calendar/prep/budget/health/shopping/notification/unknown 全て正判定）
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- md5：b716f6ec9f6413a60375d733662454c7
+
+### 未対応 / オーナー確認が必要
+- Phase 2 以降（FastAPI + LLM API 化）：別リポジトリ・Python 構成のため要確認
+- Phase 4（Supabase/DB）・Phase 6（音声/OCR）：要確認
+
+### 次にやるべきこと
+- Phase 2：別リポジトリで Hoku API（FastAPI + Pydantic）の雛形作成
+- それまでは Familink 側でローカル intent 精度を継続改善（安全・無料）
