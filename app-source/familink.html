@@ -2494,9 +2494,9 @@ nav#tabbar.hidden { display: none !important; }
       <h2 class="ob2-title">家族みんなで、毎日をチームに</h2>
       <p class="ob2-desc">Familink は、家族の予定・タスク・体調・家計・準備をひとつにまとめるアプリです。<br>家族運営AI「Hoku」が、毎日の段取りをやさしくサポートします。</p>
       <ul class="ob2-points">
-        <li>📅 予定・タスク・準備をひとつに</li>
-        <li>💛 体調・家計をやさしく見える化</li>
-        <li>🤖 Hoku が次の一手をご提案</li>
+        <li>${ICON('calendar',15)} 予定・タスク・準備をひとつに</li>
+        <li>${ICON('heart',15)} 体調・家計をやさしく見える化</li>
+        <li>${ICON('sparkle',15)} Hoku が次の一手をご提案</li>
       </ul>
       <button class="ob2-btn-primary" onclick="ob2Next()">はじめましょう</button>
       <button class="ob2-btn-skip" onclick="ob2Skip()">スキップしてホームへ</button>
@@ -2548,7 +2548,7 @@ nav#tabbar.hidden { display: none !important; }
       <div class="ob2-hoku-icon"><img src="" id="ob2-hoku-img" alt="Hoku"></div>
       <h2 class="ob2-title">Hoku が毎日を伴走します</h2>
       <p class="ob2-desc">Hoku は家族運営をやさしく支える AI ガイドです。「明日の小児科で持ち物を整理したい」「子どもが熱っぽい」など、自然な言葉で話しかけてください。最適な保存先と次の一手をご案内します。</p>
-      <div class="ob2-hint">📱 音声入力に対応した機種では、マイクボタンから声で話しかけられます。対応していない場合はキーボードでどうぞ。</div>
+      <div class="ob2-hint">音声入力に対応した機種では、マイクボタンから声で話しかけられます。対応していない場合はキーボードでどうぞ。</div>
       <button class="ob2-btn-primary" onclick="ob2Done()">ホームへ進む</button>
       <button class="ob2-btn-back" onclick="ob2Prev()">戻る</button>
     </div>
@@ -2835,7 +2835,7 @@ nav#tabbar.hidden { display: none !important; }
 
   <!-- Wave 26：音声サンプルコマンド（短文ガイド）-->
   <div id="hoku-voice-hints" style="font-size:11px;line-height:1.6;color:var(--text-sub);padding:10px 14px 4px;background:linear-gradient(180deg,#fff 0%,rgba(74,144,226,.04) 100%);border-top:1px solid var(--border-light);">
-    <div style="font-weight:700;color:var(--text);margin-bottom:4px;">🎤 短く話すと正確です</div>
+    <div style="font-weight:700;color:var(--text);margin-bottom:4px;">短く話すと正確です</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px 10px;">
       <span>・明日 太郎 体操服 準備</span>
       <span>・金曜18時 花子 スイミング</span>
@@ -2990,8 +2990,8 @@ nav#tabbar.hidden { display: none !important; }
       <div class="budget-hero" id="budget-hero"></div>
       <div id="budget-cat-chart" style="margin: 6px 16px 0;"></div>
       <div class="type-toggle">
-        <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">💸 支出</button>
-        <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">💰 収入</button>
+        <button class="type-btn on" id="btx-ex" onclick="setBudgetType('expense')">支出</button>
+        <button class="type-btn" id="btx-in" onclick="setBudgetType('income')">収入</button>
       </div>
       <div style="padding:0 16px;" id="budget-list"></div>
     </div>
@@ -3015,8 +3015,8 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">種別 <span style="color:var(--red)">*</span></div>
         <div style="display:flex;gap:8px;">
-          <button type="button" class="rt-type-btn" data-type="expense" onclick="rtSelectType('expense')">💸 支出</button>
-          <button type="button" class="rt-type-btn" data-type="income"  onclick="rtSelectType('income')">💰 収入</button>
+          <button type="button" class="rt-type-btn" data-type="expense" onclick="rtSelectType('expense')">支出</button>
+          <button type="button" class="rt-type-btn" data-type="income"  onclick="rtSelectType('income')">収入</button>
         </div>
         <input type="hidden" id="rt-type" value="expense">
       </div>
@@ -3153,12 +3153,12 @@ nav#tabbar.hidden { display: none !important; }
         ここで JSON ファイルを書き出して送付し、受信側で読み込むと丸ごと再現できます。
       </div>
 
-      <div style="font-size:12px;font-weight:700;margin:10px 4px 6px;letter-spacing:.5px;">📤 書き出す</div>
+      <div style="font-size:12px;font-weight:700;margin:10px 4px 6px;letter-spacing:.5px;">書き出す</div>
       <div id="ds-export-info" style="font-size:11px;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:10px 12px;margin-bottom:6px;"></div>
       <button class="btn btn-primary btn-block" onclick="exportFamilinkData()" style="margin-bottom:6px;">JSON ファイルを書き出す</button>
       <button class="btn btn-outline btn-block" onclick="exportFamilinkDataLight()" style="margin-bottom:14px;font-size:12px;">写真を除いた軽量版を書き出す</button>
 
-      <div style="font-size:12px;font-weight:700;margin:0 4px 6px;letter-spacing:.5px;">📥 読み込む</div>
+      <div style="font-size:12px;font-weight:700;margin:0 4px 6px;letter-spacing:.5px;">読み込む</div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">既存データを<strong>すべて上書き</strong>します。事前に書き出してバックアップを取ることをおすすめします。</div>
       <input type="file" id="ds-import-file" accept="application/json,.json" style="display:none;" onchange="importFamilinkDataFromFile(event)">
       <button class="btn btn-outline btn-block" onclick="document.getElementById('ds-import-file').click()" style="margin-bottom:6px;">JSON ファイルから読み込む</button>
@@ -3421,7 +3421,7 @@ nav#tabbar.hidden { display: none !important; }
         <button id="ev-del-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="deleteCurrentEvent()">削除</button>
       </div>
       <button id="ev-export-btn" class="btn btn-outline btn-block" style="display:none;margin-top:8px;" onclick="openExportCalModal()">
-        📤 外部カレンダーに追加
+        外部カレンダーに追加
       </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-event')">キャンセル</button>
     </div>
@@ -3450,8 +3450,8 @@ nav#tabbar.hidden { display: none !important; }
     <div class="modal-title">収支を記録</div>
     <div class="modal-form">
       <div style="display:flex;gap:6px;background:var(--bg-muted);border-radius:var(--r-full);padding:3px;">
-        <button class="type-btn on" id="bm-ex" onclick="setBudgetModalType('expense')" style="flex:1;height:36px;">💸 支出</button>
-        <button class="type-btn" id="bm-in" onclick="setBudgetModalType('income')" style="flex:1;height:36px;">💰 収入</button>
+        <button class="type-btn on" id="bm-ex" onclick="setBudgetModalType('expense')" style="flex:1;height:36px;">支出</button>
+        <button class="type-btn" id="bm-in" onclick="setBudgetModalType('income')" style="flex:1;height:36px;">収入</button>
       </div>
       <input type="hidden" id="bm-type" value="expense">
       <input type="hidden" id="bm-id" value="">
@@ -3719,7 +3719,7 @@ nav#tabbar.hidden { display: none !important; }
 <!-- Confirm Modal -->
 <div id="m-confirm" class="modal-backdrop modal-center">
   <div class="modal">
-    <div style="font-size:36px;text-align:center;margin-bottom:12px;" id="confirm-icon">⚠️</div>
+    <div style="text-align:center;margin-bottom:12px;color:var(--primary);" id="confirm-icon"></div>
     <div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:8px;" id="confirm-title"></div>
     <div style="font-size:14px;color:var(--text-sub);text-align:center;margin-bottom:22px;line-height:1.55;" id="confirm-msg"></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -3895,7 +3895,7 @@ const AVATAR_CATEGORIES = [
   {key:'children', label:'子ども'},
   {key:'adult',    label:'大人'},
   {key:'senior',   label:'シニア'},
-  {key:'premium',  label:'⭐ プレミアム', isPremium:true},
+  {key:'premium',  label:'プレミアム', isPremium:true},
 ];
 
 const EV_COLORS = ['#4A90E2','#52C47A','#FF9B4E','#F07CB3','#9B7EDE','#FF6B6B','#FFB800','#34D399'];
@@ -3951,7 +3951,7 @@ const HOKU_ICON_PATHS = {
   calendar:'<rect x="4" y="5.4" width="16" height="14.6" rx="2.6"/><path d="M4 9.4h16M9 3.4v3.4M15 3.4v3.4"/>',
   check:'<path d="M5 12.6l4.6 4.4L19 7.4"/>',
   close:'<path d="M6.4 6.4l11.2 11.2M17.6 6.4 6.4 17.6"/>',
-  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3.4v2.4M12 18.2v2.4M5.4 5.4l1.7 1.7M16.9 16.9l1.7 1.7M3.4 12h2.4M18.2 12h2.4M5.4 18.6l1.7-1.7M16.9 7.1l1.7-1.7"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.6l1.5 2.3 2.7-.7.4 2.8 2.8.4-.7 2.7 2.3 1.5-2.3 1.5.7 2.7-2.8.4-.4 2.8-2.7-.7L12 21.4l-1.5-2.3-2.7.7-.4-2.8-2.8-.4.7-2.7L2.6 12l2.3-1.5-.7-2.7 2.8-.4.4-2.8 2.7.7z"/>',
   trash:'<path d="M5.4 7.2h13.2M9.4 7.2V5.4a1.4 1.4 0 0 1 1.4-1.4h2.4a1.4 1.4 0 0 1 1.4 1.4v1.8"/><path d="M7 7.2 7.8 19a1.6 1.6 0 0 0 1.6 1.4h5.2A1.6 1.6 0 0 0 16.2 19L17 7.2"/><path d="M10.4 11v5.6M13.6 11v5.6"/>',
   pencil:'<path d="M14.8 5.4 18.6 9.2M4.4 19.6l1-4 9.4-9.4 3.8 3.8-9.4 9.4z"/>',
   pin:'<path d="M12 21s6-5.3 6-10.2A6 6 0 0 0 6 10.8C6 15.7 12 21 12 21z"/><circle cx="12" cy="10.6" r="2.3"/>',
@@ -3965,7 +3965,7 @@ const HOKU_ICON_PATHS = {
   upload:'<path d="M12 15.4V4.6M12 4.6 8 8.6M12 4.6l4 4"/><path d="M4.6 14.4v3.4a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2v-3.4"/>',
   download:'<path d="M12 4.6v10.8M12 15.4 8 11.4M12 15.4l4-4"/><path d="M4.6 14.4v3.4a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2v-3.4"/>',
   warning:'<path d="M12 4.2 21 19.4H3z"/><path d="M12 10v4.2M12 17.2h.02"/>',
-  hourglass:'<path d="M6.4 4h11.2M6.4 20h11.2"/><path d="M7.6 4c0 5 8.8 5 8.8 0M7.6 20c0-5 8.8-5 8.8 0"/>',
+  hourglass:'<path d="M6.4 3.6h11.2M6.4 20.4h11.2"/><path d="M8 3.6v3.4c0 1.9 4 3.4 4 5s-4 3.1-4 5v3.4M16 3.6v3.4c0 1.9-4 3.4-4 5s4 3.1 4 5v3.4"/>',
   heart:'<path d="M12 19.6 4.8 12.4a4.4 4.4 0 0 1 6.2-6.2l1 1 1-1a4.4 4.4 0 0 1 6.2 6.2z"/>',
   sparkle:'<path d="M12 4.4c.4 3.4 1.8 4.8 5.2 5.2-3.4.4-4.8 1.8-5.2 5.2-.4-3.4-1.8-4.8-5.2-5.2 3.4-.4 4.8-1.8 5.2-5.2z"/><path d="M17.6 14.4c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/>',
   mic:'<rect x="9.2" y="3.2" width="5.6" height="10.4" rx="2.8"/><path d="M6 11.6a6 6 0 0 0 12 0"/><path d="M12 17.6V20.4M9 20.6h6"/>',
@@ -4226,7 +4226,7 @@ function importFamilinkDataFromFile(ev) {
       try { renderHome(); } catch(e) {}
       try { renderSettings(); } catch(e) {}
       try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
-      showToast(imported + ' 種類のデータを読み込みました 🎉','success');
+      showToast(imported + ' 種類のデータを読み込みました','success');
     } catch(e) {
       showToast('JSON の解析に失敗しました：' + e.message,'error');
     }
@@ -4257,14 +4257,14 @@ function renderStorageModal() {
     +   '</div>'
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
-    + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? '⚠ 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
+    + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
-    + _renderStorageRow('🖼 アルバム写真', s.albumBytes, s.albumCount,
+    + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
          ['delete-album-all','すべて削除', s.albumCount > 0]])
-    + _renderStorageRow('📂 書類保管庫の写真', s.docsBytes, s.docsCount,
+    + _renderStorageRow('書類保管庫の写真', s.docsBytes, s.docsCount,
         [['delete-docs-photos','すべての書類写真を削除', s.docsCount > 0]])
-    + _renderStorageRow('👤 メンバーアバター写真', s.photoBytes, s.photoCount,
+    + _renderStorageRow('メンバーアバター写真', s.photoBytes, s.photoCount,
         [['delete-avatar-photos','すべてのアバター写真を削除', s.photoCount > 0]])
     + '<div style="font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.5;">'
     +   '※ 写真は自動的に 1280px / JPEG 画質 0.85 で圧縮されます。<br>'
@@ -4484,11 +4484,11 @@ function closeModal(id) {
 }
 
 let _confirmCb = null;
-function showConfirm(title, msg, btnTxt, cb, icon='⚠️') {
+function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-ok').textContent = btnTxt;
-  document.getElementById('confirm-icon').textContent = icon;
+  document.getElementById('confirm-icon').innerHTML = (typeof ICON==='function') ? ICON(icon,40) : '';
   _confirmCb = cb;
   openModal('m-confirm');
 }
@@ -4834,7 +4834,7 @@ function seedDemo() {
     {id:uid(),title:'太郎 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
     {id:uid(),title:'歯科検診（ママ）',date:addDays(t,1),time:'10:30',color:'#FF9B4E',member:'seiai',note:'保険証を忘れずに'},
     {id:uid(),title:'花子 サッカー',date:addDays(t,2),time:'15:00',color:'#52C47A',member:'seio',note:'お弁当不要'},
-    {id:uid(),title:'家族でピクニック 🌸',date:addDays(t,3),time:'10:00',color:'#F07CB3',member:'kenya',note:'弁当・レジャーシート持参'},
+    {id:uid(),title:'家族でピクニック',date:addDays(t,3),time:'10:00',color:'#F07CB3',member:'kenya',note:'弁当・レジャーシート持参'},
     {id:uid(),title:'健太 ピアノ発表会',date:addDays(t,5),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'礼服着用'},
     {id:uid(),title:'PTAミーティング',date:addDays(t,7),time:'18:00',color:'#FF6B6B',member:'seiai',note:''},
   ];
@@ -4858,8 +4858,8 @@ function seedDemo() {
     S.budgetM = new Date().getMonth();
   }
   if(!S.posts.length) S.posts = [
-    {id:uid(),author:'kenya',title:'今週末のピクニック🌸について',
-      body:'天気予報確認したら土曜日は晴れそう！\n弁当はママが担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね😊',
+    {id:uid(),author:'kenya',title:'今週末のピクニックについて',
+      body:'天気予報確認したら土曜日は晴れそう！\n弁当はママが担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね',
       time:addDays(t,-1),pinned:true,
       reactions:{'👍':['seiai','seito'],'❤️':['seio','seitaro'],'😄':['seiai']},
       comments:[
@@ -4911,9 +4911,9 @@ function seedDemo() {
     {id:uid(),text:'防止・日焼け止め',cat:'その他',done:false,date:addDays(t,3)},
   ];
   if(!S.notifs.length) S.notifs = [
-    {id:uid(),title:'太郎の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'📅'},
-    {id:uid(),title:'未完了タスクがあります',desc:'保護者アンケートの提出をお忘れなく',time:t,read:false,icon:'✅'},
-    {id:uid(),title:'Familinkへようこそ',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'🌟'},
+    {id:uid(),title:'太郎の英語がもうすぐ！',desc:'今日16:00 英語教室があります',time:t,read:false,icon:'calendar'},
+    {id:uid(),title:'未完了タスクがあります',desc:'保護者アンケートの提出をお忘れなく',time:t,read:false,icon:'check'},
+    {id:uid(),title:'Familinkへようこそ',desc:'家族でやさしくつながるアプリです。ぜひ使ってみてください',time:addDays(t,-1),read:true,icon:'star'},
   ];
   // 書類保管庫機能は撤廃済（Wave 15）：S.folders / S.docs は今後使用しない
   // seedDemo で作成したタスクは旧スキーマ (text/member/done/at) のため、
@@ -6302,7 +6302,7 @@ function parseIcsAndPreview() {
       return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border-light);cursor:pointer;">
         <input type="checkbox" data-idx="${x.idx}" ${x.selected?'checked':''} style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--text);">${H(e.title)}${x.isDup?' <span style="color:var(--orange);font-size:10px;font-weight:600;">⚠ 重複の可能性</span>':''}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${H(e.title)}${x.isDup?(' <span style="color:var(--orange);font-size:10px;font-weight:600;">'+ICON('warning',11)+' 重複の可能性</span>'):''}</div>
           <div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${H(dStr)}${e.time?' '+H(e.time):''}${e.endTime?'〜'+H(e.endTime):''}${e.location?' / '+H(e.location):''} ${H(provider)}</div>
           ${e.note?`<div style="font-size:10px;color:var(--text-muted);margin-top:2px;white-space:pre-wrap;">${H(e.note.slice(0,80))}${e.note.length>80?'…':''}</div>`:''}
         </div>
@@ -7286,7 +7286,7 @@ function renderBudget() {
     const commonBtn = `<button class="bm-mem-av-btn ${_budgetMember==='common'?'selected':''}"
       onclick="setBudgetMember('common')"
       title="家族共通">
-      <div class="av" style="background:linear-gradient(135deg,#9CA3AF,#D1D5DB);width:36px;height:36px;font-size:14px;color:#fff;">🏠</div>
+      <div class="av" style="background:linear-gradient(135deg,#9CA3AF,#D1D5DB);width:36px;height:36px;color:#fff;">${ICON('home',18)}</div>
       <span class="bm-mem-name">家族共通</span>
     </button>`;
 
@@ -7673,7 +7673,7 @@ function renderRecurringSection() {
       +     '<span class="rr-chip cycle">'+H(cycleLabel)+'</span>'
       +     (r.cat ? '<span class="rr-chip">'+H(r.cat)+'</span>' : '')
       +     (memName ? '<span class="rr-chip member">'+H(memName)+'</span>' : '')
-      +     (r.memo ? '<span class="rr-chip">📝 '+H(r.memo.slice(0,20))+'</span>' : '')
+      +     (r.memo ? '<span class="rr-chip">'+ICON('document',12)+' '+H(r.memo.slice(0,20))+'</span>' : '')
       +   '</div>'
       + '</div>'
       + '<div style="text-align:right;flex-shrink:0;">'
@@ -7875,7 +7875,7 @@ function renderCashflowSection() {
     + '</div>';
   // 警告
   if(cf.endingBalanceForecast < 0) {
-    html += '<div class="cf-warn danger">⚠ '+H(monthLabel)+' は月末残高がマイナスになる見込みです（'+cf.endingBalanceForecast.toLocaleString()+' 円）。固定支出の見直しか開始残高の確認をおすすめします。</div>';
+    html += '<div class="cf-warn danger">'+ICON('warning',13)+' '+H(monthLabel)+' は月末残高がマイナスになる見込みです（'+cf.endingBalanceForecast.toLocaleString()+' 円）。固定支出の見直しか開始残高の確認をおすすめします。</div>';
   } else if(cf.totalExpense > cf.totalIncome) {
     html += '<div class="cf-warn">注意：'+H(monthLabel)+' は支出予定（¥'+cf.totalExpense.toLocaleString()+'）が収入予定（¥'+cf.totalIncome.toLocaleString()+'）を超えています。</div>';
   }
@@ -8147,7 +8147,7 @@ function saveTx() {
 /* ── 通知追加ヘルパー ── */
 function addNotif(title, desc, icon) {
   if(!S.notifs) S.notifs = [];
-  S.notifs.unshift({id:uid(), title, desc, icon:icon||'🔔', time:todayStr(), read:false});
+  S.notifs.unshift({id:uid(), title, desc, icon:icon||'bell', time:todayStr(), read:false});
   saveS();
   const badge = document.getElementById('notif-badge');
   if(badge) badge.style.display = 'block';
@@ -8445,8 +8445,8 @@ function renderBoardCardHealthPreview() {
   }).join('');
   // ステータス（上部簡易バナー）
   let banner = '';
-  if(fevered.length) banner = `<div class="bc-row" style="color:var(--red);font-weight:700;">🌡 発熱中 ${fevered.length}人</div>`;
-  else if(onMeds.length) banner = `<div class="bc-row" style="color:var(--orange);font-weight:700;">💊 薬の記録 ${onMeds.length}件</div>`;
+  if(fevered.length) banner = `<div class="bc-row" style="color:var(--red);font-weight:700;">${ICON('thermometer',13)} 発熱中 ${fevered.length}人</div>`;
+  else if(onMeds.length) banner = `<div class="bc-row" style="color:var(--orange);font-weight:700;">${ICON('pill',13)} 薬の記録 ${onMeds.length}件</div>`;
   return banner + lines;
 }
 
@@ -8735,7 +8735,7 @@ function savePost() {
       reactions:{}, reactMap:{},
       comments:[], createdAt:now, updatedAt:now,
     });
-    addNotif(`新しい投稿：${title}`, body ? body.slice(0,40)+'…' : '', '📋');
+    addNotif(`新しい投稿：${title}`, body ? body.slice(0,40)+'…' : '', 'list');
   }
   saveS(); closeModal('m-post');
   renderBoard();
@@ -8775,7 +8775,7 @@ function togglePostPin(id) {
       if(S.screen === 's-board-detail') renderBoardDetail();
       showToast(willPin ? 'ピン留めしました' : 'ピン留めを解除しました');
     },
-    willPin ? '📌' : '📍'
+    willPin ? 'pin' : 'pin'
   );
   if(navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
 }
@@ -8847,10 +8847,10 @@ function openPostCardMenu(postId) {
   pop.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.18);display:flex;align-items:flex-end;';
   pop.innerHTML = `<div style="width:100%;background:#fff;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.12);">
     <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:8px;">${H(a.title || '投稿')}</div>
-    <button class="settings-item" onclick="openBoardDetail('${H(postId)}');document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">📖 詳細を開く</button>
-    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());togglePostPin('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">${a.isPinned?'📍 ピン留めを解除':'📌 ピン留めする'}</button>
-    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());openPostModal('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">✏️ 編集</button>
-    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());deletePostWithConfirm('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:10px;color:var(--red);">🗑 削除する</button>
+    <button class="settings-item" onclick="openBoardDetail('${H(postId)}');document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">${ICON('document',15)} 詳細を開く</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());togglePostPin('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">${a.isPinned?ICON('pin',14)+' ピン留めを解除':ICON('pin',14)+' ピン留めする'}</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());openPostModal('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:6px;">${ICON('pencil',15)} 編集</button>
+    <button class="settings-item" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove());deletePostWithConfirm('${H(postId)}')" style="border-radius:12px;padding:14px;width:100%;text-align:left;margin-bottom:10px;color:var(--red);">${ICON('trash',15)} 削除する</button>
     <button class="btn btn-ghost btn-block" onclick="document.querySelectorAll('.post-card-menu-pop').forEach(el=>el.remove())">キャンセル</button>
   </div>`;
   pop.addEventListener('click', (e) => { if(e.target === pop) pop.remove(); });
@@ -9011,7 +9011,7 @@ function renderHealth() {
   // 空状態
   if(!recs.length) {
     el.innerHTML = `<div style="padding:32px 24px;text-align:center;">
-      <div style="font-size:38px;margin-bottom:8px;">🌡</div>
+      <div style="margin-bottom:8px;color:var(--primary);">${ICON('thermometer',38)}</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">まだ体調記録がありません</div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:16px;">発熱・薬・病院メモを残しておくと、<br>あとから家族で振り返りやすくなります。</div>
       <button class="btn btn-primary" onclick="openHealthModal()" style="padding:10px 22px;">＋ 最初の記録を追加</button>
@@ -9051,7 +9051,7 @@ function renderHealth() {
   </div>`;
   // 状態フィルター
   html += `<div style="display:flex;gap:6px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none;">
-    ${[['all','すべて'],['fever','🌡 発熱'],['medicine','💊 薬あり'],['hospital','🏥 病院'],['symptom','症状あり']].map(([k,l]) =>
+    ${[['all','すべて'],['fever',ICON('thermometer',12)+' 発熱'],['medicine',ICON('pill',12)+' 薬あり'],['hospital',ICON('hospital',12)+' 病院'],['symptom','症状あり']].map(([k,l]) =>
       `<button class="hl-sf-btn ${_healthStatusFilter===k?'on':''}" onclick="setHealthStatusFilter('${k}')">${l}</button>`
     ).join('')}
   </div>`;
@@ -9174,15 +9174,15 @@ function renderHealthCharts(recs) {
   if(feverRecs.length) {
     feverList = `<div style="margin:10px 16px 0;padding:12px 14px;background:#fff;border:1px solid var(--border-light);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);">🌡 発熱があった日（過去30日）</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${ICON('thermometer',13)} 発熱があった日（過去30日）</div>
         <div style="font-size:10px;color:var(--text-muted);">${feverRecs.length}件</div>
       </div>
       ${feverRecs.map(r => {
         const m = getMem(r.memberId);
         const dateStr = (r.date||'').slice(5).replace('-','/');
         const sym = (r.symptoms||[]).filter(Boolean).join('・');
-        const med = r.medicine ? `💊 ${r.medicine}` : '';
-        const hosp = r.visitedHospital ? `🏥 ${r.hospitalName||'病院'}` : '';
+        const med = r.medicine ? `${ICON('pill',12)} ${r.medicine}` : '';
+        const hosp = r.visitedHospital ? `${ICON('hospital',12)} ${r.hospitalName||'病院'}` : '';
         const meta = [sym, med, hosp].filter(Boolean).join(' / ');
         return `<div onclick="openHealthEditModal('${H(r.id)}')" style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent;">
           ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : '<div style="width:30px;height:30px;flex-shrink:0;"></div>'}
@@ -9246,8 +9246,8 @@ function healthTodayCard(r) {
   const m = getMem(r.memberId);
   const symptoms = (r.symptoms || []).filter(Boolean);
   const symptomsHtml = symptoms.length ? symptoms.map(s => `<span class="chip" style="background:${fever?'var(--red-light)':'var(--green-light)'};color:${fever?'var(--red)':'var(--secondary-dark)'};">${H(s)}</span>`).join('') : '';
-  const medChip = r.medicine ? `<span class="chip" style="background:var(--orange-light);color:var(--orange);">💊 ${H(r.medicine)}</span>` : '';
-  const hospChip = r.visitedHospital ? `<span class="chip" style="background:#EDE9FE;color:#7C3AED;">🏥 ${H(r.hospitalName||'病院受診')}</span>` : '';
+  const medChip = r.medicine ? `<span class="chip" style="background:var(--orange-light);color:var(--orange);">${ICON('pill',12)} ${H(r.medicine)}</span>` : '';
+  const hospChip = r.visitedHospital ? `<span class="chip" style="background:#EDE9FE;color:#7C3AED;">${ICON('hospital',12)} ${H(r.hospitalName||'病院受診')}</span>` : '';
   return `<div class="health-today-card ${fever?'':'normal'}" onclick="openHealthEditModal('${H(r.id)}')" style="cursor:pointer;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       ${m ? `${avHtml(m.id, 32, 13, "flex-shrink:0")}` : ''}
@@ -9282,8 +9282,8 @@ function healthLogCardV2(r) {
   const labels = [];
   if(isHighFever) labels.push('<span style="background:#DC2626;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">高熱</span>');
   else if(isFever) labels.push('<span style="background:#FF6B6B;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">発熱</span>');
-  if(hasMed) labels.push('<span style="background:#FF9B4E;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">💊 薬あり</span>');
-  if(hasHosp) labels.push('<span style="background:#7C3AED;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">🏥 病院</span>');
+  if(hasMed) labels.push('<span style="background:#FF9B4E;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">'+ICON('pill',11)+' 薬あり</span>');
+  if(hasHosp) labels.push('<span style="background:#7C3AED;color:#fff;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;">'+ICON('hospital',11)+' 病院</span>');
 
   // 症状チップ
   const symptomChips = symptoms.slice(0, 4).map(s =>
@@ -9306,7 +9306,7 @@ function healthLogCardV2(r) {
       </div>
       ${r.temp?`<div style="font-size:18px;font-weight:800;color:${tempColor};flex-shrink:0;">${H(r.temp)}<span style="font-size:11px;font-weight:600;">℃</span></div>`:''}
     </div>
-    ${(symptomChips || hasMed || r.hospitalName) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${symptomChips}${moreSymp}${hasMed?`<span style="background:#FFEDD5;color:#9A3412;padding:2px 7px;border-radius:8px;font-size:10px;">💊 ${H(r.medicine)}${r.medicineTime?' ('+H(r.medicineTime)+')':''}</span>`:''}${hasHosp && r.hospitalName?`<span style="background:#EDE9FE;color:#5B21B6;padding:2px 7px;border-radius:8px;font-size:10px;">🏥 ${H(r.hospitalName)}</span>`:''}</div>`:''}
+    ${(symptomChips || hasMed || r.hospitalName) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${symptomChips}${moreSymp}${hasMed?`<span style="background:#FFEDD5;color:#9A3412;padding:2px 7px;border-radius:8px;font-size:10px;">${ICON('pill',11)} ${H(r.medicine)}${r.medicineTime?' ('+H(r.medicineTime)+')':''}</span>`:''}${hasHosp && r.hospitalName?`<span style="background:#EDE9FE;color:#5B21B6;padding:2px 7px;border-radius:8px;font-size:10px;">${ICON('hospital',11)} ${H(r.hospitalName)}</span>`:''}</div>`:''}
     ${noteShort?`<div style="font-size:11px;color:var(--text-sub);margin-top:5px;line-height:1.5;background:rgba(255,255,255,.6);padding:5px 7px;border-radius:6px;">${H(noteShort)}</div>`:''}
   </div>`;
 }
@@ -9319,8 +9319,8 @@ function healthPastRow(r) {
   if(r.temp) meta.push(`${r.temp}℃`);
   if(symptoms) meta.push(symptoms);
   else if(r.status) meta.push(r.status);
-  if(r.medicine) meta.push(`💊 ${r.medicine}`);
-  if(r.visitedHospital) meta.push(`🏥 ${r.hospitalName||'病院'}`);
+  if(r.medicine) meta.push(`${ICON('pill',12)} ${r.medicine}`);
+  if(r.visitedHospital) meta.push(`${ICON('hospital',12)} ${r.hospitalName||'病院'}`);
   return `<div class="health-rec-row" onclick="openHealthEditModal('${H(r.id)}')">
     ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : ''}
     <div style="flex:1;min-width:0;">
@@ -9626,7 +9626,7 @@ function renderShopListHtml() {
     return (b.createdAt||'').localeCompare(a.createdAt||'');
   });
   if(items.length === 0) {
-    return shopEmpty('🛒','買い物リストは空です','必要なものを追加して、買い忘れを防ぎましょう。','+ で買い物を追加');
+    return shopEmpty(ICON('cart',40),'買い物リストは空です','必要なものを追加して、買い忘れを防ぎましょう。','+ で買い物を追加');
   }
   return '<div style="padding:0 16px;">' + items.map(function(it){
     const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
@@ -9637,8 +9637,8 @@ function renderShopListHtml() {
       +   '<div class="shop-name">'+H(it.name)+'</div>'
       +   '<div class="shop-meta">'+qty+cat+'</div>'
       + '</div>'
-      + '<button class="shop-iconbtn" onclick="shopAddToFrequent(\''+H(it.id)+'\')" aria-label="よく買うへ追加" title="よく買うへ追加">★</button>'
-      + '<button class="shop-iconbtn" onclick="shopEditItem(\''+H(it.id)+'\')" aria-label="編集" title="編集">✎</button>'
+      + '<button class="shop-iconbtn" onclick="shopAddToFrequent(\''+H(it.id)+'\')" aria-label="よく買うへ追加" title="よく買うへ追加">'+ICON('star',16)+'</button>'
+      + '<button class="shop-iconbtn" onclick="shopEditItem(\''+H(it.id)+'\')" aria-label="編集" title="編集">'+ICON('pencil',15)+'</button>'
       + '<button class="shop-iconbtn shop-del" onclick="shopDeleteItem(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
       + '</div>';
   }).join('') + '</div>';
@@ -9650,7 +9650,7 @@ function renderShopFreqHtml() {
     return (a.order||0) - (b.order||0);
   });
   if(items.length === 0) {
-    return shopEmpty('⭐','よく購入するものはまだありません','牛乳・卵・おむつなど、よく買うものを登録しておくと便利です。','+ で「よく買うもの」を追加');
+    return shopEmpty(ICON('star',40),'よく購入するものはまだありません','牛乳・卵・おむつなど、よく買うものを登録しておくと便利です。','+ で「よく買うもの」を追加');
   }
   return '<div style="padding:0 16px;">' + items.map(function(it){
     const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
@@ -9661,7 +9661,7 @@ function renderShopFreqHtml() {
       +   '<div class="shop-meta">'+qty+cat+'</div>'
       + '</div>'
       + '<button class="shop-addlist" onclick="shopFreqToList(\''+H(it.id)+'\')">リストへ追加</button>'
-      + '<button class="shop-iconbtn" onclick="shopFreqEdit(\''+H(it.id)+'\')" aria-label="編集" title="編集">✎</button>'
+      + '<button class="shop-iconbtn" onclick="shopFreqEdit(\''+H(it.id)+'\')" aria-label="編集" title="編集">'+ICON('pencil',15)+'</button>'
       + '<button class="shop-iconbtn shop-del" onclick="shopFreqDelete(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
       + '</div>';
   }).join('') + '</div>';
@@ -9673,7 +9673,7 @@ function renderShopHistHtml() {
     return (b.purchasedAt||'').localeCompare(a.purchasedAt||'');
   });
   if(items.length === 0) {
-    return shopEmpty('🧾','購入履歴はまだありません','購入済みにしたものがここに表示されます。','');
+    return shopEmpty(ICON('document',40),'購入履歴はまだありません','購入済みにしたものがここに表示されます。','');
   }
   // 日付でグループ化
   const groups = {};
@@ -9929,13 +9929,13 @@ function renderArchive() {
   const body = document.getElementById('archive-body');
   if(!body) return;
   if(!items.length) {
-    body.innerHTML = '<div class="archive-empty"><div class="icon">📂</div><div class="title">書類はまだありません</div><div class="desc">同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。</div></div>';
+    body.innerHTML = '<div class="archive-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('folder',44)+'</div><div class="title">書類はまだありません</div><div class="desc">同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。</div></div>';
     return;
   }
   body.innerHTML = items.map(function(d){
     const thumb = d.photo
       ? '<img src="'+H(d.photo)+'" alt="">'
-      : '📄';
+      : ICON('document',26);
     return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
       + '<div class="archive-thumb">'+thumb+'</div>'
       + '<div class="archive-main">'
@@ -10025,7 +10025,7 @@ function renderAlbum() {
   const body = document.getElementById('album-body');
   if(!body) return;
   if(!items.length) {
-    body.innerHTML = '<div class="album-empty"><div class="icon">🖼</div><div class="title">写真はまだありません</div><div class="desc">家族の思い出をここにまとめておけます。<br>右上の + から写真を追加してください。</div></div>';
+    body.innerHTML = '<div class="album-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('image',44)+'</div><div class="title">写真はまだありません</div><div class="desc">家族の思い出をここにまとめておけます。<br>右上の + から写真を追加してください。</div></div>';
     return;
   }
   body.innerHTML = '<div class="album-grid">' + items.map(function(p){
@@ -10155,7 +10155,7 @@ function renderPrep() {
       <span>${H(m.name)}</span>
     </button>`;
   }
-  html += `<button class="bm-add-btn" onclick="openPrepMembersModal()" title="メンバー表示設定" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px dashed var(--border);background:transparent;color:var(--text-muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙</button>`;
+  html += `<button class="bm-add-btn" onclick="openPrepMembersModal()" title="メンバー表示設定" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px dashed var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;">${ICON('gear',16)}</button>`;
   html += `</div>`;
 
   // === 通常リスト（今日 / 明日 / すべて タブ） ===
@@ -10178,7 +10178,7 @@ function renderPrep() {
         const visibleSugg = sugg.filter(s => !s.routine.memberId || visibleMembers.indexOf(s.routine.memberId) >= 0);
         if(visibleSugg.length > 0) {
           html += `<div id="prep-suggest-banner" style="margin:6px 16px 10px;padding:12px;background:linear-gradient(135deg,#EBF4FF,#F5F3FF);border:1px solid #C7D2FE;border-radius:12px;">
-            <div style="font-size:12px;font-weight:700;color:#4F46E5;margin-bottom:6px;">📅 ${_prepTab==='today'?'今日':'明日'}（${dayLabel}曜日）のルーティン候補 ${visibleSugg.length}件</div>
+            <div style="font-size:12px;font-weight:700;color:#4F46E5;margin-bottom:6px;">${ICON('calendar',12)} ${_prepTab==='today'?'今日':'明日'}（${dayLabel}曜日）のルーティン候補 ${visibleSugg.length}件</div>
             <div style="font-size:13px;color:var(--text);margin-bottom:8px;">${H(visibleSugg.slice(0,3).map(s => `${memberNameById(s.routine.memberId)||'共通'}：${s.routine.title}`).join('・'))}${visibleSugg.length>3?` 他${visibleSugg.length-3}件`:''}</div>
             <button onclick="${_prepTab==='today'?'applyTodayRoutines()':'applyTomorrowRoutines()'}" class="btn btn-primary" style="padding:6px 14px;font-size:12px;border-radius:8px;">${_prepTab==='today'?'今日':'明日'}の準備に追加</button>
           </div>`;
@@ -10205,7 +10205,7 @@ function renderPrep() {
 
     if(carryCandidates.length) {
       html += `<div style="margin:0 16px 10px;padding:10px 12px;background:var(--orange-light, #FFF7ED);border:1px solid var(--orange, #F59E0B);border-radius:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--orange, #D97706);margin-bottom:6px;">⏳ 昨日以前で未完了 ${carryCandidates.length} 件</div>
+        <div style="font-size:12px;font-weight:700;color:var(--orange, #D97706);margin-bottom:6px;">${ICON('hourglass',12)} 昨日以前で未完了 ${carryCandidates.length} 件</div>
         ${carryCandidates.map(p => `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);padding:4px 0;">
           <span style="flex:1;${p.done?'text-decoration:line-through;opacity:.5':''}">${H(p.text)}<span style="color:var(--text-muted);font-size:11px;margin-left:6px;">(${H(p.date||'')})</span></span>
           <button onclick="carryPrepToToday('${H(p.id)}')" style="font-size:11px;padding:4px 10px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;">今日に回す</button>
@@ -10220,7 +10220,7 @@ function renderPrep() {
       return `<div class="prep-section">
         <div class="prep-sec-title">${H(cat)}</div>
         ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
-          <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?'✓':''}</div>
+          <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?ICON('check',13):''}</div>
           <div style="flex:1">
             <div class="prep-txt ${p.done?'done':''}">${H(p.text)}${p.memberId?`<span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-weight:600;">${H(memberNameById(p.memberId))}</span>`:''}${p.source==='routine'?`<span style="font-size:9px;color:#6366F1;background:#EEF2FF;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;">ルーティン</span>`:''}</div>
             ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
@@ -10318,7 +10318,7 @@ function renderPrepRoutinesSectionHtml() {
                 const list = groups[key];
                 const head = (key === '__none__')
                   ? `<div style="padding:6px 14px 2px;font-size:11px;color:var(--text-muted);font-weight:700;">教科外の持ち物</div>`
-                  : `<div style="padding:6px 14px 2px;font-size:11px;color:#4F46E5;font-weight:700;">📘 ${H(key)}</div>`;
+                  : `<div style="padding:6px 14px 2px;font-size:11px;color:#4F46E5;font-weight:700;">${ICON('book',12)} ${H(key)}</div>`;
                 return head + list.map(function(r){
                   const qtyChip = r.quantity ? `<span style="font-size:10px;color:#92400E;background:#FEF3C7;padding:2px 7px;border-radius:6px;font-weight:700;margin-left:4px;">${H(r.quantity)}</span>` : '';
                   return `<div onclick="openPrepRoutineModal('${H(r.id)}')" data-routine-id="${H(r.id)}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;${r.enabled===false?'opacity:0.5;':''}">
@@ -10326,7 +10326,7 @@ function renderPrepRoutinesSectionHtml() {
                     <span style="flex:1;font-size:13px;color:var(--text);font-weight:600;">${H(r.title)}${qtyChip}</span>
                     <span style="font-size:10px;color:#6366F1;background:#EEF2FF;padding:2px 7px;border-radius:6px;font-weight:700;">${H(r.category||'その他')}</span>
                     <span style="font-size:10px;color:var(--text-muted);">${H(PREP_TIMING_LABELS[r.showTiming]||'')}</span>
-                    <button onclick="event.stopPropagation();togglePrepRoutineEnabled('${H(r.id)}')" title="${r.enabled===false?'有効化':'無効化'}" style="background:transparent;border:none;color:${r.enabled===false?'var(--text-muted)':'var(--primary)'};font-size:14px;cursor:pointer;">${r.enabled===false?'☐':'☑'}</button>
+                    <button onclick="event.stopPropagation();togglePrepRoutineEnabled('${H(r.id)}')" title="${r.enabled===false?'有効化':'無効化'}" style="background:transparent;border:none;color:${r.enabled===false?'var(--text-muted)':'var(--primary)'};font-size:14px;cursor:pointer;">${r.enabled===false?ICON('close',13):ICON('check',13)}</button>
                   </div>`;
                 }).join('');
               }).join('');
@@ -10393,7 +10393,7 @@ function deletePrep(id) {
   showConfirm('この準備項目を削除しますか？', H(p.text), '削除', () => {
     S.prep = (S.prep||[]).filter(p=>p.id!==id);
     saveS(); renderPrep(); showToast('削除しました');
-  }, '🗑');
+  }, 'trash');
 }
 
 /* 明日に回す（今日 → 明日） */
@@ -10735,7 +10735,7 @@ function deletePrepRoutineFromModal() {
     closeModal('m-prep-routine');
     renderPrep();
     showToast('ルーティンを削除しました');
-  }, '🗑');
+  }, 'trash');
 }
 function togglePrepRoutineEnabled(id) {
   const r = (S.prepRoutines||[]).find(x => x.id === id);
@@ -11004,14 +11004,14 @@ function goChildDetail(id) {
     <div class="settings-section">
       <div class="settings-title">タスク</div>
       ${tasks.length ? tasks.map(t=>`<div class="settings-item">
-        <div class="task-chk ${t.status==='done'?'done':''}" style="width:22px;height:22px;font-size:12px;flex-shrink:0">${t.status==='done'?'✓':''}</div>
+        <div class="task-chk ${t.status==='done'?'done':''}" style="width:22px;height:22px;font-size:12px;flex-shrink:0">${t.status==='done'?ICON('check',13):''}</div>
         <div class="settings-item-label" style="${t.status==='done'?'text-decoration:line-through;color:var(--text-muted)':''}">${H(t.title||t.text||'')}</div>
       </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px">タスクなし</div>'}
     </div>
     <div class="settings-section">
       <div class="settings-title">体調記録</div>
       ${hlth.length ? hlth.map(r=>`<div class="settings-item">
-        <div style="font-size:20px">${r.temp>=37.5?'🤒':'😊'}</div>
+        <div style="font-size:20px">${r.temp>=37.5?ICON('thermometer',18):ICON('check',18)}</div>
         <div class="settings-item-label">${r.temp}℃ — ${H(r.cond)}</div>
         <div style="font-size:12px;color:var(--text-muted)">${H(r.date.slice(5).replace('-','/'))}</div>
       </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px">記録なし</div>'}
@@ -11033,7 +11033,7 @@ function renderNotif() {
     return;
   }
   el.innerHTML = notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}" onclick="readNotif('${H(n.id)}')">
-    <div class="notif-icon">${H(n.icon||'🔔')}</div>
+    <div class="notif-icon">${ICON(n.icon||'bell',20)}</div>
     <div style="flex:1;min-width:0;">
       <div class="notif-title">${H(n.title)}</div>
       <div class="notif-desc">${H(n.desc||'')}</div>
@@ -11280,7 +11280,7 @@ function renderAvatarGrid() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>` : ''}
         ${isSelected && !locked ? `<div class="avatar-grid-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
-        ${isPrem && !locked ? `<div class="avatar-grid-premium-badge">⭐</div>` : ''}
+        ${isPrem && !locked ? `<div class="avatar-grid-premium-badge">${ICON('star',12)}</div>` : ''}
       </div>
       <div class="avatar-grid-label">${H(a.label)}</div>
     </div>`;
@@ -11318,7 +11318,7 @@ function activatePremiumDemo() {
   closePremiumGate();
   renderAvatarGrid();
   renderAvatarCatTabs();
-  showToast('✨ プレミアムプランへようこそ！', 'success');
+  showToast('プレミアムプランへようこそ！', 'success');
 }
 
 function confirmAvatarSelect() {
@@ -11338,7 +11338,7 @@ function confirmAvatarSelect() {
   closeModal('m-avatar-select');
   document.getElementById('m-avatar-select')?.classList.add('hidden');
   refreshAllAvatarsAcrossScreens();
-  showToast('アバターを設定しました ✨', 'success');
+  showToast('アバターを設定しました', 'success');
 }
 
 /* Wave 60.2: 写真アップロードでアバター設定（avHtml が S.userPhotos[id] を読むので全画面に自動反映） */
@@ -11364,7 +11364,7 @@ function onAvatarPhotoPicked(ev) {
     closeModal('m-avatar-select');
     document.getElementById('m-avatar-select')?.classList.add('hidden');
     refreshAllAvatarsAcrossScreens();
-    showToast('写真を設定しました 📷','success');
+    showToast('写真を設定しました','success');
   });
   ev.target.value = '';
 }
@@ -11427,7 +11427,7 @@ const SHARE_CATS = ['体調面','習い事','学校・園','連絡','その他']
 /* 用途別ボードメタ（Wave 17：白紙感解消） */
 const INTENT_META = {
   'family-share': {
-    label: '家族共有', baseType: 'share', icon: '💬',
+    label: '家族共有', baseType: 'share', icon: 'chat',
     addBtn: '共有を追加',
     desc: '家族に共有したい出来事や連絡を残せます。',
     titlePh: '例：今日の連絡メモ',
@@ -11435,7 +11435,7 @@ const INTENT_META = {
     defaultCategory: '連絡'
   },
   'lessons': {
-    label: '習い事', baseType: 'share', icon: '🎵',
+    label: '習い事', baseType: 'share', icon: 'music',
     addBtn: '記録を追加',
     desc: '習い事の予定、記録、成長メモをまとめられます。',
     titlePh: '例：プールで25m達成',
@@ -11443,7 +11443,7 @@ const INTENT_META = {
     defaultCategory: '習い事'
   },
   'health': {
-    label: '体調管理', baseType: 'share', icon: '💛',
+    label: '体調管理', baseType: 'share', icon: 'heart',
     addBtn: '体調メモを追加',
     desc: '体温・症状・食欲・服薬などを家族で共有できます。',
     note: '※ 医療判断ではなく、家族での記録としてご利用ください。',
@@ -11452,7 +11452,7 @@ const INTENT_META = {
     defaultCategory: '体調面'
   },
   'prep': {
-    label: '準備リスト', baseType: 'prep', icon: '📝',
+    label: '準備リスト', baseType: 'prep', icon: 'document',
     addBtn: '準備を追加',
     desc: '今日/明日の持ち物や準備をチェックできます。',
     titlePh: '例：水筒',
@@ -11460,7 +11460,7 @@ const INTENT_META = {
     sections: ['今日の準備', '明日の準備']
   },
   'shopping': {
-    label: '買い物メモ', baseType: 'prep', icon: '🛒',
+    label: '買い物メモ', baseType: 'prep', icon: 'cart',
     addBtn: '買い物を追加',
     desc: '家族で必要な買い物をまとめられます。',
     titlePh: '例：牛乳',
@@ -11468,7 +11468,7 @@ const INTENT_META = {
     sections: ['今すぐ', '次の買い物']
   },
   'submissions': {
-    label: '提出物チェック', baseType: 'prep', icon: '📋',
+    label: '提出物チェック', baseType: 'prep', icon: 'list',
     addBtn: '提出物を追加',
     desc: '園/学校/習い事の提出物を忘れず管理できます。',
     titlePh: '例：同意書',
@@ -11476,7 +11476,7 @@ const INTENT_META = {
     sections: ['今週', '来週以降']
   },
   'memo': {
-    label: '汎用メモ', baseType: 'memo', icon: '📒',
+    label: '汎用メモ', baseType: 'memo', icon: 'document',
     addBtn: 'メモを追加',
     desc: '自由にメモや記録を残せます。',
     titlePh: '例：あとで確認すること',
@@ -11557,7 +11557,7 @@ function renderCustomBoardDetail() {
   // 用途別ヒーロー（ボード冒頭：用途・説明・注意・入力例）
   const heroHtml = `<div class="cb-intent-hero">
     <div class="cb-intent-hero-row">
-      <span class="cb-intent-hero-icon">${intentMeta.icon}</span>
+      <span class="cb-intent-hero-icon">${(typeof ICON==='function'&&intentMeta.icon)?ICON(intentMeta.icon,30):''}</span>
       <span class="cb-intent-hero-label">${H(intentMeta.label)}</span>
     </div>
     <div class="cb-intent-hero-desc">${H(intentMeta.desc)}</div>
@@ -11722,7 +11722,7 @@ function renderBcIntentGrid() {
   grid.innerHTML = order.map(key => {
     const m = INTENT_META[key];
     return `<button type="button" class="bc-intent-btn ${_bcIntent===key?'selected':''}" data-intent="${H(key)}" onclick="selectBcIntent('${H(key)}')">
-      <div class="bc-intent-icon">${m.icon}</div>
+      <div class="bc-intent-icon">${(typeof ICON==='function'&&m.icon)?ICON(m.icon,26):''}</div>
       <div class="bc-intent-label">${H(m.label)}</div>
     </button>`;
   }).join('');
@@ -13063,7 +13063,7 @@ function renderHokuMsgs() {
   if(!msgs.length) {
     el.innerHTML = `<div style="text-align:center;padding:32px 20px 0;color:var(--text-muted);font-size:13px;line-height:1.9;">
       何する？予定・タスク・家計、声でもいけるよ。<br>
-      <span style="display:inline-block;margin-top:10px;padding:4px 10px;background:var(--bg-muted);border-radius:999px;font-size:11px;">🎤 マイクで音声入力もできる</span>
+      <span style="display:inline-block;margin-top:10px;padding:4px 10px;background:var(--bg-muted);border-radius:999px;font-size:11px;">${ICON('mic',12)} マイクで音声入力もできる</span>
     </div>`;
     return;
   }
@@ -13154,7 +13154,7 @@ function hokuMicSetState(state) {
   // ヒント帯：聞き取り中は隠す、それ以外は表示
   const hints = document.getElementById('hoku-voice-hints');
   if(hints) hints.style.display = (state === 'listening') ? 'none' : '';
-  if(state === 'listening')   hokuVoiceShowStatus('🎙 聞き取り中… 話しかけてください','listening');
+  if(state === 'listening')   hokuVoiceShowStatus('聞き取り中… 話しかけてください','listening');
   else if(state === 'unsupported') hokuVoiceShowStatus('音声入力はこの端末では使えないため、テキストで相談してください','warn');
   else hokuVoiceShowStatus('','');
 }
@@ -13637,7 +13637,7 @@ function taskVoiceToggle() {
     _tkRec.onstart = function() {
       _tkRecListening = true;
       tkMicSetState('listening');
-      showToast('🎙 タスク内容を話してください（例：明日までに学校へ電話）','info');
+      showToast('タスク内容を話してください（例：明日までに学校へ電話）','info');
     };
     _tkRec.onresult = function(ev) {
       const text = (ev.results && ev.results[0] && ev.results[0][0]) ? ev.results[0][0].transcript : '';
@@ -14495,7 +14495,7 @@ function _hokuExecuteView(intent) {
       return true;
     });
     if(!filtered.length) return { ok:true, message: target+'の準備はまだないよ。\n\n[[ACTION_BUTTONS:prep]]' };
-    const body = filtered.slice(0,5).map(x => (x.done?'✓ ':'・ ')+(x.text||'')).join(NL);
+    const body = filtered.slice(0,5).map(x => (x.done?'\u2713 ':'\u30fb ')+(x.text||'')).join(NL);
     const more = filtered.length>5 ? NL+'…ほか '+(filtered.length-5)+' 件' : '';
     return { ok:true, message: target+'の準備 '+filtered.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:prep]]' };
   }
@@ -14778,19 +14778,15 @@ const VOICE_CAT_LABEL = {
   budget:'家計', health:'体調管理', board:'家族ボード',
   notification:'通知', help:'ヘルプ', premium:'プレミアム'
 };
-const VOICE_CAT_ICON = {
-  calendar:'📅', task:'✅', prep:'🎒', budget:'💰',
-  health:'🌡', board:'📋', notification:'🔔', help:'❓', premium:'⭐'
-};
 
 /* 音声マイク状態テキスト */
 const VOICE_STATE_TEXT = {
-  idle:        '🎤 マイクを押して短く話してください',
-  listening:   '🎙 聞き取り中… 話しかけてください',
-  thinking:    '🧠 Hoku が整理しています…',
-  confirming:  '✏️ 内容を確認してください',
-  saved:       '✅ 保存しました',
-  error:       '⚠ 聞き取れなかった。もう一回いける？',
+  idle:        'マイクを押して短く話してください',
+  listening:   '聞き取り中… 話しかけてください',
+  thinking:    'Hoku が整理しています…',
+  confirming:  '内容を確認してください',
+  saved:       '保存しました',
+  error:       '聞き取れなかった。もう一回いける？',
   unsupported: '音声入力はこの端末では使えないため、テキストで相談してください'
 };
 function hokuVoiceSetPhase(phase) {
@@ -14864,7 +14860,7 @@ function voiceConfirmRender() {
       if(Array.isArray(p.missing) && p.missing.length) {
         const labels = { title:'タイトル', date:'日付', time:'時刻', member:'対象メンバー', amount:'金額', temp:'体温', healthDetail:'体温/症状/薬のいずれか', weekday:'曜日' };
         const miss = p.missing.map(k => labels[k] || k).join(' / ');
-        html += `<div style="font-size:11px;color:var(--orange,#e08a3a);margin-top:6px;">⚠ 不足項目：${miss}（下のフォームで補えます）</div>`;
+        html += `<div style="font-size:11px;color:var(--orange,#e08a3a);margin-top:6px;">${ICON('warning',12)} 不足項目：${miss}（下のフォームで補えます）</div>`;
       }
       header.innerHTML = html;
     } else {
@@ -15321,7 +15317,7 @@ function hokuLocalAnswer(q) {
     return '準備リストはメンバーごとに表示・非表示を切り替えられます。'+NL+NL+
       '・準備リスト画面の上部にメンバーチップが並びます'+NL+
       '・タップで表示/非表示を切り替え'+NL+
-      '・⚙ ボタンで一覧から複数まとめて切替'+NL+
+      '・歯車ボタンで一覧から複数まとめて切替'+NL+
       '・非表示にしてもデータは消えません（再表示で復活）'+NL+NL+
       'お子さん別に「太郎の月曜は体操服」「花子の火曜はプール」のような曜日ルーティンを登録すると、朝の忘れ物がぐっと減ります。';
   }
@@ -15329,7 +15325,7 @@ function hokuLocalAnswer(q) {
   if(q.match(/(投稿|コメント|家族ボード|ボード).*(削除|消し|消す|消去|消去した|削除したい)/) || q.match(/(削除|消し).*(投稿|コメント|家族ボード)/)) {
     return '家族ボードの投稿・コメントは安全に削除できます。'+NL+NL+
       '【投稿の削除】'+NL+
-      '投稿カード右上の「⋮」（3 点メニュー）→「🗑 削除する」'+NL+
+      '投稿カード右上の「⋮」（3 点メニュー）→「削除する」'+NL+
       'または投稿詳細画面の右上メニューから削除'+NL+NL+
       '【コメントの削除】'+NL+
       '投稿詳細を開く → 自分のコメントの右下「削除」を押す'+NL+NL+
@@ -15933,7 +15929,7 @@ function qaDebugTestHoku() {
     r.start();
     setTimeout(() => {
       try { r.stop(); } catch(e){}
-      if(started) alert('音声テスト：onstart OK ✓');
+      if(started) alert('音声テスト：onstart OK');
     }, 1500);
   } catch(e) { alert('音声テスト：例外 ' + e.message); }
 }
@@ -16139,7 +16135,7 @@ function _swipeCloseModal(modal) {
   };
   if(_modalIsDirty(modal)) {
     if(typeof showConfirm === 'function') {
-      showConfirm('入力中の内容があります', '保存せずに閉じますか？', '閉じる', close, '⚠️');
+      showConfirm('入力中の内容があります', '保存せずに閉じますか？', '閉じる', close, 'warning');
     } else {
       if(window.confirm('入力中の内容があります。保存せずに閉じますか？')) close();
     }
@@ -16620,7 +16616,7 @@ document.addEventListener('touchcancel', () => {
       <div class="modal-grip" style="margin-bottom:14px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div style="font-size:17px;font-weight:800;color:var(--text);">アバターを選ぶ</div>
-        <button onclick="closeModal('m-avatar-select')" style="background:var(--bg-muted);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text-muted);">✕</button>
+        <button onclick="closeModal('m-avatar-select')" style="background:var(--bg-muted);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);">${ICON('close',16)}</button>
       </div>
       <!-- Wave 60.2: 写真アップロード / 既定に戻す -->
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -16817,7 +16813,7 @@ document.addEventListener('touchcancel', () => {
 
     <!-- ステップ5：取り込み完了案内 -->
     <div id="ics-step-done" style="display:none;text-align:center;padding:14px 4px;">
-      <div style="font-size:32px;margin-bottom:6px;color:var(--primary);">✓</div>
+      <div style="margin-bottom:6px;color:var(--primary);">${ICON('check',32)}</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;" id="ics-done-summary"></div>
       <div style="font-size:12px;color:var(--text-sub);line-height:1.7;margin-bottom:14px;">取り込んだ予定はカレンダー画面で確認できます。</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
