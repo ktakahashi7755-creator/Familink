@@ -9112,3 +9112,51 @@ hoku-api（Python）分類器をアプリ本体と同水準の精度に引き上
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 91: bring hoku-api classifier to parity with app`
+
+---
+
+## Wave 92 自律開発 2026-05-17 02:48  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 耐久テスト + 全体最終検証（テスト・検証・バグ確認）
+
+### 変更ファイル
+- docs/worklog.md（本エントリのみ。コード変更なし）
+
+### 変更内容
+オーナー依頼「終わり次第テストして検証、バグ改善」に対応。
+異常・敵対的入力 57 件で耐久テストを実施し、全体を最終検証。
+
+【耐久テスト hoku-fuzz】
+空文字 / 巨大文字列(5000字) / 絵文字 / 半角カナ / XSS 文字列 /
+SQL ライク / 制御文字 / 全角混在 などを parseHokuIntentV2・
+_hokuDetectDelete・normalizeHokuText に投入。
+→ 171/171 OK（クラッシュゼロ・結果シェイプ正常・正規化は全件冪等）
+
+【全体最終検証 — すべてグリーン】
+- VM スイート：31/31
+- Hoku 専用スイート 8 種：width-sweep / hoku-delete 39 / hoku-v2 18 /
+  hoku-flow 28 / hoku-mega 101 / hoku-entity 22 / hoku-hard 16 / hoku-fuzz 171
+- 精度プローブ：probe 49/49・probe2 30/30・項目抽出 10/10
+- hoku-api pytest：26/26
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### テスト結果
+バグ検出ゼロ。Wave 84-91 の HOKU 改善はすべて安定動作を確認。
+
+### 既存機能への影響
+- なし（検証のみ・コード無変更）
+
+### 未確認事項
+- 実機（iPhone）での音声入力フロー
+
+### iPhone確認ポイント
+- 「明日15時に星斗の歯医者入れて」「明日の歯医者の予定消して」
+  「明日やっといて→予定」などの会話・登録・削除フロー
+
+### 次にやること
+- 実機での最終確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 92: Hoku fuzz test + full verification (all green)`
