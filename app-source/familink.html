@@ -13224,7 +13224,7 @@ const VOICE_TERM_NORMALIZE = [
   [/らんどせる/g, 'ランドセル'],
   [/ぴあの|ピァノ/g, 'ピアノ'],
   [/すいみんぐ|スイミィング/g, 'スイミング'],
-  [/さっかー|サッカ/g, 'サッカー'],
+  [/さっかー|サッカ(?!ー)/g, 'サッカー'],
   [/ほいくえん/g, '保育園'],
   [/ようちえん/g, '幼稚園'],
   [/しょうがっこう/g, '小学校'],
@@ -13424,6 +13424,42 @@ function stripTriggerPhrases(text) {
   return t.trim();
 }
 
+/* Wave 89: タイトルから日付・時刻・対象者・金額・体温の語を除去する。
+   日本語は分かち書きされないため、トークン分割だけでは
+   「明日15時に星斗の歯医者」→「歯医者」のような抽出ができない。
+   この関数で部分文字列レベルでメタ語を削り、きれいなタイトルにする。 */
+function _hokuCleanTitle(text) {
+  if(!text) return '';
+  let t = String(text);
+  // 日付語
+  t = t.replace(/再来週|来週末|今週末|今度の|今度|来週|今週|来月|今月|先月|来年/g, '');
+  t = t.replace(/明後日|あさって|一昨日|おととい|今日|本日|きょう|明日|あした|あす|昨日|きのう/g, '');
+  t = t.replace(/(\d{1,2})月(\d{1,2})日?/g, '').replace(/(\d{1,2})\/(\d{1,2})/g, '');
+  t = t.replace(/[月火水木金土日]曜日?/g, '');
+  // 時刻語
+  t = t.replace(/(\d{1,2})時(\d{1,2})分?/g, '').replace(/(\d{1,2})時半?/g, '').replace(/(\d{1,2}):(\d{2})/g, '');
+  t = t.replace(/午前|午後|早朝|夕方|正午/g, '');
+  // 金額・体温
+  t = t.replace(/[\d,]+\s*万?円/g, '').replace(/(\d{1,2})\.?\d*\s*度\d*分?/g, '').replace(/[℃°]/g, '');
+  // メンバー名 + 助詞（誤爆を避け、助詞が続くときのみ削る）
+  try {
+    const names = [];
+    if(typeof MEMBERS !== 'undefined') MEMBERS.forEach(function(m){ if(m && m.name && m.name.length >= 2) names.push(m.name); });
+    if(typeof VOICE_MEMBER_ALIASES !== 'undefined')
+      VOICE_MEMBER_ALIASES.forEach(function(en){ en.aliases.forEach(function(a){ if(a && a.length >= 2) names.push(a); }); });
+    names.sort(function(a,b){ return b.length - a.length; });
+    for(const nm of names) {
+      const esc = nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      t = t.replace(new RegExp(esc + '(?:くん|ちゃん|さん|の|が|は|に|へ)', 'g'), '');
+    }
+  } catch(e) {}
+  // 末尾に残った登録トリガー動詞（「歯医者入れて」→「歯医者」）
+  t = t.replace(/(?:を|に|へ)?\s*(?:入れといて|入れといて|入れておいて|入れて|入れる|追加して|追加|登録して|登録|記録して|記録して|メモして|メモ)\s*$/, '');
+  // 残った先頭・末尾の助詞 / 区切り
+  t = t.replace(/^[\s　、,，のがをにへはでと・]+/, '').replace(/[\s　、,，のがをにへはでと・]+$/, '');
+  return t.replace(/\s{2,}/g, ' ').trim();
+}
+
 /* 短文音声からカテゴリ + 主要フィールドを抽出 */
 function parseVoiceIntent(rawText) {
   const text = voiceCorrectText(rawText);
@@ -13453,7 +13489,9 @@ function parseVoiceIntent(rawText) {
   }
   const titleTokens = tokens.filter(t => !metaPicked.has(t));
   // 末尾助詞を更にトークン単位でも掃除
-  const title = titleTokens.join(' ').replace(/[をにへはがで]+$/,'').trim();
+  // Wave 89: トークン結合後、日付/時刻/対象者/金額の語を部分文字列レベルでも除去
+  let title = titleTokens.join(' ').replace(/[をにへはがで]+$/,'').trim();
+  title = _hokuCleanTitle(title);
 
   // 不足判定
   const missing = [];
