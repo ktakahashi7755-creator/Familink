@@ -230,16 +230,17 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 | `backup/024-wave97-svg-icons` | Wave 97 — 全絵文字をモノライン SVG アイコンに統一 |
 | `backup/025-wave106-guide` | Wave 106 — 役割削除 / 使い方ガイド / Supabase設計 |
 | `backup/026-wave109-folders-cancel` | Wave 109 — 書類/アルバムのフォルダ機能 / 解約2段階フロー |
-| `backup/027-wave125-auth-folders-legal` | **Wave 113-125 — 通知設定/サポート/メール・パスワード認証/空状態刷新/色付きフォルダ階層/Hoku家計精度/写真ビューア+ダウンロード/まとめて追加/規約アプリ内表示 最新** ⭐ |
+| `backup/027-wave125-auth-folders-legal` | Wave 113-125 — 通知設定/サポート/メール・パスワード認証/空状態刷新/色付きフォルダ階層/Hoku家計精度/写真ビューア+ダウンロード/まとめて追加/規約アプリ内表示 |
+| `backup/028-wave126-layout-fix` | **Wave 126 — 各画面のスクロール余白を統一しタブバー見切れを修正 最新** ⭐ |
 
-すべて remote（origin）に push 済み。`git checkout backup/027-wave125-auth-folders-legal`
-で Wave 125 時点（コミット `59ba4ac`）に即復元できる。
+すべて remote（origin）に push 済み。`git checkout backup/028-wave126-layout-fix`
+で Wave 126 時点（コミット `f9fd615`）に即復元できる。
 
-### 復元例（Wave 125 の状態に戻す）
+### 復元例（Wave 126 の状態に戻す）
 
 ```bash
 git checkout claude/familylink-unicorn-product-TzM1F
-git reset --hard origin/backup/027-wave125-auth-folders-legal
+git reset --hard origin/backup/028-wave126-layout-fix
 ```
 
 ### Wave 113-125 の到達点（backup/027 時点）
