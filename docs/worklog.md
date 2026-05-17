@@ -10373,3 +10373,45 @@ Wave 119 — 画像ビューアが書類編集モーダルの背面に開く不�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 119: fix image viewer opening behind document edit modal`
+
+---
+
+## 2026-05-17 17:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 120 — 書類のまとめて追加（複数写真から一括作成）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 書類保管庫の ＋ ボタンを、追加方法シート（m-archive-addmode）に変更：
+  「1件ずつ入力する」/「写真からまとめて追加」の2択。
+- archiveBatchAdd()：複数写真を選ぶと、各写真が1件ずつの書類になる。
+  タイトルは「書類 M/D (n)」、カテゴリ既定、現在のフォルダに追加。
+  容量超過時はトーストで通知。
+- アルバムは既に複数選択での一括追加に対応済み（album-file の multiple）。
+  → 書類・アルバムとも「まとめて追加」が可能になった。
+
+### テスト結果（全グリーン）
+- batch-add-test 9/9（3枚→3書類/フォルダ/連番/失敗除外/空入力）
+- app-audit 70・folder 19・download 12・guide 11・premium 13・wave113 12・
+  auth 25・hoku-expense-flow 19・integration 55・e2e-render 10・persistence 72・
+  storage 17・notif 16 — 全 PASS
+- 構文 OK / div バランス 1472=1472 / md5 一致
+
+### 既存機能への影響
+- 書類の ＋ が直接フォームを開く動作 → 追加方法シート経由に変更（1件入力は維持）。
+
+### iPhone確認ポイント
+- 書類保管庫の ＋ →「写真からまとめて追加」で複数写真を選び、件数分の書類ができるか
+- アルバムの ＋ で複数写真をまとめて追加できるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 120: batch-add documents from multiple photos`
