@@ -149,7 +149,7 @@ def classify_rule(text: str) -> IntentResponse:
 
     # 2) 家計（金額シグナルあり）
     amount = _extract_amount(t)
-    if amount is not None and re.search(r"(使った|払った|円|出費|支出|買った|代|費)", t):
+    if amount is not None and re.search(r"(使った|払った|円|出費|支出|買った|代|費|入金|振込|引き落とし)", t):
         data = {"amount": amount}
         if date:
             data["date"] = date
@@ -159,10 +159,24 @@ def classify_rule(text: str) -> IntentResponse:
             intent="budget_add", confidence=0.82,
             summary=f"家計に ¥{amount:,} を記録します。",
             data=data, source="rule")
+    # 2b) 金額が読めなくても家計の言い回しが明確なら budget（金額は後で確認）
+    if re.search(r"(買い物(した|してきた|に行った|に行って)|レシート|家計簿|家計に(つけ|入れ|記録))", t):
+        data = {"raw": t}
+        if amount is not None:
+            data["amount"] = amount
+        if date:
+            data["date"] = date
+        return IntentResponse(
+            intent="budget_add", confidence=0.65,
+            summary="家計に記録します。金額を確認してください。",
+            data=data, source="rule")
 
     # 3) 体調（体温 or 症状）
     temp = _extract_temp(t)
-    if temp is not None or re.search(r"(咳|発熱|鼻水|嘔吐|下痢|具合|症状|薬.*飲)", t):
+    if temp is not None or re.search(
+            r"(咳|発熱|鼻水|鼻づまり|くしゃみ|嘔吐|吐い|下痢|腹痛|お腹痛|おなか痛|"
+            r"頭痛|具合|症状|微熱|高熱|薬.*飲|薬.*(もらった|貰った|処方|出された)|"
+            r"インフル|発疹|湿疹)", t):
         data = {}
         if temp is not None:
             data["temperature"] = temp
@@ -175,18 +189,28 @@ def classify_rule(text: str) -> IntentResponse:
             summary="体調メモに残します。不安なら医療機関に相談してください。",
             data=data, source="rule")
 
-    # 4) 買い物（買い物リスト系）
-    if re.search(r"(買い物リスト|買い物メモ|買うもの|買っといて|買ってきて)", t):
-        seg = re.split(r"を?買い物", t)[0]
-        items = _split_items(seg)
+    # 4) 買い物（買い物リスト系 / 補充系）
+    if re.search(r"(買い物リスト|買い物メモ|買うもの|買っといて|買ってきて|買ってこ|"
+                 r"買っとく|買って(?!る|た))", t):
+        seg = re.split(r"を?買い物|を?買っ|を?買う", t)[0]
+        items = _split_items(seg) or [seg.strip()]
         return IntentResponse(
             intent="shopping_add", confidence=0.85,
             summary="買い物リストに追加します。",
-            data={"items": items}, source="rule")
+            data={"items": [i for i in items if i]}, source="rule")
+    # 4b) 「○○がなくなった / 切らした / もうない」も買い物（補充）
+    m = re.match(r"(.+?)(?:が|を|は|も)?(?:なくなっ|無くなっ|切らし|切れ(?:た|ちゃ)|"
+                 r"もう(?:ない|無い)|残り少な|在庫(?:が)?ない)", t)
+    if m and m.group(1).strip() and len(m.group(1).strip()) <= 20:
+        return IntentResponse(
+            intent="shopping_add", confidence=0.78,
+            summary="買い物リストに追加します（補充）。",
+            data={"items": _split_items(m.group(1)) or [m.group(1).strip()]},
+            source="rule")
 
     # 5) 準備（持ち物・準備関連語）
     if re.search(r"(準備|持ち物|持たせ|持って|忘れ物|体操着|体操服|水筒|連絡帳|"
-                 r"給食袋|上履き|プールバッグ|お弁当|教科書)", t):
+                 r"給食袋|上履き|プールバッグ|お弁当|教科書|時間割|名札|エプロン)", t):
         data = {"raw": t}
         if member:
             data["memberName"] = member
@@ -197,13 +221,20 @@ def classify_rule(text: str) -> IntentResponse:
             summary="準備リストに追加します。",
             data=data, source="rule")
 
-    # 6) カレンダー（日時 + 予定シグナル）
-    has_date = date is not None or bool(re.search(r"来週|[月火水木金土日]曜", t))
+    # 6) カレンダー
+    has_date = date is not None or bool(
+        re.search(r"来週|来月|今週末|週末|今度|お盆|連休|[月火水木金土日]曜", t))
     has_time = time is not None
-    if (has_date or has_time) and re.search(
-            r"(入れて|予定|スケジュール|歯医者|病院|スイミング|レッスン|"
-            r"発表会|参観|面談|遠足|塾|習い事|サッカー|ピアノ|お迎え|送迎|"
-            r"迎え|集合|健診|検診|運動会|参加|行事|アポ|予約)", t):
+    _cal_signal = re.search(
+        r"(入れて|予定|スケジュール|歯医者|病院|スイミング|レッスン|"
+        r"発表会|参観|面談|遠足|塾|習い事|サッカー|ピアノ|お迎え|送迎|"
+        r"迎え|集合|健診|検診|運動会|参加|行事|アポ|予約|"
+        r"おでかけ|お出かけ|外出|帰省|旅行|ドライブ)", t)
+    # 強い予定名詞は日時が無くても calendar とみなす
+    _cal_strong = re.search(
+        r"(歯医者|発表会|運動会|参観|面談|健診|検診|遠足|入学式|卒園式?|"
+        r"卒業式?|お遊戯会|参観日|予約.*(取れた|した|入れた))", t)
+    if ((has_date or has_time) and _cal_signal) or _cal_strong:
         data = {"raw": t}
         if date:
             data["date"] = date
@@ -216,10 +247,15 @@ def classify_rule(text: str) -> IntentResponse:
             summary="予定に追加します。",
             data=data, source="rule")
 
-    # 7) タスク（動詞 + やること / 義務表現）
+    # 7) タスク（動詞 + やること / 義務表現 / 家事 / お使い）
     if re.search(r"(やること|タスク|やっておく|提出|申し込|予約する|予約して|"
                  r"片付け|電話する|電話して|連絡する|問い合わせ|返却|記入|"
-                 r"サインしな|手続き|(?:し|やら|させ|やらせ|出さ)(?:なきゃ|ないと|なくちゃ))", t):
+                 r"サインしな|手続き|(?:ゴミ|ごみ)(?:出し|出す|捨て)|資源(?:ゴミ|ごみ)|"
+                 r"名前つけ|名前付け|記名|"
+                 r"(?:役所|市役所|区役所|銀行|郵便局|図書館).{0,5}(?:行く|行か|寄)|"
+                 r"取りに行|受け取りに|"
+                 r"(?:宿題|書類|プリント|提出物|連絡帳).{0,5}(?:確認|チェック|出す|提出|記入)|"
+                 r"(?:し|やら|させ|やらせ|出さ)(?:なきゃ|ないと|なくちゃ))", t):
         data = {"raw": t}
         if date:
             data["dueDate"] = date

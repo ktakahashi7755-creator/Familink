@@ -175,3 +175,40 @@ def test_time_morning_keeps_hour():
 def test_task_obligation_phrase():
     assert classify("宿題やらせなきゃ").intent == "task_add"
 
+
+# ── アプリ本体（Wave 87-90）と同水準の分類精度 ────────
+PARITY_SCENARIOS = [
+    ("今週末おでかけ", "calendar_add"),
+    ("歯医者の予約取れた", "calendar_add"),
+    ("お盆に帰省する", "calendar_add"),
+    ("ゴミ出し忘れない", "task_add"),
+    ("役所に書類取りに行く", "task_add"),
+    ("宿題を確認", "task_add"),
+    ("名前つけしなきゃ", "task_add"),
+    ("コンビニで買い物した", "budget_add"),
+    ("お腹痛いって言ってる", "health_add"),
+    ("病院で薬もらった", "health_add"),
+    ("時間割に算数", "prep_add"),
+    ("トイレットペーパーなくなった", "shopping_add"),
+    ("卵切らした", "shopping_add"),
+    ("洗剤とティッシュ買って", "shopping_add"),
+]
+
+
+def test_parity_with_app_classifier():
+    for text, expected in PARITY_SCENARIOS:
+        res = classify(text)
+        assert res.intent == expected, f"{text!r} → {res.intent} (expected {expected})"
+
+
+def test_shopping_restock_items_extracted():
+    res = classify("トイレットペーパーなくなった")
+    assert res.intent == "shopping_add"
+    assert res.data.get("items")
+
+
+def test_calendar_strong_noun_without_date():
+    # 日時が無くても強い予定名詞なら calendar
+    assert classify("歯医者の予約取れた").intent == "calendar_add"
+    assert classify("運動会がある").intent == "calendar_add"
+
