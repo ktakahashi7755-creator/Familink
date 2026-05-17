@@ -3722,13 +3722,25 @@ nav#tabbar.hidden { display: none !important; }
       </div>
       <div class="field">
         <div class="field-label">繰り返し</div>
-        <select class="input" id="ev-repeat">
+        <select class="input" id="ev-repeat" onchange="evRepeatChange()">
           <option value="">なし（単発）</option>
           <option value="daily">毎日</option>
           <option value="weekdays">平日（月〜金）</option>
           <option value="weekly">毎週（同じ曜日）</option>
           <option value="monthly">毎月（同じ日）</option>
+          <option value="yearly">毎年（同じ日付）</option>
+          <option value="custom">カスタム…</option>
         </select>
+        <div id="ev-repeat-custom" style="display:none;align-items:center;gap:8px;margin-top:8px;">
+          <span style="font-size:13px;color:var(--text-sub);flex:none;">繰り返す間隔</span>
+          <input class="input" id="ev-repeat-interval" type="number" min="1" max="99" value="2" style="width:70px;text-align:center;">
+          <select class="input" id="ev-repeat-unit" style="flex:1;">
+            <option value="day">日ごと</option>
+            <option value="week">週ごと</option>
+            <option value="month">か月ごと</option>
+            <option value="year">年ごと</option>
+          </select>
+        </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
           ※ 現在は記録のみ保存されます。実際の繰り返し展開は今後のアップデートで対応します。
         </div>
@@ -6626,13 +6638,23 @@ function _icsToEvent(props, prodid) {
   const rrule = (props['RRULE'] && props['RRULE'].value) || '';
 
   // RRULE → 簡易 repeat 変換
-  let repeat = '';
+  let repeat = '', repeatInterval = 0, repeatUnit = '';
   if(rrule) {
     const u = rrule.toUpperCase();
-    if(/FREQ=DAILY/.test(u)) repeat = 'daily';
-    else if(/FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR/.test(u)) repeat = 'weekdays';
-    else if(/FREQ=WEEKLY/.test(u)) repeat = 'weekly';
-    else if(/FREQ=MONTHLY/.test(u)) repeat = 'monthly';
+    const ivM = u.match(/INTERVAL=(\d+)/);
+    const iv = ivM ? parseInt(ivM[1], 10) : 1;
+    if(/FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR/.test(u)) repeat = 'weekdays';
+    else if(iv > 1) {
+      const unit = /FREQ=DAILY/.test(u) ? 'day' : /FREQ=WEEKLY/.test(u) ? 'week'
+                 : /FREQ=MONTHLY/.test(u) ? 'month' : /FREQ=YEARLY/.test(u) ? 'year' : '';
+      if(unit) { repeat = 'custom'; repeatInterval = Math.min(99, iv); repeatUnit = unit; }
+    }
+    if(!repeat) {
+      if(/FREQ=DAILY/.test(u)) repeat = 'daily';
+      else if(/FREQ=WEEKLY/.test(u)) repeat = 'weekly';
+      else if(/FREQ=MONTHLY/.test(u)) repeat = 'monthly';
+      else if(/FREQ=YEARLY/.test(u)) repeat = 'yearly';
+    }
   }
 
   // プロバイダ推定（順序：固有名詞が一意なものから判定 / Wave 64 で yahoo/familink を apple より先に）
@@ -6651,6 +6673,8 @@ function _icsToEvent(props, prodid) {
     note: description,
     location: location,
     repeat: repeat,
+    repeatInterval: repeatInterval,
+    repeatUnit: repeatUnit,
     externalId: uid,
     externalProvider: provider,
     source: 'ics',
@@ -6837,7 +6861,7 @@ function renderCalList() {
     evs.forEach(e => {
       const c = getMemberColor(e.member);
       const mem = getMem(e.member);
-      const repeatLabel = e.repeat ? ({daily:'毎日', weekdays:'平日', weekly:'毎週', monthly:'毎月'}[e.repeat] || '') : '';
+      const repeatLabel = _repeatLabel(e);
       html += `<div class="cal-list-card" onclick="setCalView('month');S.calSel='${date}';S.calY=${parseInt(date)};S.calM=${parseInt(date.split('-')[1])-1};renderCal()">
         <div class="cal-list-bar" style="background:${c}"></div>
         <div class="cal-list-body">
@@ -6914,6 +6938,9 @@ function openEventModal(evId) {
     document.getElementById('ev-member').value= ev.member;
     document.getElementById('ev-note').value  = ev.note||'';
     document.getElementById('ev-repeat').value= ev.repeat||'';
+    document.getElementById('ev-repeat-interval').value = ev.repeatInterval || 2;
+    document.getElementById('ev-repeat-unit').value = ev.repeatUnit || 'week';
+    evRepeatChange();
     sel = ev.color; S._evColor = ev.color;
     document.getElementById('ev-del-btn').style.display = 'flex';
     const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'block';
@@ -6930,6 +6957,9 @@ function openEventModal(evId) {
     if(endEl) endEl.value = preEnd || _addMinutesToTime(preTime || '09:00', 30);
     document.getElementById('ev-note').value  = '';
     document.getElementById('ev-repeat').value= '';
+    document.getElementById('ev-repeat-interval').value = 2;
+    document.getElementById('ev-repeat-unit').value = 'week';
+    evRepeatChange();
     sel = '#4A90E2'; S._evColor = '#4A90E2';
     document.getElementById('ev-del-btn').style.display = 'none';
     const ex = document.getElementById('ev-export-btn'); if(ex) ex.style.display = 'none';
@@ -6946,6 +6976,22 @@ function selEvColor(el, c) {
   el.classList.add('on');
 }
 
+/* 繰り返し「カスタム」選択時に間隔入力を表示 */
+function evRepeatChange() {
+  const v = document.getElementById('ev-repeat').value;
+  const row = document.getElementById('ev-repeat-custom');
+  if(row) row.style.display = (v === 'custom') ? 'flex' : 'none';
+}
+/* 予定の繰り返しラベル */
+function _repeatLabel(e) {
+  if(!e || !e.repeat) return '';
+  if(e.repeat === 'custom') {
+    const u = ({day:'日', week:'週', month:'か月', year:'年'})[e.repeatUnit] || '';
+    return (e.repeatInterval || 1) + u + 'ごと';
+  }
+  return ({daily:'毎日', weekdays:'平日', weekly:'毎週', monthly:'毎月', yearly:'毎年'})[e.repeat] || '';
+}
+
 function saveEvent() {
   const title  = document.getElementById('ev-title').value.trim();
   const date   = document.getElementById('ev-date').value;
@@ -6956,6 +7002,12 @@ function saveEvent() {
   const note   = document.getElementById('ev-note').value.trim();
   const repeat = document.getElementById('ev-repeat').value || '';
   const eid    = document.getElementById('ev-id').value;
+  let repeatInterval = 0, repeatUnit = '';
+  if(repeat === 'custom') {
+    const iv = parseInt(document.getElementById('ev-repeat-interval').value, 10);
+    repeatInterval = Math.min(99, Math.max(1, isNaN(iv) ? 1 : iv));
+    repeatUnit = document.getElementById('ev-repeat-unit').value || 'week';
+  }
 
   if(!title) { showToast('タイトルを入力してください','error'); return; }
   if(!date)  { showToast('日付を入力してください','error'); return; }
@@ -6967,10 +7019,10 @@ function saveEvent() {
 
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
-    if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,color:S._evColor});
+    if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を更新しました');
   } else {
-    S.events.push({id:uid(),title,date,time,endTime,member,note,repeat,color:S._evColor});
+    S.events.push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -7041,12 +7093,17 @@ function exportEventToIcs() {
   const memName = ev.member ? (getMem(ev.member)?.name || '') : '';
   const desc = ((ev.note||'') + (memName ? `\\n担当：${memName}` : ''))
     .replace(/\r?\n/g, '\\n');
-  const rrule = ({
+  let rrule = ({
     daily: 'RRULE:FREQ=DAILY',
     weekdays: 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
     weekly: 'RRULE:FREQ=WEEKLY',
-    monthly: 'RRULE:FREQ=MONTHLY'
+    monthly: 'RRULE:FREQ=MONTHLY',
+    yearly: 'RRULE:FREQ=YEARLY'
   })[ev.repeat] || '';
+  if(ev.repeat === 'custom') {
+    const freq = ({day:'DAILY', week:'WEEKLY', month:'MONTHLY', year:'YEARLY'})[ev.repeatUnit];
+    if(freq) rrule = 'RRULE:FREQ=' + freq + ';INTERVAL=' + (ev.repeatInterval || 1);
+  }
 
   const lines = [
     'BEGIN:VCALENDAR',
