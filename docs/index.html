@@ -871,9 +871,9 @@ select.input {
 .cal-cell.cal-other .cal-cell-num { color: #C4D4EA; }
 /* セル内予定ピル */
 .cal-ev-pill {
-  display: block; width: 100%; height: 13px; line-height: 13px;
-  border-radius: 2px; border-left: 2.5px solid;
-  padding: 0 2px 0 3px; font-size: 9px; font-weight: 600;
+  display: block; width: 100%; height: 15px; line-height: 15px;
+  border-radius: 3px; border-left: 3px solid;
+  padding: 0 3px 0 4px; font-size: 10px; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .cal-cell-more {
@@ -5750,9 +5750,8 @@ function renderCalMonth() {
     const MAX = hol ? 2 : 3;
     const pills = dayEvs.slice(0,MAX).map(e=>{
       const c=getMemberColor(e.member);
-      const bg=hexToRgba(c,0.12);
-      const ttl=e.title.length>6?e.title.slice(0,5)+'…':e.title;
-      return `<div class="cal-ev-pill" style="background:${bg};border-left-color:${c};color:${c}">${H(ttl)}</div>`;
+      const bg=hexToRgba(c,0.14);
+      return `<div class="cal-ev-pill" style="background:${bg};border-left-color:${c};color:${c}">${H(e.title)}</div>`;
     }).join('');
     const more=dayEvs.length>MAX?`<div class="cal-cell-more">+${dayEvs.length-MAX}</div>`:'';
 
