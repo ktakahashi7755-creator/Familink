@@ -5455,9 +5455,9 @@ function renderHome() {
       </div>
     </div>`;
   }).join('')
-  : `<div class="empty" style="padding:10px 0">
-      <img src="${IMGS.wave}" style="width:38px;height:38px;object-fit:contain">
-      <div style="font-size:11px;color:var(--text-muted)">投稿がありません</div>
+  : `<div class="empty" style="padding:6px 0 2px;">
+      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">投稿がありません</div>
     </div>`;
 
   // ── タスクコンテンツ ──
@@ -5502,9 +5502,9 @@ function renderHome() {
       <div class="bc-dot" style="background:${H(e.color)}"></div>
       <div class="bc-text">${H(e.date.slice(5).replace('-','/'))} ${H(e.title)}</div>
     </div>`).join('')
-  : `<div class="empty" style="padding:10px 0">
-      <img src="${IMGS.wink}" style="width:38px;height:38px;object-fit:contain">
-      <div style="font-size:11px;color:var(--text-muted)">予定がありません</div>
+  : `<div class="empty" style="padding:6px 0 2px;">
+      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
   // ── グリッド描画 ──
@@ -12781,7 +12781,7 @@ function boardTypeIcon(type, color) {
 function renderBoardCardPreview(b, items, meta) {
   if(!items.length) {
     const iMeta = getIntentMeta(b);
-    return `<div class="empty" style="padding:10px 0"><div style="font-size:11px;color:var(--text-muted)">タップして「${H(iMeta.addBtn)}」</div></div>`;
+    return `<div class="empty" style="padding:6px 0 2px;"><img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))"><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タップして「${H(iMeta.addBtn)}」</div></div>`;
   }
   if(b.type==='prep') {
     const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));
