@@ -11192,17 +11192,14 @@ function openGuide() {
   if(body) body.innerHTML += _guidePremiumSection();
   openModal('m-guide');
 }
-/* ガイド末尾のプレミアム欄（解約導線を含む） */
+/* ガイド末尾のプレミアム欄（解約導線）— 有料会員のみ表示、無料会員には非表示 */
 function _guidePremiumSection() {
-  if(S.isPremiumUser) {
-    return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">プレミアム会員</div>'
-      + '<div style="font-size:11px;line-height:1.6;color:var(--text-sub);">Familink プレミアムをご利用中です。無料プランに戻す場合は下記から手続きできます。</div>'
-      + '<button onclick="cancelPremium()" style="margin-top:8px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0;">プレミアムを解約する</button>'
-      + '</div>';
-  }
-  return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);font-size:11px;color:var(--text-muted);">'
-    + '現在は無料プランです。プレミアムは設定画面からご案内しています。</div>';
+  if(!S.isPremiumUser) return '';
+  return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">プレミアム会員</div>'
+    + '<div style="font-size:11px;line-height:1.6;color:var(--text-sub);">Familink プレミアムをご利用中です。無料プランに戻す場合は下記から手続きできます。</div>'
+    + '<button onclick="cancelPremium()" style="margin-top:8px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0;">プレミアムを解約する</button>'
+    + '</div>';
 }
 /* プレミアム解約。
    ※ 将来 App Store / Google Play の本物の課金（IAP）を導入した際は、

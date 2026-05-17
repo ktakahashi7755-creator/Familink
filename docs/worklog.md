@@ -9747,3 +9747,35 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 105: add premium cancellation link at guide bottom`
+
+---
+
+## Wave 106 自律開発 2026-05-17 07:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プレミアム解約欄を有料会員のみ表示に + 全体総合検証
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「解約欄は無料会員に非表示・有料会員のみ表示」に対応。
+- _guidePremiumSection()：無料会員は空文字を返し非表示。有料会員のみ解約リンク表示
+- 新規テスト guide-test.js（8件）で表示制御を検証
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- Hoku/専用 10 スイート（app-audit 70 / guide-test 8 含む）：全 PASS
+- 精度プローブ probe 49/49・probe2 30/30 / hoku-api pytest 26/26
+- 構文 OK / div 1289=1289 / 絵文字 0 / md5 一致 / バグ検出ゼロ
+
+### 既存機能への影響
+- なし。ガイドのプレミアム欄の表示条件変更のみ。
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 106: show premium cancellation only to paid members`
