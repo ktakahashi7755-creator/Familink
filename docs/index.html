@@ -2456,12 +2456,13 @@ nav#tabbar.hidden { display: none !important; }
           <input class="input" id="login-pass" type="password" placeholder="パスワードを入力">
         </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">ログインする</button>
+        <div style="text-align:center;margin-top:10px;">
+          <span style="color:var(--primary);font-weight:600;font-size:13px;cursor:pointer" onclick="openForgot()">パスワードをお忘れですか？</span>
+        </div>
       </div>
       <div class="login-divider">または</div>
-      <button class="btn btn-outline btn-block" onclick="doQuickDemo()">デモデータで試してみる</button>
-      <div style="text-align:center;font-size:13px;color:var(--text-muted)">
-        アカウントをお持ちでない方は <span style="color:var(--primary);font-weight:700;cursor:pointer" onclick="showToast('新規登録は近日公開予定です。まずはデモデータでお試しください。')">新規登録</span>
-      </div>
+      <button class="btn btn-outline btn-block" onclick="openSignup()">新規アカウント登録</button>
+      <button class="btn btn-ghost btn-block" onclick="doQuickDemo()" style="margin-top:6px;">デモデータで試してみる</button>
       <button class="btn btn-ghost btn-block" onclick="go('s-ob')" style="margin-top:4px">← ウェルカム画面へ</button>
     </div>
   </div>
@@ -3431,6 +3432,125 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
+<!-- 新規登録 -->
+<div id="m-signup" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="signup-title">アカウントを作成</div>
+    <div class="modal-form">
+      <div style="font-size:12px;color:var(--text-sub);line-height:1.65;margin-bottom:4px;">
+        メールアドレスとパスワードを登録すると、データをこのアカウントに紐づけて管理できます。
+      </div>
+      <div class="field">
+        <div class="field-label">メールアドレス</div>
+        <input class="input" id="signup-email" type="email" autocomplete="email" placeholder="example@mail.com">
+      </div>
+      <div class="field">
+        <div class="field-label">パスワード（6文字以上）</div>
+        <input class="input" id="signup-pass" type="password" autocomplete="new-password" placeholder="パスワードを入力">
+      </div>
+      <div class="field">
+        <div class="field-label">パスワード（確認）</div>
+        <input class="input" id="signup-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="doSignup()">登録する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-signup')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- リカバリーコード -->
+<div id="m-recovery-code" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">リカバリーコード</div>
+    <div class="modal-form">
+      <div style="font-size:13px;color:var(--text-sub);line-height:1.7;">
+        パスワードを忘れたときに本人確認で使う大切なコードです。<br><b style="color:var(--red);">必ず控えて、安全な場所に保管してください。</b>このコードは再表示できません。
+      </div>
+      <div id="recovery-code-val" style="font-size:22px;font-weight:800;letter-spacing:3px;text-align:center;background:#F4F7FD;border:1px dashed var(--primary);border-radius:12px;padding:18px 8px;margin:14px 0 10px;color:var(--text);"></div>
+      <button class="btn btn-outline btn-block" onclick="copyRecoveryCode()">コードをコピー</button>
+      <button class="btn btn-primary btn-block" onclick="ackRecoveryCode()" style="margin-top:8px;">控えました・はじめる</button>
+    </div>
+  </div>
+</div>
+
+<!-- パスワード再設定 -->
+<div id="m-forgot" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">パスワードの再設定</div>
+    <div class="modal-form">
+      <div style="font-size:12px;color:var(--text-sub);line-height:1.65;margin-bottom:4px;">
+        登録時に控えたリカバリーコードで本人確認し、新しいパスワードを設定します。
+      </div>
+      <div class="field">
+        <div class="field-label">メールアドレス</div>
+        <input class="input" id="forgot-email" type="email" autocomplete="email" placeholder="example@mail.com">
+      </div>
+      <div class="field">
+        <div class="field-label">リカバリーコード</div>
+        <input class="input" id="forgot-code" type="text" placeholder="XXXX-XXXX-XXXX">
+      </div>
+      <div class="field">
+        <div class="field-label">新しいパスワード（6文字以上）</div>
+        <input class="input" id="forgot-pass" type="password" autocomplete="new-password" placeholder="新しいパスワード">
+      </div>
+      <div class="field">
+        <div class="field-label">新しいパスワード（確認）</div>
+        <input class="input" id="forgot-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="doForgotPassword()">パスワードを再設定</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-forgot')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- メールアドレス変更 -->
+<div id="m-change-email" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">メールアドレスの変更</div>
+    <div class="modal-form">
+      <div id="change-email-current" style="font-size:12px;color:var(--text-sub);line-height:1.65;margin-bottom:4px;"></div>
+      <div class="field">
+        <div class="field-label">現在のパスワード</div>
+        <input class="input" id="ce-pass" type="password" autocomplete="current-password" placeholder="現在のパスワード">
+      </div>
+      <div class="field">
+        <div class="field-label">新しいメールアドレス</div>
+        <input class="input" id="ce-email" type="email" autocomplete="email" placeholder="new@mail.com">
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="doChangeEmail()">変更する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-change-email')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- パスワード変更 -->
+<div id="m-change-pass" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">パスワードの変更</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">現在のパスワード</div>
+        <input class="input" id="cp-cur" type="password" autocomplete="current-password" placeholder="現在のパスワード">
+      </div>
+      <div class="field">
+        <div class="field-label">新しいパスワード（6文字以上）</div>
+        <input class="input" id="cp-new" type="password" autocomplete="new-password" placeholder="新しいパスワード">
+      </div>
+      <div class="field">
+        <div class="field-label">新しいパスワード（確認）</div>
+        <input class="input" id="cp-new2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="doChangePass()">変更する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-change-pass')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- Event Modal -->
 <div id="m-event" class="modal-backdrop">
@@ -4143,7 +4263,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.0.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account'];
 
 function saveS() {
   const d = {};
@@ -4656,20 +4776,170 @@ function refresh(id) {
 /* ============================================================
    AUTH
    ============================================================ */
+/* ── アカウント認証ヘルパー（ローカル / LocalStorage） ──
+   注：パスワードは端末内保存のため、暗号学的ハッシュではなく難読化用の
+   軽量ハッシュを用いる。本物のサーバー認証は Supabase 移行時に実装する。 */
+function _hashStr(s) {
+  s = String(s);
+  let h1 = 0x811c9dc5, h2 = 0x1505;
+  for(let i=0; i<s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = (h1 ^ c) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+    h2 = (((h2 << 5) + h2) + c) >>> 0;
+  }
+  return ('00000000'+h1.toString(16)).slice(-8) + ('00000000'+h2.toString(16)).slice(-8);
+}
+function _normEmail(e) { return String(e||'').trim().toLowerCase(); }
+function _validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+function _normCode(c) { return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function _genRecoveryCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい I/O/0/1 を除外
+  let out = '';
+  for(let g=0; g<3; g++) {
+    if(g) out += '-';
+    for(let i=0; i<4; i++) out += A[Math.floor(Math.random()*A.length)];
+  }
+  return out;
+}
+function hasAccount() { return !!(S.account && S.account.email && S.account.passHash); }
+
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
+  const email = _normEmail(document.getElementById('login-email').value);
+  const pass  = document.getElementById('login-pass').value;
   if(!email) { showToast('メールアドレスを入力してください','error'); return; }
+  if(!pass)  { showToast('パスワードを入力してください','error'); return; }
+  if(!hasAccount()) {
+    showToast('アカウントが見つかりません。新規登録してください。','error');
+    return;
+  }
+  if(S.account.email !== email || S.account.passHash !== _hashStr(pass)) {
+    showToast('メールアドレスまたはパスワードが正しくありません','error');
+    return;
+  }
+  _enterApp(true);
+}
+
+/* ログイン成功 / 新規登録後にアプリ本体へ入る共通処理 */
+function _enterApp(greet) {
   S.loggedIn = true;
   S.user = MEMBERS[0];
   seedDemo();
   saveS();
-  if(!S.onboardCompleted) {
-    startOnboarding();
-    return;
-  }
+  if(!S.onboardCompleted) { startOnboarding(); return; }
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
-  showToast(`${displayName()}さん、ようこそ`);
+  if(greet) showToast(`${displayName()}さん、ようこそ`);
+}
+
+/* ── 新規登録 ── */
+let _signupCtx = 'login'; // 'login' = 未ログインから / 'settings' = ログイン済み設定から
+function openSignup() {
+  _signupCtx = S.loggedIn ? 'settings' : 'login';
+  const t = document.getElementById('signup-title');
+  if(t) t.textContent = (_signupCtx === 'settings') ? 'メール・パスワードを登録' : 'アカウントを作成';
+  ['signup-email','signup-pass','signup-pass2'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  openModal('m-signup');
+}
+function doSignup() {
+  const email = _normEmail(document.getElementById('signup-email').value);
+  const pass  = document.getElementById('signup-pass').value;
+  const pass2 = document.getElementById('signup-pass2').value;
+  if(!_validEmail(email)) { showToast('メールアドレスの形式が正しくありません','error'); return; }
+  if(pass.length < 6) { showToast('パスワードは6文字以上にしてください','error'); return; }
+  if(pass !== pass2) { showToast('確認用パスワードが一致しません','error'); return; }
+  const code = _genRecoveryCode();
+  S.account = { email: email, passHash: _hashStr(pass), recoveryCode: code, createdAt: todayStr() };
+  saveS();
+  closeModal('m-signup');
+  const cv = document.getElementById('recovery-code-val');
+  if(cv) cv.textContent = code;
+  openModal('m-recovery-code');
+}
+function copyRecoveryCode() {
+  const code = (S.account && S.account.recoveryCode) || '';
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code);
+      showToast('リカバリーコードをコピーしました');
+    } else { showToast('コードを長押しでコピーしてください'); }
+  } catch(e) { showToast('コードを長押しでコピーしてください'); }
+}
+function ackRecoveryCode() {
+  closeModal('m-recovery-code');
+  if(_signupCtx === 'settings') {
+    showToast('アカウントを登録しました');
+    if(typeof renderSettings === 'function') renderSettings();
+  } else {
+    _enterApp(true);
+  }
+}
+
+/* ── パスワード再設定（リカバリーコード方式） ── */
+function openForgot() {
+  ['forgot-email','forgot-code','forgot-pass','forgot-pass2'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  openModal('m-forgot');
+}
+function doForgotPassword() {
+  const email = _normEmail(document.getElementById('forgot-email').value);
+  const code  = _normCode(document.getElementById('forgot-code').value);
+  const pass  = document.getElementById('forgot-pass').value;
+  const pass2 = document.getElementById('forgot-pass2').value;
+  if(!hasAccount()) { showToast('登録済みのアカウントがありません','error'); return; }
+  if(S.account.email !== email) { showToast('メールアドレスが登録内容と一致しません','error'); return; }
+  if(_normCode(S.account.recoveryCode) !== code) { showToast('リカバリーコードが正しくありません','error'); return; }
+  if(pass.length < 6) { showToast('パスワードは6文字以上にしてください','error'); return; }
+  if(pass !== pass2) { showToast('確認用パスワードが一致しません','error'); return; }
+  S.account.passHash = _hashStr(pass);
+  saveS();
+  closeModal('m-forgot');
+  showToast('パスワードを再設定しました。新しいパスワードでログインしてください。');
+}
+
+/* ── メールアドレス変更 ── */
+function openChangeEmail() {
+  if(!hasAccount()) { openSignup(); return; }
+  const cur = document.getElementById('change-email-current');
+  if(cur) cur.textContent = '現在のメールアドレス：' + S.account.email;
+  ['ce-pass','ce-email'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  openModal('m-change-email');
+}
+function doChangeEmail() {
+  if(!hasAccount()) { showToast('登録済みのアカウントがありません','error'); return; }
+  const pass  = document.getElementById('ce-pass').value;
+  const email = _normEmail(document.getElementById('ce-email').value);
+  if(S.account.passHash !== _hashStr(pass)) { showToast('現在のパスワードが正しくありません','error'); return; }
+  if(!_validEmail(email)) { showToast('メールアドレスの形式が正しくありません','error'); return; }
+  if(email === S.account.email) { showToast('現在と同じメールアドレスです','error'); return; }
+  S.account.email = email;
+  saveS();
+  closeModal('m-change-email');
+  showToast('メールアドレスを変更しました');
+  if(typeof renderSettings === 'function') renderSettings();
+}
+
+/* ── パスワード変更 ── */
+function openChangePass() {
+  if(!hasAccount()) { openSignup(); return; }
+  ['cp-cur','cp-new','cp-new2'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  openModal('m-change-pass');
+}
+function doChangePass() {
+  if(!hasAccount()) { showToast('登録済みのアカウントがありません','error'); return; }
+  const cur  = document.getElementById('cp-cur').value;
+  const np   = document.getElementById('cp-new').value;
+  const np2  = document.getElementById('cp-new2').value;
+  if(S.account.passHash !== _hashStr(cur)) { showToast('現在のパスワードが正しくありません','error'); return; }
+  if(np.length < 6) { showToast('新しいパスワードは6文字以上にしてください','error'); return; }
+  if(np !== np2) { showToast('確認用パスワードが一致しません','error'); return; }
+  if(_hashStr(np) === S.account.passHash) { showToast('現在と同じパスワードです','error'); return; }
+  S.account.passHash = _hashStr(np);
+  saveS();
+  closeModal('m-change-pass');
+  showToast('パスワードを変更しました');
 }
 
 function doQuickDemo() {
@@ -11337,6 +11607,21 @@ function renderSettings() {
       +'<div class="menu-premium-desc">特別アバター・ボード追加で<br>家族をもっと便利に。月額480円。</div>'
       +'<button class="menu-premium-btn" onclick="showPremiumGate()">プレミアムを見る</button>';
 
+  const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#4A90E2');
+  const lockIcon = si('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>','#7A6FD0');
+  const accountSecHtml = hasAccount()
+    ? '<div class="settings-item" onclick="openChangeEmail()">'
+        +'<div class="settings-item-icon" style="background:#EBF4FF">'+mailIcon+'</div>'
+        +'<div class="settings-item-label">メールアドレス<div style="font-size:11px;color:var(--text-muted);font-weight:400;">'+H(S.account.email)+'</div></div>'
+        +'<div class="settings-arrow">›</div></div>'
+      +'<div class="settings-item" onclick="openChangePass()">'
+        +'<div class="settings-item-icon" style="background:#EEEBFB">'+lockIcon+'</div>'
+        +'<div class="settings-item-label">パスワード変更</div><div class="settings-arrow">›</div></div>'
+    : '<div class="settings-item" onclick="openSignup()">'
+        +'<div class="settings-item-icon" style="background:#EBF4FF">'+mailIcon+'</div>'
+        +'<div class="settings-item-label">メール・パスワードを登録<div style="font-size:11px;color:var(--text-muted);font-weight:400;">アカウントにデータを紐づけます</div></div>'
+        +'<div class="settings-arrow">›</div></div>';
+
   document.getElementById('settings-body').innerHTML = `
     <!-- Brand Header -->
     <div class="menu-brand-header">
@@ -11376,6 +11661,7 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
         <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
       </div>
+      ${accountSecHtml}
     </div>
 
     <!-- Wave 57: 過去機能の復活 -->
