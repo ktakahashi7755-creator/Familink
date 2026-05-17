@@ -881,6 +881,19 @@ select.input {
   font-weight: 700; text-align: right; padding-right: 3px;
   line-height: 1.3;
 }
+/* 祝日 */
+.cal-cell.cal-holiday .cal-cell-num { color: var(--red); }
+.cal-cell.cal-today.cal-holiday .cal-cell-num { color: #fff; }
+.cal-cell-holiday {
+  font-size: 8px; line-height: 1.15; color: var(--red); font-weight: 700;
+  text-align: center; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; width: 100%; flex-shrink: 0;
+}
+.cal-det-holiday {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 700; color: #fff; background: var(--red);
+  border-radius: 6px; padding: 2px 8px; margin-left: 2px;
+}
 
 /* ── 詳細パネル（グリッドの直下に来る、スクロールは親コンテナ任せ） ── */
 .cal-det-panel {
@@ -5655,6 +5668,14 @@ function hexToRgba(hex, a) {
 }
 
 /* ── メイン描画ルーター ── */
+/* ── 日本の祝日（2025〜2027）── */
+const JP_HOLIDAYS = {
+  '2025-01-01':'元日','2025-01-13':'成人の日','2025-02-11':'建国記念の日','2025-02-23':'天皇誕生日','2025-02-24':'振替休日','2025-03-20':'春分の日','2025-04-29':'昭和の日','2025-05-03':'憲法記念日','2025-05-04':'みどりの日','2025-05-05':'こどもの日','2025-05-06':'振替休日','2025-07-21':'海の日','2025-08-11':'山の日','2025-09-15':'敬老の日','2025-09-23':'秋分の日','2025-10-13':'スポーツの日','2025-11-03':'文化の日','2025-11-23':'勤労感謝の日','2025-11-24':'振替休日',
+  '2026-01-01':'元日','2026-01-12':'成人の日','2026-02-11':'建国記念の日','2026-02-23':'天皇誕生日','2026-03-20':'春分の日','2026-04-29':'昭和の日','2026-05-03':'憲法記念日','2026-05-04':'みどりの日','2026-05-05':'こどもの日','2026-05-06':'振替休日','2026-07-20':'海の日','2026-08-11':'山の日','2026-09-21':'敬老の日','2026-09-22':'国民の休日','2026-09-23':'秋分の日','2026-10-12':'スポーツの日','2026-11-03':'文化の日','2026-11-23':'勤労感謝の日',
+  '2027-01-01':'元日','2027-01-11':'成人の日','2027-02-11':'建国記念の日','2027-02-23':'天皇誕生日','2027-03-21':'春分の日','2027-03-22':'振替休日','2027-04-29':'昭和の日','2027-05-03':'憲法記念日','2027-05-04':'みどりの日','2027-05-05':'こどもの日','2027-07-19':'海の日','2027-08-11':'山の日','2027-09-20':'敬老の日','2027-09-23':'秋分の日','2027-10-11':'スポーツの日','2027-11-03':'文化の日','2027-11-23':'勤労感謝の日',
+};
+function _holidayName(ds) { return JP_HOLIDAYS[ds] || ''; }
+
 function renderCal() {
   const view = S.calView || 'month';
   document.getElementById('cal-month-title').textContent = `${S.calY}年${S.calM+1}月`;
@@ -5685,8 +5706,8 @@ function renderCalMonth() {
   const sel = S.calSel || td;
   const weeks = Math.ceil((firstDay+lastDate)/7);
 
-  // セル高さ：スクロール前提なので快適なサイズ固定
-  const cellH = 66;
+  // セル高さ：スクロール前提なので快適なサイズ固定（祝日名の行を含めて余裕を持たせる）
+  const cellH = 80;
 
   const cells = [];
 
@@ -5703,10 +5724,12 @@ function renderCalMonth() {
     const col = (firstDay+d-1)%7;
     const isToday=ds===td, isSel=ds===sel&&!isToday;
     const isSun=col===0, isSat=col===6;
+    const hol = _holidayName(ds);
+    const holLine = hol ? `<div class="cal-cell-holiday">${H(hol)}</div>` : '';
 
     const dayEvs = (S.events||[]).filter(e=>e.date===ds)
       .sort((a,b)=>a.time.localeCompare(b.time));
-    const MAX=2;
+    const MAX = hol ? 2 : 3;
     const pills = dayEvs.slice(0,MAX).map(e=>{
       const c=getMemberColor(e.member);
       const bg=hexToRgba(c,0.12);
@@ -5715,9 +5738,9 @@ function renderCalMonth() {
     }).join('');
     const more=dayEvs.length>MAX?`<div class="cal-cell-more">+${dayEvs.length-MAX}</div>`:'';
 
-    cells.push(`<div class="cal-cell ${isToday?'cal-today':''} ${isSel?'cal-sel':''} ${isSun?'cal-sun':''} ${isSat?'cal-sat':''}"
+    cells.push(`<div class="cal-cell ${isToday?'cal-today':''} ${isSel?'cal-sel':''} ${isSun?'cal-sun':''} ${isSat?'cal-sat':''} ${hol?'cal-holiday':''}"
       style="height:${cellH}px" onclick="selCalDay('${ds}')">
-      <div class="cal-cell-num">${d}</div>${pills}${more}
+      <div class="cal-cell-num">${d}</div>${holLine}${pills}${more}
     </div>`);
   }
 
@@ -5753,8 +5776,10 @@ function renderCalDetail(ds) {
     </svg>追加
   </button>`;
 
+  const hol = _holidayName(ds);
   const hdr = `<div class="cal-det-hdr">
     <div class="cal-det-date-lbl">${H(lbl)}</div>
+    ${hol ? `<div class="cal-det-holiday">${H(hol)}</div>` : ''}
     ${evs.length ? `<div class="cal-det-cnt">${evs.length}件</div>` : ''}
     ${addBtn}
   </div>`;
@@ -6857,7 +6882,8 @@ function renderCalList() {
   let html = '';
   Object.entries(groups).forEach(([date, evs]) => {
     const isToday = date===td;
-    html += `<div class="cal-list-date-hdr ${isToday?'cal-list-today-hdr':''}">${jpDate(date)}${isToday?' — 今日':''}</div>`;
+    const holName = _holidayName(date);
+    html += `<div class="cal-list-date-hdr ${isToday?'cal-list-today-hdr':''}">${jpDate(date)}${isToday?' — 今日':''}${holName?` <span style="color:var(--red);font-weight:700;">${H(holName)}</span>`:''}</div>`;
     evs.forEach(e => {
       const c = getMemberColor(e.member);
       const mem = getMem(e.member);
