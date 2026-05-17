@@ -9429,3 +9429,43 @@ Wave 97 時点（絵文字完全 SVG 化）の安定状態をバックアップ�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 98: backup Wave 97 stable state (backup/024)`
+
+---
+
+## Wave 99 自律開発 2026-05-17 05:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Supabase バックエンド導入の設計書作成（マルチ家族 認証・データ分離）
+
+### 変更ファイル
+- docs/supabase-backend-plan.md（新規）
+- docs/worklog.md
+
+### 変更内容
+オーナー決定「Supabase で本物の DB を構築・複数端末をまたいで家族内共有」
+を受け、Phase 4 の設計書を作成。
+
+- 認証モデル（Supabase Auth・家族・メンバー・招待コード）
+- DB スキーマ（families / family_members / family_data 集約テーブル）
+- RLS（行レベルセキュリティ）= 家族単位のデータ分離の核心
+- 招待コード参加フロー（join_family RPC）
+- 既存 LocalStorage データの移行方針
+- 同期戦略（オフライン対応 + Realtime）
+- オーナーのセットアップ手順 / 実装フェーズ計画 / コスト試算
+
+### テスト結果
+- ドキュメントのみ（アプリ無変更）。VM スイートへの影響なし。
+
+### 未確認事項
+- オーナーによる Supabase プロジェクト作成（Phase 4-1）待ち
+
+### iPhone確認ポイント
+- なし（設計段階）
+
+### 次にやること
+- オーナーが Supabase プロジェクト作成 + SQL 実行
+- Project URL / anon key 共有後、ログイン UI（Phase 4-2）から実装
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 99: Supabase backend design (multi-family auth & isolation)`
