@@ -12221,9 +12221,13 @@ async function sendHokuMsg(text) {
   try {
     let reply;
 
+    // Wave 88: ターン開始時の _pendingAction を固定（削除/聞き返しが副作用で
+    //          _pendingAction をセットしても、このターンの分岐判定は開始時の値で行う）
+    const hadPending = !!_pendingAction;
+
     // Wave 84: 削除意図は文脈補正より先に判定（「明日の予定消して」等を確実に拾う）
     let delReply = null;
-    if(!_pendingAction) {
+    if(!hadPending) {
       try {
         const delIntent = (typeof _hokuDetectDelete === 'function') ? _hokuDetectDelete(text) : null;
         if(delIntent) delReply = _hokuHandleDelete(delIntent);
@@ -12231,7 +12235,7 @@ async function sendHokuMsg(text) {
     }
     // Wave 61: 直近文脈で短文修正を解釈（「やっぱ星旺で」「明日にして」「支出で」など）
     const ctxIntent = (typeof applyHokuContext === 'function') ? applyHokuContext(text) : null;
-    if(_pendingAction) {
+    if(hadPending) {
       reply = handleConfirmation(text);
     } else if(delReply) {
       reply = delReply;
@@ -13699,12 +13703,12 @@ function _hokuDetectShopping(text) {
   if(m) return { type:'shopping_add', names:_hokuSplitShoppingNames(m[1]) };
   // 3.5) Wave 85: 「○○買っといて / 買ってきて / 買わなきゃ」も買い物リスト（依頼・備忘）
   const _datePre = '(?:明日|今日|明後日|あした|きょう|あさって|来週|今週|帰りに|ついでに)?';
-  m = text.match(new RegExp('^'+_datePre+'(.+?)\\s*(?:を|は|も)?\\s*買っ(?:といて|どいて|ておいて|とく|どく|てきて|てこ|てき)'));
+  m = text.match(new RegExp('^'+_datePre+'(.+?)\\s*(?:を|は|も)?\\s*買っ(?:て(?!る|た)|といて|どいて|ておいて|とく|どく|てきて|てこ|てき)'));
   if(m && m[1] && m[1].trim()) return { type:'shopping_add', names:_hokuSplitShoppingNames(m[1]) };
   m = text.match(new RegExp('^'+_datePre+'(.+?)\\s*(?:を|は|も)?\\s*買わ(?:なきゃ|ないと|なくちゃ|ねば)'));
   if(m && m[1] && m[1].trim()) return { type:'shopping_add', names:_hokuSplitShoppingNames(m[1]) };
-  // 3.7) Wave 87: 「○○が なくなった / 切らした / 切れた」も買い物リスト（補充）
-  m = text.match(/^(.+?)\s*(?:が|を|は|も)?\s*(?:なくなっ(?:た|ちゃった|てきた)|無くなっ(?:た|ちゃった)|切らし(?:た|ちゃった)|切れ(?:た|ちゃった)|残り(?:少な|わずか)|在庫(?:が)?(?:ない|なくなっ))/);
+  // 3.7) Wave 87/88: 「○○が なくなった / 切らした / 切れた / もうない」も買い物リスト（補充）
+  m = text.match(/^(.+?)\s*(?:が|を|は|も)?\s*(?:なくなっ(?:た|ちゃった|てきた)|無くなっ(?:た|ちゃった)|切らし(?:た|ちゃった)|切れ(?:た|ちゃった)|残り(?:少な|わずか)|在庫(?:が)?(?:ない|なくなっ)|もう(?:ない|無い|なくなり)|なくなりそう)/);
   if(m && m[1] && m[1].trim() && m[1].trim().length <= 20) return { type:'shopping_add', names:_hokuSplitShoppingNames(m[1]) };
   // 4) 「○○を買う」だけだとタスクとも曖昧 — Hoku 側で確認させるため shopping_add 候補のみ返す（ambiguous フラグで判定）
   m = text.match(/^(.+?)\s*(?:を)?\s*買う$/);
@@ -14923,7 +14927,7 @@ function classifyHokuInput(q) {
   if(q.match(/(朝|昼|夕方|夜|晩|午前|午後|今夜|今朝|今晩)/)) scores.calendar += 1;
   if(q.match(/予定|スケジュール|集合|面談|行事|参観|発表会|遠足|入学式|卒園|卒業|健診|検診|診察|歯科|歯医者|小児科|内科|眼科|耳鼻科|皮膚科|病院|医院|クリニック/)) scores.calendar += 2;
   // Wave 87: お出かけ・外出系も予定寄り
-  if(q.match(/お出かけ|おでかけ|外出|遊びに行|ピクニック|お出掛け|ドライブ|帰省/)) scores.calendar += 2;
+  if(q.match(/お出かけ|おでかけ|外出|遊びに行|ピクニック|お出掛け|ドライブ|帰省/)) scores.calendar += 3;
   if(q.match(/学校|幼稚園|保育園|園|塾|習い事|レッスン|ピアノ|スイミング|サッカー|英会話|そろばん|ダンス|空手|柔道|公文/)) scores.calendar += 1;
   if(q.match(/カレンダー/)) scores.calendar += 3;
   // Wave 25：外部カレンダー連携の問い合わせ
@@ -14935,8 +14939,10 @@ function classifyHokuInput(q) {
   if(q.match(/書く|書いて|提出|連絡する|確認する|準備する|終わらせる|やっておく|済ませる|片付ける|洗う|アイロン|掃除する|片付け|まとめる|揃える|電話する|電話して|問い合わせ|予約する|予約して|申し込む|申し込み|送る|送って/)) scores.task += 2;
   if(q.match(/書類|プリント|アンケート|申込|申し込み|提出物|宿題|課題/)) scores.task += 2;
   // Wave 87: 家事チョア（ゴミ出し等）と「書類/宿題を確認・提出」の組合せ
-  if(q.match(/ゴミ出し|ごみ出し|ゴミ捨て|資源ゴミ|洗濯物.*たた|食器.*洗/)) scores.task += 3;
+  if(q.match(/(ゴミ|ごみ)(出し|出す|出さ|捨て|だす|を出)|資源(ゴミ|ごみ)|洗濯物.*たた|食器.*洗|名前つけ|名前付け|記名/)) scores.task += 3;
   if(q.match(/(宿題|書類|プリント|提出物|持ち物|連絡帳|アンケート).{0,5}(確認|チェック|見て|見直|出す|出さ|提出|記入|書く)/)) scores.task += 2;
+  // Wave 88: 役所・銀行などへのお使い（errand）も task
+  if(q.match(/(役所|市役所|区役所|銀行|郵便局|図書館|クリーニング|美容院).{0,5}(行く|行か|寄|出す|取りに|受け取)|取りに行|受け取りに|引き取りに/)) scores.task += 3;
   // Wave 85: 明確なタスク動詞（単体でも task と判定できる強い動詞）
   if(q.match(/電話(する|して|しな|かけ)|連絡(する|して|しな)|問い合わせ|予約(する|して|しな)|申し込|提出(する|しな|して)|本を?返|返却|返しに|返さな|サイン(する|して|しな)|記入(する|して|しな)|手続き|振り込|振込/)) scores.task += 3;
   // Wave 85: 義務・予定の言い回し（〜しなきゃ / しないと / やらせなきゃ 等）
@@ -14988,6 +14994,8 @@ function classifyHokuInput(q) {
   // Wave 58: 既知の薬名トークン単体でも health 寄りに（家計の「医療費」より優先したい）
   if(q.match(/カロナール|解熱剤|咳止め|鼻水の薬|抗生剤|整腸剤|タミフル|ポララミン|ムコダイン|アセトアミノフェン|イブプロフェン|アレジオン|アレグラ|シングレア|フルナーゼ/)) scores.health += 3;
   if(q.match(/(?:薬|くすり).*飲(?:んだ|ます|ませた|ませる)|(?:薬|くすり).*服用|薬.*あげた/)) scores.health += 3;
+  // Wave 88: 「病院で薬もらった / 処方された」は体調記録寄り（医療費より優先）
+  if(q.match(/薬(?:を)?(?:もらった|貰った|処方|出された)|処方され/)) scores.health += 4;
 
   // ─── board: 家族共有（習い事の様子・出来事の記録もここ） ───
   if(q.match(/家族.*共有|家族.*伝え|家族に伝え|みんなに知らせ|シェアしたい|シェアする|家族.*シェア|シェアしておく|残しておきたい|共有したい|報告したい/)) scores.board += 3;
