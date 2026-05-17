@@ -10740,3 +10740,43 @@ Wave 131 — 全体テスト・検証スイープ + 祝日データを2028年ま
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 131: full QA sweep + extend holidays to 2028`
+
+---
+
+## 2026-05-17 21:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 132 — アルバムの写真追加をシンプルに（OS標準シートへ直行）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- アルバムの ＋ ・空状態の追加ボタンを、独自の追加方法シート経由をやめて
+  直接 OS 標準の写真シート（写真を選択 / 写真を撮る）を開くように変更。
+  → タップ1回で「ライブラリから選ぶ」「カメラで撮る」が選べる自然な流れに。
+- 不要になった m-album-addmode モーダルと openAlbumAddMode 関数を削除。
+- album-file は accept="image/*" multiple のままなので、ライブラリでの
+  複数選択（まとめて追加）も引き続き可能。
+- 書類側の追加方法シート（1件ずつ/まとめて）は用途が分かれるため維持。
+
+### テスト結果（全グリーン）
+- app-audit 70・folder 19・batch-add 9・download 12・e2e-render 10・
+  integration 55・wave113 14・holiday 18 — 全 PASS
+- 構文 OK / div バランス 1487=1487 / md5 一致
+
+### 既存機能への影響
+- アルバム＋の動作のみ変更（中間シート廃止）。書類側は不変。
+
+### iPhone確認ポイント
+- アルバムの ＋ / 「最初の写真を追加」で OS 標準シートが直接開くか
+- そこから写真撮影・ライブラリ複数選択ができるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 132: album add opens native photo sheet directly`
