@@ -10583,3 +10583,45 @@ Wave 127 — カレンダー予定の繰り返しに「毎年」「カスタム�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 127: add yearly & custom recurrence to calendar events`
+
+---
+
+## 2026-05-17 20:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 128 — カレンダーに日本の祝日を表示・月ビューを見やすく
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 日本の祝日（2025〜2027）を JP_HOLIDAYS データとして追加。
+  振替休日・国民の休日も含む。_holidayName() で参照。
+- 月ビュー：祝日のセルに祝日名（赤・小）を表示し、日付番号を赤に。
+- 詳細パネル：選択日が祝日なら赤いチップで祝日名を表示。
+- リストビュー：日付見出しに祝日名を赤字で併記。
+- 月ビューのセル高さを 66→80px に拡大し、1日に表示できる予定を
+  2→3件に増やして見やすく（祝日がある日は2件）。
+
+### テスト結果（全グリーン）
+- holiday-test 15/15（祝日取得・3年分・月ビュー描画・詳細チップ）
+- app-audit 70・e2e-render 10・recurrence 14・integration 55・
+  persistence 72・folder 19・wave113 14・ics-import 57 — 全 PASS
+- 構文 OK / div バランス 1488=1488 / md5 一致
+
+### 既存機能への影響
+- なし。カレンダー表示に祝日レイヤーを追加し、セルを少し大きくしただけ。
+
+### iPhone確認ポイント
+- 月ビューで祝日（5/3〜5/6 等）に赤字で名前が出るか
+- 祝日の日付番号が赤くなるか / 詳細パネルに祝日チップが出るか
+- リスト表示の日付見出しに祝日名が出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 128: show Japanese holidays on calendar + larger month cells`
