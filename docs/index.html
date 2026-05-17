@@ -11188,7 +11188,40 @@ function openGuide() {
     + sec('chat','#7C5BD0','#F0EBFF','家族ボード','連絡事項やできごとを家族で共有。コメントやリアクションでやり取りできます。')
     + sec('sparkle','#C8A35C','#FAF1DC','Hoku に話しかける','「明日15時に歯医者」のように話しかけるだけ。予定・タスク・家計などへ自動でふり分け、確認してから保存します。「明日の歯医者の予定消して」で削除もできます。')
     + sec('bulb','#B8902F','#FFF8DC','便利なヒント','・マイクボタンで音声入力ができます<br>・各項目はタップで編集・削除<br>・設定 →「データの書き出し / 読み込み」で端末間の引き継ぎができます');
+  // 末尾：プレミアムの状態と解約導線（ガイド下部の控えめな位置）
+  if(body) body.innerHTML += _guidePremiumSection();
   openModal('m-guide');
+}
+/* ガイド末尾のプレミアム欄（解約導線を含む） */
+function _guidePremiumSection() {
+  if(S.isPremiumUser) {
+    return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">プレミアム会員</div>'
+      + '<div style="font-size:11px;line-height:1.6;color:var(--text-sub);">Familink プレミアムをご利用中です。無料プランに戻す場合は下記から手続きできます。</div>'
+      + '<button onclick="cancelPremium()" style="margin-top:8px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0;">プレミアムを解約する</button>'
+      + '</div>';
+  }
+  return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);font-size:11px;color:var(--text-muted);">'
+    + '現在は無料プランです。プレミアムは設定画面からご案内しています。</div>';
+}
+/* プレミアム解約。
+   ※ 将来 App Store / Google Play の本物の課金（IAP）を導入した際は、
+   　 解約は OS の「サブスクリプション管理」へ誘導する必要がある
+   　 （アプリ側で課金を止めることはできず、Apple/Google の規約上も必須）。 */
+function cancelPremium() {
+  showConfirm(
+    'プレミアムの解約',
+    'Familink プレミアムを解約しますか？\n無料プランの基本機能は引き続きご利用いただけます。',
+    '解約する',
+    function() {
+      S.isPremiumUser = false;
+      try { saveS(); } catch(_){}
+      closeModal('m-guide');
+      try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
+      try { if(typeof renderHome === 'function') renderHome(); } catch(_){}
+      showToast('プレミアムを解約しました');
+    }
+  );
 }
 
 /* ============================================================
