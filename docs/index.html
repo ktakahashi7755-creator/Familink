@@ -3365,6 +3365,31 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
+<!-- プレミアム解約 確認（解約前のもう一段の確認） -->
+<div id="m-cancel-premium" class="modal-backdrop">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">プレミアム解約のご確認</div>
+    <div class="modal-form">
+      <div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:var(--bg-muted);border-radius:12px;padding:12px 14px;">
+        解約を進める前に、以下の内容をご確認ください。
+      </div>
+      <ul style="font-size:12px;line-height:1.85;color:var(--text-sub);padding-left:20px;margin:12px 0;">
+        <li>プレミアム機能（特別アバター・家族ボード追加・家計の詳細表示・Hoku の高度な提案など）がご利用いただけなくなります。</li>
+        <li>無料プランの基本機能は、引き続きそのままご利用いただけます。</li>
+        <li>これまでに記録された予定・タスク・家計などのデータは削除されません。</li>
+        <li>提供期間の途中で解約された場合も、日割りでの返金は行われません。</li>
+      </ul>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:8px 0;">
+        <input type="checkbox" id="cp-agree" onchange="cpToggleAgree()" style="width:18px;height:18px;flex:none;margin-top:1px;">
+        <span>上記の内容を確認しました</span>
+      </label>
+      <button id="cp-proceed" class="btn btn-danger btn-block" disabled onclick="cancelPremiumProceed()" style="opacity:.5;margin-top:6px;">解約を続ける</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-cancel-premium')">やめる</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- Event Modal -->
 <div id="m-event" class="modal-backdrop">
@@ -11320,18 +11345,39 @@ function _guidePremiumSection() {
     + '</div>';
 }
 /* プレミアム解約。
+   解約までに「内容確認（チェック）」→「最終確認」の 2 段階を挟む。
    ※ 将来 App Store / Google Play の本物の課金（IAP）を導入した際は、
    　 解約は OS の「サブスクリプション管理」へ誘導する必要がある
    　 （アプリ側で課金を止めることはできず、Apple/Google の規約上も必須）。 */
 function cancelPremium() {
+  // 1 段階目：確認内容のチェック画面を開く
+  const cb = document.getElementById('cp-agree');
+  if(cb) cb.checked = false;
+  cpToggleAgree();
+  try { closeModal('m-guide'); } catch(_){}
+  openModal('m-cancel-premium');
+}
+/* チェックボックスの状態で「解約を続ける」ボタンを有効化 */
+function cpToggleAgree() {
+  const cb = document.getElementById('cp-agree');
+  const btn = document.getElementById('cp-proceed');
+  if(!btn) return;
+  const agreed = !!(cb && cb.checked);
+  btn.disabled = !agreed;
+  btn.style.opacity = agreed ? '1' : '.5';
+}
+/* 2 段階目：最終確認 → 実際に解約 */
+function cancelPremiumProceed() {
+  const cb = document.getElementById('cp-agree');
+  if(!cb || !cb.checked) { showToast('確認のチェックをお願いします','error'); return; }
+  closeModal('m-cancel-premium');
   showConfirm(
     'プレミアムの解約',
-    'Familink プレミアムを解約しますか？\n無料プランの基本機能は引き続きご利用いただけます。',
+    '本当に Familink プレミアムを解約しますか？\nこの操作は取り消せません。',
     '解約する',
     function() {
       S.isPremiumUser = false;
       try { saveS(); } catch(_){}
-      closeModal('m-guide');
       try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
       try { if(typeof renderHome === 'function') renderHome(); } catch(_){}
       showToast('プレミアムを解約しました');
