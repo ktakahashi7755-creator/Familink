@@ -9905,3 +9905,35 @@ Wave 106 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 109: add confirmation step before premium cancellation`
+
+---
+
+## Wave 110 自律開発 2026-05-17 09:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 109 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+- backup ブランチ `backup/026-wave109-folders-cancel`（コミット 023c091）を作成・push
+- BACKUP-MANIFEST に最新バックアップを追記
+
+### この時点の到達点（backup/026）
+- 書類保管庫・アルバムのフォルダ機能
+- プレミアム解約の2段階フロー（内容確認チェック → 最終確認）
+- 使い方ガイド / 役割削除 / 絵文字0 / Supabase設計
+- テスト：VM 28スイート / 専用スイート（app-audit 70・guide-test 11・
+  folder-test 14 ほか）全 PASS、バグゼロ
+
+### テスト結果
+- 検証は Wave 108-109 で実施済み（全グリーン）
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 110: backup Wave 109 stable state (backup/026)`
