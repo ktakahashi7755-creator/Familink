@@ -2636,8 +2636,8 @@ nav#tabbar.hidden { display: none !important; }
 </div>
 
 <!-- アルバム単写真ビューア -->
-<div id="m-album-view" class="modal-backdrop hidden" onclick="closeModal('m-album-view')">
-  <div class="modal" style="max-height:90vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;" onclick="event.stopPropagation()">
+<div id="m-album-view" class="modal-backdrop hidden" style="z-index:400;align-items:center;" onclick="closeModal('m-album-view')">
+  <div class="modal" style="max-height:94vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;border-radius:20px;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <div id="m-album-view-meta" style="font-size:12px;opacity:.85;"></div>
       <div style="display:flex;gap:6px;">
@@ -2655,8 +2655,8 @@ nav#tabbar.hidden { display: none !important; }
 </div>
 
 <!-- 書類の写真ビューア -->
-<div id="m-doc-photo" class="modal-backdrop hidden" onclick="closeModal('m-doc-photo')">
-  <div class="modal" style="max-height:90vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;" onclick="event.stopPropagation()">
+<div id="m-doc-photo" class="modal-backdrop hidden" style="z-index:400;align-items:center;" onclick="closeModal('m-doc-photo')">
+  <div class="modal" style="max-height:94vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;border-radius:20px;" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
       <div id="m-doc-photo-title" style="font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">書類の写真</div>
       <div style="display:flex;gap:6px;flex:none;">
@@ -2664,7 +2664,7 @@ nav#tabbar.hidden { display: none !important; }
         <button onclick="closeModal('m-doc-photo')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
       </div>
     </div>
-    <img id="m-doc-photo-img" src="" style="width:100%;max-height:74vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
+    <img id="m-doc-photo-img" src="" style="width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
     <div style="font-size:11px;opacity:.65;margin-top:8px;text-align:center;">うまく保存できないときは、画像を長押しして保存してください。</div>
   </div>
 </div>

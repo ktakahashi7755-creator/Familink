@@ -10334,3 +10334,42 @@ Wave 118 — 書類の写真ビューア + 端末ダウンロード（書類 / �
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 118: document photo viewer + device download for docs & album`
+
+---
+
+## 2026-05-17 16:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 119 — 画像ビューアが書類編集モーダルの背面に開く不具合を修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- バグ：書類編集モーダル内のプレビュー画像をタップすると、写真ビューア
+  (m-doc-photo) が編集モーダルと同じ z-index(200) のため背面に開き、
+  画像が表示されないように見えていた。
+- 修正：写真ビューア m-doc-photo / アルバムビューア m-album-view の
+  z-index を 400 に引き上げ、他モーダルより前面に表示。
+- 併せてビューアを画面中央寄せ（align-items:center）にし、全角丸めの
+  通常の画像ビューアらしい見た目に改善。画像の最大高さも拡大。
+
+### テスト結果（全グリーン）
+- download-test 12/12・folder-test 19・app-audit 70
+- 構文 OK / div バランス 1466=1466 / md5 一致
+
+### 既存機能への影響
+- なし。ビューアの重なり順と中央寄せの調整のみ。
+
+### iPhone確認ポイント
+- 書類を開いてプレビュー画像をタップ → 写真ビューアが前面に開くか
+- アルバムの写真タップでビューアが正しく表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 119: fix image viewer opening behind document edit modal`
