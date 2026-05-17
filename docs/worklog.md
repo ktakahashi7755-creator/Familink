@@ -9066,3 +9066,49 @@ HOKU 冪等性検証 + 難度の高い日時/金額/タイトル抽出の追い�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 90: Hoku idempotency check + hard date/title extraction`
+
+---
+
+## Wave 91 自律開発 2026-05-17 02:33  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+hoku-api（Python）分類器をアプリ本体と同水準の精度に引き上げ
+
+### 変更ファイル
+- hoku-api/app/classifier.py
+- hoku-api/tests/test_intent.py
+
+### 変更内容
+アプリ本体（Wave 87-90）で強化した分類精度に対し、hoku-api 側が遅れていた
+（実入力 31 件で 18/31）。front/back の整合のため classify_rule を強化。
+
+- 家計：金額が無くても「買い物した」「レシート」等は budget に（金額は後で確認）
+- 体調：お腹痛い/腹痛/頭痛/くしゃみ/「薬もらった・処方された」を追加
+- 買い物：bare「買って」、「○○がなくなった/切らした/もうない」（補充）を追加
+- 準備：時間割/名札/エプロンを追加
+- カレンダー：今週末/週末/お盆/連休を日付シグナルに、おでかけ/帰省/外出を
+  予定シグナルに。強い予定名詞（歯医者/発表会/運動会/参観 等）は日時が
+  無くても calendar とみなす
+- タスク：ゴミ出し等の家事、役所/銀行へのお使い、宿題/書類の確認・提出を追加
+
+### テスト結果
+- hoku-api 実入力プローブ：31/31 正解（修正前 18/31）
+- hoku-api pytest：26/26 PASS（parity / 補充抽出 / 強名詞のテストを追加）
+- アプリ本体（familink.html）は無変更 — VM スイートへの影響なし
+
+### 既存機能への影響
+- なし。hoku-api はデプロイ前の休眠スキャフォルド。アプリ本体は無変更。
+
+### 未確認事項
+- hoku-api のデプロイ可否（オーナー判断・hoku-api-deployment-decision.md 参照）
+
+### iPhone確認ポイント
+- なし（hoku-api はバックエンド、現状アプリは本体ローカル分類で動作）
+
+### 次にやること
+- 実機での会話・登録・削除フロー確認
+- hoku-api をデプロイするならテスト追補
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 91: bring hoku-api classifier to parity with app`
