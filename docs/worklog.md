@@ -10232,3 +10232,57 @@ Wave 116 — 書類 / アルバムを色付きフォルダのグリッド階層�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 116: colored folder grid hierarchy for documents & album`
+
+---
+
+## 2026-05-17 15:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 117 — Hoku 家計の理解精度を強化（スクショ基準）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- スクショ基準で「家計簿に支出5000円 カレーを追加」の理解精度を検証し、
+  2つの精度バグを特定・修正：
+  1. 品目タイトルに「家計簿に支出」等のドメイン語が混入していた
+     → budget_add のタイトルからドメイン語を除去し品目だけ残す処理を追加。
+        例：「家計簿に支出 カレー」→「カレー」
+  2. 「カレー」「ラーメン」等の食品名が食費に分類されなかった
+     → _hokuExtractBudgetCategory の食品語彙を大幅拡充。光熱費・通信費・
+        被服費・娯楽費の判定も追加。
+- 結果：「家計簿に支出5000円 カレーを追加」→ 金額5000・品目カレー・食費 を正しく理解。
+
+### 補足（スクショの会話的な日付聞き返しについて）
+- スクショの「いつの支出か教えてください」という会話的な聞き返しは
+  外部 Hoku API（LLM）接続時の挙動。オフライン解析エンジンは金額・品目・
+  カテゴリを理解した上で確認カード（m-voice-confirm）を開く設計（Wave 27）。
+  カード上で日付を含む全項目を目視確認・編集してから保存できる。
+
+### テスト結果（全グリーン）
+- hoku-expense-flow 19/19（金額/品目/カテゴリ/収支区分の理解）
+- VM 回帰：hoku-delete 39 / v2 18 / flow 33 / mega 101 / entity 22 / hard 16 /
+  fuzz 171 / probe 10 / probe2 30 / width-sweep 35 — 全 PASS
+- app-audit 70・integration 55・e2e-render 10・persistence 72・storage 17・
+  notif 16・folder-test 19・auth-test 25 — 全 PASS
+- 構文 OK / div バランス 1459=1459 / md5 一致
+
+### 既存機能への影響
+- なし。家計の品目タイトル整形とカテゴリ語彙の拡充のみ。全 Hoku 回帰グリーン。
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- Hoku に「家計簿に支出5000円 カレーを追加」と話しかけ、確認カードに
+  ¥5,000 / カレー / 食費 が入っているか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 117: improve Hoku budget comprehension (item title & category)`

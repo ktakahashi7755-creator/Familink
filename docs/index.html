@@ -14771,13 +14771,16 @@ function _hokuExtractSymptoms(text) {
 
 /* 家計カテゴリ推定（食費・交通費・日用品 等） */
 function _hokuExtractBudgetCategory(text) {
-  if(text.match(/スーパー|食材|惣菜|外食|ランチ|弁当|食費/)) return '食費';
-  if(text.match(/電車|バス|タクシー|交通費|ガソリン/)) return '交通費';
-  if(text.match(/薬局|医院|病院|診察|医療費|薬代/)) return '医療費';
-  if(text.match(/日用品|洗剤|歯磨|ティッシュ|トイレットペーパー/)) return '日用品';
+  if(text.match(/スーパー|食材|惣菜|外食|ランチ|昼食|夕食|朝食|弁当|食費|食料|コンビニ|レストラン|カフェ|居酒屋|飲食|ファミレス|牛丼|定食|おやつ|お菓子|菓子パン|パン|牛乳|卵|野菜|果物|ジュース|飲み物|カレー|ラーメン|うどん|そば|蕎麦|寿司|ピザ|パスタ|ハンバーガー|焼肉|餃子|丼/)) return '食費';
+  if(text.match(/電車|バス|タクシー|交通費|ガソリン|定期代|駐車場|高速|運賃|電車代|バス代/)) return '交通費';
+  if(text.match(/薬局|ドラッグストア|医院|病院|診察|医療費|薬代|通院|歯医者|処方/)) return '医療費';
+  if(text.match(/日用品|洗剤|歯磨|ティッシュ|トイレットペーパー|シャンプー|おむつ|オムツ|電池/)) return '日用品';
+  if(text.match(/電気代|水道代|ガス代|光熱費/)) return '光熱費';
+  if(text.match(/携帯|スマホ代|通信費|wi-?fi|ネット代|通信料/i)) return '通信費';
   if(text.match(/習い事|レッスン|月謝|塾|スイミング.*代|ピアノ.*代/)) return '習い事';
-  if(text.match(/保育園|保育料|幼稚園.*代|学校.*費/)) return '教育費';
-  if(text.match(/コンビニ/)) return '食費';
+  if(text.match(/保育園|保育料|幼稚園.*代|学校.*費|授業料|給食費|教材|文房具|教育費/)) return '教育費';
+  if(text.match(/服|衣類|被服|靴|洋服|スニーカー/)) return '被服費';
+  if(text.match(/映画|ゲーム|娯楽|レジャー|遊園地|旅行|娯楽費/)) return '娯楽費';
   return null;
 }
 
@@ -14935,6 +14938,15 @@ function parseHokuIntent(rawText, source) {
     prepItems: prepItems,
     memo: ''
   };
+
+  // Wave 117: 家計の品目タイトルからドメイン語（家計簿/支出 等）を除去し品目だけ残す
+  if(intentType === 'budget_add' && entities.title) {
+    entities.title = entities.title
+      .replace(/家計簿に支出|家計簿に記録|家計簿に|家計に|家計簿|出費|支出|収入/g, '')
+      .replace(/^[\s　をにへはがでと、・]+|[\s　をにへはがでと、・]+$/g, '')
+      .replace(/[\s　]+/g, ' ')
+      .trim();
+  }
 
   // 8) 不足フィールド & 必要確認
   const missingFields = [];
