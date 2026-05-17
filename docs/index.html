@@ -12262,6 +12262,16 @@ async function sendHokuMsg(text) {
         } catch(e) { reply = null; }   // 例外時もローカルへフォールバック
       }
       if(reply == null) {
+        // Wave 86: 行動を促す曖昧入力（「明日やっといて」等）は自然に聞き返す
+        try {
+          const v2 = parseHokuIntentV2(text, { source:'text' });
+          if(v2 && v2.nextAction === 'clarify_unknown') {
+            _pendingAction = { type:'hoku_clarify', params:{ originalText:text } };
+            reply = v2.reply;
+          }
+        } catch(e) {}
+      }
+      if(reply == null) {
         // インテント分類 → 回答 or アクション（既存ローカルフロー）
         const intent = detectIntent(text);
         if(intent.type === 'action') {
@@ -12624,6 +12634,22 @@ function handleConfirmation(text) {
 }
 
 function continueAction(action, text) {
+  // Wave 86: 曖昧入力の聞き返し（「予定？タスク？」）への返答でカテゴリを確定
+  if(action.type==='hoku_clarify') {
+    const cat = _hokuClarifyCategory(text);
+    if(!cat) {
+      _pendingAction = null;
+      return '予定 / タスク / 家計 / 買い物 / 体調 / 準備 のどれかで教えてね。';
+    }
+    try {
+      const hi = parseHokuIntent(action.params.originalText + ' ' + cat.hint, 'text');
+      if(hi.intentType === 'unknown') hi.intentType = cat.intent;
+      const r = executeHokuAction(hi);
+      return (r && r.message) || getHokuShortReply(cat.intent) || 'OK、入れておくね。';
+    } catch(e) {
+      return 'ごめん、うまく入れられなかった。もう一回、内容を教えて。';
+    }
+  }
   // Wave 84: 「さっきの何を消す？」への返答でカテゴリを確定
   if(action.type==='hoku_delete_catpick') {
     const cat = _hokuDeleteCategory(text);
@@ -13941,6 +13967,157 @@ function _hokuMakeIntent(intentType, raw, text, source, confidence, entities, ex
     entities: entities || {},
     action: { targetStore: meta.store, operation: meta.uiCat ? 'add' : 'help' }
   };
+}
+
+/* ============================================================
+   Wave 86 — HOKU Parser/Evaluator v2
+   設計思想（Haskell Parser/Evaluator 参考）：
+   入力文 → 正規化 → 解析 → 中間データ(HokuParseResult) → 評価(nextAction)
+   ・既存 parseHokuIntent は温存（後方互換）。V2 はその上位レイヤー。
+   ・候補(candidates)で「別解析を試す」思想を表現。
+   ・nextAction で confirm / ask_clarification / clarify_unknown / answer を分離。
+   ・debugHokuParse でコンソールから解析結果を確認できる。
+   ============================================================ */
+
+/* 入力テキストの正規化レイヤー（全角→半角・漢数字・時刻・フィラー除去） */
+function normalizeHokuText(raw) {
+  try { return voiceCorrectText(raw); } catch(e) { return String(raw||'').trim(); }
+}
+
+/* intent 候補をスコア順に並べる（Alternative parser の思想） */
+function _hokuRankCandidates(normText, base) {
+  const out = [];
+  try {
+    const cls = classifyHokuInput(normText);
+    const map = { calendar:'calendar_add', task:'task_add', prep:'prep_add',
+      budget:'budget_add', health:'health_add', board:'board_post_add',
+      notification:'notification_add' };
+    const sc = cls.allScores || {};
+    Object.keys(sc).forEach(function(k){
+      if(map[k] && sc[k] >= 2) out.push({ intent:map[k], score:sc[k] });
+    });
+    out.sort(function(a,b){ return b.score - a.score; });
+  } catch(e) {}
+  if(base && base.intentType && /_add$/.test(base.intentType)) {
+    const i = out.findIndex(function(c){ return c.intent === base.intentType; });
+    if(i > 0) { const x = out.splice(i,1)[0]; out.unshift(x); }
+    else if(i < 0) { out.unshift({ intent:base.intentType, score:99 }); }
+  }
+  return out.slice(0,3);
+}
+
+const _HOKU_CAT_JA = {
+  calendar_add:'予定', task_add:'タスク', budget_add:'家計', health_add:'体調メモ',
+  prep_add:'準備リスト', prep_routine_add:'曜日ルーティン', shopping_add:'買い物リスト',
+  shopping_purchased:'購入履歴', notification_add:'通知', board_post_add:'家族ボード'
+};
+
+/* HokuParseResult から自然な日本語の応答文を組み立てる */
+function _hokuComposeReply(intent, entities, candidates, missing, nextAction) {
+  const e = entities || {};
+  const catJa = _HOKU_CAT_JA[intent] || '';
+  if(nextAction === 'confirm') {
+    const when = [];
+    if(e.date && typeof _hokuDateLabel === 'function') when.push(_hokuDateLabel(e.date));
+    if(e.time) when.push(e.time);
+    const who = e.memberName ? (e.memberName + 'の') : '';
+    const what = e.title ? e.title
+      : (e.amount != null ? ('¥' + Number(e.amount).toLocaleString()) : '');
+    return 'OK！' + who + (when.length ? when.join(' ') + 'に' : '')
+      + (what ? '「' + what + '」を' : '') + catJa + 'に入れるね。これで合ってる？';
+  }
+  if(nextAction === 'ask_clarification') {
+    if(missing.indexOf('amount') >= 0)
+      return '家計に入れたい内容っぽいけど、金額が分からなかった！いくら使ったか教えて。';
+    if(missing.indexOf('date') >= 0)
+      return 'いつの予定にする？「明日」「土曜」みたいに教えてくれる？';
+    if(missing.indexOf('member') >= 0)
+      return '誰のこと？パパ・ママ・お子さんの名前で教えて。';
+    if(missing.indexOf('healthDetail') >= 0)
+      return '体温や症状（咳・鼻水など）を教えてくれる？';
+    if(missing.indexOf('weekday') >= 0)
+      return '何曜日のルーティンにする？';
+    if(missing.indexOf('title') >= 0)
+      return '内容をもう少し詳しく教えてくれる？';
+    if(candidates && candidates.length >= 2) {
+      const a = _HOKU_CAT_JA[candidates[0].intent] || candidates[0].intent;
+      const b = _HOKU_CAT_JA[candidates[1].intent] || candidates[1].intent;
+      return 'ちょっと迷った！これは「' + a + '」に入れる？それとも「' + b + '」？';
+    }
+    return 'もう少し詳しく教えてくれる？';
+  }
+  if(nextAction === 'clarify_unknown') {
+    return 'ごめん、どこに入れるか迷っちゃった。\n予定 / タスク / 家計 / 買い物 / 体調 / 準備 のどれにする？';
+  }
+  return '';
+}
+
+/* HOKU 統合パーサー v2 — HokuParseResult を返す
+   { ok, intent, confidence, rawText, normalizedText, entities,
+     missingFields, candidates, nextAction, reply } */
+function parseHokuIntentV2(text, context) {
+  context = context || {};
+  const rawText = String(text || '');
+  const normalizedText = normalizeHokuText(rawText);
+  let base;
+  try { base = parseHokuIntent(rawText, context.source || 'text'); }
+  catch(e) { base = { intentType:'unknown', confidence:0, entities:{}, missingFields:[] }; }
+  const intent = base.intentType || 'unknown';
+  const conf = base.confidence || 0;
+  const entities = base.entities || {};
+  const missingFields = (base.missingFields || []).slice();
+  const candidates = _hokuRankCandidates(normalizedText, base);
+
+  let nextAction;
+  if(intent === 'unknown') {
+    // 行動を促す入力（「やっといて」「入れて」等）→ 聞き返す / それ以外は会話に委ねる
+    nextAction = /(やっといて|やっとい|やって|やる|入れと|入れて|入れたい|追加|登録|お願い|メモして|記録|予定|タスク|準備|買|家計|体調|片付|やらな)/.test(normalizedText)
+      ? 'clarify_unknown' : 'answer';
+  } else if(/_help$/.test(intent) || /_view$/.test(intent)) {
+    nextAction = 'answer';
+  } else if(missingFields.length) {
+    nextAction = 'ask_clarification';
+  } else if(base.ambiguous) {
+    nextAction = 'ask_clarification';
+  } else if(conf >= 0.6) {
+    nextAction = 'confirm';
+  } else {
+    nextAction = 'ask_clarification';
+  }
+  const reply = _hokuComposeReply(intent, entities, candidates, missingFields, nextAction);
+  return {
+    ok: (intent !== 'unknown' && nextAction === 'confirm'),
+    intent: intent,
+    confidence: conf,
+    rawText: rawText,
+    normalizedText: normalizedText,
+    entities: entities,
+    missingFields: missingFields,
+    candidates: candidates,
+    nextAction: nextAction,
+    reply: reply
+  };
+}
+
+/* HOKU Debug Console — 解析結果をコンソールで確認する開発用関数 */
+function debugHokuParse(text) {
+  const r = parseHokuIntentV2(text, { source:'text' });
+  try { console.log('[Hoku Debug] ' + JSON.stringify(r, null, 2)); }
+  catch(e) { console.log('[Hoku Debug]', r); }
+  return r;
+}
+try { if(typeof window !== 'undefined') window.debugHokuParse = debugHokuParse; } catch(e) {}
+
+/* 聞き返し後の返答からカテゴリを判定（hoku_clarify チェーン用） */
+function _hokuClarifyCategory(text) {
+  const t = String(text || '');
+  if(/予定|カレンダー|スケジュール/.test(t)) return { intent:'calendar_add', hint:'予定に追加' };
+  if(/タスク|やること|TODO/i.test(t))      return { intent:'task_add',     hint:'タスクに追加' };
+  if(/家計|お金|出費|支出/.test(t))         return { intent:'budget_add',   hint:'家計に追加' };
+  if(/買い物|買物|ショッピング/.test(t))     return { intent:'shopping_add', hint:'を買い物リストに追加' };
+  if(/体調|健康|体温/.test(t))              return { intent:'health_add',   hint:'体調メモに追加' };
+  if(/準備|持ち物/.test(t))                 return { intent:'prep_add',     hint:'準備に追加' };
+  return null;
 }
 
 /* ============================================================

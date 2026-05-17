@@ -8779,3 +8779,72 @@ Hoku 意図分類・音声/テキスト精度の強化
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 85: improve Hoku intent precision (voice & text)`
+
+---
+
+## Wave 86 自律開発 2026-05-17 00:26  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU Parser/Evaluator v2 — 中間データ構造・候補・聞き返し・デバッグ機構
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー提供プロンプト（Haskell Parser/Evaluator 設計を参考に HOKU を
+「入力理解→意図判定→不足確認→保存前確認→実行」のパイプラインへ）に対応。
+※ コードの丸コピーはせず設計思想のみを Vanilla JS に取り込み。
+※ 後方互換の絶対条件を優先し、既存 parseHokuIntent は温存。V2 を上位
+　 レイヤーとして追加（既存 743 テストの回帰リスクを回避）。
+
+【追加した関数】
+- normalizeHokuText(text) … 入力正規化レイヤー
+- _hokuRankCandidates(text, base) … intent 候補をスコア順に（Alternative parser 思想）
+- _hokuComposeReply(...) … HokuParseResult から自然な日本語応答を生成
+- parseHokuIntentV2(text, context) … HokuParseResult を返す統合パーサー
+  { ok, intent, confidence, rawText, normalizedText, entities,
+    missingFields, candidates, nextAction, reply }
+- debugHokuParse(text) … 解析結果をコンソール出力（window.debugHokuParse 公開）
+- _hokuClarifyCategory(text) … 聞き返し返答からカテゴリ判定
+
+【変更した関数】
+- sendHokuMsg … 行動を促す曖昧入力（「明日やっといて」等）を V2 で検知し
+  自然に聞き返す（clarify_unknown）。_pendingAction=hoku_clarify をセット
+- continueAction … hoku_clarify 分岐を追加。聞き返し返答（予定/タスク等）で
+  カテゴリ確定 → executeHokuAction へチェーン
+
+【nextAction による評価分離】
+- confidence ≥ 0.6 かつ不足なし → confirm（確認モーダル）
+- 不足フィールドあり / 曖昧 → ask_clarification
+- 行動を促す unknown → clarify_unknown（聞き返し）
+- 会話・挨拶・ヘルプ・参照 → answer（hokuLocalAnswer に委譲）
+
+### テスト結果
+- 新規 /tmp/hoku-v2.js：18 / 18 PASS（構造 / confirm / 聞き返し / 候補 /
+  debug / 正規化 / 明確8件 / 曖昧3件 / clarify チェーン）
+- 精度プローブ：分類 49/49・項目抽出 10/10 PASS
+- VM スイート全 31：エラー 0 / width-sweep 35/35 / hoku-delete 39/39
+- 構文 OK / div バランス 1275=1275 / md5 一致
+- console.log は debugHokuParse 内の 2 件のみ（仕様どおり）
+
+### 既存機能への影響
+- なし。parseHokuIntent / executeHokuAction / classifyHokuInput は無改変。
+  V2 は新規の上位レイヤー。既存フローは clarify_unknown のときのみ
+  聞き返しに分岐（曖昧入力の改善であり退行ではない）。
+
+### 未確認事項
+- 実機（iPhone）での聞き返し→回答チェーンの体験
+
+### iPhone確認ポイント
+- Hoku に「明日やっといて」→「予定？タスク？」と聞き返すか
+- 「予定」と答えると確認モーダルまで進むか
+- 開発者コンソールで debugHokuParse('明日10時に病院') が結果を返すか
+
+### 次にやること
+- 実機で聞き返しフローを確認
+- 必要なら候補ランキングの重み調整
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 86: HOKU Parser/Evaluator v2 (intermediate data, clarification, debug)`
