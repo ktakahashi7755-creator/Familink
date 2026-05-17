@@ -10415,3 +10415,45 @@ Wave 120 — 書類のまとめて追加（複数写真から一括作成）
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 120: batch-add documents from multiple photos`
+
+---
+
+## 2026-05-17 17:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 121 — 「まとめて追加」の発見性を改善（書類・アルバム）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 「まとめて追加が見当たらない」との指摘を受け、発見性を改善：
+  - アルバムの ＋ も追加方法シート（m-album-addmode）に変更。
+    OS のファイル選択に直行せず「写真をまとめて追加」と明示。
+  - 書類の追加方法シートで「写真をまとめて追加」を主ボタン（primary・大）に格上げ。
+  - 空状態の追加ボタンからも追加方法シートを開くよう統一
+    （書類→openArchiveAddMode / アルバム→openAlbumAddMode）。
+- これで書類・アルバムとも、＋ / 空状態どちらからでも「まとめて追加」が
+  明示的に見える導線になった。
+
+### テスト結果（全グリーン）
+- batch-add-test 9/9・folder 19・download 12・app-audit 70
+- guide 11・premium 13・wave113 12・auth 25・integration 55・
+  e2e-render 10・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1478=1478 / md5 一致
+
+### 既存機能への影響
+- アルバムの ＋ がシート経由に変更（1タップ増えるが「まとめて追加」が明示される）。
+
+### iPhone確認ポイント
+- 書類・アルバムの ＋ で「写真をまとめて追加」シートが出るか
+- 空状態の追加ボタンからも同シートが出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 121: make batch-add discoverable on documents & album`
