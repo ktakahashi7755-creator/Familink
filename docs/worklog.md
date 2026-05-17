@@ -9779,3 +9779,35 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 106: show premium cancellation only to paid members`
+
+---
+
+## Wave 107 自律開発 2026-05-17 07:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 106 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+- backup ブランチ `backup/025-wave106-guide`（コミット f70ae15）を作成・push
+- BACKUP-MANIFEST に最新バックアップを追記
+
+### この時点の到達点（backup/025）
+- 静的HTMLの ${ICON()} 生表示バグ修正 / プロフィール役割の全削除
+- 使い方ガイド（チュートリアル）追加 / プレミアム解約導線（有料会員のみ）
+- オンボーディング画面の常駐 Hoku 非表示
+- Supabase バックエンド設計書
+- 絵文字 0・VM 31スイート / 専用10スイート / hoku-api 26 全 PASS
+
+### テスト結果
+- 検証は Wave 106 で実施済み（全グリーン）
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 107: backup Wave 106 stable state (backup/025)`

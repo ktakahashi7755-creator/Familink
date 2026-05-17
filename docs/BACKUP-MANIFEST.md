@@ -227,16 +227,17 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 | `backup/021-wave85-hoku-delete-precision` | Wave 85 — Hoku 削除エンジン + 意図分類精度強化 |
 | `backup/022-wave88-hoku-quality` | Wave 88 — Hoku 品質スイープ（チャット削除の統合バグ修正）|
 | `backup/023-wave94-hoku-complete` | Wave 94 — Hoku 完成版（Parser v2 / 会話 / 全体監査 70/70）|
-| `backup/024-wave97-svg-icons` | **Wave 97 — 全絵文字をモノライン SVG アイコンに統一（絵文字 0 件）最新** ⭐ |
+| `backup/024-wave97-svg-icons` | Wave 97 — 全絵文字をモノライン SVG アイコンに統一 |
+| `backup/025-wave106-guide` | **Wave 106 — 静的HTMLバグ修正 / 役割削除 / 使い方ガイド / Supabase設計 最新** ⭐ |
 
-すべて remote（origin）に push 済み。`git checkout backup/024-wave97-svg-icons`
-で Wave 97 時点（コミット `cc5add3`）に即復元できる。
+すべて remote（origin）に push 済み。`git checkout backup/025-wave106-guide`
+で Wave 106 時点（コミット `f70ae15`）に即復元できる。
 
-### 復元例（Wave 97 の状態に戻す）
+### 復元例（Wave 106 の状態に戻す）
 
 ```bash
 git checkout claude/familylink-unicorn-product-TzM1F
-git reset --hard origin/backup/024-wave97-svg-icons
+git reset --hard origin/backup/025-wave106-guide
 ```
 
 ### Wave 84-94 のテスト到達点（backup/023 時点）
