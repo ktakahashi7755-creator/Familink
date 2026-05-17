@@ -2621,7 +2621,7 @@ nav#tabbar.hidden { display: none !important; }
     </button>
   </div>
   <input type="file" id="archive-batch-file" accept="image/*" multiple style="display:none;" onchange="archiveBatchAdd(event)">
-  <div class="scroll-area" id="archive-body" style="flex:1;padding:14px 16px calc(80px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="archive-body" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== Wave 57: アルバム ===== -->
@@ -2636,7 +2636,7 @@ nav#tabbar.hidden { display: none !important; }
     </button>
   </div>
   <input type="file" id="album-file" accept="image/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
-  <div class="scroll-area" id="album-body" style="flex:1;padding:12px;"></div>
+  <div class="scroll-area" id="album-body" style="flex:1;padding:12px 12px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- アルバム単写真ビューア -->
@@ -3059,7 +3059,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="tk-filter-btn"        data-budget-tab="recurring" onclick="setBudgetTab('recurring')">固定収支</button>
     <button class="tk-filter-btn"        data-budget-tab="cashflow"  onclick="setBudgetTab('cashflow')">資金繰り</button>
   </div>
-  <div class="scroll-area" style="padding-bottom:calc(90px + env(safe-area-inset-bottom));">
+  <div class="scroll-area" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));">
     <!-- 通常家計（既存） -->
     <div id="budget-section-normal">
       <div class="budget-header-bar">
@@ -3262,7 +3262,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="header-icon-btn" onclick="openHealthModal()">＋</button>
   </div>
   <div class="child-tabs" id="health-child-tabs"></div>
-  <div class="scroll-area" id="health-list" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="health-list" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== PREP ===== -->
@@ -3279,7 +3279,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="tk-filter-btn" data-prep-tab="all" onclick="setPrepTab('all')">すべて</button>
     <button class="tk-filter-btn" data-prep-tab="routine" onclick="setPrepTab('routine')">ルーティン・時間割</button>
   </div>
-  <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== Wave 54: 買い物リスト 3 タブ画面 ===== -->
@@ -3298,7 +3298,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="tk-filter-btn"        data-shop-tab="frequent" onclick="setShopTab('frequent')">よく購入するもの</button>
     <button class="tk-filter-btn"        data-shop-tab="history"  onclick="setShopTab('history')">購入履歴</button>
   </div>
-  <div class="scroll-area" id="shop-body" style="flex:1;padding:12px 0 calc(80px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="shop-body" style="flex:1;padding:12px 0 calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== Wave 54: 買い物アイテム追加 / 編集モーダル ===== -->
@@ -3374,7 +3374,7 @@ nav#tabbar.hidden { display: none !important; }
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
-  <div class="scroll-area" id="children-list" style="padding:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="children-list" style="padding:16px;padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- Wave 59: メンバー追加 / 編集モーダル -->
@@ -3427,7 +3427,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title" id="cdetail-title">詳細</div>
   </div>
-  <div class="scroll-area" id="cdetail-body" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="cdetail-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== NOTIFICATIONS ===== -->
@@ -3438,7 +3438,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="header-icon-btn" onclick="markAllRead()" aria-label="全て既読" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全既読</button>
     <button class="header-icon-btn" onclick="confirmClearAllNotifs()" aria-label="全て削除" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);color:var(--red);">全削除</button>
   </div>
-  <div class="scroll-area" id="notif-list" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="notif-list" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== SETTINGS ===== -->
@@ -3447,7 +3447,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">設定・メニュー</div>
   </div>
-  <div class="scroll-area" id="settings-body" style="padding-bottom:calc(20px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="settings-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- ===== MODALS ===== -->
