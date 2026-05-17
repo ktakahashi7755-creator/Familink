@@ -9607,3 +9607,47 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 102: remove profile role section entirely`
+
+---
+
+## Wave 103 自律開発 2026-05-17 05:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+バグ修正：ウェルカム/オンボーディング画面に常駐 Hoku（fab）が表示される
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー報告：ウェルカム画面の右上に常駐 Hoku が出てしまう。
+原因：Hoku fab を隠す画面リスト AUTH_HIDE に、オンボーディング
+ウィザード画面 's-onboard' が含まれていなかった。
+（s-ob は入っていたが、startOnboarding が showScreen('s-onboard') で
+開くウィザード画面が対象外だった）
+
+- 修正：AUTH_HIDE に 's-onboard' を追加
+  → ['s-ob','s-onboard','s-login','s-hoku']
+- これでログイン/オンボーディング完了・ホーム到達まで常駐 Hoku は出ない
+- 中央のウェルカムイラスト（ob2-hoku-img）は意図的な演出のため保持
+
+### テスト結果（全グリーン）
+- VM スイート：エラー 0 / app-audit 70/70
+- 構文 OK / div バランス 1269=1269 / md5 一致
+
+### 既存機能への影響
+- なし。fab 非表示画面の追加のみ。
+
+### 未確認事項
+- 実機でウェルカム/オンボーディング画面に fab が出ないこと
+
+### iPhone確認ポイント
+- ウェルカム画面・オンボーディング各ステップで右上に Hoku が出ないか
+- ホーム到達後に Hoku fab が表示されるか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 103: hide floating Hoku on onboarding screen`
