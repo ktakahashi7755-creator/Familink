@@ -10700,3 +10700,43 @@ Wave 130 — カレンダー週ビューにも祝日を反映
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 130: show Japanese holidays in calendar week view`
+
+---
+
+## 2026-05-17 21:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 131 — 全体テスト・検証スイープ + 祝日データを2028年まで拡張
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 全テストスイートを実行し、未解決バグゼロを確認（保守中の全スイート PASS）。
+- audit.js の指摘を精査：console.log 2件は #qa-debug の意図的なデバッグ出力、
+  console.error 5件は catch 内の正当なエラーログ、「open ×1」は window.open
+  の誤検出 — いずれも実害なし。
+- 改善：祝日データを 2027 → 2028 まで拡張（カレンダーを 2028 年に進めても
+  祝日が表示される）。2028年は振替休日・国民の休日なし。
+
+### テスト結果（全グリーン）
+- holiday-test 18/18（2028年の検証を追加）
+- app-audit 70・recurrence 14・task-recurrence 11・integration 55・
+  persistence 72・e2e-render 10・folder 19・wave113 14 — 全 PASS
+- 全 /tmp テストスイートで想定外の失敗 0 件（旧世代ハーネス除く）
+- 構文 OK / md5 一致
+
+### 既存機能への影響
+- なし。祝日データに2028年分を追加しただけ。
+
+### iPhone確認ポイント
+- カレンダーを2028年まで進めても祝日が表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 131: full QA sweep + extend holidays to 2028`
