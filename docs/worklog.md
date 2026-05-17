@@ -9016,3 +9016,53 @@ HOKU エンティティ抽出の精度強化 — タイトル抽出のバグ修�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 89: fix Hoku title extraction (spaceless JP) + サッカー normalize bug`
+
+---
+
+## Wave 90 自律開発 2026-05-17 01:48  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 冪等性検証 + 難度の高い日時/金額/タイトル抽出の追い込み
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+冪等性プローブ（normalizeHokuText を2回適用しても不変か）と、難度の高い
+日時/金額/タイトル抽出のプローブを新設。1 件の抽出漏れを修正。
+
+- 修正：「運動会の予定」→ タイトルに「の予定」が残っていた問題。
+  _hokuCleanTitle に末尾カテゴリ語の除去を追加（2文字以上残る場合のみ）
+  → 「運動会」「サッカーの試合」のようにきれいに抽出
+- 検証：normalizeHokuText の冪等性 11/11（Wave 89 のサッカー修正後、
+  全正規化ルールが冪等であることを確認）
+- 検証：夜7時半→19:30、正午→12:00、10時から12時→10:00、
+  3月15日→ISO、カンマ区切り/全角/漢数字の金額抽出 すべて正常
+
+### テスト結果（全グリーン）
+- 新規 hoku-hard（冪等性+難ケース 16件）：16/16 PASS
+- VM スイート全 31：エラー 0
+- hoku-mega 101 / hoku-flow 28 / hoku-delete 39 / hoku-v2 18 /
+  hoku-entity 22 / width-sweep 35
+- 精度プローブ probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。_hokuCleanTitle に末尾カテゴリ語除去を追加したのみ。
+  VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機での音声入力経由のタイトル prefill
+
+### iPhone確認ポイント
+- 「土曜に運動会の予定」→ 確認モーダルのタイトルが「運動会」になるか
+- 「夜7時半にお迎え」→ 時刻 19:30 になるか
+
+### 次にやること
+- 実機での会話・登録・削除フローの確認
+- HOKU 品質はテスト 360+ ケース全 PASS の安定水準に到達
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 90: Hoku idempotency check + hard date/title extraction`
