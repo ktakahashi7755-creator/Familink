@@ -9811,3 +9811,52 @@ Wave 106 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 107: backup Wave 106 stable state (backup/025)`
+
+---
+
+## Wave 108 自律開発 2026-05-17 07:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+書類保管庫・アルバムにフォルダ機能を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「アルバムと書類保管にフォルダを作成できるように」に対応。
+
+- 共通フォルダエンジンを新設（kind: 'doc' / 'album'）
+  - _folderBar：フォルダのチップバー（すべて / 各フォルダ / ＋フォルダ）
+  - createFolder / renameFolder / deleteFolder / selectFolder
+  - フォルダ削除時、中のアイテムは「未分類」へ移動（削除しない）
+- 書類保管庫：フォルダバー表示・フォルダで絞り込み、書類追加モーダルに
+  フォルダ選択、行にフォルダ名バッジ
+- アルバム：フォルダバー表示・絞り込み、写真追加は選択中フォルダへ、
+  写真ビューアにフォルダ移動セレクトを追加
+- S.albumFolders を PERSIST に追加（書類は既存 S.folders を活用）
+
+### テスト結果（全グリーン）
+- 新規 folder-test：14/14 PASS（作成 / 絞込 / 改名 / 削除 / 未分類移動）
+- VM スイート 28：エラー 0 / app-audit 70/70 / guide-test 8
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1296=1296 / md5 一致
+
+### 既存機能への影響
+- なし。docs の folderId は既存フィールド、albumPhotos に folderId を追加。
+  旧データ（folderId なし）は「未分類」として安全に表示。
+
+### 未確認事項
+- 実機でのフォルダ作成・絞り込み・写真のフォルダ移動
+
+### iPhone確認ポイント
+- 書類保管庫 / アルバムの上部にフォルダバーが出るか
+- ＋フォルダ で作成、チップで絞り込み、名前変更・削除ができるか
+- 写真ビューアでフォルダ移動ができるか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 108: add folders to archive and album`

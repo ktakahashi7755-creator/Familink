@@ -2595,7 +2595,11 @@ nav#tabbar.hidden { display: none !important; }
         <button onclick="closeModal('m-album-view')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
       </div>
     </div>
-    <img id="m-album-view-img" src="" style="width:100%;max-height:75vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
+    <img id="m-album-view-img" src="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+      <span style="font-size:11px;opacity:.8;flex:none;">フォルダ</span>
+      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:12px;"></select>
+    </div>
   </div>
 </div>
 
@@ -2621,6 +2625,10 @@ nav#tabbar.hidden { display: none !important; }
           <option value="習い事">習い事</option>
           <option value="その他">その他</option>
         </select>
+      </div>
+      <div class="field">
+        <div class="field-label">フォルダ</div>
+        <select class="input" id="aa-folder"></select>
       </div>
       <div class="field">
         <div class="field-label">メモ</div>
@@ -4068,7 +4076,7 @@ let S = {
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders'];
 
 function saveS() {
   const d = {};
@@ -9870,18 +9878,97 @@ function _ensureArchive() {
   if(!Array.isArray(S.docs))    S.docs = [];
   if(!Array.isArray(S.folders)) S.folders = [];
 }
+/* ============================================================
+   Wave 108 — フォルダ機能（書類保管庫 / アルバム 共通）
+   kind: 'doc'（書類）| 'album'（アルバム）
+   ============================================================ */
+let _archiveFolder = '';
+let _albumFolder   = '';
+function _folderArr(kind) {
+  if(kind === 'album') { if(!Array.isArray(S.albumFolders)) S.albumFolders = []; return S.albumFolders; }
+  if(!Array.isArray(S.folders)) S.folders = [];
+  return S.folders;
+}
+function _curFolder(kind) { return kind === 'album' ? _albumFolder : _archiveFolder; }
+function _setCurFolder(kind, id) { if(kind === 'album') _albumFolder = id; else _archiveFolder = id; }
+function _folderRerender(kind) { if(kind === 'album') renderAlbum(); else renderArchive(); }
+function _folderName(kind, id) {
+  const f = _folderArr(kind).find(x => x.id === id);
+  return f ? f.name : '';
+}
+/* フォルダのチップバー HTML */
+function _folderBar(kind) {
+  const folders = _folderArr(kind), cur = _curFolder(kind);
+  const base = 'display:inline-flex;align-items:center;gap:3px;white-space:nowrap;padding:7px 13px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text-sub);';
+  const on = 'background:var(--primary);color:#fff;border-color:var(--primary);';
+  const chip = (id, label, active) =>
+    '<button onclick="selectFolder(\'' + kind + '\',\'' + H(id) + '\')" style="' + base + (active ? on : '') + '">' + H(label) + '</button>';
+  let h = '<div style="display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch;">';
+  h += chip('', 'すべて', cur === '');
+  folders.forEach(f => { h += chip(f.id, f.name, cur === f.id); });
+  h += '<button onclick="createFolder(\'' + kind + '\')" style="' + base + 'border-style:dashed;color:var(--primary);">' + ICON('plus', 13) + ' フォルダ</button>';
+  h += '</div>';
+  if(cur) {
+    h += '<div style="display:flex;gap:14px;padding:0 2px 12px;font-size:11px;">'
+      + '<button onclick="renameFolder(\'' + kind + '\',\'' + H(cur) + '\')" style="background:none;border:none;color:var(--text-muted);text-decoration:underline;cursor:pointer;padding:0;">フォルダ名を変更</button>'
+      + '<button onclick="deleteFolder(\'' + kind + '\',\'' + H(cur) + '\')" style="background:none;border:none;color:var(--red);text-decoration:underline;cursor:pointer;padding:0;">フォルダを削除</button>'
+      + '</div>';
+  }
+  return h;
+}
+function selectFolder(kind, id) { _setCurFolder(kind, id); _folderRerender(kind); }
+function createFolder(kind) {
+  const name = (prompt('新しいフォルダ名を入力してください', '') || '').trim();
+  if(!name) return;
+  const arr = _folderArr(kind);
+  if(arr.some(f => f.name === name)) { showToast('同じ名前のフォルダがあります', 'error'); return; }
+  const id = 'fld_' + uid();
+  arr.push({ id: id, name: name.slice(0,24), createdAt: new Date().toISOString() });
+  saveS();
+  _setCurFolder(kind, id);
+  _folderRerender(kind);
+  showToast('フォルダ「' + name.slice(0,24) + '」を作成しました', 'success');
+}
+function renameFolder(kind, id) {
+  const f = _folderArr(kind).find(x => x.id === id);
+  if(!f) return;
+  const name = (prompt('フォルダ名を変更', f.name) || '').trim();
+  if(!name || name === f.name) return;
+  f.name = name.slice(0,24);
+  saveS();
+  _folderRerender(kind);
+  showToast('フォルダ名を変更しました', 'success');
+}
+function deleteFolder(kind, id) {
+  const arr = _folderArr(kind), f = arr.find(x => x.id === id);
+  if(!f) return;
+  if(!confirm('フォルダ「' + f.name + '」を削除しますか？\n中のアイテムは削除されず「未分類」に移動します。')) return;
+  const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
+  items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
+  const i = arr.indexOf(f);
+  if(i >= 0) arr.splice(i, 1);
+  _setCurFolder(kind, '');
+  saveS();
+  _folderRerender(kind);
+  showToast('フォルダを削除しました', 'success');
+}
+
 function renderArchive() {
   _ensureArchive();
-  const items = (S.docs||[]).slice().sort(function(a,b){
-    return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||'');
-  });
   const body = document.getElementById('archive-body');
   if(!body) return;
+  const all = (S.docs||[]).slice().sort(function(a,b){
+    return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||'');
+  });
+  const items = _archiveFolder ? all.filter(function(d){ return d.folderId === _archiveFolder; }) : all;
+  const bar = _folderBar('doc');
   if(!items.length) {
-    body.innerHTML = '<div class="archive-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('folder',44)+'</div><div class="title">書類はまだありません</div><div class="desc">同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。</div></div>';
+    body.innerHTML = bar + (all.length
+      ? '<div style="text-align:center;padding:36px 16px;color:var(--text-muted);font-size:13px;">このフォルダに書類はありません。<br>右上の ＋ から追加できます。</div>'
+      : '<div class="archive-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('folder',44)+'</div><div class="title">書類はまだありません</div><div class="desc">同意書 / 集金袋 / 領収書など、家族で共有したい書類を写真付きで保存できます。</div></div>');
     return;
   }
-  body.innerHTML = items.map(function(d){
+  body.innerHTML = bar + items.map(function(d){
     const thumb = d.photo
       ? '<img src="'+H(d.photo)+'" alt="">'
       : ICON('document',26);
@@ -9889,7 +9976,7 @@ function renderArchive() {
       + '<div class="archive-thumb">'+thumb+'</div>'
       + '<div class="archive-main">'
       +   '<div class="archive-title">'+H(d.title||'(無題)')+'</div>'
-      +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
+      +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+(d.folderId&&_folderName('doc',d.folderId)?'<span class="archive-cat" style="background:#EBF4FF;color:var(--primary);">'+ICON('folder',10)+' '+H(_folderName('doc',d.folderId))+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
       +   (d.memo ? '<div class="archive-memo">'+H(d.memo)+'</div>' : '')
       + '</div>'
       + '<div class="archive-actions">'
@@ -9904,15 +9991,22 @@ function openArchiveAdd(id) {
   _ensureArchive();
   _archiveEditId = null;
   _archivePhotoBuf = null;
-  let title='', cat='園・学校', memo='', photo='';
+  let title='', cat='園・学校', memo='', photo='', folderId=_archiveFolder||'';
   if(id) {
     const d = (S.docs||[]).find(function(x){ return x.id===id; });
-    if(d) { _archiveEditId = id; title = d.title||''; cat = d.cat||'園・学校'; memo = d.memo||''; photo = d.photo||''; }
+    if(d) { _archiveEditId = id; title = d.title||''; cat = d.cat||'園・学校'; memo = d.memo||''; photo = d.photo||''; folderId = d.folderId||''; }
   }
   document.getElementById('m-archive-add-title').textContent = id ? '書類を編集' : '書類を追加';
   document.getElementById('aa-id').value = id || '';
   document.getElementById('aa-title').value = title;
   document.getElementById('aa-cat').value   = cat;
+  // フォルダ選択肢を構築
+  const folSel = document.getElementById('aa-folder');
+  if(folSel) {
+    folSel.innerHTML = '<option value="">未分類</option>'
+      + _folderArr('doc').map(function(f){ return '<option value="'+H(f.id)+'">'+H(f.name)+'</option>'; }).join('');
+    folSel.value = folderId;
+  }
   document.getElementById('aa-memo').value  = memo;
   document.getElementById('aa-photo').value = '';
   document.getElementById('aa-photo-preview').innerHTML = photo
@@ -9937,12 +10031,14 @@ function saveArchiveAdd() {
   if(!title) { showToast('タイトルを入力してください','error'); return; }
   const cat   = document.getElementById('aa-cat').value;
   const memo  = document.getElementById('aa-memo').value.trim();
+  const folEl = document.getElementById('aa-folder');
+  const folderId = folEl ? folEl.value : '';
   const now   = new Date().toISOString();
   if(_archiveEditId) {
     const d = (S.docs||[]).find(function(x){ return x.id===_archiveEditId; });
-    if(d) { d.title=title; d.cat=cat; d.memo=memo; if(_archivePhotoBuf!=null) d.photo=_archivePhotoBuf; d.updatedAt=now; }
+    if(d) { d.title=title; d.cat=cat; d.memo=memo; d.folderId=folderId; if(_archivePhotoBuf!=null) d.photo=_archivePhotoBuf; d.updatedAt=now; }
   } else {
-    S.docs.push({ id:'doc_'+uid(), title:title, cat:cat, memo:memo, photo:_archivePhotoBuf||'', folderId:'', createdAt:now, updatedAt:now });
+    S.docs.push({ id:'doc_'+uid(), title:title, cat:cat, memo:memo, photo:_archivePhotoBuf||'', folderId:folderId, createdAt:now, updatedAt:now });
   }
   saveS();
   closeModal('m-archive-add');
@@ -9968,16 +10064,20 @@ function _ensureAlbum() {
 }
 function renderAlbum() {
   _ensureAlbum();
-  const items = (S.albumPhotos||[]).slice().sort(function(a,b){
-    return (b.takenAt||'').localeCompare(a.takenAt||'');
-  });
   const body = document.getElementById('album-body');
   if(!body) return;
+  const all = (S.albumPhotos||[]).slice().sort(function(a,b){
+    return (b.takenAt||'').localeCompare(a.takenAt||'');
+  });
+  const items = _albumFolder ? all.filter(function(p){ return p.folderId === _albumFolder; }) : all;
+  const bar = _folderBar('album');
   if(!items.length) {
-    body.innerHTML = '<div class="album-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('image',44)+'</div><div class="title">写真はまだありません</div><div class="desc">家族の思い出をここにまとめておけます。<br>右上の + から写真を追加してください。</div></div>';
+    body.innerHTML = bar + (all.length
+      ? '<div style="text-align:center;padding:36px 16px;color:var(--text-muted);font-size:13px;">このフォルダに写真はありません。<br>右上の ＋ から追加できます。</div>'
+      : '<div class="album-empty"><div class="icon" style="color:var(--text-muted);">'+ICON('image',44)+'</div><div class="title">写真はまだありません</div><div class="desc">家族の思い出をここにまとめておけます。<br>右上の + から写真を追加してください。</div></div>');
     return;
   }
-  body.innerHTML = '<div class="album-grid">' + items.map(function(p){
+  body.innerHTML = bar + '<div class="album-grid">' + items.map(function(p){
     const dt = (p.takenAt||'').slice(5,10).replace('-','/');
     return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
       + '<img src="'+H(p.dataUrl)+'" alt="">'
@@ -9997,7 +10097,7 @@ function albumOnFilesPicked(ev) {
   for(let i=0; i<total; i++) {
     const f = files[i];
     downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
-      if(dataUrl) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'' });
+      if(dataUrl) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'' });
       else failed++;
       pending--;
       if(pending === 0) {
@@ -10026,7 +10126,25 @@ function albumOpenView(id) {
   if(img) img.src = p.dataUrl || '';
   const meta = document.getElementById('m-album-view-meta');
   if(meta) meta.textContent = (p.takenAt||'').slice(0,10).replace(/-/g,'/');
+  const folSel = document.getElementById('av-folder');
+  if(folSel) {
+    folSel.innerHTML = '<option value="">未分類</option>'
+      + _folderArr('album').map(function(f){ return '<option value="'+H(f.id)+'">'+H(f.name)+'</option>'; }).join('');
+    folSel.value = p.folderId || '';
+  }
   openModal('m-album-view');
+}
+/* アルバムビューアからフォルダを移動 */
+function albumViewMoveFolder() {
+  if(!_albumViewId) return;
+  const folSel = document.getElementById('av-folder');
+  if(!folSel) return;
+  const p = (S.albumPhotos||[]).find(function(x){ return x.id===_albumViewId; });
+  if(!p) return;
+  p.folderId = folSel.value || '';
+  saveS();
+  renderAlbum();
+  showToast(p.folderId ? ('「'+_folderName('album',p.folderId)+'」に移動しました') : '未分類に移動しました','success');
 }
 function albumDeleteCurrent() {
   if(!_albumViewId) return;
