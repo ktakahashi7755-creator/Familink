@@ -3497,6 +3497,16 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
+<!-- プライバシーポリシー / 利用規約 -->
+<div id="m-legal" class="modal-backdrop">
+  <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="legal-title">プライバシーポリシー</div>
+    <div id="legal-body" style="overflow-y:auto;flex:1;margin:4px 0 12px;-webkit-overflow-scrolling:touch;"></div>
+    <button class="btn btn-primary btn-block" onclick="closeModal('m-legal')">とじる</button>
+  </div>
+</div>
+
 <!-- お問い合わせ -->
 <div id="m-contact" class="modal-backdrop">
   <div class="modal">
@@ -8658,10 +8668,104 @@ function openFaq() {
 }
 function openContact() { openModal('m-contact'); }
 /* プライバシーポリシー / 利用規約を別タブで開く（docs/ 内の HTML） */
+/* ── 法的文書（アプリ内表示。外部タブ依存をやめ確実に表示） ── */
+const LEGAL_PRIVACY = {
+  title: 'プライバシーポリシー',
+  updated: '最終更新日：2026-05-16 ／ 事業者：ktakahashi7755-creator（個人開発）',
+  sections: [
+    { h:'1. はじめに', items:[
+      'Familink（以下「本アプリ」）は、家族の予定・タスク・体調・家計・準備リスト・家族ボードを共有するためのアプリです。開発者（以下「当方」）は、お客様のプライバシーを最大限に尊重します。',
+      '本アプリはデータを端末内（LocalStorage）にのみ保存し、外部サーバへ送信しません。'] },
+    { h:'2. 収集する情報', items:[
+      '2.1 個人を識別する情報：収集しません。入力された家族の名前・体調・家計・予定・投稿・写真は、すべてお客様の端末内にのみ保存されます。',
+      '2.2 端末識別子・利用統計：収集しません。解析ツールやクラッシュレポートの自動送信もありません。',
+      '2.3 マイク・音声データ：Hoku の音声入力は端末側の Web Speech API で処理され、当方は音声データを受信・保存しません。',
+      '2.4 写真・カメラ：撮影・選択した画像は端末内にのみ保存され、第三者には送信されません。'] },
+    { h:'3. 収集しない情報', items:[
+      '・氏名・メールアドレス・電話番号',
+      '・住所・位置情報（GPS）',
+      '・クレジットカード情報',
+      '・健康情報（体調記録は端末内のみ）',
+      '・連絡先・OSカレンダー連携',
+      '・端末識別子（IDFA等）・IPアドレス・アクセスログ'] },
+    { h:'4. クッキー・類似技術', items:[
+      '本アプリはクッキーを使用しません。Web版では LocalStorage を使用しますが、これは端末内にデータを保存する目的のみに使用します。'] },
+    { h:'5. 第三者サービス', items:[
+      '・Google Fonts（フォント配信のみ。当方が受け取るデータなし）',
+      '・Web Speech API（音声認識。端末側で完結）',
+      'これら以外の第三者サービス（解析・広告・SDK 等）は使用していません。'] },
+    { h:'6. データの保持と削除', items:[
+      'データはお客様の端末内にのみ保存されます。アプリ削除や設定の「データを削除」でいつでも全削除できます。当方はバックアップを保有しないため、削除後の復元はできません。'] },
+    { h:'7. 子どものプライバシー', items:[
+      '本アプリは13歳未満の子ども本人による利用を意図していません。保護者が子どもの情報を記録する用途で使用されますが、それらも端末内にのみ保存されます。'] },
+    { h:'8. 課金情報', items:[
+      'Familink プレミアム（月額480円予定）は将来提供予定です。課金処理は App Store / Google Play を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
+    { h:'9. データの利用目的', items:[
+      '入力データは、予定・タスク・家計・体調等の表示、Hoku の応答、集計表示のためにのみ、端末内で使用されます。外部送信は行いません。'] },
+    { h:'10. お問い合わせ', items:[
+      'GitHub Issues：github.com/ktakahashi7755-creator/Familink/issues'] },
+    { h:'11. ポリシーの変更', items:[
+      '変更時は本アプリ内および GitHub リポジトリで告知します。'] },
+    { h:'12. 準拠法', items:[
+      '本ポリシーは日本法に準拠し、解釈されます。'] }
+  ],
+  foot:'※ この草案は専門家による法務確認前のものです。App Store 公開前にレビューを推奨します。'
+};
+const LEGAL_TERMS = {
+  title: '利用規約',
+  updated: '最終更新日：2026-05-16 ／ 事業者：ktakahashi7755-creator（個人開発）',
+  sections: [
+    { h:'第1条（目的）', items:['本規約は Familink（以下「本アプリ」）の利用条件を定めます。利用者は本規約に同意したものとみなします。'] },
+    { h:'第2条（本アプリの内容）', items:['本アプリは家族間での予定・タスク・体調・家計・準備リスト・家族ボードの管理を支援するツールです。すべてのデータは端末内に保存され、外部サーバには送信されません。'] },
+    { h:'第3条（利用料金）', items:[
+      '基本機能は無料でご利用いただけます。',
+      '一部機能（Familink プレミアム）は将来、月額480円（予定）の有料プランとして提供を予定しています。料金・内容・時期は事前告知のうえ変更する場合があります。'] },
+    { h:'第4条（禁止事項）', items:[
+      '・法令または公序良俗に違反する行為',
+      '・リバースエンジニアリング、改変、再配布',
+      '・本アプリの動作を妨げる行為',
+      '・他の利用者・第三者の権利を侵害する行為',
+      '・本アプリを商用目的で第三者に転用する行為'] },
+    { h:'第5条（自己責任の原則）', items:[
+      '本アプリは医療・法律・金融の専門助言を提供するものではありません。重要な判断は必要に応じて専門家にご相談ください。利用により生じた損害について開発者は責任を負いません。'] },
+    { h:'第6条（データの取扱い）', items:[
+      '入力データは利用者の端末内にのみ保存され、開発者を含む第三者はアクセスできません。端末の故障・紛失・初期化でデータは消失する場合があります。手動の書き出し / 読み込み機能で定期的なバックアップを推奨します。'] },
+    { h:'第7条（Hoku の利用）', items:[
+      'Hoku は入力文を端末内で分類し保存先や操作を提案する機能です。応答は参考情報であり、専門的助言ではありません。音声入力は端末ブラウザの Web Speech API を利用します。'] },
+    { h:'第8条（プレミアム機能）', items:[
+      'プレミアム機能は将来提供予定です。課金は App Store / Google Play を通じて行います。解約は各ストアアカウントの設定から行ってください。'] },
+    { h:'第9条（サービスの変更・中止）', items:[
+      '開発者は事前通知なく本アプリの内容を変更・中止する場合があります。これにより生じた損害について責任を負いません。'] },
+    { h:'第10条（免責事項）', items:[
+      '開発者は本アプリの完全性・正確性・有用性を保証しません。利用により生じた損害について一切の責任を負いません。'] },
+    { h:'第11条（規約の変更）', items:[
+      '変更後の規約は本アプリ内および GitHub リポジトリで告知します。継続利用された場合、変更後の規約に同意したものとみなします。'] },
+    { h:'第12条（準拠法・裁判管轄）', items:[
+      '本規約は日本法に準拠します。紛争については開発者の所在地を管轄する裁判所を専属的合意管轄裁判所とします。'] },
+    { h:'第13条（お問い合わせ）', items:[
+      'GitHub Issues：github.com/ktakahashi7755-creator/Familink/issues'] }
+  ],
+  foot:'※ この草案は専門家による法務確認前のものです。App Store 公開前にレビューを推奨します。'
+};
+function _renderLegal(doc) {
+  let h = '<div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;">'+H(doc.updated)+'</div>';
+  doc.sections.forEach(function(s){
+    h += '<div style="font-size:14px;font-weight:800;color:var(--text);margin:16px 0 6px;border-bottom:1px solid var(--border-light);padding-bottom:5px;">'+H(s.h)+'</div>';
+    s.items.forEach(function(it){
+      const isLi = it.charAt(0) === '・';
+      h += '<div style="font-size:13px;line-height:1.8;color:var(--text-sub);margin-bottom:5px;'+(isLi?'padding-left:4px;':'')+'">'+H(it)+'</div>';
+    });
+  });
+  h += '<div style="font-size:11px;color:var(--text-muted);margin-top:18px;line-height:1.7;border-top:1px solid var(--border-light);padding-top:12px;">'+H(doc.foot||'')+'</div>';
+  return h;
+}
 function openLegalDoc(which) {
-  const url = (which === 'terms') ? 'terms-of-use.html' : 'privacy-policy.html';
-  try { window.open(url, '_blank'); }
-  catch(e) { try { location.href = url; } catch(_){} }
+  const doc = (which === 'terms') ? LEGAL_TERMS : LEGAL_PRIVACY;
+  const t = document.getElementById('legal-title');
+  if(t) t.textContent = doc.title;
+  const body = document.getElementById('legal-body');
+  if(body) body.innerHTML = _renderLegal(doc);
+  openModal('m-legal');
 }
 
 /* ============================================================

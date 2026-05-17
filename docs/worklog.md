@@ -10457,3 +10457,46 @@ Wave 121 — 「まとめて追加」の発見性を改善（書類・アルバ�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 121: make batch-add discoverable on documents & album`
+
+---
+
+## 2026-05-17 18:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 124 — プライバシーポリシー / 利用規約をアプリ内モーダル表示に変更
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- バグ：openLegalDoc が window.open で外部 HTML を別タブ表示していたため、
+  アプリ内ブラウザ（LINE等のin-app browser）ではポップアップがブロックされ
+  「うまく反映されない」状態だった。
+- 修正：プライバシーポリシー / 利用規約の全文を JS データ（LEGAL_PRIVACY /
+  LEGAL_TERMS）として埋め込み、アプリ内モーダル m-legal でスクロール表示。
+  外部タブに依存しないため、どのブラウザ・in-app browser でも確実に表示される。
+- 内容は docs/privacy-policy.html・terms-of-use.html を踏襲（端末内保存・
+  非収集・第三者サービス・課金・準拠法・全13条 等）。
+
+### テスト結果（全グリーン）
+- wave113-test 14/14（うち規約モーダル表示3件）
+- app-audit 70・folder 19・download 12・batch-add 9・auth 25・
+  integration 55・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1487=1487 / md5 一致
+
+### 既存機能への影響
+- 設定→情報→プライバシーポリシー/利用規約の表示方式が別タブ→アプリ内モーダルに。
+  docs/privacy-policy.html・terms-of-use.html は単独ページとしては残置。
+
+### iPhone確認ポイント
+- 設定→情報→プライバシーポリシー / 利用規約 をタップしてモーダルが開き、
+  全文がスクロールで読めるか（アプリ内ブラウザでも開くか）
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 124: show privacy policy & terms in-app modal`
