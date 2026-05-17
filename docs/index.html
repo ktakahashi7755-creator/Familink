@@ -11482,6 +11482,7 @@ function selectAvatarItem(avatarId) {
 /* プレミアムゲートモーダルを表示 */
 function showPremiumGate() {
   document.getElementById('m-premium-gate')?.classList.remove('hidden');
+  if(typeof selectPremiumPlan === 'function') selectPremiumPlan(_premiumPlan);
   openModal('m-premium-gate');
 }
 
@@ -11490,13 +11491,82 @@ function closePremiumGate() {
   setTimeout(() => document.getElementById('m-premium-gate')?.classList.add('hidden'), 300);
 }
 
-/* デモ用：プレミアム状態をトグル（実際は課金処理に差し替え） */
+/* ── プレミアム料金プランの選択 ── */
+let _premiumPlan = 'yearly';
+function selectPremiumPlan(p) {
+  _premiumPlan = (p === 'monthly') ? 'monthly' : 'yearly';
+  const m = document.getElementById('pg-plan-monthly');
+  const y = document.getElementById('pg-plan-yearly');
+  if(m) {
+    m.style.border = (_premiumPlan === 'monthly') ? '2px solid #FFB800' : '1.5px solid var(--border)';
+    m.style.background = (_premiumPlan === 'monthly') ? '#FFFBF0' : '#fff';
+  }
+  if(y) {
+    y.style.border = (_premiumPlan === 'yearly') ? '2px solid #FFB800' : '1.5px solid var(--border)';
+    y.style.background = (_premiumPlan === 'yearly') ? '#FFFBF0' : '#fff';
+  }
+}
+function _premiumPlanInfo() {
+  return (_premiumPlan === 'monthly')
+    ? { name:'月額プラン', price:'¥480',   cycle:'毎月', note:'いつでも解約できます' }
+    : { name:'年額プラン', price:'¥4,800', cycle:'毎年', note:'月額より2ヶ月分お得です' };
+}
+/* お支払い登録画面を開く */
+function openPremiumCheckout() {
+  const pl = _premiumPlanInfo();
+  const sum = document.getElementById('pc-plan-summary');
+  if(sum) sum.innerHTML =
+      '<div style="font-size:11px;font-weight:700;color:#B8860B;margin-bottom:3px;">選択中のプラン</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">'+pl.name+'</span>'
+    +   '<span style="font-size:18px;font-weight:800;color:var(--text);">'+pl.price
+    +     '<span style="font-size:11px;font-weight:600;color:var(--text-muted);"> / '+pl.cycle+'</span></span>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text-sub);margin-top:2px;">'+pl.note+'</div>';
+  const cb = document.getElementById('pc-agree');
+  if(cb) cb.checked = false;
+  ['pc-number','pc-exp','pc-cvc','pc-name'].forEach(function(id){
+    const e = document.getElementById(id); if(e) e.value = '';
+  });
+  pcToggleAgree();
+  closeModal('m-premium-gate');
+  openModal('m-premium-checkout');
+}
+function pcToggleAgree() {
+  const cb = document.getElementById('pc-agree');
+  const btn = document.getElementById('pc-submit');
+  if(!btn) return;
+  const agreed = !!(cb && cb.checked);
+  btn.disabled = !agreed;
+  btn.style.opacity = agreed ? '1' : '.5';
+}
+/* お支払い登録の送信。
+   ※ カード情報は端末内に保存・外部送信しない（トライアル運用）。
+   　 正式リリース時の実決済は Stripe 等の決済事業者 / App Store IAP を通じて行う
+   　 （アプリが生のカード番号を直接扱うことは PCI-DSS / Apple 規約上できない）。 */
+function submitPremiumCheckout() {
+  const cb = document.getElementById('pc-agree');
+  if(!cb || !cb.checked) { showToast('利用規約への同意が必要です','error'); return; }
+  const num  = (document.getElementById('pc-number').value || '').replace(/[\s-]/g,'');
+  const exp  = (document.getElementById('pc-exp').value || '').trim();
+  const cvc  = (document.getElementById('pc-cvc').value || '').trim();
+  const name = (document.getElementById('pc-name').value || '').trim();
+  if(!/^\d{14,16}$/.test(num))     { showToast('カード番号を正しく入力してください','error'); return; }
+  if(!/^\d{2}\/\d{2}$/.test(exp))  { showToast('有効期限を MM/YY 形式で入力してください','error'); return; }
+  if(!/^\d{3,4}$/.test(cvc))       { showToast('セキュリティコードを入力してください','error'); return; }
+  if(!name)                        { showToast('カード名義を入力してください','error'); return; }
+  closeModal('m-premium-checkout');
+  activatePremiumDemo();
+}
+
+/* デモ用：プレミアム状態を有効化（実決済は正式リリース時に差し替え） */
 function activatePremiumDemo() {
   S.isPremiumUser = true;
   saveS();
   closePremiumGate();
-  renderAvatarGrid();
-  renderAvatarCatTabs();
+  try { renderAvatarGrid(); } catch(_){}
+  try { renderAvatarCatTabs(); } catch(_){}
+  try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
   showToast('プレミアムプランへようこそ！', 'success');
 }
 
@@ -16765,27 +16835,72 @@ document.addEventListener('touchcancel', () => {
         </div>
       </div>
     </div>
-    <!-- 料金 -->
+    <!-- 料金（タップで選択）-->
     <div style="display:flex;gap:10px;margin-bottom:22px;">
-      <div style="flex:1;border:1.5px solid var(--border);border-radius:var(--r);padding:14px 10px;">
+      <div id="pg-plan-monthly" onclick="selectPremiumPlan('monthly')" style="flex:1;border:1.5px solid var(--border);border-radius:var(--r);padding:14px 10px;cursor:pointer;background:#fff;transition:all .15s;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">月額プラン</div>
         <div style="font-size:20px;font-weight:800;color:var(--text);">¥480</div>
         <div style="font-size:10px;color:var(--text-muted);">/月</div>
       </div>
-      <div style="flex:1;border:2px solid #FFB800;border-radius:var(--r);padding:14px 10px;position:relative;background:#FFFBF0;">
+      <div id="pg-plan-yearly" onclick="selectPremiumPlan('yearly')" style="flex:1;border:2px solid #FFB800;border-radius:var(--r);padding:14px 10px;position:relative;background:#FFFBF0;cursor:pointer;transition:all .15s;">
         <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#FFB800;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:var(--r-full);">おすすめ</div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">年額プラン</div>
         <div style="font-size:20px;font-weight:800;color:var(--text);">¥4,800</div>
         <div style="font-size:10px;color:#52C47A;font-weight:600;">2ヶ月分お得！</div>
       </div>
     </div>
-    <button class="btn btn-block" onclick="activatePremiumDemo()"
+    <button class="btn btn-block" onclick="openPremiumCheckout()"
       style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;font-weight:800;font-size:16px;border:none;box-shadow:0 4px 16px rgba(255,165,0,.4);margin-bottom:12px;">
       今すぐ始める
     </button>
     <button class="btn btn-ghost btn-block" onclick="closePremiumGate()">キャンセル</button>
   </div>
 </div>
+
+<!-- プレミアム お支払い登録 -->
+<div id="m-premium-checkout" class="modal-backdrop">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">お支払い情報の登録</div>
+    <div class="modal-form">
+      <!-- 選択中プラン -->
+      <div id="pc-plan-summary" style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-radius:12px;padding:14px 16px;margin-bottom:4px;"></div>
+      <div class="field">
+        <div class="field-label">カード番号</div>
+        <input class="input" id="pc-number" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <div class="field-label">有効期限 (MM/YY)</div>
+          <input class="input" id="pc-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="08/29" maxlength="5">
+        </div>
+        <div class="field">
+          <div class="field-label">セキュリティコード</div>
+          <input class="input" id="pc-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">カード名義</div>
+        <input class="input" id="pc-name" autocomplete="cc-name" placeholder="TARO YAMADA" maxlength="40">
+      </div>
+      <div style="font-size:11px;line-height:1.65;color:var(--text-muted);background:var(--bg-muted);border-radius:10px;padding:10px 12px;">
+        ・お支払いは毎月（または毎年）自動更新されます。解約はいつでも設定から行えます。<br>
+        ・カード情報は安全に取り扱われ、端末内には保存されません。<br>
+        ・現在はトライアル運用中です。実際の決済は正式リリース時に安全な決済事業者を通じて行います。
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:8px 0;">
+        <input type="checkbox" id="pc-agree" onchange="pcToggleAgree()" style="width:18px;height:18px;flex:none;margin-top:1px;">
+        <span>利用規約・自動更新に同意します</span>
+      </label>
+      <button id="pc-submit" class="btn btn-block" disabled onclick="submitPremiumCheckout()"
+        style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;font-weight:800;font-size:15px;border:none;opacity:.5;">
+        登録して始める
+      </button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-premium-checkout')">戻る</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ===== OFFICIAL AVATAR SELECTOR MODAL ===== -->
 <div id="m-avatar-select" class="modal-backdrop hidden">
