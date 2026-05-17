@@ -2113,21 +2113,6 @@ nav#tabbar.hidden { display: none !important; }
   padding: 12px 14px; font-size: 14px; color: var(--text);
   border: 1px solid rgba(74,144,226,.12);
 }
-.ob2-role-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 8px; margin-top: 6px;
-}
-.ob2-role-btn {
-  background: #fff; border: 1.5px solid rgba(74,144,226,.18);
-  border-radius: 10px; padding: 10px 4px; font-size: 13px;
-  color: var(--text); cursor: pointer; transition: all .15s ease;
-  font-weight: 600;
-}
-.ob2-role-btn:active { transform: scale(.96); }
-.ob2-role-btn.selected {
-  background: linear-gradient(135deg,#4A90E2,#7BB3F5); color: #fff;
-  border-color: transparent; box-shadow: 0 4px 12px rgba(74,144,226,.25);
-}
 .ob2-btn-primary {
   width: 100%; background: linear-gradient(135deg,#4A90E2,#7BB3F5);
   color: #fff; border: none; border-radius: 14px;
@@ -2509,11 +2494,6 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">表示名</div>
         <input class="input" id="ob2-displayName" placeholder="例：パパ、ママ、たろう" maxlength="12">
-      </div>
-      <div class="field">
-        <div class="field-label">あなたの役割</div>
-        <div class="ob2-role-grid" id="ob2-role-grid"></div>
-        <input class="input" id="ob2-roleCustom" placeholder="役割を自由に入力（例：里親・親戚・ベビーシッター）" maxlength="14" style="display:none;margin-top:8px;">
       </div>
       <div class="field">
         <div class="field-label">家族の呼び方（任意）</div>
@@ -4642,30 +4622,10 @@ function _applyQuickDemo() {
 /* ============================================================
    ONBOARDING (Wave 13) — 初回体験フロー
    ============================================================ */
-const OB2_ROLES = [
-  { id:'parent_pa',   label:'パパ' },
-  { id:'parent_ma',   label:'ママ' },
-  { id:'child_son',   label:'息子' },
-  { id:'child_dau',   label:'娘' },
-  { id:'grand_pa',    label:'祖父' },
-  { id:'grand_ma',    label:'祖母' },
-  { id:'partner',     label:'パートナー' },
-  { id:'sibling',     label:'兄弟姉妹' },
-  { id:'grandchild',  label:'孫' },
-  { id:'uncle',       label:'おじ' },
-  { id:'aunt',        label:'おば' },
-  { id:'inlaw_pa',    label:'義父' },
-  { id:'inlaw_ma',    label:'義母' },
-  { id:'baby',        label:'赤ちゃん' },
-  { id:'guardian',    label:'保護者' },
-  { id:'other',       label:'その他' },
-];
 let _ob2Step = 1;
-let _ob2RoleId = null;
 
 function startOnboarding() {
   _ob2Step = 1;
-  _ob2RoleId = null;
   // 画像注入（IMGS が読めるタイミング）
   const heroEl = document.getElementById('ob2-hero-img');
   if(heroEl && IMGS && IMGS.hoku) heroEl.src = IMGS.hoku;
@@ -4676,18 +4636,6 @@ function startOnboarding() {
   if(dn) dn.value = (S.userProfile && S.userProfile.displayName) || '';
   const fn = document.getElementById('ob2-familyName');
   if(fn) fn.value = (S.userProfile && S.userProfile.familyName) || '';
-  // 役割ボタン構築
-  ob2RenderRoles();
-  // 既選択の役割
-  if(S.userProfile && S.userProfile.roleId) {
-    _ob2RoleId = S.userProfile.roleId;
-    ob2RenderRoles();
-  }
-  const _obCust = document.getElementById('ob2-roleCustom');
-  if(_obCust) {
-    _obCust.value = (S.userProfile && S.userProfile.roleCustom) || '';
-    _obCust.style.display = (_ob2RoleId === 'other') ? 'block' : 'none';
-  }
   // 日付デフォルト：明日
   const dateEl = document.getElementById('ob2-firstDate');
   if(dateEl) {
@@ -4697,27 +4645,6 @@ function startOnboarding() {
   ob2GoStep(1);
   document.getElementById('tabbar').classList.add('hidden');
   showScreen('s-onboard');
-}
-
-function ob2RenderRoles() {
-  const grid = document.getElementById('ob2-role-grid');
-  if(!grid) return;
-  grid.innerHTML = OB2_ROLES.map(r =>
-    `<button class="ob2-role-btn ${r.id===_ob2RoleId?'selected':''}" onclick="ob2SelectRole('${r.id}')">${H(r.label)}</button>`
-  ).join('');
-}
-function ob2SelectRole(id) {
-  _ob2RoleId = id;
-  const dn = document.getElementById('ob2-displayName');
-  if(dn && !dn.value) {
-    const found = OB2_ROLES.find(r => r.id===id);
-    if(found && (id==='parent_pa' || id==='parent_ma' || id==='grand_pa' || id==='grand_ma')) {
-      dn.value = found.label;
-    }
-  }
-  ob2RenderRoles();
-  const cust = document.getElementById('ob2-roleCustom');
-  if(cust) cust.style.display = (id === 'other') ? 'block' : 'none';
 }
 
 function ob2GoStep(n) {
@@ -4741,18 +4668,9 @@ function ob2NextSkip() { ob2GoStep(Math.min(4, _ob2Step+1)); }
 function ob2SaveProfile() {
   const dn = document.getElementById('ob2-displayName').value.trim();
   if(!dn) { showToast('表示名を入力してください','error'); return; }
-  if(!_ob2RoleId) { showToast('役割を選んでください','error'); return; }
-  let roleCustom = '';
-  if(_ob2RoleId === 'other') {
-    const cv = document.getElementById('ob2-roleCustom');
-    roleCustom = cv ? cv.value.trim() : '';
-    if(!roleCustom) { showToast('役割を入力してください','error'); return; }
-  }
   const fn = document.getElementById('ob2-familyName').value.trim();
   S.userProfile = {
     displayName: dn,
-    roleId: _ob2RoleId,
-    roleCustom: roleCustom,
     familyName: fn || '',
     createdAt: todayStr ? todayStr() : (new Date()).toISOString().slice(0,10)
   };
@@ -4809,50 +4727,18 @@ function reopenOnboarding() {
 }
 
 /* プロフィール編集（Wave 21A） */
-let _peRoleId = null;
 function openProfileEdit() {
   const p = S.userProfile || {};
-  _peRoleId = p.roleId || null;
   document.getElementById('pe-displayName').value = p.displayName || '';
   document.getElementById('pe-familyName').value  = p.familyName || '';
-  const cust = document.getElementById('pe-roleCustom');
-  if(cust) cust.value = p.roleCustom || '';
-  peRenderRoles();
-  _peToggleCustomRole();
   openModal('m-profile-edit');
-}
-function peRenderRoles() {
-  const grid = document.getElementById('pe-role-grid');
-  if(!grid) return;
-  grid.innerHTML = OB2_ROLES.map(r =>
-    `<button class="ob2-role-btn ${r.id===_peRoleId?'selected':''}" onclick="peSelectRole('${H(r.id)}')">${H(r.label)}</button>`
-  ).join('');
-}
-/* 「その他」選択時のみ自由入力欄を表示 */
-function _peToggleCustomRole() {
-  const cust = document.getElementById('pe-roleCustom');
-  if(cust) cust.style.display = (_peRoleId === 'other') ? 'block' : 'none';
-}
-function peSelectRole(id) {
-  _peRoleId = id;
-  peRenderRoles();
-  _peToggleCustomRole();
 }
 function saveProfileEdit() {
   const dn = document.getElementById('pe-displayName').value.trim();
   if(!dn) { showToast('表示名を入力してください','error'); return; }
   const fn = document.getElementById('pe-familyName').value.trim();
-  const roleId = _peRoleId || (S.userProfile && S.userProfile.roleId) || 'parent_pa';
-  let roleCustom = '';
-  if(roleId === 'other') {
-    const cv = document.getElementById('pe-roleCustom');
-    roleCustom = cv ? cv.value.trim() : '';
-    if(!roleCustom) { showToast('役割を入力してください','error'); return; }
-  }
   if(!S.userProfile) S.userProfile = {};
   S.userProfile.displayName = dn;
-  S.userProfile.roleId      = roleId;
-  S.userProfile.roleCustom  = roleCustom;
   S.userProfile.familyName  = fn || '';
   saveS();
   closeModal('m-profile-edit');
@@ -17023,11 +16909,6 @@ document.addEventListener('touchcancel', () => {
       <div class="field">
         <div class="field-label">表示名 <span style="color:var(--red)">*</span></div>
         <input class="input" id="pe-displayName" placeholder="例：パパ、ママ、たろう" maxlength="12">
-      </div>
-      <div class="field">
-        <div class="field-label">あなたの役割</div>
-        <div class="ob2-role-grid" id="pe-role-grid"></div>
-        <input class="input" id="pe-roleCustom" placeholder="役割を自由に入力（例：里親・親戚・ベビーシッター）" maxlength="14" style="display:none;margin-top:8px;">
       </div>
       <div class="field">
         <div class="field-label">家族の呼び方（任意）</div>
