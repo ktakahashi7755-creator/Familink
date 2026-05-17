@@ -4444,7 +4444,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.0.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account','demoSeeded'];
 
 function saveS() {
   const d = {};
@@ -5145,7 +5145,7 @@ function _applyQuickDemo() {
   S.loggedIn = true;
   S.user = MEMBERS[0];
   S.events = []; S.tasks = []; S.txs = []; S.posts = []; S.announces = []; S.health = []; S.prep = []; S.prepRoutines = []; S.notifs = [];
-  seedDemo();
+  seedDemo(true);
   saveS();
   if(!S.onboardCompleted) {
     startOnboarding();
@@ -5297,7 +5297,10 @@ function doLogout() {
 /* ============================================================
    DEMO DATA
    ============================================================ */
-function seedDemo() {
+function seedDemo(force) {
+  // Wave 134: デモデータは初回のみ投入。一度本番利用を始めたら、
+  // 予定やタスクを空にしても再ログインでデモが復活しないようにする。
+  if(!force && S.demoSeeded) return;
   const t = todayStr();
   if(!S.events.length) S.events = [
     {id:uid(),title:'太郎 英語',date:t,time:'16:00',color:'#4A90E2',member:'seito',note:'教材を持っていく'},
@@ -5388,6 +5391,7 @@ function seedDemo() {
   // seedDemo で作成したタスクは旧スキーマ (text/member/done/at) のため、
   // 描画で使う新スキーマ (title/assignedTo/status/...) に正規化する
   migrateTaskData();
+  S.demoSeeded = true;
 }
 
 /* ============================================================

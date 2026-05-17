@@ -10780,3 +10780,50 @@ Wave 132 — アルバムの写真追加をシンプルに（OS標準シート�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 132: album add opens native photo sheet directly`
+
+---
+
+## 2026-05-17 22:15  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 134 — 本番運用向け：デモデータの再投入を防止（データ復活バグの予防）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- ホーム画面に追加して常時利用する想定に合わせ、データ永続性を強化。
+- seedDemo に demoSeeded フラグを導入。デモデータは初回のみ投入し、
+  一度本番利用を始めたら、予定やタスクを空にして再ログインしても
+  デモデータが復活しないようにした。
+- 「デモデータで試してみる」ボタン（_applyQuickDemo）は seedDemo(true) で
+  従来どおり明示的に再投入可能。
+- PERSIST に 'demoSeeded' を追加。
+
+### 補足（ユーザーの懸念への回答）
+- ログアウトはデータを消さない（loggedIn/user のみ変更）。再ログインで
+  全データはそのまま復元される。
+- seedDemo は既存配列が空のときだけ投入する設計だったため、空にした
+  カテゴリにデモが復活する余地があった → demoSeeded フラグで解消。
+
+### テスト結果（全グリーン）
+- demo-seed-test 7/7（初回投入/再投入されない/実データ保持/force/再ログイン不変）
+- app-audit 70・integration 55・persistence 72・e2e-render 10・storage 17・
+  scenario 27・wave64-systematic 69 — 全 PASS
+- 構文 OK / md5 一致
+
+### 既存機能への影響
+- なし。既存ユーザーは次回ログイン時に demoSeeded が立つだけ（データ不変）。
+
+### iPhone確認ポイント
+- ホーム画面に追加 → 常用 → ログアウト/再ログインでデータが保持されるか
+- 予定を全削除して再ログインしてもデモが復活しないか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 134: seed demo data only once for production use`
