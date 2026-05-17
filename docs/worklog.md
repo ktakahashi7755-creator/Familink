@@ -10286,3 +10286,51 @@ Wave 117 — Hoku 家計の理解精度を強化（スクショ基準）
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 117: improve Hoku budget comprehension (item title & category)`
+
+---
+
+## 2026-05-17 16:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 118 — 書類の写真ビューア + 端末ダウンロード（書類 / アルバム）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 書類に入れた写真を見られるように：
+  - 書類一覧のサムネイルをタップで全画面ビューア（m-doc-photo）を開く。
+  - 書類編集モーダルのプレビュー画像もタップで拡大。「タップで拡大」「端末に保存」リンク追加。
+- 端末ダウンロード機能を新設（書類 / アルバム共通）：
+  - downloadDataUrl() — base64画像を <a download> で端末に保存。拡張子は
+    dataURLのMIMEから判定（jpeg→jpg）。ファイル名は安全化。
+  - アルバムビューアに「端末に保存」ボタンを追加。
+  - 書類写真ビューアに「端末に保存」ボタンを追加。
+- iOS Safari は <a download> が新規タブ表示になる場合があるため、ビューアに
+  「長押しで保存」の案内を併記。
+
+### テスト結果（全グリーン）
+- download-test 12/12（拡張子判定/ダウンロード/ビューア表示）
+- app-audit 70・folder 19・guide 11・premium 13・wave113 12・auth 25・
+  hoku-expense-flow 19・integration 55・e2e-render 10・persistence 72・storage 17
+- 構文 OK / div バランス 1466=1466 / md5 一致
+
+### 既存機能への影響
+- なし。書類写真プレビューの描画を共通関数化し、閲覧・保存導線を追加しただけ。
+
+### 未確認事項
+- iPhone 実機での <a download> 挙動（新規タブ表示になる可能性）
+
+### iPhone確認ポイント
+- 書類一覧で写真サムネイルをタップしてビューアが開くか
+- アルバム / 書類ビューアの「端末に保存」で写真が保存できるか
+  （保存されない場合は画像長押しで保存できるか）
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 118: document photo viewer + device download for docs & album`

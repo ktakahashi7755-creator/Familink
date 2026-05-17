@@ -2641,6 +2641,7 @@ nav#tabbar.hidden { display: none !important; }
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <div id="m-album-view-meta" style="font-size:12px;opacity:.85;"></div>
       <div style="display:flex;gap:6px;">
+        <button onclick="albumDownloadCurrent()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">端末に保存</button>
         <button onclick="albumDeleteCurrent()" style="background:rgba(255,107,107,.85);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">削除</button>
         <button onclick="closeModal('m-album-view')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
       </div>
@@ -2650,6 +2651,21 @@ nav#tabbar.hidden { display: none !important; }
       <span style="font-size:11px;opacity:.8;flex:none;">フォルダ</span>
       <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:12px;"></select>
     </div>
+  </div>
+</div>
+
+<!-- 書類の写真ビューア -->
+<div id="m-doc-photo" class="modal-backdrop hidden" onclick="closeModal('m-doc-photo')">
+  <div class="modal" style="max-height:90vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+      <div id="m-doc-photo-title" style="font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">書類の写真</div>
+      <div style="display:flex;gap:6px;flex:none;">
+        <button onclick="docPhotoDownload()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">端末に保存</button>
+        <button onclick="closeModal('m-doc-photo')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
+      </div>
+    </div>
+    <img id="m-doc-photo-img" src="" style="width:100%;max-height:74vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
+    <div style="font-size:11px;opacity:.65;margin-top:8px;text-align:center;">うまく保存できないときは、画像を長押しして保存してください。</div>
   </div>
 </div>
 
@@ -10561,8 +10577,9 @@ function _archiveRow(d) {
   const thumb = d.photo
     ? '<img src="'+H(d.photo)+'" alt="">'
     : ICON('document',26);
+  const thumbClick = d.photo ? ' onclick="event.stopPropagation();openDocPhotoById(\''+H(d.id)+'\')" style="cursor:zoom-in;"' : '';
   return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
-    + '<div class="archive-thumb">'+thumb+'</div>'
+    + '<div class="archive-thumb"'+thumbClick+'>'+thumb+'</div>'
     + '<div class="archive-main">'
     +   '<div class="archive-title">'+H(d.title||'(無題)')+'</div>'
     +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
@@ -10606,6 +10623,15 @@ function renderArchive() {
 }
 let _archiveEditId = null;
 let _archivePhotoBuf = null;
+/* 書類モーダル内の写真プレビュー（タップ拡大 + 端末保存） */
+function _archivePhotoPreviewHtml() {
+  if(!_archivePhotoBuf) return '';
+  return '<img src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
+    + '<div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;font-weight:700;">'
+    + '<span onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="color:var(--primary);cursor:pointer;">タップで拡大</span>'
+    + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">端末に保存</span>'
+    + '</div>';
+}
 function openArchiveAdd(id) {
   _ensureArchive();
   _archiveEditId = null;
@@ -10628,10 +10654,8 @@ function openArchiveAdd(id) {
   }
   document.getElementById('aa-memo').value  = memo;
   document.getElementById('aa-photo').value = '';
-  document.getElementById('aa-photo-preview').innerHTML = photo
-    ? '<img src="'+H(photo)+'" style="max-width:100%;max-height:140px;border-radius:8px;">'
-    : '';
   _archivePhotoBuf = photo || null;
+  document.getElementById('aa-photo-preview').innerHTML = _archivePhotoPreviewHtml();
   openModal('m-archive-add');
   setTimeout(function(){ document.getElementById('aa-title').focus(); }, 200);
 }
@@ -10641,7 +10665,7 @@ function archiveOnPhotoPicked(ev) {
   // Wave 58: ダウンスケール → 容量を抑制
   downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
     _archivePhotoBuf = dataUrl;
-    document.getElementById('aa-photo-preview').innerHTML = '<img src="'+H(_archivePhotoBuf)+'" style="max-width:100%;max-height:140px;border-radius:8px;">';
+    document.getElementById('aa-photo-preview').innerHTML = _archivePhotoPreviewHtml();
   });
 }
 function saveArchiveAdd() {
@@ -10788,6 +10812,50 @@ function albumDeleteCurrent() {
   _albumViewId = null;
   closeModal('m-album-view');
   renderAlbum();
+}
+
+/* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
+function downloadDataUrl(dataUrl, baseName) {
+  if(!dataUrl) { showToast('保存できる画像がありません','error'); return; }
+  try {
+    const m = String(dataUrl).match(/^data:image\/([a-zA-Z]+)/);
+    const ext = m ? (m[1].toLowerCase()==='jpeg' ? 'jpg' : m[1].toLowerCase()) : 'jpg';
+    const safe = (baseName||'familink').replace(/[\\/:*?"<>|\s　]+/g,'_').slice(0,40) || 'familink';
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = safe + '.' + ext;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('端末に保存しました');
+  } catch(e) {
+    showToast('保存できませんでした。画像を長押しで保存してください','error');
+  }
+}
+function albumDownloadCurrent() {
+  const p = (S.albumPhotos||[]).find(function(x){ return x.id===_albumViewId; });
+  if(!p) { showToast('保存できる写真がありません','error'); return; }
+  downloadDataUrl(p.dataUrl, 'familink_' + ((p.takenAt||'').slice(0,10) || 'photo'));
+}
+
+/* ── 書類の写真ビューア ── */
+let _docPhotoCur = '';
+function openDocPhoto(dataUrl, title) {
+  if(!dataUrl) return;
+  _docPhotoCur = dataUrl;
+  const img = document.getElementById('m-doc-photo-img');
+  if(img) img.src = dataUrl;
+  const t = document.getElementById('m-doc-photo-title');
+  if(t) t.textContent = title || '書類の写真';
+  openModal('m-doc-photo');
+}
+function docPhotoDownload() {
+  const t = document.getElementById('m-doc-photo-title');
+  downloadDataUrl(_docPhotoCur, 'familink_' + ((t && t.textContent) || '書類'));
+}
+function openDocPhotoById(id) {
+  const d = (S.docs||[]).find(function(x){ return x.id===id; });
+  if(d && d.photo) openDocPhoto(d.photo, d.title || '書類の写真');
 }
 
 function shopHistRepost(id) {
