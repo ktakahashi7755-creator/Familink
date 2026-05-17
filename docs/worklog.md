@@ -10184,3 +10184,51 @@ Wave 115 — 書類 / アルバムの空状態を上質に刷新
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 115: refined empty states for documents & album`
+
+---
+
+## 2026-05-17 15:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 116 — 書類 / アルバムを色付きフォルダのグリッド階層に刷新
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 横並びチップ式フォルダを廃し、参考スクショを踏まえた色付きフォルダの
+  グリッド階層に刷新（丸パクリせず Familink のトーンで上質に）。
+- トップ階層：色付きフォルダカードのグリッド（フォルダ名 / 件数 / 操作）+
+  「新規フォルダ」カード + フォルダ未分類アイテム。
+- フォルダ内：戻る + フォルダ名 + 操作ボタンのヘッダー + アイテム一覧 / 空状態。
+- フォルダに色（8色パレット）を追加。作成・編集モーダル m-folder-edit で
+  名前と色を設定。フォルダ操作シート m-folder-opts（編集 / 削除）。
+- フォルダアイコンは色を反映した2トーン SVG。
+- selectFolder / deleteFolder の既存挙動は維持（中のアイテムは削除されず未分類へ）。
+
+### テスト結果（全グリーン）
+- folder-test 19/19（作成/色/グリッド/絞り込み/編集/削除/操作シート）
+- app-audit 70・guide 11・premium 13・wave113 12・auth 25
+- integration 55・e2e-render 10・storage 17・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1459=1459 / md5 一致
+
+### 既存機能への影響
+- フォルダ UI を刷新。データ構造はフォルダに color を追加しただけで後方互換。
+- 旧 _folderBar / renameFolder は廃止（editFolder + saveFolderEdit に統合）。
+
+### 未確認事項
+- Hoku 家計マルチターン精度の改善は次セッションで対応
+
+### iPhone確認ポイント
+- 書類保管庫・アルバムでフォルダグリッドが綺麗に並ぶか
+- フォルダ作成で色が選べるか / フォルダをタップして中に入れるか
+- フォルダ操作（… ボタン）で編集・削除ができるか
+
+### 次にやること
+- Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 116: colored folder grid hierarchy for documents & album`

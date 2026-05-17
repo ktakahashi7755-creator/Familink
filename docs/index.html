@@ -628,6 +628,42 @@ select.input {
 }
 .es-cta:active { transform:scale(.96); box-shadow:0 3px 8px rgba(74,130,200,.24); }
 .es-cta svg { display:block; }
+/* Wave 116: 色付きフォルダのグリッド階層 */
+.fg-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px 8px; padding:8px 2px 18px; }
+.fg-card { display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; position:relative; padding-top:2px; }
+.fg-card:active .fg-folder { transform:scale(.93); }
+.fg-folder { width:64px; height:56px; transition:var(--t-spring); filter:drop-shadow(0 3px 6px rgba(40,60,90,.16)); }
+.fg-name { font-size:12.5px; font-weight:700; color:var(--text); text-align:center; line-height:1.3; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fg-count { font-size:11px; color:var(--text-muted); }
+.fg-opts {
+  position:absolute; top:-2px; right:0; width:26px; height:26px;
+  border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; border-radius:8px;
+}
+.fg-opts:active { background:var(--bg-muted); }
+.fg-add {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  cursor:pointer; min-height:92px; border:1.5px dashed var(--border); border-radius:14px;
+  color:var(--primary); transition:var(--t-spring);
+}
+.fg-add:active { background:var(--primary-light); transform:scale(.96); }
+.fld-head { display:flex; align-items:center; gap:9px; padding:2px 2px 14px; }
+.fld-head-back {
+  width:34px; height:34px; border-radius:10px; border:1px solid var(--border-light);
+  background:#fff; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--text-sub); flex:none; transition:var(--t-spring);
+}
+.fld-head-back:active { transform:scale(.92); background:var(--bg-muted); }
+.fld-head-name { font-size:16px; font-weight:800; color:var(--text); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fld-sec-label { font-size:12px; font-weight:700; color:var(--text-muted); padding:8px 2px 10px; letter-spacing:.02em; }
+.fc-swatches { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; padding:6px 0 2px; }
+.fc-sw {
+  width:42px; height:42px; border-radius:50%; cursor:pointer;
+  border:3px solid transparent; box-shadow:0 0 0 1px rgba(0,0,0,.05) inset;
+  display:flex; align-items:center; justify-content:center; transition:var(--t-spring);
+}
+.fc-sw[data-on="1"] { border-color:var(--text); }
+.fc-sw:active { transform:scale(.9); }
 .home-camera-btn {
   width: 38px; height: 38px; border-radius: 12px;
   background: var(--bg-muted); border: 1px solid var(--border-light);
@@ -3560,6 +3596,39 @@ nav#tabbar.hidden { display: none !important; }
       </div>
       <button class="btn btn-primary btn-block btn-lg" onclick="doChangePass()">変更する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-change-pass')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- フォルダ作成 / 編集 -->
+<div id="m-folder-edit" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="folder-edit-title">新しいフォルダ</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">フォルダ名</div>
+        <input class="input" id="folder-edit-name" type="text" maxlength="24" placeholder="例：園のおたより">
+      </div>
+      <div class="field">
+        <div class="field-label">フォルダの色</div>
+        <div class="fc-swatches" id="folder-edit-swatches"></div>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="saveFolderEdit()">保存する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-folder-edit')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- フォルダ操作シート -->
+<div id="m-folder-opts" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="folder-opts-name">フォルダ</div>
+    <div class="modal-form">
+      <button class="btn btn-outline btn-block" onclick="_folderOptsEdit()">名前と色を編集</button>
+      <button class="btn btn-block" onclick="_folderOptsDelete()" style="margin-top:8px;background:#FFF0F0;color:var(--red);border:1px solid #FAD4D4;">フォルダを削除</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-folder-opts')" style="margin-top:6px;">キャンセル</button>
     </div>
   </div>
 </div>
@@ -10334,49 +10403,111 @@ function _folderName(kind, id) {
   const f = _folderArr(kind).find(x => x.id === id);
   return f ? f.name : '';
 }
-/* フォルダのチップバー HTML */
-function _folderBar(kind) {
-  const folders = _folderArr(kind), cur = _curFolder(kind);
-  const base = 'display:inline-flex;align-items:center;gap:3px;white-space:nowrap;padding:7px 13px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text-sub);';
-  const on = 'background:var(--primary);color:#fff;border-color:var(--primary);';
-  const chip = (id, label, active) =>
-    '<button onclick="selectFolder(\'' + kind + '\',\'' + H(id) + '\')" style="' + base + (active ? on : '') + '">' + H(label) + '</button>';
-  let h = '<div style="display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch;">';
-  h += chip('', 'すべて', cur === '');
-  folders.forEach(f => { h += chip(f.id, f.name, cur === f.id); });
-  h += '<button onclick="createFolder(\'' + kind + '\')" style="' + base + 'border-style:dashed;color:var(--primary);">' + ICON('plus', 13) + ' フォルダ</button>';
-  h += '</div>';
-  if(cur) {
-    h += '<div style="display:flex;gap:14px;padding:0 2px 12px;font-size:11px;">'
-      + '<button onclick="renameFolder(\'' + kind + '\',\'' + H(cur) + '\')" style="background:none;border:none;color:var(--text-muted);text-decoration:underline;cursor:pointer;padding:0;">フォルダ名を変更</button>'
-      + '<button onclick="deleteFolder(\'' + kind + '\',\'' + H(cur) + '\')" style="background:none;border:none;color:var(--red);text-decoration:underline;cursor:pointer;padding:0;">フォルダを削除</button>'
+/* ── Wave 116: 色付きフォルダのグリッド階層 ── */
+const FOLDER_COLORS = ['#4A82C8','#3A9E6B','#E0A33E','#D9694B','#9B6FD0','#D9568C','#3FA9C4','#6B7A8D'];
+function _folderColor(f) { return (f && f.color) || FOLDER_COLORS[0]; }
+const _DOTS_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+function _folderIconSvg(color) {
+  return '<svg class="fg-folder" viewBox="0 0 50 44" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    + '<path d="M3 11a5 5 0 0 1 5-5h11.6a4 4 0 0 1 2.9 1.2l3.4 3.5a4 4 0 0 0 2.9 1.2H42a5 5 0 0 1 5 5v4H3z" fill="'+color+'" opacity=".5"/>'
+    + '<path d="M3 16h44v18a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="'+color+'"/>'
+    + '<rect x="11" y="23" width="13" height="3.6" rx="1.8" fill="#fff" opacity=".55"/>'
+    + '</svg>';
+}
+/* フォルダのグリッド（トップ階層） */
+function _folderGrid(kind) {
+  const folders = _folderArr(kind);
+  const items = (kind === 'album') ? (S.albumPhotos||[]) : (S.docs||[]);
+  let h = '<div class="fg-grid">';
+  folders.forEach(function(f){
+    const cnt = items.filter(function(x){ return x.folderId === f.id; }).length;
+    h += '<div class="fg-card" onclick="selectFolder(\''+kind+'\',\''+H(f.id)+'\')">'
+      + '<button class="fg-opts" onclick="event.stopPropagation();openFolderOpts(\''+kind+'\',\''+H(f.id)+'\')" aria-label="フォルダ操作">'+_DOTS_SVG+'</button>'
+      + _folderIconSvg(_folderColor(f))
+      + '<div class="fg-name">'+H(f.name)+'</div>'
+      + '<div class="fg-count">'+(cnt ? cnt+'件' : '空です')+'</div>'
       + '</div>';
-  }
+  });
+  h += '<div class="fg-add" onclick="createFolder(\''+kind+'\')">'
+    + ICON('plus',20) + '<span style="font-size:11.5px;font-weight:700;">新規フォルダ</span></div>';
+  h += '</div>';
   return h;
 }
+/* フォルダ内のヘッダー（戻る + 名前 + 操作） */
+function _folderHeader(kind) {
+  const id = _curFolder(kind);
+  const f = _folderArr(kind).find(function(x){ return x.id === id; });
+  if(!f) return '';
+  return '<div class="fld-head">'
+    + '<button class="fld-head-back" onclick="selectFolder(\''+kind+'\',\'\')" aria-label="フォルダ一覧へ">'
+    +   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
+    + '</button>'
+    + '<span style="width:12px;height:12px;border-radius:50%;background:'+_folderColor(f)+';flex:none;"></span>'
+    + '<div class="fld-head-name">'+H(f.name)+'</div>'
+    + '<button class="fld-head-back" onclick="openFolderOpts(\''+kind+'\',\''+H(id)+'\')" aria-label="フォルダ操作">'+_DOTS_SVG+'</button>'
+    + '</div>';
+}
 function selectFolder(kind, id) { _setCurFolder(kind, id); _folderRerender(kind); }
+
+/* フォルダの作成 / 編集（名前 + 色）モーダル */
+let _folderEdit = { kind:'doc', id:null, color:FOLDER_COLORS[0] };
+function _renderFolderSwatches() {
+  const box = document.getElementById('folder-edit-swatches');
+  if(!box) return;
+  box.innerHTML = FOLDER_COLORS.map(function(c){
+    const on = (c === _folderEdit.color);
+    return '<div class="fc-sw" data-on="'+(on?'1':'0')+'" style="background:'+c+';" onclick="pickFolderColor(\''+c+'\')">'
+      + (on ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '')
+      + '</div>';
+  }).join('');
+}
+function pickFolderColor(c) { _folderEdit.color = c; _renderFolderSwatches(); }
 function createFolder(kind) {
-  const name = (prompt('新しいフォルダ名を入力してください', '') || '').trim();
-  if(!name) return;
-  const arr = _folderArr(kind);
-  if(arr.some(f => f.name === name)) { showToast('同じ名前のフォルダがあります', 'error'); return; }
-  const id = 'fld_' + uid();
-  arr.push({ id: id, name: name.slice(0,24), createdAt: new Date().toISOString() });
-  saveS();
-  _setCurFolder(kind, id);
-  _folderRerender(kind);
-  showToast('フォルダ「' + name.slice(0,24) + '」を作成しました', 'success');
+  _folderEdit = { kind:kind, id:null, color:FOLDER_COLORS[0] };
+  const t = document.getElementById('folder-edit-title'); if(t) t.textContent = '新しいフォルダ';
+  const n = document.getElementById('folder-edit-name'); if(n) n.value = '';
+  _renderFolderSwatches();
+  openModal('m-folder-edit');
 }
-function renameFolder(kind, id) {
-  const f = _folderArr(kind).find(x => x.id === id);
+function editFolder(kind, id) {
+  const f = _folderArr(kind).find(function(x){ return x.id === id; });
   if(!f) return;
-  const name = (prompt('フォルダ名を変更', f.name) || '').trim();
-  if(!name || name === f.name) return;
-  f.name = name.slice(0,24);
-  saveS();
-  _folderRerender(kind);
-  showToast('フォルダ名を変更しました', 'success');
+  _folderEdit = { kind:kind, id:id, color:_folderColor(f) };
+  const t = document.getElementById('folder-edit-title'); if(t) t.textContent = 'フォルダを編集';
+  const n = document.getElementById('folder-edit-name'); if(n) n.value = f.name;
+  _renderFolderSwatches();
+  openModal('m-folder-edit');
 }
+function saveFolderEdit() {
+  const nameEl = document.getElementById('folder-edit-name');
+  const name = ((nameEl && nameEl.value) || '').trim().slice(0,24);
+  if(!name) { showToast('フォルダ名を入力してください', 'error'); return; }
+  const kind = _folderEdit.kind, arr = _folderArr(kind);
+  if(arr.some(function(f){ return f.name === name && f.id !== _folderEdit.id; })) {
+    showToast('同じ名前のフォルダがあります', 'error'); return;
+  }
+  if(_folderEdit.id) {
+    const f = arr.find(function(x){ return x.id === _folderEdit.id; });
+    if(f) { f.name = name; f.color = _folderEdit.color; }
+  } else {
+    arr.push({ id:'fld_'+uid(), name:name, color:_folderEdit.color, createdAt:new Date().toISOString() });
+  }
+  saveS();
+  closeModal('m-folder-edit');
+  _folderRerender(kind);
+  showToast(_folderEdit.id ? 'フォルダを更新しました' : 'フォルダ「'+name+'」を作成しました', 'success');
+}
+/* フォルダ操作シート（編集 / 削除） */
+let _folderOptsTarget = { kind:'doc', id:null };
+function openFolderOpts(kind, id) {
+  _folderOptsTarget = { kind:kind, id:id };
+  const f = _folderArr(kind).find(function(x){ return x.id === id; });
+  const lbl = document.getElementById('folder-opts-name');
+  if(lbl) lbl.textContent = f ? f.name : 'フォルダ';
+  openModal('m-folder-opts');
+}
+function _folderOptsEdit() { closeModal('m-folder-opts'); editFolder(_folderOptsTarget.kind, _folderOptsTarget.id); }
+function _folderOptsDelete() { closeModal('m-folder-opts'); deleteFolder(_folderOptsTarget.kind, _folderOptsTarget.id); }
 function deleteFolder(kind, id) {
   const arr = _folderArr(kind), f = arr.find(x => x.id === id);
   if(!f) return;
@@ -10426,6 +10557,22 @@ function _emptyState(art, title, desc, ctaLabel, ctaOnclick) {
     + '</div>';
 }
 
+function _archiveRow(d) {
+  const thumb = d.photo
+    ? '<img src="'+H(d.photo)+'" alt="">'
+    : ICON('document',26);
+  return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
+    + '<div class="archive-thumb">'+thumb+'</div>'
+    + '<div class="archive-main">'
+    +   '<div class="archive-title">'+H(d.title||'(無題)')+'</div>'
+    +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
+    +   (d.memo ? '<div class="archive-memo">'+H(d.memo)+'</div>' : '')
+    + '</div>'
+    + '<div class="archive-actions">'
+    +   '<button class="del" onclick="event.stopPropagation();archiveDelete(\''+H(d.id)+'\')">削除</button>'
+    + '</div>'
+    + '</div>';
+}
 function renderArchive() {
   _ensureArchive();
   const body = document.getElementById('archive-body');
@@ -10433,34 +10580,29 @@ function renderArchive() {
   const all = (S.docs||[]).slice().sort(function(a,b){
     return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||'');
   });
-  const items = _archiveFolder ? all.filter(function(d){ return d.folderId === _archiveFolder; }) : all;
-  const bar = _folderBar('doc');
-  if(!items.length) {
-    body.innerHTML = bar + (all.length
-      ? _emptyState(_ES_ART_FOLDER, 'このフォルダは空です',
+  const folders = _folderArr('doc');
+  if(_archiveFolder) {
+    const items = all.filter(function(d){ return d.folderId === _archiveFolder; });
+    body.innerHTML = _folderHeader('doc') + (items.length
+      ? items.map(_archiveRow).join('')
+      : _emptyState(_ES_ART_FOLDER, 'このフォルダは空です',
           'このフォルダにはまだ書類がありません。<br>下のボタンから書類を追加できます。',
-          '書類を追加', 'openArchiveAdd()')
-      : _emptyState(_ES_ART_FOLDER, '書類はまだありません',
-          '同意書や集金のお知らせ、領収書など。<br>大切な書類を写真で保管して、家族で共有できます。',
-          '最初の書類を追加', 'openArchiveAdd()'));
+          '書類を追加', 'openArchiveAdd()'));
     return;
   }
-  body.innerHTML = bar + items.map(function(d){
-    const thumb = d.photo
-      ? '<img src="'+H(d.photo)+'" alt="">'
-      : ICON('document',26);
-    return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
-      + '<div class="archive-thumb">'+thumb+'</div>'
-      + '<div class="archive-main">'
-      +   '<div class="archive-title">'+H(d.title||'(無題)')+'</div>'
-      +   '<div>'+(d.cat?'<span class="archive-cat">'+H(d.cat)+'</span>':'')+(d.folderId&&_folderName('doc',d.folderId)?'<span class="archive-cat" style="background:#EBF4FF;color:var(--primary);">'+ICON('folder',10)+' '+H(_folderName('doc',d.folderId))+'</span>':'')+'<span class="archive-meta">'+H((d.updatedAt||d.createdAt||'').slice(0,10).replace(/-/g,'/'))+'</span></div>'
-      +   (d.memo ? '<div class="archive-memo">'+H(d.memo)+'</div>' : '')
-      + '</div>'
-      + '<div class="archive-actions">'
-      +   '<button class="del" onclick="event.stopPropagation();archiveDelete(\''+H(d.id)+'\')">削除</button>'
-      + '</div>'
-      + '</div>';
-  }).join('');
+  if(!all.length && !folders.length) {
+    body.innerHTML = _folderGrid('doc') + _emptyState(_ES_ART_FOLDER, '書類はまだありません',
+      '同意書や集金のお知らせ、領収書など。<br>大切な書類を写真で保管して、家族で共有できます。',
+      '最初の書類を追加', 'openArchiveAdd()');
+    return;
+  }
+  const ungrouped = all.filter(function(d){ return !d.folderId || !_folderName('doc',d.folderId); });
+  let h = _folderGrid('doc');
+  if(ungrouped.length) {
+    h += (folders.length ? '<div class="fld-sec-label">フォルダ未分類の書類</div>' : '')
+       + ungrouped.map(_archiveRow).join('');
+  }
+  body.innerHTML = h;
 }
 let _archiveEditId = null;
 let _archivePhotoBuf = null;
@@ -10539,6 +10681,13 @@ function archiveDelete(id) {
 function _ensureAlbum() {
   if(!Array.isArray(S.albumPhotos)) S.albumPhotos = [];
 }
+function _albumCell(p) {
+  const dt = (p.takenAt||'').slice(5,10).replace('-','/');
+  return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
+    + '<img src="'+H(p.dataUrl)+'" alt="">'
+    + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
+    + '</div>';
+}
 function renderAlbum() {
   _ensureAlbum();
   const body = document.getElementById('album-body');
@@ -10546,25 +10695,29 @@ function renderAlbum() {
   const all = (S.albumPhotos||[]).slice().sort(function(a,b){
     return (b.takenAt||'').localeCompare(a.takenAt||'');
   });
-  const items = _albumFolder ? all.filter(function(p){ return p.folderId === _albumFolder; }) : all;
-  const bar = _folderBar('album');
-  if(!items.length) {
-    body.innerHTML = bar + (all.length
-      ? _emptyState(_ES_ART_ALBUM, 'このフォルダは空です',
+  const folders = _folderArr('album');
+  if(_albumFolder) {
+    const items = all.filter(function(p){ return p.folderId === _albumFolder; });
+    body.innerHTML = _folderHeader('album') + (items.length
+      ? '<div class="album-grid">' + items.map(_albumCell).join('') + '</div>'
+      : _emptyState(_ES_ART_ALBUM, 'このフォルダは空です',
           'このフォルダにはまだ写真がありません。<br>下のボタンから写真を追加できます。',
-          '写真を追加', "document.getElementById('album-file').click()")
-      : _emptyState(_ES_ART_ALBUM, 'アルバムはまだ空です',
-          '家族の写真をここにまとめておけます。<br>お気に入りの瞬間を、いつでも見返せます。',
-          '最初の写真を追加', "document.getElementById('album-file').click()"));
+          '写真を追加', "document.getElementById('album-file').click()"));
     return;
   }
-  body.innerHTML = bar + '<div class="album-grid">' + items.map(function(p){
-    const dt = (p.takenAt||'').slice(5,10).replace('-','/');
-    return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
-      + '<img src="'+H(p.dataUrl)+'" alt="">'
-      + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
-      + '</div>';
-  }).join('') + '</div>';
+  if(!all.length && !folders.length) {
+    body.innerHTML = _folderGrid('album') + _emptyState(_ES_ART_ALBUM, 'アルバムはまだ空です',
+      '家族の写真をここにまとめておけます。<br>お気に入りの瞬間を、いつでも見返せます。',
+      '最初の写真を追加', "document.getElementById('album-file').click()");
+    return;
+  }
+  const ungrouped = all.filter(function(p){ return !p.folderId || !_folderName('album',p.folderId); });
+  let h = _folderGrid('album');
+  if(ungrouped.length) {
+    h += (folders.length ? '<div class="fld-sec-label">フォルダ未分類の写真</div>' : '')
+       + '<div class="album-grid">' + ungrouped.map(_albumCell).join('') + '</div>';
+  }
+  body.innerHTML = h;
 }
 function albumOnFilesPicked(ev) {
   _ensureAlbum();
