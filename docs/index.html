@@ -11551,8 +11551,9 @@ function submitPremiumCheckout() {
   const exp  = (document.getElementById('pc-exp').value || '').trim();
   const cvc  = (document.getElementById('pc-cvc').value || '').trim();
   const name = (document.getElementById('pc-name').value || '').trim();
+  const expM = exp.match(/^(\d{2})\/(\d{2})$/);
   if(!/^\d{14,16}$/.test(num))     { showToast('カード番号を正しく入力してください','error'); return; }
-  if(!/^\d{2}\/\d{2}$/.test(exp))  { showToast('有効期限を MM/YY 形式で入力してください','error'); return; }
+  if(!expM || +expM[1] < 1 || +expM[1] > 12) { showToast('有効期限を MM/YY 形式で正しく入力してください','error'); return; }
   if(!/^\d{3,4}$/.test(cvc))       { showToast('セキュリティコードを入力してください','error'); return; }
   if(!name)                        { showToast('カード名義を入力してください','error'); return; }
   closeModal('m-premium-checkout');

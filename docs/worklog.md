@@ -9990,3 +9990,48 @@ Wave 109 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 111: selectable premium plans + payment registration screen`
+
+---
+
+## Wave 112 自律開発 2026-05-17 11:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+総合検証（テスト→検証→改善の反復）+ 有効期限バリデーション修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「もう一度確認・テスト検証バグ解消を反復して完璧に」に対応。
+
+【Round 1：総合検証】全スイート緑を確認
+【Round 2：新機能エッジ検証】お支払い登録のエッジケースを probe
+- バグ発見：有効期限が「13/29」「00/29」など不正な月でも受理されていた
+- 修正：月を 01-12 の範囲でも検証するように submitPremiumCheckout を強化
+【Round 3：全体再検証】全グリーン
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- 専用 12 スイート：width-sweep / hoku-delete 39 / hoku-v2 18 / hoku-flow 33 /
+  hoku-mega 101 / hoku-entity 22 / hoku-hard 16 / hoku-fuzz 171 /
+  app-audit 70 / guide-test 11 / folder-test 14 / premium-test 13 — 全 PASS
+- 精度プローブ：probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1321=1321 / 絵文字 0 / md5 一致
+
+### 既存機能への影響
+- なし。お支払い登録の月バリデーション強化のみ。
+
+### 未確認事項
+- 実機での月13等の不正入力でエラーになること
+
+### iPhone確認ポイント
+- お支払い登録で有効期限に不正な月を入れるとエラーになるか
+
+### 次にやること
+- 正式リリース時の決済方式決定（Stripe / IAP・要オーナー確認）
+- Supabase セットアップ待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 112: verify all + fix card expiry month validation`
