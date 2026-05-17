@@ -2513,6 +2513,7 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">あなたの役割</div>
         <div class="ob2-role-grid" id="ob2-role-grid"></div>
+        <input class="input" id="ob2-roleCustom" placeholder="役割を自由に入力（例：里親・親戚・ベビーシッター）" maxlength="14" style="display:none;margin-top:8px;">
       </div>
       <div class="field">
         <div class="field-label">家族の呼び方（任意）</div>
@@ -4650,6 +4651,13 @@ const OB2_ROLES = [
   { id:'grand_ma',    label:'祖母' },
   { id:'partner',     label:'パートナー' },
   { id:'sibling',     label:'兄弟姉妹' },
+  { id:'grandchild',  label:'孫' },
+  { id:'uncle',       label:'おじ' },
+  { id:'aunt',        label:'おば' },
+  { id:'inlaw_pa',    label:'義父' },
+  { id:'inlaw_ma',    label:'義母' },
+  { id:'baby',        label:'赤ちゃん' },
+  { id:'guardian',    label:'保護者' },
   { id:'other',       label:'その他' },
 ];
 let _ob2Step = 1;
@@ -4674,6 +4682,11 @@ function startOnboarding() {
   if(S.userProfile && S.userProfile.roleId) {
     _ob2RoleId = S.userProfile.roleId;
     ob2RenderRoles();
+  }
+  const _obCust = document.getElementById('ob2-roleCustom');
+  if(_obCust) {
+    _obCust.value = (S.userProfile && S.userProfile.roleCustom) || '';
+    _obCust.style.display = (_ob2RoleId === 'other') ? 'block' : 'none';
   }
   // 日付デフォルト：明日
   const dateEl = document.getElementById('ob2-firstDate');
@@ -4703,6 +4716,8 @@ function ob2SelectRole(id) {
     }
   }
   ob2RenderRoles();
+  const cust = document.getElementById('ob2-roleCustom');
+  if(cust) cust.style.display = (id === 'other') ? 'block' : 'none';
 }
 
 function ob2GoStep(n) {
@@ -4727,10 +4742,17 @@ function ob2SaveProfile() {
   const dn = document.getElementById('ob2-displayName').value.trim();
   if(!dn) { showToast('表示名を入力してください','error'); return; }
   if(!_ob2RoleId) { showToast('役割を選んでください','error'); return; }
+  let roleCustom = '';
+  if(_ob2RoleId === 'other') {
+    const cv = document.getElementById('ob2-roleCustom');
+    roleCustom = cv ? cv.value.trim() : '';
+    if(!roleCustom) { showToast('役割を入力してください','error'); return; }
+  }
   const fn = document.getElementById('ob2-familyName').value.trim();
   S.userProfile = {
     displayName: dn,
     roleId: _ob2RoleId,
+    roleCustom: roleCustom,
     familyName: fn || '',
     createdAt: todayStr ? todayStr() : (new Date()).toISOString().slice(0,10)
   };
@@ -4793,7 +4815,10 @@ function openProfileEdit() {
   _peRoleId = p.roleId || null;
   document.getElementById('pe-displayName').value = p.displayName || '';
   document.getElementById('pe-familyName').value  = p.familyName || '';
+  const cust = document.getElementById('pe-roleCustom');
+  if(cust) cust.value = p.roleCustom || '';
   peRenderRoles();
+  _peToggleCustomRole();
   openModal('m-profile-edit');
 }
 function peRenderRoles() {
@@ -4803,17 +4828,31 @@ function peRenderRoles() {
     `<button class="ob2-role-btn ${r.id===_peRoleId?'selected':''}" onclick="peSelectRole('${H(r.id)}')">${H(r.label)}</button>`
   ).join('');
 }
+/* 「その他」選択時のみ自由入力欄を表示 */
+function _peToggleCustomRole() {
+  const cust = document.getElementById('pe-roleCustom');
+  if(cust) cust.style.display = (_peRoleId === 'other') ? 'block' : 'none';
+}
 function peSelectRole(id) {
   _peRoleId = id;
   peRenderRoles();
+  _peToggleCustomRole();
 }
 function saveProfileEdit() {
   const dn = document.getElementById('pe-displayName').value.trim();
   if(!dn) { showToast('表示名を入力してください','error'); return; }
   const fn = document.getElementById('pe-familyName').value.trim();
+  const roleId = _peRoleId || (S.userProfile && S.userProfile.roleId) || 'parent_pa';
+  let roleCustom = '';
+  if(roleId === 'other') {
+    const cv = document.getElementById('pe-roleCustom');
+    roleCustom = cv ? cv.value.trim() : '';
+    if(!roleCustom) { showToast('役割を入力してください','error'); return; }
+  }
   if(!S.userProfile) S.userProfile = {};
   S.userProfile.displayName = dn;
-  S.userProfile.roleId      = _peRoleId || S.userProfile.roleId || 'parent_pa';
+  S.userProfile.roleId      = roleId;
+  S.userProfile.roleCustom  = roleCustom;
   S.userProfile.familyName  = fn || '';
   saveS();
   closeModal('m-profile-edit');
@@ -16988,6 +17027,7 @@ document.addEventListener('touchcancel', () => {
       <div class="field">
         <div class="field-label">あなたの役割</div>
         <div class="ob2-role-grid" id="pe-role-grid"></div>
+        <input class="input" id="pe-roleCustom" placeholder="役割を自由に入力（例：里親・親戚・ベビーシッター）" maxlength="14" style="display:none;margin-top:8px;">
       </div>
       <div class="field">
         <div class="field-label">家族の呼び方（任意）</div>
