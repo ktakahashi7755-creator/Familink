@@ -2613,10 +2613,11 @@ nav#tabbar.hidden { display: none !important; }
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title">書類保管庫</div>
-    <button class="header-icon-btn" onclick="openArchiveAdd(null)" aria-label="書類を追加">
+    <button class="header-icon-btn" onclick="openArchiveAddMode()" aria-label="書類を追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
+  <input type="file" id="archive-batch-file" accept="image/*" multiple style="display:none;" onchange="archiveBatchAdd(event)">
   <div class="scroll-area" id="archive-body" style="flex:1;padding:14px 16px calc(80px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -2666,6 +2667,20 @@ nav#tabbar.hidden { display: none !important; }
     </div>
     <img id="m-doc-photo-img" src="" style="width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
     <div style="font-size:11px;opacity:.65;margin-top:8px;text-align:center;">うまく保存できないときは、画像を長押しして保存してください。</div>
+  </div>
+</div>
+
+<!-- 書類の追加方法シート -->
+<div id="m-archive-addmode" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">書類を追加</div>
+    <div class="modal-form">
+      <button class="btn btn-outline btn-block" onclick="closeModal('m-archive-addmode');openArchiveAdd(null)">1件ずつ入力する</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closeModal('m-archive-addmode');document.getElementById('archive-batch-file').click()">写真からまとめて追加</button>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:8px;">「まとめて追加」では、選んだ写真がそれぞれ1件の書類になります。タイトルやカテゴリはあとから編集できます。</div>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-archive-addmode')" style="margin-top:6px;">キャンセル</button>
+    </div>
   </div>
 </div>
 
@@ -10658,6 +10673,47 @@ function openArchiveAdd(id) {
   document.getElementById('aa-photo-preview').innerHTML = _archivePhotoPreviewHtml();
   openModal('m-archive-add');
   setTimeout(function(){ document.getElementById('aa-title').focus(); }, 200);
+}
+/* 書類の追加方法シートを開く */
+function openArchiveAddMode() {
+  _ensureArchive();
+  openModal('m-archive-addmode');
+}
+/* 複数の写真からまとめて書類を作成（各写真 = 1 書類） */
+function archiveBatchAdd(ev) {
+  _ensureArchive();
+  const files = ev.target.files;
+  if(!files || !files.length) return;
+  const total = files.length;
+  const folderId = _archiveFolder || '';
+  const d = new Date();
+  const dateLbl = (d.getMonth()+1) + '/' + d.getDate();
+  let pending = total, failed = 0;
+  for(let i=0; i<total; i++) {
+    const idx = i;
+    downscaleImageFile(files[i], 1280, 0.85).then(function(dataUrl){
+      if(dataUrl) {
+        const now = new Date().toISOString();
+        const title = '書類 ' + dateLbl + (total > 1 ? ' (' + (idx+1) + ')' : '');
+        S.docs.push({ id:'doc_'+uid(), title:title, cat:'園・学校', memo:'', photo:dataUrl, folderId:folderId, createdAt:now, updatedAt:now });
+      } else {
+        failed++;
+      }
+      pending--;
+      if(pending === 0) {
+        const ok = saveS();
+        renderArchive();
+        if(!ok) {
+          showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error');
+        } else if(failed > 0) {
+          showToast((total - failed)+' 件追加 / '+failed+' 件は読込失敗','info');
+        } else {
+          showToast(total+' 件の書類を追加しました','success');
+        }
+      }
+    });
+  }
+  ev.target.value = '';
 }
 function archiveOnPhotoPicked(ev) {
   const f = ev.target.files && ev.target.files[0];
