@@ -10541,3 +10541,45 @@ Wave 126 — 各画面のスクロール余白を統一しタブバーで見切�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 126: unify scroll padding so content clears the floating tab bar`
+
+---
+
+## 2026-05-17 19:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 127 — カレンダー予定の繰り返しに「毎年」「カスタム」を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 予定の繰り返し選択肢に「毎年（同じ日付）」「カスタム…」を追加。
+- 「カスタム」選択時、間隔入力（N + 日/週/か月/年 ごと）を表示。
+  evRepeatChange() で表示制御。
+- イベントに repeatInterval / repeatUnit を保存。
+- 繰り返しラベルを _repeatLabel() に共通化（毎年→「毎年」、
+  カスタム→「3週ごと」等）。リスト表示で使用。
+- ICS エクスポートの RRULE に FREQ=YEARLY / INTERVAL=N（カスタム）を反映。
+- ICS インポートも FREQ=YEARLY→毎年、INTERVAL>1→カスタムに変換。
+
+### テスト結果（全グリーン）
+- recurrence-test 14/14（毎年/カスタム保存・ラベル・行表示・間隔補正）
+- app-audit 70・ics-import 57・integration 55・e2e-render 10・
+  persistence 72・folder 19・wave113 14 — 全 PASS
+- 構文 OK / div バランス 1486=1486 / md5 一致
+
+### 既存機能への影響
+- なし。繰り返しは引き続き記録のみ保存（実展開は今後対応の注記は維持）。
+
+### iPhone確認ポイント
+- 予定編集の繰り返しで「毎年」「カスタム」が選べるか
+- カスタム選択で間隔入力が出て、保存・再編集で保持されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 127: add yearly & custom recurrence to calendar events`
