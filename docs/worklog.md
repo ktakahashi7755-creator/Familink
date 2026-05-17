@@ -9560,3 +9560,50 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 101: expand profile roles + custom free-text role`
+
+---
+
+## Wave 102 自律開発 2026-05-17 05:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プロフィールの「あなたの役割」セクションを全削除
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「役割は不要・全削除」に対応。Wave 101 で拡張した役割機能を含め、
+役割関連を完全に撤去。
+
+- プロフィール編集モーダルから役割フィールドを削除
+- オンボーディングから役割フィールドを削除
+- 関連 JS を全削除：OB2_ROLES / _ob2RoleId / _peRoleId / ob2RenderRoles /
+  ob2SelectRole / peRenderRoles / peSelectRole / _peToggleCustomRole
+- 役割のバリデーション・保存処理（roleId / roleCustom）を撤去
+- 未使用 CSS（.ob2-role-grid / .ob2-role-btn）も削除
+- プロフィールは「表示名」「家族の呼び方」のみのシンプル構成に
+
+### テスト結果（全グリーン）
+- VM スイート：28/28 エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1269=1269 / md5 一致
+
+### 既存機能への影響
+- なし。役割は表示専用で他機能と連動していなかったため安全に撤去。
+  既存ユーザーの userProfile.roleId は残るが未参照（無害）。
+
+### 未確認事項
+- 実機でのプロフィール編集・オンボーディング表示
+
+### iPhone確認ポイント
+- プロフィール編集が「表示名 + 家族の呼び方」のみになっているか
+- オンボーディングの役割欄が消えているか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 102: remove profile role section entirely`
