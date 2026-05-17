@@ -2494,9 +2494,9 @@ nav#tabbar.hidden { display: none !important; }
       <h2 class="ob2-title">家族みんなで、毎日をチームに</h2>
       <p class="ob2-desc">Familink は、家族の予定・タスク・体調・家計・準備をひとつにまとめるアプリです。<br>家族運営AI「Hoku」が、毎日の段取りをやさしくサポートします。</p>
       <ul class="ob2-points">
-        <li>${ICON('calendar',15)} 予定・タスク・準備をひとつに</li>
-        <li>${ICON('heart',15)} 体調・家計をやさしく見える化</li>
-        <li>${ICON('sparkle',15)} Hoku が次の一手をご提案</li>
+        <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><rect x="4" y="5.4" width="16" height="14.6" rx="2.6"/><path d="M4 9.4h16M9 3.4v3.4M15 3.4v3.4"/></svg> 予定・タスク・準備をひとつに</li>
+        <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M12 19.6 4.8 12.4a4.4 4.4 0 0 1 6.2-6.2l1 1 1-1a4.4 4.4 0 0 1 6.2 6.2z"/></svg> 体調・家計をやさしく見える化</li>
+        <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M12 4.4c.4 3.4 1.8 4.8 5.2 5.2-3.4.4-4.8 1.8-5.2 5.2-.4-3.4-1.8-4.8-5.2-5.2 3.4-.4 4.8-1.8 5.2-5.2z"/><path d="M17.6 14.4c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/></svg> Hoku が次の一手をご提案</li>
       </ul>
       <button class="ob2-btn-primary" onclick="ob2Next()">はじめましょう</button>
       <button class="ob2-btn-skip" onclick="ob2Skip()">スキップしてホームへ</button>
@@ -16623,7 +16623,7 @@ document.addEventListener('touchcancel', () => {
       <div class="modal-grip" style="margin-bottom:14px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div style="font-size:17px;font-weight:800;color:var(--text);">アバターを選ぶ</div>
-        <button onclick="closeModal('m-avatar-select')" style="background:var(--bg-muted);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);">${ICON('close',16)}</button>
+        <button onclick="closeModal('m-avatar-select')" style="background:var(--bg-muted);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M6.4 6.4l11.2 11.2M17.6 6.4 6.4 17.6"/></svg></button>
       </div>
       <!-- Wave 60.2: 写真アップロード / 既定に戻す -->
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -16820,7 +16820,7 @@ document.addEventListener('touchcancel', () => {
 
     <!-- ステップ5：取り込み完了案内 -->
     <div id="ics-step-done" style="display:none;text-align:center;padding:14px 4px;">
-      <div style="margin-bottom:6px;color:var(--primary);">${ICON('check',32)}</div>
+      <div style="margin-bottom:6px;color:var(--primary);"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M5 12.6l4.6 4.4L19 7.4"/></svg></div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;" id="ics-done-summary"></div>
       <div style="font-size:12px;color:var(--text-sub);line-height:1.7;margin-bottom:14px;">取り込んだ予定はカレンダー画面で確認できます。</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
