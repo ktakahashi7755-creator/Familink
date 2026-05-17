@@ -224,14 +224,23 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 | `backup/018-share-with-seiai-final` | 共有版 |
 | `backup/019-wave61-hoku-redesign` | Wave 61 Hoku 刷新 |
 | `backup/020-wave69-pre-autonomous` | 自走開発の着手前 |
-| `backup/021-wave85-hoku-delete-precision` | **Wave 85 — Hoku 削除エンジン + 意図分類精度強化（最新）** ⭐ |
+| `backup/021-wave85-hoku-delete-precision` | Wave 85 — Hoku 削除エンジン + 意図分類精度強化 |
+| `backup/022-wave88-hoku-quality` | Wave 88 — Hoku 品質スイープ（チャット削除の統合バグ修正）|
+| `backup/023-wave94-hoku-complete` | **Wave 94 — Hoku 完成版（Parser v2 / 会話 / 全体監査 70/70）最新** ⭐ |
 
-すべて remote（origin）に push 済み。`git checkout backup/021-wave85-hoku-delete-precision`
-で Wave 85 時点（コミット `6889932`）に即復元できる。
+すべて remote（origin）に push 済み。`git checkout backup/023-wave94-hoku-complete`
+で Wave 94 時点（コミット `63403a2`）に即復元できる。
 
-### 復元例（Wave 85 の状態に戻す）
+### 復元例（Wave 94 の状態に戻す）
 
 ```bash
 git checkout claude/familylink-unicorn-product-TzM1F
-git reset --hard origin/backup/021-wave85-hoku-delete-precision
+git reset --hard origin/backup/023-wave94-hoku-complete
 ```
+
+### Wave 84-94 のテスト到達点（backup/023 時点）
+- VM スイート 31 / Hoku 専用 8 スイート（delete 39・v2 18・flow 33・
+  mega 101・entity 22・hard 16・fuzz 171・width-sweep 35）
+- app-audit 70/70・精度プローブ probe 49 + probe2 30・hoku-api pytest 26
+- 合計 500+ テストが全 PASS、未解決バグゼロ
+
