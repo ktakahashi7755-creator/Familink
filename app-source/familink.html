@@ -3347,6 +3347,17 @@ nav#tabbar.hidden { display: none !important; }
 
 <!-- ===== MODALS ===== -->
 
+<!-- 使い方ガイド -->
+<div id="m-guide" class="modal-backdrop">
+  <div class="modal" style="max-height:88vh;display:flex;flex-direction:column;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">Familink の使い方</div>
+    <div id="guide-body" style="overflow-y:auto;flex:1;margin:4px -4px 12px;padding:0 4px;"></div>
+    <button class="btn btn-primary btn-block" onclick="closeModal('m-guide')">とじる</button>
+  </div>
+</div>
+
+
 <!-- Event Modal -->
 <div id="m-event" class="modal-backdrop">
   <div class="modal">
@@ -4057,7 +4068,7 @@ let S = {
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
 };
 
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen'];
 
 function saveS() {
   const d = {};
@@ -4858,6 +4869,12 @@ function seedDemo() {
    ============================================================ */
 function renderHome() {
   const m = S.user || MEMBERS[0];
+  // Wave 104: 初回ホーム表示時に使い方ガイドを 1 度だけ表示
+  if(!S.guideSeen) {
+    S.guideSeen = true;
+    try { saveS(); } catch(_){}
+    setTimeout(function(){ if(typeof openGuide === 'function') openGuide(); }, 700);
+  }
   const greetEl = document.getElementById('home-greeting');
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
@@ -11122,6 +11139,14 @@ function renderSettings() {
     </div>
 
     <div class="settings-section">
+      <div class="settings-title">ヘルプ</div>
+      <div class="settings-item" onclick="openGuide()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<circle cx="12" cy="12" r="10"/><path d="M9.2 9.2a3 3 0 0 1 5.6 1c0 2-2.8 2.6-2.8 4"/><line x1="12" y1="17.4" x2="12.01" y2="17.4"/>','#4A90E2')}</div>
+        <div class="settings-item-label">使い方ガイド</div><div class="settings-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-title">その他</div>
       <div class="settings-item" onclick="doLogout()">
         <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
@@ -11137,6 +11162,34 @@ function renderSettings() {
     </div>`;
 }
 
+
+/* ============================================================
+   Wave 104 — 使い方ガイド（チュートリアル）
+   ============================================================ */
+function openGuide() {
+  const sec = (icon, color, bg, title, desc) =>
+    '<div style="display:flex;gap:12px;padding:13px 14px;background:#fff;border:1px solid var(--border-light);border-radius:14px;margin-bottom:9px;">'
+    + '<div style="flex:none;width:42px;height:42px;border-radius:12px;background:'+bg+';color:'+color+';display:flex;align-items:center;justify-content:center;">'+ICON(icon,22)+'</div>'
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">'+title+'</div>'
+    +   '<div style="font-size:12px;line-height:1.65;color:var(--text-sub);">'+desc+'</div>'
+    + '</div></div>';
+  const body = document.getElementById('guide-body');
+  if(body) body.innerHTML =
+      '<div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:var(--bg-muted);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+    + 'Familink は、家族の予定・タスク・準備・家計・体調をひとつにまとめるアプリです。画面下のタブで各機能に移動できます。</div>'
+    + sec('home','#3F73C8','#EBF4FF','ホーム','今日の予定・やること・気になることがひと目で。1 日の始まりに、まずここを確認しましょう。')
+    + sec('calendar','#3F73C8','#EBF4FF','カレンダー（予定）','家族の予定を月・週・リストで表示。＋ボタンで追加でき、担当者ごとに色分けされます。')
+    + sec('check','#3A9E6B','#DCFCE7','タスク','「やること」を家族で共有。担当・期限・優先度を設定でき、終わったらチェックします。')
+    + sec('bag','#C8743A','#FFF0E3','準備リスト','学校・園・習い事の持ち物を管理。曜日ごとのルーティンも登録でき、忘れ物を防ぎます。')
+    + sec('wallet','#B8902F','#FFF8DC','家計','日々の支出・収入をカテゴリ別に記録。月のサマリや資金繰りの見通しも確認できます。')
+    + sec('thermometer','#D05858','#FFE8E8','体調','体温・症状・薬・受診の記録を時系列で残し、あとから家族で振り返れます。')
+    + sec('cart','#C8743A','#FFF0E3','買い物リスト','買うものをリスト化。よく買うものを登録しておけば、ワンタップで追加できます。')
+    + sec('chat','#7C5BD0','#F0EBFF','家族ボード','連絡事項やできごとを家族で共有。コメントやリアクションでやり取りできます。')
+    + sec('sparkle','#C8A35C','#FAF1DC','Hoku に話しかける','「明日15時に歯医者」のように話しかけるだけ。予定・タスク・家計などへ自動でふり分け、確認してから保存します。「明日の歯医者の予定消して」で削除もできます。')
+    + sec('bulb','#B8902F','#FFF8DC','便利なヒント','・マイクボタンで音声入力ができます<br>・各項目はタップで編集・削除<br>・設定 →「データの書き出し / 読み込み」で端末間の引き継ぎができます');
+  openModal('m-guide');
+}
 
 /* ============================================================
    AVATAR PHOTO UPLOAD
