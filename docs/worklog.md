@@ -9268,3 +9268,37 @@ Hoku の作り込みが一段落したため、視野をアプリ全体に広げ
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 94: full-app screen/modal audit (70/70, no bugs)`
+
+---
+
+## Wave 95 自律開発 2026-05-17 03:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 94 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+オーナー依頼「ここまでをバックアップ・保存」に対応。
+- backup ブランチ `backup/023-wave94-hoku-complete`（コミット 63403a2）を
+  作成し origin に push
+- BACKUP-MANIFEST に backup/022・023 と Wave 84-94 のテスト到達点を追記
+
+### テスト結果
+- 検証は Wave 94 で実施済み（全 500+ テスト PASS）。本 Wave はドキュメント
+  とバックアップブランチのみ
+
+### 未確認事項
+- 実機（iPhone）での目視・操作確認
+
+### iPhone確認ポイント
+- なし（保存作業）
+
+### 次にやること
+- 実機での最終確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 95: backup Wave 94 stable state (backup/023)`
