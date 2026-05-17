@@ -9860,3 +9860,48 @@ Wave 106 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 108: add folders to archive and album`
+
+---
+
+## Wave 109 自律開発 2026-05-17 09:11  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プレミアム解約フローに確認階層を追加（解約前にもう一段）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「解約ボタンの後に規約のような確認をチェックさせてから解約」に対応。
+
+- 新規モーダル m-cancel-premium：解約の影響（プレミアム機能停止 / 無料プラン継続 /
+  データは消えない / 日割り返金なし）を箇条書きで提示
+- 「上記の内容を確認しました」チェックボックス。チェックするまで
+  「解約を続ける」ボタンは無効（cpToggleAgree）
+- 解約フローを 2 段階に：解約リンク → 内容確認モーダル → 最終確認 → 解約実行
+  （cancelPremium → cancelPremiumProceed → showConfirm → 実行）
+
+### テスト結果（全グリーン）
+- guide-test：11/11 PASS（2段階解約フローの検証を追加）
+- VM スイート 28：エラー 0 / app-audit 70/70 / folder-test 14
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1302=1302 / md5 一致
+
+### 既存機能への影響
+- なし。解約フローに確認モーダルを 1 段追加したのみ。
+
+### 未確認事項
+- 実機での解約 2 段階フロー
+
+### iPhone確認ポイント
+- 「プレミアムを解約する」→ 内容確認モーダル → チェック →「解約を続ける」
+  → 最終確認 → 解約 の流れ
+- 未チェックでは「解約を続ける」が押せないか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 109: add confirmation step before premium cancellation`
