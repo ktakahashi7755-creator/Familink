@@ -10035,3 +10035,51 @@ Wave 109 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 112: verify all + fix card expiry month validation`
+
+---
+
+## 2026-05-17 12:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 113 — 通知オンオフ設定 + サポート（FAQ・お問い合わせ）+ 規約・バージョン追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 通知設定：設定→その他に「通知設定」を追加。10種類の通知（担当者設定/タスク完了/
+  コメント/予定/メモ/家計/体調/買い物/持ち物準備/期限切れ）を個別オン/オフ。
+  iOS 風トグル。オフにした種別は addNotif がスキップ。S.notifPrefs に永続化。
+- サポート：ヘルプ欄を「ヘルプ・サポート」に改称。「よくある質問」（FAQ 7件）と
+  「お問い合わせ」（GitHub issues へ）を追加。
+- 情報：設定に「情報」セクション新設。プライバシーポリシー / 利用規約（docs 内 HTML を
+  別タブで表示）/ バージョン（APP_VERSION = v1.0.0）を追加。フッターも APP_VERSION 参照に統一。
+
+### テスト結果（全グリーン）
+- wave113-test 12/12 PASS（通知設定・FAQ・お問い合わせ・規約リンク）
+- app-audit 70/70・guide-test 11・folder-test 14・premium-test 13・notif 16
+- VM 回帰：hoku-delete 39 / v2 18 / flow 33 / mega 101 / entity 22 / hard 16 /
+  fuzz 171 / width-sweep 35 / probe 10 / probe2 30 / integration 55 /
+  e2e-render 10 / storage 17 / persistence 72 — 全 PASS
+- 構文 OK / div バランス 1373=1373 / md5 一致
+
+### 既存機能への影響
+- なし。addNotif は type 未指定時は従来どおり常に作成。
+
+### 未確認事項
+- 招待機能（LINE/QR/招待リンク）は Supabase バックエンド前提（Wave 99 設計済・未実装）
+- お問い合わせ先が GitHub issues 暫定。正式リリース時に問い合わせメール等へ変更検討
+
+### iPhone確認ポイント
+- 設定→その他→通知設定でトグルが切り替わるか
+- 設定→情報→プライバシーポリシー/利用規約が別タブで開くか
+
+### 次にやること
+- Supabase セットアップ後に複数家族の招待・共有機能を実装
+- 正式リリース時の決済方式決定（Stripe / IAP）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 113: notification on/off settings + support (FAQ/contact) + legal & version`
