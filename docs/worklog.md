@@ -10664,3 +10664,39 @@ Wave 129 — タスクに繰り返し機能を追加
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 129: add recurrence to tasks`
+
+---
+
+## 2026-05-17 20:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 130 — カレンダー週ビューにも祝日を反映
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 週ビューの日付ヘッダーに祝日を反映：祝日は曜日・日付番号を赤に、
+  祝日名を小さな赤字（cal-week-hdr-hol）で表示。
+- これで月・週・詳細・リストの全ビューで祝日が表示されるようになった。
+
+### テスト結果（全グリーン）
+- holiday-test 17/17（週ビュー描画 + 祝日名表示の2件を追加）
+- app-audit 70・e2e-render 10・integration 55・persistence 72・
+  folder 19・recurrence 14・task-recurrence 11・wave113 14 — 全 PASS
+- 構文 OK / div バランス 1493=1493 / md5 一致
+
+### 既存機能への影響
+- なし。週ビューヘッダーに祝日表示を追加しただけ。
+
+### iPhone確認ポイント
+- カレンダー週ビューで祝日の曜日・日付が赤くなり祝日名が出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 130: show Japanese holidays in calendar week view`

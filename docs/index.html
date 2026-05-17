@@ -986,6 +986,11 @@ select.input {
   border-radius: 50%; width: 22px; height: 22px;
   display: flex; align-items: center; justify-content: center; margin: 0 auto;
 }
+.cal-week-hdr-hol {
+  font-size: 7.5px; line-height: 1.1; color: var(--red); font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
 .cal-week-body { display: grid; grid-template-columns: 36px repeat(7,1fr); }
 .cal-week-time { padding: 0 2px; border-right: 1px solid var(--border-light); }
 .cal-week-time-lbl {
@@ -5866,10 +5871,12 @@ function renderCalWeek() {
       const isToday = ds===td;
       const dow = date.getDay();
       const isSun = dow === 0, isSat = dow === 6;
-      const col = isSun?'color:var(--red)':isSat?'color:var(--primary)':'';
+      const hol = _holidayName(ds);
+      const col = (hol||isSun)?'color:var(--red)':isSat?'color:var(--primary)':'';
       hdrCells.push(`<div class="cal-week-hdr-cell ${isToday?'wk-today':''}" onclick="selCalDayKeepView('${ds}')">
         <div class="wh-dow" style="${col}">${DOWS[dow]}</div>
-        <div class="cal-week-hdr-num">${date.getDate()}</div>
+        <div class="cal-week-hdr-num" style="${hol&&!isToday?'color:var(--red);':''}">${date.getDate()}</div>
+        ${hol?`<div class="cal-week-hdr-hol">${H(hol)}</div>`:''}
       </div>`);
     }
     const hdr = `<div class="cal-week-hdr">${hdrCells.join('')}</div>`;
