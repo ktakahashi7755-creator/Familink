@@ -3980,6 +3980,13 @@ const HOKU_ICON_PATHS = {
   list:'<path d="M9 6.4h11M9 12h11M9 17.6h11"/><path d="M4.4 6.4h.02M4.4 12h.02M4.4 17.6h.02"/>',
   search:'<circle cx="11" cy="11" r="6.4"/><path d="M15.6 15.6 20 20"/>',
   clock:'<circle cx="12" cy="12" r="8.4"/><path d="M12 7.2V12l3.2 2"/>',
+  // リアクション
+  thumbsup:'<path d="M6.6 20.4V10.6H4.5a1 1 0 0 0-1 1v7.8a1 1 0 0 0 1 1z"/><path d="M6.6 10.6 10.7 3.9a1.7 1.7 0 0 1 3.1 1.2l-1.1 4.6h5.2a2 2 0 0 1 2 2.45l-1.35 6a2 2 0 0 1-1.95 1.55H6.6"/>',
+  hand:'<path d="M8.6 11.4V5.6a1.6 1.6 0 0 1 3.2 0M11.8 11V4.4a1.6 1.6 0 0 1 3.2 0V11M15 11.6V7a1.6 1.6 0 0 1 3.2 0v7.6a6.2 6.2 0 0 1-6.2 6.2 6 6 0 0 1-5-2.7l-2.4-3.5a1.7 1.7 0 0 1 2.7-2l1.3 1.7"/>',
+  smileface:'<circle cx="12" cy="12" r="8.6"/><path d="M8.8 14.2a3.8 3.8 0 0 0 6.4 0"/><path d="M9.2 9.6h.02M14.8 9.6h.02"/>',
+  flame:'<path d="M12 3.6c2.8 3.2 5 5.8 5 9.2a5 5 0 0 1-10 0c0-1.4.5-2.6 1.4-3.6.3 1.3 1 2 1.9 2.2-1-2.8.3-5.2 1.7-7.8z"/>',
+  eye:'<path d="M2.8 12S6.2 5.8 12 5.8 21.2 12 21.2 12 17.8 18.2 12 18.2 2.8 12 2.8 12z"/><circle cx="12" cy="12" r="3"/>',
+  repeat:'<path d="M4.4 9.2A6 6 0 0 1 14.4 6l1.8 1.8M19.6 14.8A6 6 0 0 1 9.6 18l-1.8-1.8"/><path d="M16.4 4v4h-4M7.6 20v-4h4"/>',
 };
 function ICON(name, size) {
   size = size || 20;
@@ -4861,7 +4868,7 @@ function seedDemo() {
     {id:uid(),author:'kenya',title:'今週末のピクニックについて',
       body:'天気予報確認したら土曜日は晴れそう！\n弁当はママが担当してくれます。レジャーシートと日焼け止めを忘れずに。\n10時に公園の入口で集合ね',
       time:addDays(t,-1),pinned:true,
-      reactions:{'👍':['seiai','seito'],'❤️':['seio','seitaro'],'😄':['seiai']},
+      reactions:{'like':['seiai','seito'],'love':['seio','seitaro'],'smile':['seiai']},
       comments:[
         {id:uid(),author:'seiai',text:'サンドイッチとフルーツ持っていくね！楽しみ',time:addDays(t,-1)},
         {id:uid(),author:'seito',text:'公園でサッカーしたい！ボール持っていっていい？',time:t},
@@ -4869,7 +4876,7 @@ function seedDemo() {
     {id:uid(),author:'seiai',title:'学校からのお知らせ',
       body:'来週月曜日（5/6）は参観日です。\n13:00〜15:00の予定です。\n都合がつく方はぜひ来てください。終わったら近くのカフェでお茶しませんか？',
       time:t,pinned:false,
-      reactions:{'👍':['kenya'],'👏':['kenya']},
+      reactions:{'like':['kenya'],'clap':['kenya']},
       comments:[]},
   ];
   // 家族ボード（アナウンス）のデモデータ
@@ -6408,7 +6415,7 @@ function renderCalList() {
       html += `<div class="cal-list-card" onclick="setCalView('month');S.calSel='${date}';S.calY=${parseInt(date)};S.calM=${parseInt(date.split('-')[1])-1};renderCal()">
         <div class="cal-list-bar" style="background:${c}"></div>
         <div class="cal-list-body">
-          <div class="cal-list-time">${e.time||'終日'}${repeatLabel?` · <span style="color:var(--primary);font-weight:700;">↻ ${repeatLabel}</span>`:''}</div>
+          <div class="cal-list-time">${e.time||'終日'}${repeatLabel?` · <span style="color:var(--primary);font-weight:700;">${ICON('repeat',11)} ${repeatLabel}</span>`:''}</div>
           <div class="cal-list-title">${H(e.title)}</div>
           <div class="cal-list-meta">${H(mem.name)}${e.note?' · '+H(e.note):''}</div>
         </div>
@@ -8159,24 +8166,24 @@ function addNotif(title, desc, icon) {
 
 /* ── リアクション定義（絵文字） ── */
 const REACT_TYPES = [
-  {key:'like',   label:'いいね',    emoji:'👍', color:'#4A90E2'},
-  {key:'love',   label:'ありがとう', emoji:'❤️', color:'#FF6B9D'},
-  {key:'check',  label:'確認した',  emoji:'✅', color:'#52C47A'},
-  {key:'bow',    label:'お願い',    emoji:'🙏', color:'#9B7FE8'},
-  {key:'smile',  label:'嬉しい',   emoji:'😊', color:'#FFB800'},
-  {key:'clap',   label:'拍手',     emoji:'👏', color:'#FF9B4E'},
+  {key:'like',   label:'いいね',    icon:'thumbsup', color:'#4A90E2'},
+  {key:'love',   label:'ありがとう', icon:'heart', color:'#FF6B9D'},
+  {key:'check',  label:'確認した',  icon:'check', color:'#52C47A'},
+  {key:'bow',    label:'お願い',    icon:'hand', color:'#9B7FE8'},
+  {key:'smile',  label:'嬉しい',   icon:'smileface', color:'#FFB800'},
+  {key:'clap',   label:'拍手',     icon:'sparkle', color:'#FF9B4E'},
 ];
 
 /* 拡張リアクション（＋ボタンで表示） */
 const REACT_MORE = [
-  {key:'fire',   label:'最高',   emoji:'🔥'},
-  {key:'star',   label:'すごい', emoji:'⭐'},
-  {key:'ok',     label:'了解',   emoji:'👌'},
-  {key:'eyes',   label:'見てる', emoji:'👀'},
-  {key:'muscle', label:'頑張る', emoji:'💪'},
-  {key:'think',  label:'考え中', emoji:'🤔'},
-  {key:'party',  label:'祝い',   emoji:'🎉'},
-  {key:'care',   label:'心配',   emoji:'🙁'},
+  {key:'fire',   label:'最高',   icon:'flame'},
+  {key:'star',   label:'すごい', icon:'star'},
+  {key:'ok',     label:'了解',   icon:'check'},
+  {key:'eyes',   label:'見てる', icon:'eye'},
+  {key:'muscle', label:'頑張る', icon:'flag'},
+  {key:'think',  label:'考え中', icon:'bulb'},
+  {key:'party',  label:'祝い',   icon:'sparkle'},
+  {key:'care',   label:'心配',   icon:'heart'},
 ];
 
 const BOARD_CATS = ['','家事','買い物','習い事','学校','重要','その他'];
@@ -8254,7 +8261,7 @@ function openReactPopup(postId) {
     `<button class="react-option ${current===r.key?'selected':''}"
       onclick="selectReaction('${H(postId)}','${r.key}')"
       title="${r.label}">
-      ${r.emoji}
+      ${ICON(r.icon,16)}
     </button>`
   ).join('');
 
@@ -8267,7 +8274,7 @@ function openReactPopup(postId) {
   const moreGrid = REACT_MORE.map(r =>
     `<button class="react-more-item ${current===r.key?'selected':''}"
       onclick="selectReaction('${H(postId)}','${r.key}')">
-      <span>${r.emoji}</span>
+      <span>${ICON(r.icon,16)}</span>
       <span>${r.label}</span>
     </button>`
   ).join('');
@@ -8344,7 +8351,7 @@ function showReactors(postId, key) {
 
   popup.innerHTML = `
     <div class="reactor-popup-title">
-      <span style="font-size:16px;">${rt?.emoji||''}</span>
+      <span>${rt?ICON(rt.icon,16):''}</span>
       ${H(rt?.label||'')}（${users.length}人）
       <button class="reactor-popup-close" onclick="this.closest('.reactor-popup').remove()">×</button>
     </div>
@@ -8474,7 +8481,7 @@ function postCardHtml(a, uid2) {
     return `<button class="react-quick-btn ${mine?'mine':''}"
       onclick="event.stopPropagation();selectReaction('${H(a.id)}','${r.key}')"
       title="${H(r.label)}">
-      <span style="font-size:15px;">${r.emoji}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
+      <span>${ICON(r.icon,15)}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
     </button>`;
   }).join('');
 
@@ -8579,7 +8586,7 @@ function renderBoardDetail() {
       return `<button class="react-quick-btn ${mine?'mine':''}"
         onclick="selectReaction('${H(id)}','${r.key}')"
         title="${H(r.label)}">
-        <span style="font-size:15px;">${r.emoji}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
+        <span>${ICON(r.icon,15)}</span>${cnt>0?`<span class="react-quick-cnt">${cnt}</span>`:''}
       </button>`;
     }).join('')}
   </div>`;
@@ -8668,7 +8675,7 @@ function renderBoardReactDetail(id) {
       .filter(([,k])=>k===r.key)
       .map(([uid])=>getMem(uid).name).join('、');
     return `<div style="font-size:12px;color:var(--text-sub);padding:3px 0;display:flex;gap:6px;align-items:center;">
-      <span style="font-size:14px;">${r.emoji}</span>
+      <span>${ICON(r.icon,14)}</span>
       <strong>${r.label}</strong>：${users}
     </div>`;
   }).join('');

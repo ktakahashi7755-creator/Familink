@@ -9354,3 +9354,50 @@ Wave 94 時点の安定状態をバックアップ・保存
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 96: replace emoji with monoline SVG icons app-wide`
+
+---
+
+## Wave 97 自律開発 2026-05-17 04:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+残りの絵文字（リアクション機能・繰り返し記号）も SVG アイコン化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「他の絵文字も事前に変更、体系的に確認・改善」に対応。
+広域 Unicode スキャンで残存を体系的に確認し、全絵文字を SVG 化。
+
+- リアクション 6 種（thumbsup/heart/check/hand/smileface/sparkle）+
+  拡張 8 種（flame/star/check/eye/flag/bulb/sparkle/heart）を SVG アイコンに
+- 新規アイコン 6 種を追加：thumbsup / hand / smileface / flame / eye / repeat
+- リアクション描画 6 サイトを ICON() に変更
+- デモデータの絵文字キー（'👍' 等）を正規キー（'like' 等）に修正
+  （旧データは reactMap 不整合で表示されない不具合も同時に解消）
+- カレンダーの繰り返し記号 ↻ を repeat アイコンに
+- 広域スキャン結果：絵文字・記号 0 件（→ ← の矢印は通常の約物として保持）
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用 8 スイート：全 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+- アプリ内の絵文字：**0 件**（178 → 0、完全 SVG 化）
+
+### 既存機能への影響
+- なし。リアクションの絵文字キー修正で旧デモデータの表示不具合も解消。
+
+### 未確認事項
+- 実機（iPhone）でのリアクションアイコン表示
+
+### iPhone確認ポイント
+- 家族ボードのリアクション（いいね/ありがとう等）が線アイコンで表示されるか
+
+### 次にやること
+- 実機での全画面アイコン目視確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 97: convert reaction emoji to SVG — zero emoji app-wide`
