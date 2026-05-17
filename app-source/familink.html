@@ -2628,7 +2628,7 @@ nav#tabbar.hidden { display: none !important; }
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title">アルバム</div>
-    <button class="header-icon-btn" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
+    <button class="header-icon-btn" onclick="openAlbumAddMode()" aria-label="写真を追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
@@ -2676,10 +2676,23 @@ nav#tabbar.hidden { display: none !important; }
     <div class="modal-grip"></div>
     <div class="modal-title">書類を追加</div>
     <div class="modal-form">
-      <button class="btn btn-outline btn-block" onclick="closeModal('m-archive-addmode');openArchiveAdd(null)">1件ずつ入力する</button>
-      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closeModal('m-archive-addmode');document.getElementById('archive-batch-file').click()">写真からまとめて追加</button>
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:8px;">「まとめて追加」では、選んだ写真がそれぞれ1件の書類になります。タイトルやカテゴリはあとから編集できます。</div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="closeModal('m-archive-addmode');document.getElementById('archive-batch-file').click()">写真をまとめて追加</button>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:8px 0 4px;">写真は一度に複数選べます。選んだ写真がそれぞれ1件の書類になり、タイトルやカテゴリはあとから編集できます。</div>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closeModal('m-archive-addmode');openArchiveAdd(null)">1件ずつ入力する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-archive-addmode')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- アルバムの追加方法シート -->
+<div id="m-album-addmode" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">写真を追加</div>
+    <div class="modal-form">
+      <button class="btn btn-primary btn-block btn-lg" onclick="closeModal('m-album-addmode');document.getElementById('album-file').click()">写真をまとめて追加</button>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:8px 0 4px;">写真は一度に複数選べます。選んだ写真がまとめてアルバムに追加されます。</div>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-album-addmode')" style="margin-top:6px;">キャンセル</button>
     </div>
   </div>
 </div>
@@ -10619,13 +10632,13 @@ function renderArchive() {
       ? items.map(_archiveRow).join('')
       : _emptyState(_ES_ART_FOLDER, 'このフォルダは空です',
           'このフォルダにはまだ書類がありません。<br>下のボタンから書類を追加できます。',
-          '書類を追加', 'openArchiveAdd()'));
+          '書類を追加', 'openArchiveAddMode()'));
     return;
   }
   if(!all.length && !folders.length) {
     body.innerHTML = _folderGrid('doc') + _emptyState(_ES_ART_FOLDER, '書類はまだありません',
       '同意書や集金のお知らせ、領収書など。<br>大切な書類を写真で保管して、家族で共有できます。',
-      '最初の書類を追加', 'openArchiveAdd()');
+      '最初の書類を追加', 'openArchiveAddMode()');
     return;
   }
   const ungrouped = all.filter(function(d){ return !d.folderId || !_folderName('doc',d.folderId); });
@@ -10761,6 +10774,11 @@ function archiveDelete(id) {
 function _ensureAlbum() {
   if(!Array.isArray(S.albumPhotos)) S.albumPhotos = [];
 }
+/* アルバムの追加方法シートを開く */
+function openAlbumAddMode() {
+  _ensureAlbum();
+  openModal('m-album-addmode');
+}
 function _albumCell(p) {
   const dt = (p.takenAt||'').slice(5,10).replace('-','/');
   return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
@@ -10782,13 +10800,13 @@ function renderAlbum() {
       ? '<div class="album-grid">' + items.map(_albumCell).join('') + '</div>'
       : _emptyState(_ES_ART_ALBUM, 'このフォルダは空です',
           'このフォルダにはまだ写真がありません。<br>下のボタンから写真を追加できます。',
-          '写真を追加', "document.getElementById('album-file').click()"));
+          '写真を追加', 'openAlbumAddMode()'));
     return;
   }
   if(!all.length && !folders.length) {
     body.innerHTML = _folderGrid('album') + _emptyState(_ES_ART_ALBUM, 'アルバムはまだ空です',
       '家族の写真をここにまとめておけます。<br>お気に入りの瞬間を、いつでも見返せます。',
-      '最初の写真を追加', "document.getElementById('album-file').click()");
+      '最初の写真を追加', 'openAlbumAddMode()');
     return;
   }
   const ungrouped = all.filter(function(p){ return !p.folderId || !_folderName('album',p.folderId); });
