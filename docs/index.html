@@ -2866,6 +2866,31 @@ nav#tabbar.hidden { display: none !important; }
         <input class="input" id="te-due" type="date">
       </div>
       <div class="field">
+        <div class="field-label">繰り返し</div>
+        <select class="input" id="te-repeat" onchange="teRepeatChange()">
+          <option value="">なし（単発）</option>
+          <option value="daily">毎日</option>
+          <option value="weekdays">平日（月〜金）</option>
+          <option value="weekly">毎週（同じ曜日）</option>
+          <option value="monthly">毎月（同じ日）</option>
+          <option value="yearly">毎年（同じ日付）</option>
+          <option value="custom">カスタム…</option>
+        </select>
+        <div id="te-repeat-custom" style="display:none;align-items:center;gap:8px;margin-top:8px;">
+          <span style="font-size:13px;color:var(--text-sub);flex:none;">繰り返す間隔</span>
+          <input class="input" id="te-repeat-interval" type="number" min="1" max="99" value="2" style="width:70px;text-align:center;">
+          <select class="input" id="te-repeat-unit" style="flex:1;">
+            <option value="day">日ごと</option>
+            <option value="week">週ごと</option>
+            <option value="month">か月ごと</option>
+            <option value="year">年ごと</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
+          ※ 現在は記録のみ保存されます。実際の繰り返し展開は今後のアップデートで対応します。
+        </div>
+      </div>
+      <div class="field">
         <div class="field-label">優先度</div>
         <div style="display:flex;gap:8px;">
           <button type="button" class="tk-pri-btn" data-v="none"  onclick="selectTePriority('none')" >なし</button>
@@ -7414,6 +7439,7 @@ function tkCardHtml(t){
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">
         ${dl?`<span class="tk-due ${dc}">${dl}</span>`:''}
         ${cat?`<span class="tk-cat">${cat}</span>`:''}
+        ${t.repeat?`<span class="tk-cat" style="background:var(--primary-light);color:var(--primary);">${ICON('repeat',10)} ${H(_repeatLabel(t))}</span>`:''}
         ${t.memo?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-top:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}
         ${isDone?`<span style="font-size:10px;color:var(--text-muted);">完了</span>`:''}
       </div>
@@ -7617,6 +7643,10 @@ function openTaskModal(id,defaultStatus){
   document.getElementById('te-title').value=t?.title||'';
   document.getElementById('te-memo').value=t?.memo||'';
   document.getElementById('te-due').value=t?.dueDate||'';
+  document.getElementById('te-repeat').value=t?.repeat||'';
+  document.getElementById('te-repeat-interval').value=t?.repeatInterval||2;
+  document.getElementById('te-repeat-unit').value=t?.repeatUnit||'week';
+  teRepeatChange();
   document.getElementById('te-priority').value=t?.priority||'none';
   document.getElementById('te-cat').value=t?.category||'';
   document.getElementById('te-status').value=t?.status||defaultStatus||'todo';
@@ -7635,6 +7665,12 @@ function selectTePriority(v){
   document.getElementById('te-priority').value=v;
   document.querySelectorAll('.tk-pri-btn').forEach(b=>b.classList.toggle('selected', b.dataset.v===v));
 }
+/* タスクの繰り返し「カスタム」選択時に間隔入力を表示 */
+function teRepeatChange(){
+  const v=document.getElementById('te-repeat').value;
+  const row=document.getElementById('te-repeat-custom');
+  if(row) row.style.display=(v==='custom')?'flex':'none';
+}
 function selectTeMember(id){
   document.getElementById('te-member').value=id;
   document.getElementById('te-member-btns').querySelectorAll('.te-mem-btn').forEach(b=>{
@@ -7647,13 +7683,20 @@ function saveTaskEdit(){
   if(!title){showToast('タスク名を入力してください','error');return;}
   const id=document.getElementById('te-id').value;
   const now=todayStr();
+  const repeat=document.getElementById('te-repeat').value||'';
+  let repeatInterval=0,repeatUnit='';
+  if(repeat==='custom'){
+    const iv=parseInt(document.getElementById('te-repeat-interval').value,10);
+    repeatInterval=Math.min(99,Math.max(1,isNaN(iv)?1:iv));
+    repeatUnit=document.getElementById('te-repeat-unit').value||'week';
+  }
   if(id){
     const t=(S.tasks||[]).find(t=>t.id===id);
-    if(t){Object.assign(t,{title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:document.getElementById('te-status').value,updatedAt:now});if(t.status==='done'&&!t.completedAt)t.completedAt=now;}
+    if(t){Object.assign(t,{title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:document.getElementById('te-status').value,updatedAt:now});if(t.status==='done'&&!t.completedAt)t.completedAt=now;}
   }else{
     S.tasks=S.tasks||[];
     const maxOrder=(S.tasks).reduce((m,t)=>Math.max(m,t.order||0),-1);
-    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now});
+    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now});
     S.tasks.forEach((t,i)=>t.order=i);
   }
   saveS();closeModal('m-task-edit');renderTaskScreen();renderHome();

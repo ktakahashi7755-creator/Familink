@@ -10625,3 +10625,42 @@ Wave 128 — カレンダーに日本の祝日を表示・月ビューを見や�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 128: show Japanese holidays on calendar + larger month cells`
+
+---
+
+## 2026-05-17 20:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 129 — タスクに繰り返し機能を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- タスク編集モーダル（m-task-edit）の期日の下に「繰り返し」を追加。
+  選択肢：なし／毎日／平日／毎週／毎月／毎年／カスタム（予定と統一）。
+- カスタム選択時は間隔入力（N + 日/週/か月/年 ごと）を表示。teRepeatChange()。
+- タスクに repeat / repeatInterval / repeatUnit を保存（新規・編集とも）。
+- タスクカードに繰り返しチップを表示（_repeatLabel を予定と共用）。
+
+### テスト結果（全グリーン）
+- task-recurrence-test 11/11（毎週/カスタム作成・編集・チップ表示）
+- app-audit 70・recurrence 14・holiday 15・integration 55・e2e-render 10・
+  persistence 72・folder 19・wave113 14・edge 76 — 全 PASS
+- 構文 OK / div バランス 1492=1492 / md5 一致
+
+### 既存機能への影響
+- なし。タスクに繰り返しフィールドを追加（記録のみ保存、実展開は今後対応）。
+
+### iPhone確認ポイント
+- タスク編集で「繰り返し」が選べるか / カスタムで間隔入力が出るか
+- タスクカードに繰り返しチップが表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 129: add recurrence to tasks`
