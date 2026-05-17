@@ -10500,3 +10500,44 @@ Wave 124 — プライバシーポリシー / 利用規約をアプリ内モー�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 124: show privacy policy & terms in-app modal`
+
+---
+
+## 2026-05-17 18:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 126 — 各画面のスクロール余白を統一しタブバーで見切れる不具合を修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 設定など複数画面で、下部の文章・項目が浮遊タブバー（高さ68px + 下14px +
+  セーフエリア）の裏に隠れて見切れていた。
+- 全スクロール領域の下部余白を監査し、タブバーを確実に避ける
+  calc(98px + safe-area) に統一：
+  archive-body / album-body / health-list / prep-list / shop-body /
+  children-list / cdetail-body / notif-list / settings-body / 家計スクロール領域。
+  （旧値は 12〜90px とばらつき、20px の画面が特に見切れていた）
+
+### テスト結果（全グリーン）
+- app-audit 70・e2e-render 10・folder 19・download 12・batch-add 9・
+  wave113 14・integration 55 — 全 PASS
+- 構文 OK / div バランス 1485=1485 / md5 一致
+- 全 scroll-area の下部余白が 98px 以上であることを確認（20/80/90px 残り 0）
+
+### 既存機能への影響
+- なし。スクロール下部の余白を増やしただけ（機能・描画ロジックは不変）。
+
+### iPhone確認ポイント
+- 設定・通知一覧・体調・準備・買い物・書類・アルバム・お子さま詳細の各画面で、
+  最下部の項目やフッター文がタブバーに隠れず最後まで読めるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 126: unify scroll padding so content clears the floating tab bar`
