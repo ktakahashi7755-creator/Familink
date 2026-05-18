@@ -11112,3 +11112,49 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - ハッシュ: `c9aec06` / `3dd17e3` / `4bdb0cc`
 - メッセージ: wave 171 残骸削除 / wave 172 バックアップUI完成 /
   wave 173 aria-label 整備
+
+## 2026-05-18 19:10  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+リアクションポップアップ系の到達不能コード削除（Wave 174）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 前回 worklog の「次にやること」を実施。ボードのリアクションは現行で
+  インラインのワンタップ方式（selectReaction）に統一されており、旧
+  ポップアップ選択方式は到達不能なまま残っていた。
+- 削除した関数：openReactPopup / toggleReactMore / showReactors
+  （いずれも呼び出し0件）
+- 削除したCSS：react-popup-overlay / react-popup / react-popup-row /
+  react-option(.selected/::after含む) / react-more-btn / react-more-grid /
+  react-more-item / react-cancel-btn / reactor-popup / reactor-popup-title
+- 保持：selectReaction（インラインリアクションで現役）、
+  reactor-popup-close（タスクのメンバーポップアップで再利用中のため）
+- selectReaction 内の到達不能になった旧ポップアップ閉じ処理、
+  _swipeBlockSelectors の不要セレクタ参照も整理
+- 計360行削減
+
+### テスト結果
+- 自動テスト PASS（full-audit 43 / integration 55 / e2e-render 10 /
+  persistence 72 / app-audit 70 / scenario 27 / notif 16 / data-share 24）
+- 構文 OK / div 開閉 1521=1521 バランス維持
+
+### 未確認事項
+- なし（リアクション系の到達不能コードはこれで解消）
+
+### iPhone確認ポイント
+- 家族ボードの投稿カードでリアクション（ワンタップ）が従来どおり
+  付与・解除できるか
+- ボード詳細画面でもリアクションが反映されるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+  （※ LocalStorage 構造に関わるため §10.2 によりユーザー確認が必要）
+
+### コミット
+- ハッシュ: `83f952d`
+- メッセージ: `wave 174: remove unreachable reaction-popup code cluster`
