@@ -235,16 +235,17 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 | `backup/029-wave136-calendar-readability` | Wave 127-136 — 予定/タスクの繰り返し・祝日表示・カレンダー見やすさ改善・アルバム追加簡素化・デモ初回限定 |
 | `backup/030-wave146-icon-welcome` | Wave 137-146 — アプリ名/アイコン設定・ホーム空状態統一・祝日2028年・ウェルカム文言刷新 |
 | `backup/031-wave147-welcome-catch` | Wave 147 — ウェルカムのキャッチコピー簡素化 |
-| `backup/032-wave165-memo-batch` | **Wave 148-165 — やること改名/仕事カテゴリ/データ書出削除・バグ4件修正・並び替え/下スワイプ/買い物区別・ボード整理/準備撤廃・メモ機能(階層フォルダ+写真)・パパ未定修正・パスワード目玉・メモをホームへ 最新** ⭐ |
+| `backup/032-wave165-memo-batch` | Wave 148-165 — やること改名/仕事カテゴリ/データ書出削除・バグ4件修正・並び替え/下スワイプ/買い物区別・ボード整理/準備撤廃・メモ機能(階層フォルダ+写真)・パパ未定修正・パスワード目玉・メモをホームへ |
+| `backup/033-wave173-cleanup-backup-a11y` | **Wave 166-173 — メモ添付/ボード整理・タスク一括削除・Hokuボタン右下移動・全画面総点検(自動テスト421)・残骸348行削除・データバックアップUI完成・aria-label整備 最新** ⭐ |
 
-すべて remote（origin）に push 済み。`git checkout backup/032-wave165-memo-batch`
-で Wave 165 時点（コミット `5ce51a7`）に即復元できる。
+すべて remote（origin）に push 済み。`git checkout backup/033-wave173-cleanup-backup-a11y`
+で Wave 173 時点（コミット `c1505dc`）に即復元できる。
 
-### 復元例（Wave 165 の状態に戻す）
+### 復元例（Wave 173 の状態に戻す）
 
 ```bash
 git checkout claude/familylink-unicorn-product-TzM1F
-git reset --hard origin/backup/032-wave165-memo-batch
+git reset --hard origin/backup/033-wave173-cleanup-backup-a11y
 ```
 
 ### Wave 113-125 の到達点（backup/027 時点）
