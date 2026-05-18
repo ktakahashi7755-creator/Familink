@@ -4836,7 +4836,8 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   const sz = typeof size === 'number' ? size+'px' : size;
   const fs = typeof fontSize === 'number' ? fontSize+'px' : fontSize;
   if(!memberId) {
-    return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
+    // Wave 163: 担当者「未定」等の空 ID は MEMBERS[0] にフォールバックさせず中立グレーで描画
+    return `<div class="av" style="background:linear-gradient(135deg,#9CA3AF,#D1D5DB);width:${sz};height:${sz};font-size:${fs};${extraStyle}">－</div>`;
   }
   // Wave 60.3: 不明な memberId（例：'all' / 'common' 等の合成 ID）は写真/公式の参照を行わず中立グレーで描画
   if(!m || m.id !== memberId) {
