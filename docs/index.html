@@ -10122,8 +10122,8 @@ function _renderMemoAttach() {
       + '<button onclick="memoRemoveAttach('+i+')" aria-label="削除" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
       + '</div>';
   });
-  h += '<button type="button" onclick="document.getElementById(\'memo-photo-file\').click()" style="width:64px;height:64px;flex:none;border:1.5px dashed var(--border);border-radius:9px;background:var(--bg-muted);color:var(--primary);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">'
-    + ICON('plus',18) + '<span style="font-size:9px;font-weight:700;">写真</span></button>';
+  h += '<button type="button" onclick="document.getElementById(\'memo-photo-file\').click()" aria-label="写真・ファイルを追加" style="width:64px;height:64px;flex:none;border:1.5px dashed var(--border);border-radius:9px;background:var(--bg-muted);color:var(--primary);cursor:pointer;display:flex;align-items:center;justify-content:center;">'
+    + ICON('plus',24) + '</button>';
   h += '</div>';
   area.innerHTML = h;
 }
