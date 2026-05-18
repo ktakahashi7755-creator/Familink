@@ -288,6 +288,17 @@ body.modal-open #hoku-fab { opacity: 0; pointer-events: none; transition: opacit
   width: 100%; outline: none; transition: var(--t);
 }
 .input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(74,144,226,.15); }
+/* Wave 164: パスワード表示切替（目玉アイコン） */
+.pw-wrap { position: relative; }
+.pw-wrap .input { padding-right: 46px; }
+.pw-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-eye:active { color: var(--primary); }
 textarea.input { height: auto; padding: 14px 16px; resize: none; }
 select.input {
   appearance: none; -webkit-appearance: none;
@@ -2526,7 +2537,7 @@ nav#tabbar.hidden { display: none !important; }
         </div>
         <div class="field">
           <div class="field-label">パスワード</div>
-          <input class="input" id="login-pass" type="password" placeholder="パスワードを入力">
+          <div class="pw-wrap"><input class="input" id="login-pass" type="password" placeholder="パスワードを入力"><button type="button" class="pw-eye" onclick="togglePw('login-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">ログインする</button>
         <div style="text-align:center;margin-top:10px;">
@@ -3637,11 +3648,11 @@ nav#tabbar.hidden { display: none !important; }
       </div>
       <div class="field">
         <div class="field-label">パスワード（6文字以上）</div>
-        <input class="input" id="signup-pass" type="password" autocomplete="new-password" placeholder="パスワードを入力">
+        <div class="pw-wrap"><input class="input" id="signup-pass" type="password" autocomplete="new-password" placeholder="パスワードを入力"><button type="button" class="pw-eye" onclick="togglePw('signup-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <div class="field">
         <div class="field-label">パスワード（確認）</div>
-        <input class="input" id="signup-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+        <div class="pw-wrap"><input class="input" id="signup-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力"><button type="button" class="pw-eye" onclick="togglePw('signup-pass2',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <button class="btn btn-primary btn-block btn-lg" onclick="doSignup()">登録する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-signup')" style="margin-top:6px;">キャンセル</button>
@@ -3684,11 +3695,11 @@ nav#tabbar.hidden { display: none !important; }
       </div>
       <div class="field">
         <div class="field-label">新しいパスワード（6文字以上）</div>
-        <input class="input" id="forgot-pass" type="password" autocomplete="new-password" placeholder="新しいパスワード">
+        <div class="pw-wrap"><input class="input" id="forgot-pass" type="password" autocomplete="new-password" placeholder="新しいパスワード"><button type="button" class="pw-eye" onclick="togglePw('forgot-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <div class="field">
         <div class="field-label">新しいパスワード（確認）</div>
-        <input class="input" id="forgot-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+        <div class="pw-wrap"><input class="input" id="forgot-pass2" type="password" autocomplete="new-password" placeholder="もう一度入力"><button type="button" class="pw-eye" onclick="togglePw('forgot-pass2',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <button class="btn btn-primary btn-block btn-lg" onclick="doForgotPassword()">パスワードを再設定</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-forgot')" style="margin-top:6px;">キャンセル</button>
@@ -3705,7 +3716,7 @@ nav#tabbar.hidden { display: none !important; }
       <div id="change-email-current" style="font-size:12px;color:var(--text-sub);line-height:1.65;margin-bottom:4px;"></div>
       <div class="field">
         <div class="field-label">現在のパスワード</div>
-        <input class="input" id="ce-pass" type="password" autocomplete="current-password" placeholder="現在のパスワード">
+        <div class="pw-wrap"><input class="input" id="ce-pass" type="password" autocomplete="current-password" placeholder="現在のパスワード"><button type="button" class="pw-eye" onclick="togglePw('ce-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <div class="field">
         <div class="field-label">新しいメールアドレス</div>
@@ -3725,15 +3736,15 @@ nav#tabbar.hidden { display: none !important; }
     <div class="modal-form">
       <div class="field">
         <div class="field-label">現在のパスワード</div>
-        <input class="input" id="cp-cur" type="password" autocomplete="current-password" placeholder="現在のパスワード">
+        <div class="pw-wrap"><input class="input" id="cp-cur" type="password" autocomplete="current-password" placeholder="現在のパスワード"><button type="button" class="pw-eye" onclick="togglePw('cp-cur',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <div class="field">
         <div class="field-label">新しいパスワード（6文字以上）</div>
-        <input class="input" id="cp-new" type="password" autocomplete="new-password" placeholder="新しいパスワード">
+        <div class="pw-wrap"><input class="input" id="cp-new" type="password" autocomplete="new-password" placeholder="新しいパスワード"><button type="button" class="pw-eye" onclick="togglePw('cp-new',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <div class="field">
         <div class="field-label">新しいパスワード（確認）</div>
-        <input class="input" id="cp-new2" type="password" autocomplete="new-password" placeholder="もう一度入力">
+        <div class="pw-wrap"><input class="input" id="cp-new2" type="password" autocomplete="new-password" placeholder="もう一度入力"><button type="button" class="pw-eye" onclick="togglePw('cp-new2',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
       </div>
       <button class="btn btn-primary btn-block btn-lg" onclick="doChangePass()">変更する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-change-pass')" style="margin-top:6px;">キャンセル</button>
@@ -4836,7 +4847,8 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   const sz = typeof size === 'number' ? size+'px' : size;
   const fs = typeof fontSize === 'number' ? fontSize+'px' : fontSize;
   if(!memberId) {
-    return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
+    // Wave 163: 担当者「未定」等の空 ID は MEMBERS[0] にフォールバックさせず中立グレーで描画
+    return `<div class="av" style="background:linear-gradient(135deg,#9CA3AF,#D1D5DB);width:${sz};height:${sz};font-size:${fs};${extraStyle}">－</div>`;
   }
   // Wave 60.3: 不明な memberId（例：'all' / 'common' 等の合成 ID）は写真/公式の参照を行わず中立グレーで描画
   if(!m || m.id !== memberId) {
@@ -4910,6 +4922,16 @@ function openModal(id) {
     if(mid && !NO_BACKDROP_CLOSE.includes(mid)) closeModal(mid);
   });
 })();
+/* Wave 164: パスワード入力欄の表示/非表示トグル */
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  if(!inp) return;
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  btn.innerHTML = showing
+    ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+}
 function closeModal(id) {
   document.getElementById(id)?.classList.remove('open');
   // Wave 60.6: 残っているモーダルが無ければタブバーを再表示
