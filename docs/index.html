@@ -2433,9 +2433,9 @@ nav#tabbar.hidden { display: none !important; }
 /* 外側: 位置管理のみ（CSS right/bottomで初期配置） */
 #hoku-fab {
   position: fixed;
-  right: 10px;
-  /* ヘッダーの行にあわせる：左上メニューと同じ高さに来るよう調整 */
-  top: calc(env(safe-area-inset-top) - 6px);
+  right: 14px;
+  /* 画面右下に常駐（CLAUDE.md §10.6）。カレンダー/家計の＋FABの上に来るよう配置 */
+  bottom: calc(160px + env(safe-area-inset-bottom));
   width: 68px;
   height: 68px;
   cursor: pointer;
@@ -18100,7 +18100,7 @@ document.addEventListener('touchcancel', () => {
 (function() {
   'use strict';
 
-  var FAB_KEY   = 'hoku_fab_pos_v4';  // v4: ヘッダー行（最上段右）にスタート位置変更
+  var FAB_KEY   = 'hoku_fab_pos_v5';  // v5: 右下常駐へ。ヘッダーの＋/マイクと重なる不具合を解消
   var FAB_SIZE  = 68;
   var DRAG_THR  = 8;
   var AUTH_HIDE = ['s-ob', 's-onboard', 's-login', 's-hoku'];
@@ -18138,7 +18138,7 @@ document.addEventListener('touchcancel', () => {
     /* 保存済み位置（ドラッグ後のみ存在） */
     var saved = loadPos();
     if (saved) { applyLT(saved.x, saved.y); hasMoved = true; }
-    /* 保存なし → CSS right:20px bottom:100px がそのまま機能 */
+    /* 保存なし → CSS の right/bottom（右下常駐）がそのまま機能 */
 
     fab.classList.remove('fab-hidden');
 
