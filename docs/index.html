@@ -2695,6 +2695,7 @@ nav#tabbar.hidden { display: none !important; }
     <div class="modal-form" style="flex:1;display:flex;flex-direction:column;min-height:0;">
       <input class="input" id="memo-title" placeholder="タイトル" maxlength="80">
       <textarea class="input" id="memo-body" placeholder="メモを入力…" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
+      <input type="file" id="memo-photo-file" accept="image/*" multiple style="display:none;" onchange="memoOnPhotoPicked(event)">
       <div id="memo-attach-area" style="margin-top:10px;"></div>
       <button class="btn btn-primary btn-block btn-lg" style="margin-top:10px;" onclick="saveMemoEdit()">保存する</button>
       <button class="btn btn-ghost btn-block" id="memo-del-btn" onclick="deleteMemo()" style="color:var(--red);display:none;margin-top:6px;">このメモを削除</button>
@@ -9852,6 +9853,7 @@ function setHealthMemberFilter(id) { _healthMemberFilter = id; renderHealth(); }
    ============================================================ */
 let _memoFolder = '';
 let _memoEditId = null;
+let _memoAttachBuf = [];
 let _memoFolderEdit = null;
 let _memoFolderOptsId = null;
 function _ensureMemo() {
@@ -9983,21 +9985,54 @@ function openMemoEdit(id) {
   document.getElementById('memo-title').value = m ? (m.title||'') : '';
   document.getElementById('memo-body').value  = m ? (m.body||'')  : '';
   document.getElementById('memo-del-btn').style.display = id ? 'block' : 'none';
-  const aa = document.getElementById('memo-attach-area');
-  if(aa) aa.innerHTML = '';
+  _memoAttachBuf = m && Array.isArray(m.attachments) ? m.attachments.slice() : [];
+  _renderMemoAttach();
   openModal('m-memo-edit');
+}
+/* メモの写真添付 */
+function _renderMemoAttach() {
+  const area = document.getElementById('memo-attach-area');
+  if(!area) return;
+  let h = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">';
+  _memoAttachBuf.forEach(function(att, i){
+    h += '<div style="position:relative;width:64px;height:64px;flex:none;">'
+      + '<img src="'+H(att.dataUrl)+'" onclick="openDocPhoto(_memoAttachBuf['+i+'].dataUrl,(document.getElementById(\'memo-title\').value||\'メモの写真\'))" style="width:64px;height:64px;object-fit:cover;border-radius:9px;cursor:zoom-in;border:1px solid var(--border-light);">'
+      + '<button onclick="memoRemoveAttach('+i+')" aria-label="削除" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
+      + '</div>';
+  });
+  h += '<button type="button" onclick="document.getElementById(\'memo-photo-file\').click()" style="width:64px;height:64px;flex:none;border:1.5px dashed var(--border);border-radius:9px;background:var(--bg-muted);color:var(--primary);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">'
+    + ICON('plus',18) + '<span style="font-size:9px;font-weight:700;">写真</span></button>';
+  h += '</div>';
+  area.innerHTML = h;
+}
+function memoOnPhotoPicked(ev) {
+  const files = ev.target.files;
+  if(!files || !files.length) return;
+  let pending = files.length;
+  for(let i=0; i<files.length; i++) {
+    downscaleImageFile(files[i], 1280, 0.85).then(function(dataUrl){
+      if(dataUrl) _memoAttachBuf.push({ type:'image', dataUrl:dataUrl });
+      pending--;
+      if(pending === 0) _renderMemoAttach();
+    });
+  }
+  ev.target.value = '';
+}
+function memoRemoveAttach(idx) {
+  _memoAttachBuf.splice(idx, 1);
+  _renderMemoAttach();
 }
 function saveMemoEdit() {
   _ensureMemo();
   const title = document.getElementById('memo-title').value.trim();
   const bodyv = document.getElementById('memo-body').value;
-  if(!title && !bodyv.trim()) { showToast('タイトルか本文を入力してください','error'); return; }
+  if(!title && !bodyv.trim() && !_memoAttachBuf.length) { showToast('タイトル・本文・写真のいずれかを入力してください','error'); return; }
   const now = new Date().toISOString();
   if(_memoEditId) {
     const m = S.memos.find(function(x){ return x.id === _memoEditId; });
-    if(m) { m.title = title; m.body = bodyv; m.updatedAt = now; }
+    if(m) { m.title = title; m.body = bodyv; m.attachments = _memoAttachBuf.slice(); m.updatedAt = now; }
   } else {
-    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:_memoFolder||'', attachments:[], createdAt:now, updatedAt:now });
+    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:_memoFolder||'', attachments:_memoAttachBuf.slice(), createdAt:now, updatedAt:now });
   }
   saveS();
   closeModal('m-memo-edit');
