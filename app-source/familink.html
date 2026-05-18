@@ -4835,6 +4835,36 @@ function closeModal(id) {
   if(stillOpen === 0) document.body.classList.remove('modal-open');
 }
 
+/* Wave 153: モーダル上部のバー（modal-grip）を下にスワイプして閉じる */
+(function(){
+  let dM=null, dBd=null, sY=0, dy=0;
+  document.addEventListener('touchstart', function(e){
+    const grip = e.target && e.target.closest && e.target.closest('.modal-grip');
+    if(!grip) return;
+    const modal = grip.closest('.modal');
+    const bd = grip.closest('.modal-backdrop');
+    if(!modal || !bd || !bd.classList.contains('open')) return;
+    dM = modal; dBd = bd; sY = e.touches[0].clientY; dy = 0;
+    dM.style.transition = 'none';
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(!dM) return;
+    dy = e.touches[0].clientY - sY;
+    if(dy < 0) dy = 0;
+    dM.style.transform = 'translateY(' + dy + 'px)';
+    if(dBd) dBd.style.opacity = String(Math.max(0.4, 1 - dy/600));
+  }, {passive:true});
+  document.addEventListener('touchend', function(){
+    if(!dM) return;
+    const bd = dBd, moved = dy;
+    dM.style.transition = '';
+    dM.style.transform = '';
+    if(bd) bd.style.opacity = '';
+    dM = null; dBd = null; dy = 0;
+    if(moved > 100 && bd && bd.id) closeModal(bd.id);
+  });
+})();
+
 let _confirmCb = null;
 function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;
@@ -10349,7 +10379,8 @@ function renderShopListHtml() {
   if(items.length === 0) {
     return shopEmpty(ICON('cart',40),'買い物リストは空です','必要なものを追加して、買い忘れを防ぎましょう。','+ で買い物を追加');
   }
-  return '<div style="padding:0 16px;">' + items.map(function(it){
+  // Wave 154: 「今すぐ買う」「次に買う」をセクション分けして区別しやすく
+  function _shopRow(it){
     const cat = it.category ? '<span class="shop-cat">'+H(it.category)+'</span>' : '';
     const qty = it.qty ? '<span class="shop-qty">'+H(it.qty)+'</span>' : '';
     return '<div class="shop-row">'
@@ -10362,7 +10393,24 @@ function renderShopListHtml() {
       + '<button class="shop-iconbtn" onclick="shopEditItem(\''+H(it.id)+'\')" aria-label="編集" title="編集">'+ICON('pencil',15)+'</button>'
       + '<button class="shop-iconbtn shop-del" onclick="shopDeleteItem(\''+H(it.id)+'\')" aria-label="削除" title="削除">×</button>'
       + '</div>';
-  }).join('') + '</div>';
+  }
+  const SHOP_SECS = [
+    { key:'今すぐ',     label:'今すぐ買う', color:'#FF6B6B', bg:'#FFE8E8' },
+    { key:'次の買い物', label:'次に買う',   color:'#4A90E2', bg:'#EBF4FF' },
+  ];
+  let html = '<div style="padding:0 16px;">';
+  SHOP_SECS.forEach(function(sec){
+    const secItems = items.filter(function(it){ return (it.section||'今すぐ') === sec.key; });
+    if(!secItems.length) return;
+    html += '<div style="display:flex;align-items:center;gap:7px;margin:14px 2px 8px;">'
+      + '<span style="width:9px;height:9px;border-radius:50%;background:'+sec.color+';flex:none;"></span>'
+      + '<span style="font-size:13px;font-weight:800;color:'+sec.color+';">'+sec.label+'</span>'
+      + '<span style="font-size:11px;font-weight:700;color:'+sec.color+';background:'+sec.bg+';border-radius:999px;padding:1px 9px;">'+secItems.length+'</span>'
+      + '</div>';
+    html += secItems.map(_shopRow).join('');
+  });
+  html += '</div>';
+  return html;
 }
 
 /* ── タブ 2：よく購入するもの ── */
