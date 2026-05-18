@@ -234,16 +234,17 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 | `backup/028-wave126-layout-fix` | Wave 126 — 各画面のスクロール余白を統一しタブバー見切れを修正 |
 | `backup/029-wave136-calendar-readability` | Wave 127-136 — 予定/タスクの繰り返し・祝日表示・カレンダー見やすさ改善・アルバム追加簡素化・デモ初回限定 |
 | `backup/030-wave146-icon-welcome` | Wave 137-146 — アプリ名/アイコン設定・ホーム空状態統一・祝日2028年・ウェルカム文言刷新 |
-| `backup/031-wave147-welcome-catch` | **Wave 147 — ウェルカムのキャッチコピー簡素化 最新** ⭐ |
+| `backup/031-wave147-welcome-catch` | Wave 147 — ウェルカムのキャッチコピー簡素化 |
+| `backup/032-wave165-memo-batch` | **Wave 148-165 — やること改名/仕事カテゴリ/データ書出削除・バグ4件修正・並び替え/下スワイプ/買い物区別・ボード整理/準備撤廃・メモ機能(階層フォルダ+写真)・パパ未定修正・パスワード目玉・メモをホームへ 最新** ⭐ |
 
-すべて remote（origin）に push 済み。`git checkout backup/031-wave147-welcome-catch`
-で Wave 147 時点（コミット `26f3bec`）に即復元できる。
+すべて remote（origin）に push 済み。`git checkout backup/032-wave165-memo-batch`
+で Wave 165 時点（コミット `5ce51a7`）に即復元できる。
 
-### 復元例（Wave 147 の状態に戻す）
+### 復元例（Wave 165 の状態に戻す）
 
 ```bash
 git checkout claude/familylink-unicorn-product-TzM1F
-git reset --hard origin/backup/031-wave147-welcome-catch
+git reset --hard origin/backup/032-wave165-memo-batch
 ```
 
 ### Wave 113-125 の到達点（backup/027 時点）
