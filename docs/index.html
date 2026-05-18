@@ -3343,6 +3343,34 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
+<!-- Wave 172: データのバックアップ（書き出し / 読み込み） -->
+<div id="m-data-share" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">データのバックアップ</div>
+    <div class="modal-form">
+      <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
+        Familink のデータはこの端末内にのみ保存されます。機種変更や端末の紛失に備えて、ときどきファイルへ書き出しておくと安心です。
+      </p>
+      <div id="ds-export-info" style="font-size:11px;color:var(--text-muted);line-height:1.7;background:var(--bg-muted);padding:10px 12px;border-radius:10px;margin-bottom:16px;"></div>
+      <div class="field-label" style="margin-bottom:7px;">書き出す</div>
+      <button class="btn btn-primary btn-block" onclick="exportFamilinkData()">すべて書き出す（写真を含む）</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="exportFamilinkDataLight()">軽量版を書き出す（写真を除く）</button>
+      <div class="field-label" style="margin:20px 0 7px;">読み込む</div>
+      <label class="btn btn-ghost btn-block" style="cursor:pointer;">
+        ファイルを選んで読み込む
+        <input type="file" accept="application/json,.json" hidden onchange="importFamilinkDataFromFile(event)">
+      </label>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:9px 0 0;">
+        ※ 読み込むと現在のデータはすべて上書きされます。先に書き出しておくことをおすすめします。
+      </p>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-data-share')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
@@ -12609,6 +12637,11 @@ function renderSettings() {
       <div class="settings-item" onclick="openStorageModal()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
         <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
+      </div>
+      <!-- Wave 172: データのバックアップ（書き出し / 読み込み） -->
+      <div class="settings-item" onclick="openDataShareModal()">
+        <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>','#10B981')}</div>
+        <div class="settings-item-label">データのバックアップ</div><div class="settings-arrow">›</div>
       </div>
     </div>
 
