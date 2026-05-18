@@ -2072,8 +2072,27 @@ select.input {
   color:var(--text-muted); display:flex; align-items:center; justify-content:center;
   transition:var(--t-spring); flex-shrink:0; align-self:center;
 }
-.tk-del-btn:active { transform:scale(.92); color:var(--red); border-color:var(--red); }
+.tk-del-btn:active { transform:scale(.92); }
 .tk-del-btn:hover { color:var(--red); border-color:var(--red); }
+.tk-del-btn.sel { color:#fff; background:var(--red); border-color:var(--red); }
+.tk-delbar {
+  position:absolute; left:0; right:0; bottom:0; z-index:20;
+  display:none; gap:10px; align-items:center;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:var(--bg-card); border-top:1.5px solid var(--border-light);
+  box-shadow:0 -4px 18px rgba(0,0,0,.10);
+}
+.tk-delbar.show { display:flex; }
+.tk-delbar-cancel {
+  flex:1; padding:13px; border-radius:12px; cursor:pointer;
+  background:var(--bg-soft); border:1.5px solid var(--border-light);
+  color:var(--text-sub); font-size:14px; font-weight:600;
+}
+.tk-delbar-del {
+  flex:2; padding:13px; border-radius:12px; cursor:pointer;
+  background:var(--red); border:none; color:#fff; font-size:14px; font-weight:700;
+}
+.tk-delbar-del:active, .tk-delbar-cancel:active { transform:scale(.97); }
 .tk-chk {
   width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
   flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -2925,6 +2944,12 @@ nav#tabbar.hidden { display: none !important; }
 
   <!-- メインエリア（リスト or カンバン） -->
   <div class="scroll-area" id="tk-main" style="flex:1;padding:0 0 120px;"></div>
+
+  <!-- 完了タスク 一括削除バー -->
+  <div id="tk-delbar" class="tk-delbar">
+    <button class="tk-delbar-cancel" onclick="clearTkDelSel()">選択を解除</button>
+    <button class="tk-delbar-del" onclick="runTkBulkDelete()"><span id="tk-delbar-count">0</span>件を削除</button>
+  </div>
 
 </div>
 
@@ -7479,6 +7504,7 @@ function renderListView(){
 function renderTaskScreen(){
   renderTkMemberFilter();
   renderListView();
+  renderTkDelBar();
 }
 
 function renderTkMemberFilter() {
@@ -7533,6 +7559,7 @@ function renderTkMemberFilter() {
 
 function setTaskFilter(f){
   _tkFilter=f;
+  _tkDelSel.clear();
   document.querySelectorAll('.tk-filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===f));
   renderTaskScreen();
 }
@@ -7549,7 +7576,7 @@ function tkCardHtml(t){
   const isDone=t.status==='done';
   const cat=TK_CATS[t.category||'']||'';
   const deleteBtn = isDone
-    ? `<button class="tk-del-btn" title="削除" onclick="event.stopPropagation();confirmDeleteTaskInline('${H(t.id)}')">
+    ? `<button class="tk-del-btn ${_tkDelSel.has(t.id)?'sel':''}" title="削除に選択" onclick="event.stopPropagation();toggleTkDelSel('${H(t.id)}',this)">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
        </button>`
     : '';
@@ -7571,13 +7598,43 @@ function tkCardHtml(t){
   </div>`;
 }
 
-function confirmDeleteTaskInline(id) {
-  const t = (S.tasks||[]).find(t=>t.id===id);
-  if(!t) return;
-  S.tasks = S.tasks.filter(x => x.id !== id);
+// 完了タスクの一括削除：複数選択 → 選択分だけ削除
+let _tkDelSel = new Set();
+
+function toggleTkDelSel(id, btn){
+  if(_tkDelSel.has(id)){ _tkDelSel.delete(id); btn && btn.classList.remove('sel'); }
+  else { _tkDelSel.add(id); btn && btn.classList.add('sel'); }
+  renderTkDelBar();
+}
+
+function renderTkDelBar(){
+  const bar = document.getElementById('tk-delbar');
+  if(!bar) return;
+  // すでに存在しないタスクIDを掃除
+  const ids = new Set((S.tasks||[]).map(t=>t.id));
+  Array.from(_tkDelSel).forEach(id=>{ if(!ids.has(id)) _tkDelSel.delete(id); });
+  const n = _tkDelSel.size;
+  bar.classList.toggle('show', n>0);
+  const c = document.getElementById('tk-delbar-count');
+  if(c) c.textContent = n;
+}
+
+function clearTkDelSel(){
+  _tkDelSel.clear();
+  document.querySelectorAll('.tk-del-btn.sel').forEach(b=>b.classList.remove('sel'));
+  renderTkDelBar();
+}
+
+function runTkBulkDelete(){
+  const n = _tkDelSel.size;
+  if(!n) return;
+  if(!confirm(`選択した${n}件のタスクを削除しますか？`)) return;
+  S.tasks = (S.tasks||[]).filter(t=>!_tkDelSel.has(t.id));
+  _tkDelSel.clear();
   saveS();
-  renderTasks();
-  showToast('タスクを削除しました');
+  renderTaskScreen();
+  if(typeof renderHome==='function') renderHome();
+  showToast(`${n}件のタスクを削除しました`);
 }
 
 function toggleTkMemberVisible(id) {
