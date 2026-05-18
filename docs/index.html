@@ -4865,43 +4865,40 @@ function showScreen(id) {
   S.screen = id;
 }
 
-function go(id) {
+/* Wave 150: 画面遷移スタック。戻るボタンがループせず最終的にホームへ戻る。 */
+let _navStack = [];
+function _navApply(id) {
   S.prev = S.screen;
   showScreen(id);
-  // 認証前画面ではタブバーを非表示
   const noTab = ['s-ob', 's-login', 's-onboard'];
   document.getElementById('tabbar').classList.toggle('hidden', noTab.includes(id));
   refresh(id);
 }
-
+function go(id) {
+  // 現在画面を履歴に積む（同一画面・連続重複は積まない）
+  if(S.screen && S.screen !== id && _navStack[_navStack.length-1] !== S.screen) {
+    _navStack.push(S.screen);
+    if(_navStack.length > 24) _navStack.shift();
+  }
+  _navApply(id);
+}
 function goBack() {
-  // ── Hoku AI → 安全な前画面へ（S.prev汚染防止）──
-  if(S.screen === 's-hoku') {
-    const safe = ['s-home','s-task','s-cal','s-board','s-budget','s-health','s-prep'];
-    const dest = safe.includes(S.prev) ? S.prev : 's-home';
-    go(dest);
-    S.prev = 's-home'; // s-hokう汚染をリセット
-    return;
+  // Hoku AI からは常に安全な画面（ホーム）へ戻し、履歴をリセット
+  if(S.screen === 's-hoku') { _navStack = []; _navApply('s-home'); return; }
+  // 履歴を1つ戻る。現在画面・Hoku と同じものはスキップ。空ならホーム。
+  let dest = null;
+  while(_navStack.length) {
+    const c = _navStack.pop();
+    if(c && c !== S.screen && c !== 's-hoku' && c !== 's-ob' && c !== 's-login' && c !== 's-onboard') { dest = c; break; }
   }
-  // ── 設定 → 常にホームへ（s-hokuループ防止）──
-  if(S.screen === 's-settings') {
-    go('s-home');
-    S.prev = 's-home';
-    return;
-  }
-  // ── タスク画面 → ホームへ ──
-  if(S.screen === 's-custom-board') { go('s-home'); return; }
-  if(S.screen === 's-board-detail') { go('s-board'); return; }
-  if(S.screen === 's-task') { go('s-home'); return; }
-  // ── その他 ──
-  const _dest = S.prev || 's-home';
-  go(_dest === 's-hoku' ? 's-home' : _dest);
+  _navApply(dest || 's-home');
 }
 
 const TAB_MAP = { 's-home':'tab-home', 's-task':'tab-task', 's-cal':'tab-cal', 's-budget':'tab-budget', 's-board':'tab-board' };
 
 function switchTab(id) {
   S.prev = S.screen || 's-home';
+  _navStack = [];
   document.getElementById('tabbar').classList.remove('hidden');
   showScreen(id);
   refresh(id);
@@ -7779,6 +7776,13 @@ function renderBudget() {
   if(S.budgetM === null) S.budgetM = now.getMonth();
   const y=S.budgetY, m=S.budgetM;
   document.getElementById('budget-month').textContent = jpMonth(y,m);
+
+  // Wave 149: 固定収支を当月・過去月の家計（実績）へ自動反映
+  // （未来月は先取り計上しない。重複は _isRecurringApplied で防止）
+  const _curY = now.getFullYear(), _curM = now.getMonth();
+  if((y < _curY || (y === _curY && m <= _curM)) && typeof applyRecurringForMonth === 'function') {
+    try { applyRecurringForMonth(y, m); } catch(e) {}
+  }
 
   // その月の取引を抽出
   const mt = (S.txs||[]).filter(t=>{
