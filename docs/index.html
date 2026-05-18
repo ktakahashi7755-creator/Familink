@@ -2551,9 +2551,9 @@ nav#tabbar.hidden { display: none !important; }
     <div class="ob2-step" id="ob2-step-1">
       <div class="ob2-icon"><img src="" id="ob2-hero-img" alt="Familink"></div>
       <h2 class="ob2-title">家族みんなで、毎日をチームに</h2>
-      <p class="ob2-desc">Familink は、家族の予定・タスク・体調・家計・準備をひとつにまとめるアプリです。<br>家族運営AI「Hoku」が、毎日の段取りをやさしくサポートします。</p>
+      <p class="ob2-desc">Familink は、家族の予定・やること・体調・家計をひとつにまとめるアプリです。<br>家族運営AI「Hoku」が、毎日の段取りをやさしくサポートします。</p>
       <ul class="ob2-points">
-        <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><rect x="4" y="5.4" width="16" height="14.6" rx="2.6"/><path d="M4 9.4h16M9 3.4v3.4M15 3.4v3.4"/></svg> 予定・タスク・準備をひとつに</li>
+        <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><rect x="4" y="5.4" width="16" height="14.6" rx="2.6"/><path d="M4 9.4h16M9 3.4v3.4M15 3.4v3.4"/></svg> 予定・やること・家計をひとつに</li>
         <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M12 19.6 4.8 12.4a4.4 4.4 0 0 1 6.2-6.2l1 1 1-1a4.4 4.4 0 0 1 6.2 6.2z"/></svg> 体調・家計をやさしく見える化</li>
         <li><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex:none;"><path d="M12 4.4c.4 3.4 1.8 4.8 5.2 5.2-3.4.4-4.8 1.8-5.2 5.2-.4-3.4-1.8-4.8-5.2-5.2 3.4-.4 4.8-1.8 5.2-5.2z"/><path d="M17.6 14.4c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/></svg> Hoku が次の一手をご提案</li>
       </ul>
@@ -5535,8 +5535,9 @@ var HO_RETIRED = ['b_docs'];
 /* homeOrder を初期化・マイグレーション */
 function hoInitOrder() {
   var saved = S.homeOrder || [];
-  var cbKeys = (S.customBoards||[]).filter(function(b){ return b.visible!==false; })
-    .map(function(b){ return 'cb_'+b.id; });
+  var cbKeys = (S.customBoards||[]).filter(function(b){
+    return b.visible!==false && b.intent!=='prep' && b.intent!=='submissions';
+  }).map(function(b){ return 'cb_'+b.id; });
 
   // savedが空 or 固定ボードが1件も含まれていない → 初期化
   var hasFixed = HO_FIXED.some(function(k){ return saved.indexOf(k)>=0; });
@@ -8761,7 +8762,6 @@ const NOTIF_PREF_DEFS = [
   { key:'budget',    icon:'wallet',      label:'家計（支払い）が登録されたとき' },
   { key:'health',    icon:'thermometer', label:'体調が記録されたとき' },
   { key:'shopping',  icon:'cart',        label:'買い物リストに追加されたとき' },
-  { key:'prep',      icon:'bag',         label:'持ち物・準備のリマインド' },
   { key:'overdue',   icon:'hourglass',   label:'期限切れタスクのお知らせ' },
 ];
 function _ensureNotifPrefs() {
@@ -12401,11 +12401,10 @@ function openGuide() {
   const body = document.getElementById('guide-body');
   if(body) body.innerHTML =
       '<div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:var(--bg-muted);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
-    + 'Familink は、家族の予定・タスク・準備・家計・体調をひとつにまとめるアプリです。画面下のタブで各機能に移動できます。</div>'
+    + 'Familink は、家族の予定・やること・家計・体調をひとつにまとめるアプリです。画面下のタブで各機能に移動できます。</div>'
     + sec('home','#3F73C8','#EBF4FF','ホーム','今日の予定・やること・気になることがひと目で。1 日の始まりに、まずここを確認しましょう。')
     + sec('calendar','#3F73C8','#EBF4FF','カレンダー（予定）','家族の予定を月・週・リストで表示。＋ボタンで追加でき、担当者ごとに色分けされます。')
     + sec('check','#3A9E6B','#DCFCE7','タスク','「やること」を家族で共有。担当・期限・優先度を設定でき、終わったらチェックします。')
-    + sec('bag','#C8743A','#FFF0E3','準備リスト','学校・園・習い事の持ち物を管理。曜日ごとのルーティンも登録でき、忘れ物を防ぎます。')
     + sec('wallet','#B8902F','#FFF8DC','家計','日々の支出・収入をカテゴリ別に記録。月のサマリや資金繰りの見通しも確認できます。')
     + sec('thermometer','#D05858','#FFE8E8','体調','体温・症状・薬・受診の記録を時系列で残し、あとから家族で振り返れます。')
     + sec('cart','#C8743A','#FFF0E3','買い物リスト','買うものをリスト化。よく買うものを登録しておけば、ワンタップで追加できます。')
@@ -17142,8 +17141,7 @@ function seedDefaultCustomBoards() {
   if(!S.customBoards)   S.customBoards = [];
   if(!S.boardSections)  S.boardSections = [];
   const seeds = [
-    { intent:'shopping', name:'買い物メモ' },
-    { intent:'prep',     name:'準備リスト' }
+    { intent:'shopping', name:'買い物メモ' }
   ];
   seeds.forEach(function(s) {
     var exists = S.customBoards.some(function(b){
