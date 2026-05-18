@@ -10985,3 +10985,60 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 169: fix task bulk-delete bar hidden behind tab bar`
+
+## 2026-05-18 17:40  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全画面 総点検 + Hoku ボタン重なり不具合の修正（Wave 170）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 実施した総点検（全テスト緑）
+- 既存スイート 16本：integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 / memo 13 / wave113 14 / recurrence 14+11 / storage 17 /
+  scenario 27 / premium 13 / notif 16 / member 16 / shop-section 13 /
+  holiday 18 / tkdel 10 — 全 PASS（計 399）
+- 新規 full-audit.js（43件）：全14画面のレンダリング / コア導線フロー /
+  永続化 round-trip / ナビゲーション / 空データ / console.error 検出 — 全 PASS
+- 全14画面の空状態文言を確認、すべて適切な空状態あり
+- HTML onclick 参照関数 276件すべて定義済み（未定義ハンドラなし）
+
+### 発見・修正した不具合（優先度 S）
+- Hoku アシスタントの浮遊ボタンが、デフォルトで画面右上（ヘッダー行）に
+  固定されており、「やること」「カレンダー」等の各画面ヘッダーにある
+  ＋ボタン・マイクボタンに重なっていた。Hoku は z-index:9999 で最前面の
+  ため、＋を押しても Hoku が開いてしまう状態だった。
+- 修正：Hoku の初期位置を画面右下（bottom:160px + safe-area, right:14px）へ
+  変更。CLAUDE.md §10.6「Hoku は画面右下に常駐」方針に準拠。
+- カレンダーの予定追加 FAB / 家計の追加 FAB（ともに bottom:98px 付近）とは
+  高さをずらし、重ならないよう配置（Hoku は 160px〜、FAB は 98〜150px）。
+- 位置キーを hoku_fab_pos_v4 → v5 に更新。これにより旧ヘッダー位置の
+  保存値がクリアされ、全ユーザーが新しい右下配置になる（ドラッグ移動は
+  引き続き可能）。
+
+### テスト結果（全グリーン）
+- full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  tkdel 10 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- アプリ起動後、Hoku ボタンが画面右下（タブバーより上）に出るか
+- 「やること」「カレンダー」のヘッダー右上の＋・マイクが Hoku に
+  邪魔されず正常に押せるか
+- カレンダー画面で予定追加 FAB と Hoku が重なっていないか
+- 家計画面で追加 FAB と Hoku が重なっていないか
+- Hoku をドラッグで好きな位置に移動できるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 170: full-app QA pass + fix Hoku button overlapping header`
