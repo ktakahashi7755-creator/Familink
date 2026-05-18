@@ -13453,7 +13453,7 @@ function openBoardCreateModal(boardId) {
 function renderBcIntentGrid() {
   const grid = document.getElementById('bc-intent-grid');
   if(!grid) return;
-  const order = ['family-share','health','shopping','memo'];
+  const order = ['family-share','health','shopping'];
   grid.innerHTML = order.map(key => {
     const m = INTENT_META[key];
     return `<button type="button" class="bc-intent-btn ${_bcIntent===key?'selected':''}" data-intent="${H(key)}" onclick="selectBcIntent('${H(key)}')">

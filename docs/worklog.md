@@ -10869,3 +10869,42 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 166: multi-select bulk delete for completed tasks`
+
+## 2026-05-18 16:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+旧メモ（ボード作成の「メモ」種別）の撤廃（Wave 167）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- メモは Wave 165 でホームの固定ボード（b_memo → s-memo 専用画面）へ移行済み。
+  ボード作成モーダルの用途グリッド（renderBcIntentGrid）に残っていた
+  旧「メモ」種別を撤去し、新旧メモの二重導線を解消した。
+- 用途グリッド order を ['family-share','health','shopping'] に変更（'memo' を除外）。
+- INTENT_META.memo / BOARD_TYPE_META.memo / getIntentMeta の memo フォールバックは
+  温存。万一既存ユーザーが旧メモ型カスタムボードを持っていても表示は壊れない
+  （新規作成の導線のみ閉じる、データ破壊なし）。
+
+### テスト結果（全グリーン）
+- integration 55・e2e-render 10 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 家族ボード →「ボードを作成」で種別が「家族ボード / 体調管理 / 買い物メモ」の
+  3 つになり、「メモ」が消えていること
+- ホームのメモカード（b_memo）から従来どおりメモ画面が開くこと
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 167: retire the legacy memo board type from board creation`
