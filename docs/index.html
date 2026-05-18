@@ -7780,6 +7780,13 @@ function renderBudget() {
   const y=S.budgetY, m=S.budgetM;
   document.getElementById('budget-month').textContent = jpMonth(y,m);
 
+  // Wave 149: 固定収支を当月・過去月の家計（実績）へ自動反映
+  // （未来月は先取り計上しない。重複は _isRecurringApplied で防止）
+  const _curY = now.getFullYear(), _curM = now.getMonth();
+  if((y < _curY || (y === _curY && m <= _curM)) && typeof applyRecurringForMonth === 'function') {
+    try { applyRecurringForMonth(y, m); } catch(e) {}
+  }
+
   // その月の取引を抽出
   const mt = (S.txs||[]).filter(t=>{
     const d = new Date(t.date+'T00:00:00');
