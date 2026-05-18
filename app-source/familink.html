@@ -3203,7 +3203,7 @@ nav#tabbar.hidden { display: none !important; }
     <div id="budget-section-cashflow"  style="display:none;padding:14px 0;"></div>
   </div>
   <div id="budget-fab" style="position:fixed;bottom:calc(98px + env(safe-area-inset-bottom));right:18px;">
-    <button class="fab" onclick="onBudgetFabTap()">＋</button>
+    <button class="fab" onclick="onBudgetFabTap()" aria-label="収支を追加">＋</button>
   </div>
 </div>
 
@@ -3376,7 +3376,7 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">体調管理</div>
-    <button class="header-icon-btn" onclick="openHealthModal()">＋</button>
+    <button class="header-icon-btn" onclick="openHealthModal()" aria-label="体調を記録">＋</button>
   </div>
   <div class="child-tabs" id="health-child-tabs"></div>
   <div class="scroll-area" id="health-list" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
@@ -3387,7 +3387,7 @@ nav#tabbar.hidden { display: none !important; }
   <div class="header">
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
     <div class="header-title">持ち物・準備リスト</div>
-    <button class="header-icon-btn" onclick="openPrepModal()">＋</button>
+    <button class="header-icon-btn" onclick="openPrepModal()" aria-label="持ち物を追加">＋</button>
   </div>
   <!-- 今日 / 明日 / すべて / ルーティン タブ -->
   <div id="prep-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">
@@ -18312,7 +18312,7 @@ document.addEventListener('touchcancel', () => {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title" id="cb-screen-title">ボード</div>
-    <button class="header-icon-btn" onclick="openBoardMenuModal()" title="管理">
+    <button class="header-icon-btn" onclick="openBoardMenuModal()" title="管理" aria-label="ボード管理">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
     </button>
   </div>
