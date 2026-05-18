@@ -2697,6 +2697,10 @@ nav#tabbar.hidden { display: none !important; }
       <textarea class="input" id="memo-body" placeholder="メモを入力…" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
       <input type="file" id="memo-photo-file" accept="image/*" multiple style="display:none;" onchange="memoOnPhotoPicked(event)">
       <div id="memo-attach-area" style="margin-top:10px;"></div>
+      <div class="field" style="margin-top:12px;">
+        <div class="field-label">フォルダ</div>
+        <select class="input" id="memo-folder-select"></select>
+      </div>
       <button class="btn btn-primary btn-block btn-lg" style="margin-top:10px;" onclick="saveMemoEdit()">保存する</button>
       <button class="btn btn-ghost btn-block" id="memo-del-btn" onclick="deleteMemo()" style="color:var(--red);display:none;margin-top:6px;">このメモを削除</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-edit')" style="margin-top:6px;">閉じる</button>
@@ -9977,6 +9981,20 @@ function _memoFolderOptsDelete() {
   showToast('フォルダを削除しました');
 }
 /* ── メモ ── */
+/* メモのフォルダ選択肢（階層をインデント表示） */
+function _memoFolderOptions(selId) {
+  let html = '<option value=""' + (selId ? '' : ' selected') + '>（フォルダなし）</option>';
+  function walk(parentId, depth) {
+    S.memoFolders.filter(function(f){ return (f.parentId||'') === parentId; })
+      .forEach(function(f){
+        html += '<option value="'+H(f.id)+'"' + (f.id===selId?' selected':'') + '>'
+              + '\u3000'.repeat(depth) + H(f.name) + '</option>';
+        walk(f.id, depth+1);
+      });
+  }
+  walk('', 0);
+  return html;
+}
 function openMemoEdit(id) {
   _ensureMemo();
   _memoEditId = id || null;
@@ -9987,6 +10005,8 @@ function openMemoEdit(id) {
   document.getElementById('memo-del-btn').style.display = id ? 'block' : 'none';
   _memoAttachBuf = m && Array.isArray(m.attachments) ? m.attachments.slice() : [];
   _renderMemoAttach();
+  const fsel = document.getElementById('memo-folder-select');
+  if(fsel) fsel.innerHTML = _memoFolderOptions(m ? (m.folderId||'') : (_memoFolder||''));
   openModal('m-memo-edit');
 }
 /* メモの写真添付 */
@@ -10028,11 +10048,13 @@ function saveMemoEdit() {
   const bodyv = document.getElementById('memo-body').value;
   if(!title && !bodyv.trim() && !_memoAttachBuf.length) { showToast('タイトル・本文・写真のいずれかを入力してください','error'); return; }
   const now = new Date().toISOString();
+  const fsel = document.getElementById('memo-folder-select');
+  const fid = fsel ? fsel.value : (_memoFolder||'');
   if(_memoEditId) {
     const m = S.memos.find(function(x){ return x.id === _memoEditId; });
-    if(m) { m.title = title; m.body = bodyv; m.attachments = _memoAttachBuf.slice(); m.updatedAt = now; }
+    if(m) { m.title = title; m.body = bodyv; m.attachments = _memoAttachBuf.slice(); m.folderId = fid; m.updatedAt = now; }
   } else {
-    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:_memoFolder||'', attachments:_memoAttachBuf.slice(), createdAt:now, updatedAt:now });
+    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:fid, attachments:_memoAttachBuf.slice(), createdAt:now, updatedAt:now });
   }
   saveS();
   closeModal('m-memo-edit');
