@@ -5410,8 +5410,9 @@ function renderHome() {
 
   // ── 家族ボード（アナウンス）コンテンツ ──
   const uid2 = userId();
-  const annPinned = (S.announces||[]).filter(a=>a.isPinned).slice(0,1);
-  const annRecent = (S.announces||[]).filter(a=>!a.isPinned).slice(0,2);
+  // Wave 152: ピン留めを1件に絞らず、ピン留め→新着の順で最大3件表示
+  const annPinned = (S.announces||[]).filter(a=>a.isPinned);
+  const annRecent = (S.announces||[]).filter(a=>!a.isPinned);
   const annShow   = [...annPinned, ...annRecent].slice(0,3);
   const unreadAnn = (S.announces||[]).filter(a=>!(a.reads||[]).includes(uid2)).length;
   const postHTML  = annShow.length ? annShow.map(a => {
