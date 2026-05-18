@@ -11042,3 +11042,73 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 170: full-app QA pass + fix Hoku button overlapping header`
+
+## 2026-05-18 18:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全画面の品質向上：残骸削除 + バックアップ機能の完成 + アクセシビリティ整備（Wave 171-173）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+**Wave 171 — 残骸・到達不能コードの削除（挙動非破壊、計348行削減）**
+- 未使用CSSクラス11件（ob-brand-sub / cal-det-av / bm-av / health-item /
+  health-conds / card-react-bar / card-react-trigger.reacted /
+  react-chip-emoji / react-btn .react-cnt / post-body.expanded /
+  tk-card.drag-over）
+- 未使用変数7件（TK_PRIORITY_LABEL / BOARD_CATS / SHOP_CATS /
+  PREP_CATEGORIES / SHARE_CATS / _prepVisibleTab / _tkView）
+- 未使用関数3件（healthPastRow / getPrepRoutinesFor / reopenOnboarding）
+- 到達不能だった予定移動機能一式（openEventMoveModal / executeEventMove /
+  cancelEventMove / _moveTargetEvId / m-event-move モーダル）。
+  executeEventMove には常に false になる死に分岐もあり、開発途中で
+  放棄された機能と判断。予定の日時変更は通常の予定編集で代替可能。
+- 後方互換のみの未使用スワイプ定数・関数（SWIPE_PAGE_ORDER ほか旧定数
+  7件 / _appHistTop / _swipeGoBack / _swipeGoForward / _swipeNextScreen）
+
+**Wave 172 — データバックアップ機能の完成**
+- 書き出し/読み込みロジックは実装・テスト済みだったが、開くための
+  m-data-share モーダルと導線が無く到達不能だった。プライバシー説明文も
+  この機能に言及しており整合性が崩れていた。
+- m-data-share モーダルを新規追加（書き出しサマリー表示 / 完全版・軽量版
+  書き出し / ファイル読み込み / 上書き注意書き）
+- 設定 → データ管理セクションに「データのバックアップ」項目を追加
+
+**Wave 173 — アクセシビリティ一貫性**
+- アイコンのみボタン4箇所に aria-label を補完（体調＋ / 持ち物＋ /
+  ボード管理 / 家計の収支追加 FAB）
+
+### テスト結果（全グリーン）
+- 自動テスト17スイート 421件すべて PASS
+  （full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+   app-audit 70 / scenario 27 / storage 17 / premium 13 / notif 16 /
+   member 16 / recurrence 14 / holiday 18 / memo 13 / tkdel 10 /
+   wave113 14 / shop-section 13 / data-share 24）
+- 構文 OK / div 開閉 1528=1528 バランス維持
+- openDataShareModal の動作を専用ハーネスで検証（サマリー描画 PASS）
+
+### 未確認事項
+- リアクション選択ポップアップ（openReactPopup / showReactors /
+  toggleReactMore + .react-popup* CSS）も到達不能だが、live な
+  selectReaction と .reactor-popup を共有し依存が絡むため今回は保留。
+  分離して安全に削除できるか別途精査が必要。
+
+### iPhone確認ポイント
+- 設定 →「データのバックアップ」を開き、現在のデータ件数サマリーが
+  正しく出るか
+- 「すべて書き出す」「軽量版を書き出す」でJSONファイルが保存されるか
+- 書き出したファイルを「ファイルを選んで読み込む」で取り込み、上書き
+  確認ダイアログ → データ復元まで通るか
+- 体調管理 / 持ち物リストのヘッダー＋ボタンが従来どおり動くか
+
+### 次にやること
+- リアクションポップアップ系の到達不能コードの安全な分離・削除を精査
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+
+### コミット
+- ハッシュ: `c9aec06` / `3dd17e3` / `4bdb0cc`
+- メッセージ: wave 171 残骸削除 / wave 172 バックアップUI完成 /
+  wave 173 aria-label 整備
