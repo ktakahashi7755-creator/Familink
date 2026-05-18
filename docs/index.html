@@ -2076,11 +2076,12 @@ select.input {
 .tk-del-btn:hover { color:var(--red); border-color:var(--red); }
 .tk-del-btn.sel { color:#fff; background:var(--red); border-color:var(--red); }
 .tk-delbar {
-  position:absolute; left:0; right:0; bottom:0; z-index:20;
+  position:absolute; left:16px; right:16px;
+  bottom:calc(96px + env(safe-area-inset-bottom)); z-index:90;
   display:none; gap:10px; align-items:center;
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-  background:var(--bg-card); border-top:1.5px solid var(--border-light);
-  box-shadow:0 -4px 18px rgba(0,0,0,.10);
+  padding:10px; border-radius:18px;
+  background:var(--bg-card); border:1.5px solid var(--border-light);
+  box-shadow:0 8px 28px rgba(26,36,64,.22);
 }
 .tk-delbar.show { display:flex; }
 .tk-delbar-cancel {
@@ -2089,7 +2090,7 @@ select.input {
   color:var(--text-sub); font-size:14px; font-weight:600;
 }
 .tk-delbar-del {
-  flex:2; padding:13px; border-radius:12px; cursor:pointer;
+  flex:1.6; padding:13px; border-radius:12px; cursor:pointer;
   background:var(--red); border:none; color:#fff; font-size:14px; font-weight:700;
 }
 .tk-delbar-del:active, .tk-delbar-cancel:active { transform:scale(.97); }
