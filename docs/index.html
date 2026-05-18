@@ -2660,6 +2660,78 @@ nav#tabbar.hidden { display: none !important; }
   <div class="scroll-area" id="album-body" style="flex:1;padding:12px 12px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
+<!-- ===== Wave 160: メモ（フォルダ階層） ===== -->
+<div id="s-memo" class="screen hidden">
+  <div class="header">
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">メモ</div>
+    <button class="header-icon-btn" onclick="openMemoAddSheet()" aria-label="追加">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="scroll-area" id="memo-body" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
+</div>
+
+<!-- メモ：追加方法シート -->
+<div id="m-memo-add" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">追加</div>
+    <div class="modal-form">
+      <button class="btn btn-primary btn-block btn-lg" onclick="closeModal('m-memo-add');openMemoEdit()">メモを作成</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closeModal('m-memo-add');openMemoFolderEdit()">フォルダを作成</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-add')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- メモ編集 -->
+<div id="m-memo-edit" class="modal-backdrop">
+  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="memo-edit-title">メモ</div>
+    <div class="modal-form" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      <input class="input" id="memo-title" placeholder="タイトル" maxlength="80">
+      <textarea class="input" id="memo-body" placeholder="メモを入力…" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
+      <div id="memo-attach-area" style="margin-top:10px;"></div>
+      <button class="btn btn-primary btn-block btn-lg" style="margin-top:10px;" onclick="saveMemoEdit()">保存する</button>
+      <button class="btn btn-ghost btn-block" id="memo-del-btn" onclick="deleteMemo()" style="color:var(--red);display:none;margin-top:6px;">このメモを削除</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-edit')" style="margin-top:6px;">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- メモ：フォルダ作成/名称変更 -->
+<div id="m-memo-folder" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="memo-folder-title">新しいフォルダ</div>
+    <div class="modal-form">
+      <div class="field">
+        <div class="field-label">フォルダ名</div>
+        <input class="input" id="memo-folder-name" type="text" maxlength="30" placeholder="例：仕事、買い物、アイデア">
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="saveMemoFolder()">保存する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-folder')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- メモ：フォルダ操作シート -->
+<div id="m-memo-folder-opts" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title" id="memo-folder-opts-name">フォルダ</div>
+    <div class="modal-form">
+      <button class="btn btn-outline btn-block" onclick="_memoFolderOptsRename()">名前を変更</button>
+      <button class="btn btn-block" onclick="_memoFolderOptsDelete()" style="margin-top:8px;background:#FFF0F0;color:var(--red);border:1px solid #FAD4D4;">フォルダを削除</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-folder-opts')" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- アルバム単写真ビューア -->
 <div id="m-album-view" class="modal-backdrop hidden" style="z-index:400;align-items:center;" onclick="closeModal('m-album-view')">
   <div class="modal" style="max-height:94vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;border-radius:20px;" onclick="event.stopPropagation()">
@@ -4426,7 +4498,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.0.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account','demoSeeded'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders'];
 
 function saveS() {
   const d = {};
@@ -4960,6 +5032,7 @@ function refresh(id) {
     case 's-shopping': renderShopping(); break;
     case 's-archive':  renderArchive(); break;
     case 's-album':    renderAlbum(); break;
+    case 's-memo':     renderMemo(); break;
   }
 }
 
@@ -9774,6 +9847,180 @@ function _applyHealthLogFilters(recs) {
 }
 function setHealthMemberFilter(id) { _healthMemberFilter = id; renderHealth(); }
 
+/* ============================================================
+   Wave 160 — メモ（複数階層フォルダ + テキストメモ）
+   ============================================================ */
+let _memoFolder = '';
+let _memoEditId = null;
+let _memoFolderEdit = null;
+let _memoFolderOptsId = null;
+function _ensureMemo() {
+  if(!Array.isArray(S.memos)) S.memos = [];
+  if(!Array.isArray(S.memoFolders)) S.memoFolders = [];
+}
+function _memoFolderById(id) {
+  return (S.memoFolders||[]).find(function(f){ return f.id === id; }) || null;
+}
+function openMemoScreen() { _memoFolder = ''; go('s-memo'); }
+function memoOpenFolder(id) { _memoFolder = id; renderMemo(); }
+function memoGoUp() {
+  const f = _memoFolderById(_memoFolder);
+  _memoFolder = f ? (f.parentId || '') : '';
+  renderMemo();
+}
+function renderMemo() {
+  _ensureMemo();
+  const body = document.getElementById('memo-body');
+  if(!body) return;
+  if(_memoFolder && !_memoFolderById(_memoFolder)) _memoFolder = '';
+  const cur = _memoFolder;
+  const subFolders = S.memoFolders.filter(function(f){ return (f.parentId||'') === cur; });
+  const memos = S.memos.filter(function(m){ return (m.folderId||'') === cur; })
+    .sort(function(a,b){ return (b.updatedAt||'').localeCompare(a.updatedAt||''); });
+  let h = '';
+  if(cur) {
+    const f = _memoFolderById(cur);
+    h += '<div class="fld-head">'
+      + '<button class="fld-head-back" onclick="memoGoUp()" aria-label="上のフォルダへ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>'
+      + '<div class="fld-head-name">' + H(f ? f.name : 'メモ') + '</div>'
+      + '<button class="fld-head-back" onclick="openMemoFolderOpts(\''+H(cur)+'\')" aria-label="フォルダ操作">' + _DOTS_SVG + '</button>'
+      + '</div>';
+  }
+  if(!subFolders.length && !memos.length) {
+    body.innerHTML = h + _emptyState(_ES_ART_FOLDER, cur ? 'このフォルダは空です' : 'メモはまだありません',
+      'アイデアや覚え書きを自由に残せます。<br>フォルダを作って整理もできます。',
+      'メモを作成', 'openMemoEdit()');
+    return;
+  }
+  h += '<div class="fg-grid">';
+  subFolders.forEach(function(f){
+    const cnt = S.memos.filter(function(m){ return (m.folderId||'') === f.id; }).length
+              + S.memoFolders.filter(function(x){ return (x.parentId||'') === f.id; }).length;
+    h += '<div class="fg-card" onclick="memoOpenFolder(\''+H(f.id)+'\')">'
+      + '<button class="fg-opts" onclick="event.stopPropagation();openMemoFolderOpts(\''+H(f.id)+'\')" aria-label="フォルダ操作">' + _DOTS_SVG + '</button>'
+      + _folderIconSvg(f.color || FOLDER_COLORS[2])
+      + '<div class="fg-name">' + H(f.name) + '</div>'
+      + '<div class="fg-count">' + (cnt ? cnt+'件' : '空') + '</div>'
+      + '</div>';
+  });
+  h += '<div class="fg-add" onclick="openMemoFolderEdit()">' + ICON('plus',20) + '<span style="font-size:11.5px;font-weight:700;">新規フォルダ</span></div>';
+  h += '</div>';
+  if(memos.length) {
+    h += '<div class="fld-sec-label">メモ</div>';
+    h += memos.map(function(m){
+      const preview = (m.body||'').replace(/\s+/g,' ').trim().slice(0,46);
+      const att = (m.attachments && m.attachments.length)
+        ? '<span class="archive-cat" style="background:#EBF4FF;color:var(--primary);">'+ICON('image',10)+' '+m.attachments.length+'</span>' : '';
+      return '<div class="archive-row" onclick="openMemoEdit(\''+H(m.id)+'\')">'
+        + '<div class="archive-main">'
+        +   '<div class="archive-title">' + H(m.title || '(無題)') + '</div>'
+        +   (preview ? '<div class="archive-memo">' + H(preview) + '</div>' : '')
+        +   (att ? '<div style="margin-top:3px;">'+att+'</div>' : '')
+        + '</div>'
+        + '<div class="archive-actions"><button class="del" onclick="event.stopPropagation();deleteMemoById(\''+H(m.id)+'\')">削除</button></div>'
+        + '</div>';
+    }).join('');
+  }
+  body.innerHTML = h;
+}
+function openMemoAddSheet() { _ensureMemo(); openModal('m-memo-add'); }
+/* ── フォルダ ── */
+function openMemoFolderEdit(id) {
+  _ensureMemo();
+  _memoFolderEdit = id || null;
+  const f = id ? _memoFolderById(id) : null;
+  const t = document.getElementById('memo-folder-title');
+  if(t) t.textContent = id ? 'フォルダ名を変更' : '新しいフォルダ';
+  const n = document.getElementById('memo-folder-name');
+  if(n) n.value = f ? f.name : '';
+  openModal('m-memo-folder');
+}
+function saveMemoFolder() {
+  _ensureMemo();
+  const nameEl = document.getElementById('memo-folder-name');
+  const name = ((nameEl && nameEl.value) || '').trim().slice(0,30);
+  if(!name) { showToast('フォルダ名を入力してください','error'); return; }
+  if(_memoFolderEdit) {
+    const f = _memoFolderById(_memoFolderEdit);
+    if(f) f.name = name;
+  } else {
+    S.memoFolders.push({ id:'mfld_'+uid(), name:name, parentId:_memoFolder||'', color:FOLDER_COLORS[2], createdAt:todayStr() });
+  }
+  saveS();
+  closeModal('m-memo-folder');
+  renderMemo();
+  showToast(_memoFolderEdit ? 'フォルダ名を変更しました' : 'フォルダを作成しました');
+}
+function openMemoFolderOpts(id) {
+  _memoFolderOptsId = id;
+  const f = _memoFolderById(id);
+  const lbl = document.getElementById('memo-folder-opts-name');
+  if(lbl) lbl.textContent = f ? f.name : 'フォルダ';
+  openModal('m-memo-folder-opts');
+}
+function _memoFolderOptsRename() { closeModal('m-memo-folder-opts'); openMemoFolderEdit(_memoFolderOptsId); }
+function _memoFolderOptsDelete() {
+  closeModal('m-memo-folder-opts');
+  _ensureMemo();
+  const id = _memoFolderOptsId;
+  const f = _memoFolderById(id);
+  if(!f) return;
+  if(!confirm('フォルダ「'+f.name+'」を削除しますか？\n中のメモとサブフォルダは上の階層へ移動します。')) return;
+  const parent = f.parentId || '';
+  S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
+  S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
+  S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
+  saveS();
+  renderMemo();
+  showToast('フォルダを削除しました');
+}
+/* ── メモ ── */
+function openMemoEdit(id) {
+  _ensureMemo();
+  _memoEditId = id || null;
+  const m = id ? S.memos.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('memo-edit-title').textContent = id ? 'メモ' : '新しいメモ';
+  document.getElementById('memo-title').value = m ? (m.title||'') : '';
+  document.getElementById('memo-body').value  = m ? (m.body||'')  : '';
+  document.getElementById('memo-del-btn').style.display = id ? 'block' : 'none';
+  const aa = document.getElementById('memo-attach-area');
+  if(aa) aa.innerHTML = '';
+  openModal('m-memo-edit');
+}
+function saveMemoEdit() {
+  _ensureMemo();
+  const title = document.getElementById('memo-title').value.trim();
+  const bodyv = document.getElementById('memo-body').value;
+  if(!title && !bodyv.trim()) { showToast('タイトルか本文を入力してください','error'); return; }
+  const now = new Date().toISOString();
+  if(_memoEditId) {
+    const m = S.memos.find(function(x){ return x.id === _memoEditId; });
+    if(m) { m.title = title; m.body = bodyv; m.updatedAt = now; }
+  } else {
+    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:_memoFolder||'', attachments:[], createdAt:now, updatedAt:now });
+  }
+  saveS();
+  closeModal('m-memo-edit');
+  renderMemo();
+  showToast(_memoEditId ? 'メモを更新しました' : 'メモを保存しました');
+}
+function deleteMemo() {
+  if(!_memoEditId) return;
+  const id = _memoEditId;
+  if(!confirm('このメモを削除しますか？')) return;
+  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+  saveS();
+  closeModal('m-memo-edit');
+  renderMemo();
+  showToast('メモを削除しました');
+}
+function deleteMemoById(id) {
+  if(!confirm('このメモを削除しますか？')) return;
+  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+  saveS();
+  renderMemo();
+}
+
 function renderHealth() {
   // メンバータブ：家族全員 + 全 MEMBERS
   const tabEl = document.getElementById('health-child-tabs');
@@ -12109,6 +12356,7 @@ function refreshAfterMemberChange() {
     's-prep':     function(){ if(typeof renderPrep === 'function') renderPrep(); },
     's-shopping': function(){ if(typeof renderShopping === 'function') renderShopping(); },
     's-album':    function(){ if(typeof renderAlbum === 'function') renderAlbum(); },
+    's-memo':     function(){ if(typeof renderMemo === 'function') renderMemo(); },
     's-archive':  function(){ if(typeof renderArchive === 'function') renderArchive(); },
     's-settings': function(){ if(typeof renderSettings === 'function') renderSettings(); },
     's-notif':    function(){ if(typeof renderNotif === 'function') renderNotif(); }
@@ -12319,6 +12567,10 @@ function renderSettings() {
       <div class="settings-item" onclick="go('s-album')">
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>','#EC4899')}</div>
         <div class="settings-item-label">アルバム</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openMemoScreen()">
+        <div class="settings-item-icon" style="background:#FEF3C7">${si('<path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 16.5h5"/>','#F59E0B')}</div>
+        <div class="settings-item-label">メモ</div><div class="settings-arrow">›</div>
       </div>
       <!-- Wave 60.7: ストレージ管理（容量不足時の整理画面） -->
       <div class="settings-item" onclick="openStorageModal()">
@@ -12730,6 +12982,7 @@ function refreshAllAvatarsAcrossScreens() {
     's-prep':    function(){ if(typeof renderPrep === 'function') renderPrep(); },
     's-shopping':function(){ if(typeof renderShopping === 'function') renderShopping(); },
     's-album':   function(){ if(typeof renderAlbum === 'function') renderAlbum(); },
+    's-memo':    function(){ if(typeof renderMemo === 'function') renderMemo(); },
     's-archive': function(){ if(typeof renderArchive === 'function') renderArchive(); },
     's-notif':   function(){ if(typeof renderNotif === 'function') renderNotif(); }
   };
