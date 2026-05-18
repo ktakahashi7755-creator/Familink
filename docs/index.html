@@ -7500,7 +7500,7 @@ const TK_PRIORITY_LABEL = {none:'', low:'低', med:'中', high:'高'};
    DRAG & DROP ENGINE v3 — PC(mouse) + Mobile(touch)
    ============================================================ */
 
-const LONG_PRESS_MS    = 380;
+const LONG_PRESS_MS    = 260;
 const CANCEL_THRESHOLD = 10;
 const GHOST_SCALE      = 1.04;
 
@@ -7553,6 +7553,26 @@ function _elAt(x, y) {
 /* ══════════════════════════════════════════════════════════
    リスト D&D  — Touch + Mouse
 ══════════════════════════════════════════════════════════ */
+/* Wave 156: 並び替えを滑らかに — FLIP アニメで周囲のカードをスライドさせる */
+function _flipTkCards(mutateFn) {
+  const cont = document.getElementById('tk-main');
+  if(!cont) { mutateFn(); return; }
+  const cards = Array.prototype.slice.call(cont.querySelectorAll('.tk-card'));
+  const first = new Map();
+  cards.forEach(function(c){ first.set(c, c.getBoundingClientRect().top); });
+  mutateFn();
+  cards.forEach(function(c){
+    if(c === _ds.src) return;
+    const o = first.get(c); if(o == null) return;
+    const dy = o - c.getBoundingClientRect().top;
+    if(!dy) return;
+    c.style.transition = 'none';
+    c.style.transform = 'translateY(' + dy + 'px)';
+    c.getBoundingClientRect();
+    c.style.transition = 'transform .16s ease';
+    c.style.transform = '';
+  });
+}
 function bindListDrag(card) {
   const activate = (cx, cy) => {
     _ds.mode    = 'list';
@@ -7577,7 +7597,10 @@ function bindListDrag(card) {
     if(target && target !== card && _ds.placeholder) {
       const tRect = target.getBoundingClientRect();
       const after = cy > tRect.top + tRect.height / 2;
-      target.parentNode.insertBefore(_ds.placeholder, after ? target.nextSibling : target);
+      const ref   = after ? target.nextSibling : target;
+      if(_ds.placeholder !== ref && _ds.placeholder.nextSibling !== ref) {
+        _flipTkCards(function(){ target.parentNode.insertBefore(_ds.placeholder, ref); });
+      }
     }
   };
 
@@ -7585,12 +7608,16 @@ function bindListDrag(card) {
     if(_ds.mode !== 'list') { _dsReset(); return; }
     if(_ds.placeholder?.parentNode)
       _ds.placeholder.parentNode.insertBefore(card, _ds.placeholder);
+    card.style.transform = ''; card.style.transition = '';
     _dsReset();
+    // DOM は既に並び替え済み・ドラッグハンドラも保持されるため、
+    // 全再描画によるちらつきを避け order の更新と保存のみ行う（Wave 156）
     document.querySelectorAll('#tk-main .tk-card').forEach((c,i) => {
       const t = (S.tasks||[]).find(t => t.id === c.dataset.id);
-      if(t) t.order = i;
+      if(t) { t.order = i; t.updatedAt = todayStr(); }
     });
-    saveS(); renderTaskScreen();
+    saveS();
+    if(typeof renderHome === 'function') renderHome();
   };
 
   /* Touch */
