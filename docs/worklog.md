@@ -11158,3 +11158,44 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: `83f952d`
 - メッセージ: `wave 174: remove unreachable reaction-popup code cluster`
+
+## 2026-05-18 19:45  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+孤立CSSクラスの一掃（Wave 175）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 全480 CocSS クラスを精査し、HTML/JS のどこからも参照されない定義を
+  19クラス削除（描画される要素が存在しないため表示・挙動は不変）
+- 旧リアクション系（card-react-trigger / react-chip / react-chip-cnt /
+  react-btn / reaction）：現行インラインリアクションに置換済み
+- 旧空状態（album-empty / archive-empty）：Wave 115 の es-wrap に置換済み
+- 旧UI（ai-btn / home-camera-btn / board-tab / bm-tab / bm-amt /
+  fixed-footer / tk-voice-banner / hoku-dot / bc-type-btn / bc-tpl-chip）
+- Wave 171 の healthPastRow 削除で孤立した health-rec-row / health-temp
+- 上記専用だった @keyframes（starWiggle / hDot）
+- 計300行削減
+
+### テスト結果
+- 自動テスト17スイート 421件すべて PASS
+- 構文 OK / div 開閉 1521=1521 バランス維持
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 各画面の見た目に変化がないこと（家族ボード / 家計 / 体調 / ホーム /
+  ボード作成 / アルバム・書類の空状態）
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+  （※ LocalStorage 構造に関わるため §10.2 によりユーザー確認が必要）
+
+### コミット
+- ハッシュ: `245f9a9`
+- メッセージ: `wave 175: remove 19 orphaned CSS classes and 2 dead keyframes`
