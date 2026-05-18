@@ -450,11 +450,6 @@ select.input {
   color: var(--primary); line-height: 1.1;
   letter-spacing: -.5px;
 }
-.ob-brand-sub {
-  font-size: 11px; font-weight: 500;
-  color: var(--text-muted); margin-top: 2px;
-  letter-spacing: .3px;
-}
 /* Hero: image floats on gradient, no white card box */
 .ob-hero {
   position: relative; margin-bottom: 32px;
@@ -946,11 +941,6 @@ select.input {
 .cal-det-time { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 2px; }
 .cal-det-title { font-size: 14px; font-weight: 700; color: var(--text); }
 .cal-det-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-.cal-det-av {
-  width: 16px; height: 16px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
 .cal-det-mem-name { font-size: 11px; color: var(--text-muted); }
 .cal-det-note { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
 /* 空状態 */
@@ -1150,11 +1140,6 @@ select.input {
 .bm-tab .bm-amt { font-size: 11px; opacity: .85; font-weight: 700; }
 .bm-tab.active .bm-amt { opacity: 1; }
 .bm-tab.all { font-weight: 700; }
-.bm-tab .bm-av {
-  width: 18px; height: 18px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; color: #fff;
-}
 /* Wave 43：タスクページと統一したアバター型メンバーボタン */
 .bm-mem-av-btn {
   flex-shrink: 0; flex-direction: column;
@@ -1270,14 +1255,9 @@ select.input {
 .child-tab.on { background: var(--primary-light); }
 .child-tab-name { font-size: 11px; font-weight: 600; color: var(--text-muted); }
 .child-tab.on .child-tab-name { color: var(--primary); }
-.health-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; border-bottom: 1px solid var(--border-light);
-}
 .health-temp { font-size: 22px; font-weight: 800; font-family: var(--font-display); }
 .health-temp.fever  { color: var(--red); }
 .health-temp.normal { color: var(--secondary-dark); }
-.health-conds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
 /* ============================================================
    PREP SCREEN
@@ -1609,11 +1589,6 @@ select.input {
 /* ── SCHEDULE SCANNER ── */
 /* confirm list */
 /* ── リアクション（絵文字バッジ型）── */
-.card-react-bar {
-  display:flex; align-items:center; gap:5px; flex-wrap:wrap;
-  padding:8px 0 0; margin-top:8px;
-  border-top:1px solid var(--border-light);
-}
 .card-react-trigger {
   width:28px; height:28px; border-radius:50%;
   border:1.5px solid var(--border); background:#fff;
@@ -1623,9 +1598,6 @@ select.input {
   -webkit-tap-highlight-color:transparent;
 }
 .card-react-trigger:active { transform:scale(.88); }
-.card-react-trigger.reacted {
-  border-color:transparent; background:var(--primary-light);
-}
 .react-chip {
   display:inline-flex; align-items:center; gap:2px;
   padding:3px 7px; border-radius:var(--r-full);
@@ -1635,7 +1607,6 @@ select.input {
 }
 .react-chip:active { transform:scale(.9); }
 .react-chip.mine { background:var(--primary-light); border-color:var(--primary); }
-.react-chip-emoji { font-size:14px; }
 .react-chip-cnt { font-size:11px; font-weight:700; color:var(--text-sub); }
 .react-chip.mine .react-chip-cnt { color:var(--primary); }
 
@@ -1916,7 +1887,6 @@ select.input {
 .bdetail-comment .cmt-del:active { color:var(--red); }
 .post-body  { font-size:12.5px;color:var(--text-sub);line-height:1.55;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-.post-body.expanded { -webkit-line-clamp:unset; }
 .post-footer { display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border-light); }
 /* カテゴリ */
 .post-cat {
@@ -1958,7 +1928,6 @@ select.input {
   color:var(--text-sub);transition:var(--t-spring);
 }
 .react-btn.active { background:var(--primary-light);border-color:var(--primary);color:var(--primary); }
-.react-btn .react-cnt { font-size:11px;font-weight:700; }
 /* 詳細画面 */
 .bdetail-body-text {
   font-size:15px;line-height:1.8;color:var(--text);
@@ -2064,7 +2033,6 @@ select.input {
   cursor:pointer; transition:var(--t-spring); touch-action:pan-y;
 }
 .tk-card.dragging { opacity:.5; transform:scale(.98); }
-.tk-card.drag-over { border-color:var(--primary); background:var(--primary-light); }
 .tk-card.done-card { background:rgba(248,250,252,.7); border-color:var(--border-light); opacity:.78; }
 .tk-del-btn {
   background:transparent; border:1px solid var(--border-light);
@@ -5393,11 +5361,6 @@ function displayName() {
   return (S.user && S.user.name) || 'ゲスト';
 }
 
-function reopenOnboarding() {
-  // 設定からの再表示。完了フラグはリセットせず、1 ステップ目から見せる
-  startOnboarding();
-}
-
 /* プロフィール編集（Wave 21A） */
 function openProfileEdit() {
   const p = S.userProfile || {};
@@ -6559,60 +6522,6 @@ function _finalizeCalDrag() {
   showToast(`${dStr} ${newTime} に移動しました`);
 }
 
-/* Wave 40：予定の移動モーダルを開く */
-let _moveTargetEvId = null;
-function openEventMoveModal(evid) {
-  const e = (S.events||[]).find(x => x.id === evid);
-  if(!e) return;
-  _moveTargetEvId = evid;
-  const titleEl = document.getElementById('mv-ev-title');
-  const curEl = document.getElementById('mv-current');
-  const dateInp = document.getElementById('mv-new-date');
-  const timeInp = document.getElementById('mv-new-time');
-  const endTimeInp = document.getElementById('mv-new-endtime');
-  if(titleEl) titleEl.textContent = e.title || '(無題)';
-  if(curEl) {
-    const dStr = (e.date||'').replace(/^\d{4}-/,'').replace('-','/');
-    curEl.textContent = `現在：${dStr} ${e.time||''}${e.endTime?'〜'+e.endTime:''}`;
-  }
-  if(dateInp) dateInp.value = e.date || todayStr();
-  if(timeInp) timeInp.value = e.time || '09:00';
-  if(endTimeInp) endTimeInp.value = e.endTime || '';
-  openModal('m-event-move');
-}
-
-function executeEventMove() {
-  const id = _moveTargetEvId; if(!id) return;
-  const e = (S.events||[]).find(x => x.id === id);
-  if(!e) return;
-  const newDate = document.getElementById('mv-new-date').value;
-  const newTime = document.getElementById('mv-new-time').value;
-  const newEndTime = document.getElementById('mv-new-endtime').value;
-  if(!newDate) { showToast('日付を入力してください','error'); return; }
-  if(!newTime) { showToast('時刻を入力してください','error'); return; }
-  // 終了時刻が開始より前ならエラー
-  if(newEndTime && newDate === e.date && newEndTime <= newTime) {
-    showToast('終了時刻は開始時刻より後にしてください','error'); return;
-  }
-  // 確認文言を一度組み立てる（モーダル下部に既に出している場合は不要）
-  e.date = newDate;
-  e.time = newTime;
-  if(newEndTime) e.endTime = newEndTime;
-  if(newDate !== e.date) e.endDate = newDate;
-  e.updatedAt = new Date().toISOString();
-  saveS();
-  closeModal('m-event-move');
-  renderCal();
-  // Toast
-  const dStr = newDate.replace(/^\d{4}-/,'').replace('-','/');
-  showToast(`予定を ${dStr} ${newTime} に移動しました`);
-  _moveTargetEvId = null;
-}
-
-function cancelEventMove() {
-  closeModal('m-event-move');
-  _moveTargetEvId = null;
-}
 
 /* ============================================================
    Wave 40：ICS インポート（Vanilla JS パーサー）
@@ -7379,7 +7288,7 @@ function showIcsFallback(text) {
 }
 
 
-let _tkView='list', _tkFilter='all', _tkMember='all';
+let _tkFilter='all', _tkMember='all';
 
 function applyTkFilters(tasks){
   let r=[...tasks];
@@ -7660,7 +7569,6 @@ function toggleTkMemberVisible(id) {
 
 const TK_CATS = {'':'', work:'仕事', school:'学校・提出物', chore:'家事', shopping:'買い物', health:'健康・医療', event:'行事・イベント', other:'その他'};
 const TK_PRIORITY_COLOR = {none:'#D8E3F5', low:'#52C47A', med:'#FF9B4E', high:'#FF6B6B'};
-const TK_PRIORITY_LABEL = {none:'', low:'低', med:'中', high:'高'};
 
 /* ============================================================
    DRAG & DROP ENGINE v3 — PC(mouse) + Mobile(touch)
@@ -9133,7 +9041,6 @@ const REACT_MORE = [
   {key:'care',   label:'心配',   icon:'heart'},
 ];
 
-const BOARD_CATS = ['','家事','買い物','習い事','学校','重要','その他'];
 
 /* デモ投稿の追加 */
 function seedAnnounces() {
@@ -10507,25 +10414,6 @@ function healthLogCardV2(r) {
   </div>`;
 }
 
-function healthPastRow(r) {
-  const fever = parseFloat(r.temp) >= 37.5;
-  const m = getMem(r.memberId);
-  const symptoms = (r.symptoms || []).filter(Boolean).join('・');
-  const meta = [];
-  if(r.temp) meta.push(`${H(String(r.temp))}℃`);
-  if(symptoms) meta.push(H(symptoms));
-  else if(r.status) meta.push(H(r.status));
-  if(r.medicine) meta.push(`${ICON('pill',12)} ${H(r.medicine)}`);
-  if(r.visitedHospital) meta.push(`${ICON('hospital',12)} ${H(r.hospitalName||'病院')}`);
-  return `<div class="health-rec-row" onclick="openHealthEditModal('${H(r.id)}')">
-    ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : ''}
-    <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} ${r.time?`<span style="font-weight:500;color:var(--text-muted);font-size:11px;margin-left:4px;">${H(r.time)}</span>`:''}</div>
-      <div style="font-size:12px;color:${fever?'var(--red)':'var(--text-sub)'};margin-top:3px;line-height:1.5;">${meta.join(' / ')}</div>
-      ${r.note?`<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${H(r.note)}</div>`:''}
-    </div>
-  </div>`;
-}
 
 function healthDisclaimerHtml() {
   return `<div style="font-size:10px;color:var(--text-muted);margin:18px 16px 12px;line-height:1.6;background:var(--bg-muted);padding:10px 12px;border-radius:10px;text-align:left;">
@@ -10785,7 +10673,6 @@ function deleteCurrentHealth() {
    ・既存 S.boardItems / customBoards は触らない（後方互換）
    ・home の「買い物メモ」カスタムボードカードは hoCardClick から s-shopping へ転送
    ============================================================ */
-const SHOP_CATS = ['食品','日用品','子ども用品','薬・衛生','学校・園','その他'];
 
 function shopArrays() {
   if(!S.shoppingItems)    S.shoppingItems = [];
@@ -11974,11 +11861,9 @@ const PREP_TIMING_LABELS = {
   previous_day: '前日',
   previous_day_and_today: '前日と当日'
 };
-const PREP_CATEGORIES = ['教科書','ノート','教材','学校用品','提出物','体育','給食','習い事','園用品','学校','幼稚園','保育園','部活','病院','お出かけ','その他'];
 const PREP_SUBJECTS = ['国語','算数','生活','音楽','図工','体育','道徳','英語','理科','社会','書写','その他'];
 
 let _prepRoutineMember = 'all';   // ルーティン管理画面で表示中のメンバー
-let _prepVisibleTab = null;        // 何かに使うかも（リスト用）
 let _prepEditingRoutineId = null;
 
 function _ensurePrepRoutines() {
@@ -12063,14 +11948,6 @@ function deletePrepRoutine(id) {
   _ensurePrepRoutines();
   S.prepRoutines = S.prepRoutines.filter(x => x.id !== id);
   saveS();
-}
-function getPrepRoutinesFor(memberId, dayKey, opts) {
-  _ensurePrepRoutines();
-  let list = S.prepRoutines;
-  if(memberId && memberId !== 'all') list = list.filter(r => r.memberId === memberId);
-  if(dayKey) list = list.filter(r => r.dayOfWeek === dayKey);
-  if(opts && opts.enabledOnly) list = list.filter(r => r.enabled !== false);
-  return list.sort((a,b) => (a.order||0) - (b.order||0));
 }
 
 /* ルーティンを today/tomorrow へ反映する候補を計算 */
@@ -13161,7 +13038,6 @@ const BOARD_TYPE_META = {
   memo:  { label:'メモ',       color:'#FEF3C7', iconColor:'#F59E0B', bgKey:'bg_yellow2' },
 };
 
-const SHARE_CATS = ['体調面','習い事','学校・園','連絡','その他'];
 
 /* 用途別ボードメタ（Wave 17：白紙感解消） */
 const INTENT_META = {
@@ -17683,19 +17559,9 @@ const SWIPE_DURATION_MAX       = 800;
 const SWIPE_LEFT_EDGE_AVOID_PX = 20;   // Safari interactive pop と競合させないため左端 20px は無視
 const SWIPE_CANCEL_PERPENDICULAR = 24; // 主体方向と垂直方向の差がこれ未満なら継続
 
-/* 旧定数も後方互換のため公開（既存テスト互換） */
-const SWIPE_PAGE_ORDER         = ['s-home','s-cal','s-task','s-board','s-prep','s-health','s-budget','s-hoku','s-notif','s-settings'];
 const SWIPE_DETAIL_SCREENS     = ['s-board-detail','s-cdetail','s-custom-board'];
 /* 認証 / オンボード画面：戻るスワイプで抜けさせない（誤操作で初期設定を飛ばさないため） */
 const SWIPE_LOCKED_SCREENS     = ['s-ob','s-login','s-onboard'];
-const SWIPE_THRESHOLD_X        = 60;   // (legacy) wave44/45 互換
-const SWIPE_THRESHOLD_Y        = 80;   // (legacy)
-const SWIPE_MAX_Y              = 60;   // (legacy)
-const SWIPE_MAX_X_FOR_VERTICAL = 60;   // (legacy)
-const SWIPE_MAX_DURATION_MS    = SWIPE_DURATION_MAX;
-const SWIPE_MIN_DURATION_MS    = 60;   // (legacy)
-const SWIPE_EDGE_ZONE_PX       = 40;   // (legacy)
-const SWIPE_TOP_EDGE_PX        = 40;   // (legacy)
 
 /* タッチ起点で「スワイプナビ判定を始めない」要素群
    静的な可視化（家計バーチャート / 体調 SVG）は右スワイプを通すために除外。
@@ -17710,8 +17576,7 @@ const _swipeBlockSelectors = [
 ];
 /* 削除確認など、下スワイプで閉じてはいけないモーダル
    - m-confirm：削除確認（誤操作で見逃さないよう、明示的にボタンで判断させる）
-   - m-premium-gate / m-event-move は当初リストに入れていたが、
-     ユーザー要望で下スワイプ閉じ可能にする（dirty チェックで未保存は確認） */
+   - その他のモーダルは下スワイプで閉じ可能（dirty チェックで未保存は確認） */
 const SWIPE_DOWN_FORBIDDEN_MODAL_IDS = ['m-confirm'];
 
 let _swipeStart = null;   // { x, y, t, kind: 'back' | 'modal-down' | 'detail-down', modal? }
@@ -17729,9 +17594,6 @@ function _appHistPush(screenId) {
 }
 function _appHistPop() {
   return _appHistory.length ? _appHistory.pop() : null;
-}
-function _appHistTop() {
-  return _appHistory.length ? _appHistory[_appHistory.length-1] : null;
 }
 
 /* ── 既存 go / switchTab を wrap して履歴を残す ── */
@@ -17819,9 +17681,6 @@ function appNavBack() {
 }
 
 /* ── 後方互換ラッパー（Wave 44/45 テスト用に残す） ── */
-function _swipeGoBack()    { appNavBack(); }
-function _swipeGoForward() { /* Wave 46 では右スワイプ戻る優先のため左スワイプ進むは廃止 */ }
-function _swipeNextScreen(dir) { if(dir > 0) _swipeGoBack(); }
 function _swipeCloseDetail() {
   const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
   if(cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0 && typeof goBack === 'function') goBack();
@@ -18430,37 +18289,6 @@ document.addEventListener('touchcancel', () => {
   </div>
 </div>
 
-<!-- ===== EXTERNAL CALENDAR EXPORT MODAL (Wave 25) ===== -->
-<!-- ===== Wave 40：予定の長押し移動モーダル ===== -->
-<div id="m-event-move" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:80vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">予定を移動</div>
-    <div style="font-size:13px;color:var(--text);font-weight:700;line-height:1.4;margin-bottom:4px;" id="mv-ev-title"></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;" id="mv-current"></div>
-    <div class="modal-form">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field">
-          <div class="field-label">新しい日付 <span style="color:var(--red)">*</span></div>
-          <input class="input" id="mv-new-date" type="date">
-        </div>
-        <div class="field">
-          <div class="field-label">新しい開始時刻 <span style="color:var(--red)">*</span></div>
-          <input class="input" id="mv-new-time" type="time">
-        </div>
-      </div>
-      <div class="field">
-        <div class="field-label">終了時刻（任意）</div>
-        <input class="input" id="mv-new-endtime" type="time">
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin:6px 0 12px;line-height:1.55;background:var(--bg-muted);padding:8px 10px;border-radius:8px;">
-        ※ 「移動する」を押すと S.events に上書きされます。元に戻すには再度予定を移動してください。
-      </div>
-      <button class="btn btn-primary btn-block" onclick="executeEventMove()">移動する</button>
-      <button class="btn btn-ghost btn-block" onclick="cancelEventMove()">キャンセル</button>
-    </div>
-  </div>
-</div>
 
 <!-- ===== Wave 64：外部カレンダー取込モーダル（プロバイダ選択 + ICS 取込）===== -->
 <div id="m-ics-import" class="modal-backdrop hidden">
