@@ -10827,3 +10827,45 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `wave 134: seed demo data only once for production use`
+
+## 2026-05-18 16:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+やること：完了タスクの複数選択・一括削除（Wave 166）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 完了タスクのゴミ箱マークを「即削除」から「削除に選択」へ変更。
+  タップするとアイコンが赤く塗り（.sel）、選択状態を保持する。
+- 複数の完了タスクを自由に選択でき、画面下部に一括削除バー（#tk-delbar）が出現。
+  「N件を削除」で選択したものだけをまとめて削除、「選択を解除」で取り消し。
+- 一括削除バーは s-task 画面内の absolute 配置。画面を離れると一緒に隠れる。
+- フィルタ切替時は選択を自動クリア（_tkDelSel.clear）。
+- 削除確認 confirm → 選択分のみ S.tasks から除外 → 保存・再描画。
+- 旧 confirmDeleteTaskInline を撤去（未定義 renderTasks() 呼び出しのバグも解消）。
+
+### テスト結果（全グリーン）
+- tkdel-test 10/10（選択/複数/再タップ解除/選択分のみ削除/バー表示/フィルタでクリア/ID掃除）
+- integration 55・persistence 72・e2e-render 10・memo-test 13・
+  wave113-test 14・task-recurrence-test 11 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 完了済みフィルタで複数の完了タスクのゴミ箱をタップ → 赤く残るか
+- 下部バーの件数が正しく増減するか / 「N件を削除」で選択分だけ消えるか
+- 「選択を解除」で赤が全部戻るか / 他画面に移動してバーが消えるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 166: multi-select bulk delete for completed tasks`
