@@ -5410,8 +5410,9 @@ function renderHome() {
 
   // ── 家族ボード（アナウンス）コンテンツ ──
   const uid2 = userId();
-  const annPinned = (S.announces||[]).filter(a=>a.isPinned).slice(0,1);
-  const annRecent = (S.announces||[]).filter(a=>!a.isPinned).slice(0,2);
+  // Wave 152: ピン留めを1件に絞らず、ピン留め→新着の順で最大3件表示
+  const annPinned = (S.announces||[]).filter(a=>a.isPinned);
+  const annRecent = (S.announces||[]).filter(a=>!a.isPinned);
   const annShow   = [...annPinned, ...annRecent].slice(0,3);
   const unreadAnn = (S.announces||[]).filter(a=>!(a.reads||[]).includes(uid2)).length;
   const postHTML  = annShow.length ? annShow.map(a => {
@@ -9901,14 +9902,14 @@ function renderHealthCharts(recs) {
         const m = getMem(r.memberId);
         const dateStr = (r.date||'').slice(5).replace('-','/');
         const sym = (r.symptoms||[]).filter(Boolean).join('・');
-        const med = r.medicine ? `${ICON('pill',12)} ${r.medicine}` : '';
-        const hosp = r.visitedHospital ? `${ICON('hospital',12)} ${r.hospitalName||'病院'}` : '';
-        const meta = [sym, med, hosp].filter(Boolean).join(' / ');
+        const med = r.medicine ? `${ICON('pill',12)} ${H(r.medicine)}` : '';
+        const hosp = r.visitedHospital ? `${ICON('hospital',12)} ${H(r.hospitalName||'病院')}` : '';
+        const meta = [sym?H(sym):'', med, hosp].filter(Boolean).join(' / ');
         return `<div onclick="openHealthEditModal('${H(r.id)}')" style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer;-webkit-tap-highlight-color:transparent;">
           ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : '<div style="width:30px;height:30px;flex-shrink:0;"></div>'}
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} <span style="color:var(--text-muted);font-weight:500;font-size:11px;margin-left:3px;">${H(dateStr)}${r.time?' '+H(r.time):''}</span></div>
-            ${meta ? `<div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${H(meta)}</div>` : ''}
+            ${meta ? `<div style="font-size:11px;color:var(--text-sub);margin-top:2px;line-height:1.5;">${meta}</div>` : ''}
           </div>
           <div style="font-size:16px;font-weight:800;color:var(--red);flex-shrink:0;">${H(r.temp)}<span style="font-size:11px;font-weight:600;">℃</span></div>
         </div>`;
@@ -10036,16 +10037,16 @@ function healthPastRow(r) {
   const m = getMem(r.memberId);
   const symptoms = (r.symptoms || []).filter(Boolean).join('・');
   const meta = [];
-  if(r.temp) meta.push(`${r.temp}℃`);
-  if(symptoms) meta.push(symptoms);
-  else if(r.status) meta.push(r.status);
-  if(r.medicine) meta.push(`${ICON('pill',12)} ${r.medicine}`);
-  if(r.visitedHospital) meta.push(`${ICON('hospital',12)} ${r.hospitalName||'病院'}`);
+  if(r.temp) meta.push(`${H(String(r.temp))}℃`);
+  if(symptoms) meta.push(H(symptoms));
+  else if(r.status) meta.push(H(r.status));
+  if(r.medicine) meta.push(`${ICON('pill',12)} ${H(r.medicine)}`);
+  if(r.visitedHospital) meta.push(`${ICON('hospital',12)} ${H(r.hospitalName||'病院')}`);
   return `<div class="health-rec-row" onclick="openHealthEditModal('${H(r.id)}')">
     ${m ? `${avHtml(m.id, 30, 12, "flex-shrink:0")}` : ''}
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:700;color:var(--text);">${m?H(m.name):''} ${r.time?`<span style="font-weight:500;color:var(--text-muted);font-size:11px;margin-left:4px;">${H(r.time)}</span>`:''}</div>
-      <div style="font-size:12px;color:${fever?'var(--red)':'var(--text-sub)'};margin-top:3px;line-height:1.5;">${H(meta.join(' / '))}</div>
+      <div style="font-size:12px;color:${fever?'var(--red)':'var(--text-sub)'};margin-top:3px;line-height:1.5;">${meta.join(' / ')}</div>
       ${r.note?`<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${H(r.note)}</div>`:''}
     </div>
   </div>`;
