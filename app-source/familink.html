@@ -12749,7 +12749,7 @@ function refreshAllAvatarsAcrossScreens() {
 const BOARD_TYPE_META = {
   prep:  { label:'準備リスト', color:'#DCFCE7', iconColor:'#22C55E', bgKey:'bg_green2' },
   share: { label:'家族ボード', color:'#EDE9FE', iconColor:'#8B5CF6', bgKey:'bg_yellow1' },
-  memo:  { label:'汎用メモ',   color:'#FEF3C7', iconColor:'#F59E0B', bgKey:'bg_yellow2' },
+  memo:  { label:'メモ',       color:'#FEF3C7', iconColor:'#F59E0B', bgKey:'bg_yellow2' },
 };
 
 const SHARE_CATS = ['体調面','習い事','学校・園','連絡','その他'];
@@ -12806,7 +12806,7 @@ const INTENT_META = {
     sections: ['今週', '来週以降']
   },
   'memo': {
-    label: '汎用メモ', baseType: 'memo', icon: 'document',
+    label: 'メモ', baseType: 'memo', icon: 'document',
     addBtn: 'メモを追加',
     desc: '自由にメモや記録を残せます。',
     titlePh: '例：あとで確認すること',
@@ -13005,7 +13005,7 @@ function renderShareDetail(b, intentMeta) {
   }).join('') + `</div>`;
 }
 
-/* 汎用メモ詳細 */
+/* メモ詳細 */
 function renderMemoDetail(b, intentMeta) {
   intentMeta = intentMeta || getIntentMeta(b);
   const items = (S.boardItems||[]).filter(i=>i.boardId===b.id)
