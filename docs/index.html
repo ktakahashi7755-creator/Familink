@@ -2814,7 +2814,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div class="header-title">タスク</div>
+    <div class="header-title">やること</div>
     <button class="header-icon-btn" id="tk-mic-btn" onclick="taskVoiceToggle()" aria-label="音声でタスク追加" title="音声でタスク追加">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
@@ -2844,7 +2844,7 @@ nav#tabbar.hidden { display: none !important; }
 <div id="m-task-edit" class="modal-backdrop hidden">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title" id="m-task-title">タスクを追加</div>
+    <div class="modal-title" id="m-task-title">やることを追加</div>
     <input type="hidden" id="te-id">
     <div class="modal-form">
       <div class="field">
@@ -2899,6 +2899,7 @@ nav#tabbar.hidden { display: none !important; }
         <div class="field-label">カテゴリ</div>
         <select class="input" id="te-cat">
           <option value="">カテゴリなし</option>
+          <option value="work">仕事</option>
           <option value="school">学校・提出物</option>
           <option value="chore">家事</option>
           <option value="shopping">買い物</option>
@@ -3260,33 +3261,6 @@ nav#tabbar.hidden { display: none !important; }
   </div>
 </div>
 
-<!-- Wave 60.16: データ書き出し / 読み込み（端末間でデータを丸ごと共有） -->
-<div id="m-data-share" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">データの書き出し / 読み込み</div>
-    <div class="modal-form">
-      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;background:var(--bg-muted);padding:10px 12px;border-radius:10px;">
-        Familink のデータは <strong>iPhone 内 (Safari LocalStorage)</strong> に保存されます。<br>
-        URL を送るだけでは <strong>データは共有されません</strong>。<br>
-        ここで JSON ファイルを書き出して送付し、受信側で読み込むと丸ごと再現できます。
-      </div>
-
-      <div style="font-size:12px;font-weight:700;margin:10px 4px 6px;letter-spacing:.5px;">書き出す</div>
-      <div id="ds-export-info" style="font-size:11px;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:10px 12px;margin-bottom:6px;"></div>
-      <button class="btn btn-primary btn-block" onclick="exportFamilinkData()" style="margin-bottom:6px;">JSON ファイルを書き出す</button>
-      <button class="btn btn-outline btn-block" onclick="exportFamilinkDataLight()" style="margin-bottom:14px;font-size:12px;">写真を除いた軽量版を書き出す</button>
-
-      <div style="font-size:12px;font-weight:700;margin:0 4px 6px;letter-spacing:.5px;">読み込む</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">既存データを<strong>すべて上書き</strong>します。事前に書き出してバックアップを取ることをおすすめします。</div>
-      <input type="file" id="ds-import-file" accept="application/json,.json" style="display:none;" onchange="importFamilinkDataFromFile(event)">
-      <button class="btn btn-outline btn-block" onclick="document.getElementById('ds-import-file').click()" style="margin-bottom:6px;">JSON ファイルから読み込む</button>
-    </div>
-    <div class="modal-actions" style="margin-top:8px;">
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-data-share')">閉じる</button>
-    </div>
-  </div>
-</div>
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
@@ -3802,7 +3776,7 @@ nav#tabbar.hidden { display: none !important; }
 <div id="m-task" class="modal-backdrop">
   <div class="modal">
     <div class="modal-grip"></div>
-    <div class="modal-title">タスク管理</div>
+    <div class="modal-title">やること管理</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
       <input class="input" id="task-input" placeholder="タスクを追加…" style="flex:1;height:46px;">
       <select class="input" id="task-member" style="width:80px;height:46px;padding:0 6px;"></select>
@@ -4121,7 +4095,7 @@ nav#tabbar.hidden { display: none !important; }
         <path d="m9 12 2 2 4-4"/>
       </svg>
     </div>
-    <div class="tab-label">タスク</div>
+    <div class="tab-label">やること</div>
   </button>
 
   <!-- カレンダー -->
@@ -5570,7 +5544,7 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
   } else if(bid === 'b_task') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#DCFCE7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>'
-      + '<div class="bc-title">タスク</div>'
+      + '<div class="bc-title">やること</div>'
       + (pending ? '<div class="badge">'+pending+'</div>' : '')
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+taskHTML+'</div><img class="bc-bg" src="'+IMGS.bg_yellow1+'" alt=""></div>';
@@ -7479,7 +7453,7 @@ function toggleTkMemberVisible(id) {
 }
 
 
-const TK_CATS = {'':'', school:'学校・提出物', chore:'家事', shopping:'買い物', health:'健康・医療', event:'行事・イベント', other:'その他'};
+const TK_CATS = {'':'', work:'仕事', school:'学校・提出物', chore:'家事', shopping:'買い物', health:'健康・医療', event:'行事・イベント', other:'その他'};
 const TK_PRIORITY_COLOR = {none:'#D8E3F5', low:'#52C47A', med:'#FF9B4E', high:'#FF6B6B'};
 const TK_PRIORITY_LABEL = {none:'', low:'低', med:'中', high:'高'};
 
@@ -7639,7 +7613,7 @@ function toggleTaskDone(id){
 function openTaskModal(id,defaultStatus){
   const isEdit=!!id;
   const t=id?(S.tasks||[]).find(t=>t.id===id):null;
-  document.getElementById('m-task-title').textContent=isEdit?'タスクを編集':'タスクを追加';
+  document.getElementById('m-task-title').textContent=isEdit?'やることを編集':'やることを追加';
   document.getElementById('te-id').value=id||'';
   document.getElementById('te-title').value=t?.title||'';
   document.getElementById('te-memo').value=t?.memo||'';
@@ -8776,8 +8750,8 @@ function toggleNotifPref(key) {
 /* ── よくある質問 ── */
 const FAQ_ITEMS = [
   { q:'データはどこに保存されますか？', a:'すべてのデータはお使いの端末内に保存され、外部サーバーには送信されません。詳しくはプライバシーポリシーをご覧ください。' },
-  { q:'機種変更したらデータはどうなりますか？', a:'データは端末内に保存されるため、設定 →「データの書き出し / 読み込み」で事前にバックアップし、新しい端末で読み込んでください。' },
-  { q:'家族のスマホとデータを共有できますか？', a:'現在は「データの書き出し / 読み込み」で手動共有ができます。複数端末をまたいだ自動共有は今後のアップデートで対応予定です。' },
+  { q:'機種変更したらデータはどうなりますか？', a:'データは端末内に保存されます。大切なデータは、こまめに記録内容をご確認ください。複数端末での共有は今後のアップデートで対応予定です。' },
+  { q:'家族のスマホとデータを共有できますか？', a:'複数端末をまたいだ共有は今後のアップデートで対応予定です。現在は1台の端末内でご利用ください。' },
   { q:'Hoku（AI）の音声入力が使えません。', a:'音声入力は端末ブラウザの音声認識機能を利用します。対応していない端末ではキーボード入力をご利用ください。' },
   { q:'通知が届きません。', a:'設定 →「その他」→「通知設定」で、受け取りたい通知の種類がオンになっているかご確認ください。' },
   { q:'プレミアムを解約したいです。', a:'使い方ガイドの下部、または設定からいつでも解約できます。解約後も無料プランの基本機能はご利用いただけます。' },
@@ -12074,7 +12048,7 @@ function goChildDetail(id) {
       </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px">予定なし</div>'}
     </div>
     <div class="settings-section">
-      <div class="settings-title">タスク</div>
+      <div class="settings-title">やること</div>
       ${tasks.length ? tasks.map(t=>`<div class="settings-item">
         <div class="task-chk ${t.status==='done'?'done':''}" style="width:22px;height:22px;font-size:12px;flex-shrink:0">${t.status==='done'?ICON('check',13):''}</div>
         <div class="settings-item-label" style="${t.status==='done'?'text-decoration:line-through;color:var(--text-muted)':''}">${H(t.title||t.text||'')}</div>
@@ -12259,11 +12233,6 @@ function renderSettings() {
       <div class="settings-item" onclick="openStorageModal()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
         <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
-      </div>
-      <!-- Wave 60.16: データの書き出し / 読み込み -->
-      <div class="settings-item" onclick="openDataShareModal()">
-        <div class="settings-item-icon" style="background:#DCFCE7">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>','#22C55E')}</div>
-        <div class="settings-item-label">データの書き出し / 読み込み</div><div class="settings-arrow">›</div>
       </div>
     </div>
 
