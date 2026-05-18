@@ -5628,7 +5628,7 @@ function renderHome() {
    ============================================================ */
 
 /* ホームに表示する固定ボードのID */
-var HO_FIXED = ['b_board','b_task','b_cal','b_health'];
+var HO_FIXED = ['b_board','b_task','b_cal','b_health','b_memo'];
 /* 旧バージョンで存在した固定ボード（廃止済 / homeOrder から除外する） */
 var HO_RETIRED = ['b_docs'];
 
@@ -5695,6 +5695,12 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + '<div class="bc-title">体調管理</div>'
       + '</div>'
       + '<div class="bc-body"><div class="bc-content">'+healthHTML+'</div><img class="bc-bg" src="'+(IMGS.bg_pink||IMGS.bg_yellow1||'')+'" alt=""></div>';
+  } else if(bid === 'b_memo') {
+    card = '<div class="bc-head">'
+      + '<div class="bc-icon" style="background:#FEF3C7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 16.5h5"/></svg></div>'
+      + '<div class="bc-title">メモ</div>'
+      + '</div>'
+      + '<div class="bc-body"><div class="bc-content">'+_memoCardPreview()+'</div><img class="bc-bg" src="'+(IMGS.bg_yellow2||'')+'" alt=""></div>';
   } else if(bid.startsWith('cb_')) {
     var customId = bid.slice(3);
     var b = (S.customBoards||[]).find(function(x){ return x.id===customId; });
@@ -5751,6 +5757,7 @@ function hoCardClick(bid) {
   if(bid==='b_task')   { switchTab('s-task');  return; }
   if(bid==='b_cal')    { switchTab('s-cal');   return; }
   if(bid==='b_health') { go('s-health');       return; }
+  if(bid==='b_memo')   { openMemoScreen();     return; }
   if(bid.startsWith('cb_')) {
     // Wave 54: shopping intent のカスタムボードは新画面 s-shopping へ統合導線
     var customId = bid.slice(3);
@@ -9896,6 +9903,22 @@ function memoGoUp() {
   _memoFolder = f ? (f.parentId || '') : '';
   renderMemo();
 }
+function _memoCardPreview() {
+  _ensureMemo();
+  const recent = (S.memos||[]).slice()
+    .sort(function(a,b){ return (b.updatedAt||'').localeCompare(a.updatedAt||''); })
+    .slice(0,3);
+  if(!recent.length) {
+    return '<div class="empty" style="padding:6px 0 2px;">'
+      + '<img src="'+IMGS.sleep+'" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">メモはまだありません</div></div>';
+  }
+  return recent.map(function(m){
+    const t = m.title || (m.body||'').replace(/\s+/g,' ').trim().slice(0,20) || '(無題)';
+    return '<div class="bc-row"><div class="bc-dot" style="background:#F59E0B"></div>'
+      + '<div class="bc-text">'+H(t)+'</div></div>';
+  }).join('');
+}
 function renderMemo() {
   _ensureMemo();
   const body = document.getElementById('memo-body');
@@ -12646,10 +12669,6 @@ function renderSettings() {
       <div class="settings-item" onclick="go('s-album')">
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>','#EC4899')}</div>
         <div class="settings-item-label">アルバム</div><div class="settings-arrow">›</div>
-      </div>
-      <div class="settings-item" onclick="openMemoScreen()">
-        <div class="settings-item-icon" style="background:#FEF3C7">${si('<path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 16.5h5"/>','#F59E0B')}</div>
-        <div class="settings-item-label">メモ</div><div class="settings-arrow">›</div>
       </div>
       <!-- Wave 60.7: ストレージ管理（容量不足時の整理画面） -->
       <div class="settings-item" onclick="openStorageModal()">
