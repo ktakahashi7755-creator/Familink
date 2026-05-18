@@ -4172,8 +4172,13 @@ const MEMBER_GRADIENTS = [
 ];
 function applyMembersFromS() {
   if(Array.isArray(S.members) && S.members.length > 0) {
-    // 防御的コピー + 必須フィールドの補完
-    MEMBERS = S.members.map(function(m){
+    // 防御的コピー + 必須フィールドの補完 + id 重複の除去（Wave 155）
+    const _seenMid = {};
+    MEMBERS = S.members.filter(function(m){
+      const mid = m && m.id;
+      if(!mid || _seenMid[mid]) return false;
+      _seenMid[mid] = true; return true;
+    }).map(function(m){
       return {
         id: m.id || ('mem_'+(Math.random().toString(36).slice(2))),
         name: m.name || '名無し',
@@ -7261,8 +7266,14 @@ function applyTkFilters(tasks){
 }
 
 function getTkVisibleMembers() {
-  if(!S.tkVisibleMembers || !S.tkVisibleMembers.length) return MEMBERS.map(m=>m.id);
-  return S.tkVisibleMembers;
+  const valid = MEMBERS.map(m=>m.id);
+  if(!S.tkVisibleMembers || !S.tkVisibleMembers.length) return valid;
+  // Wave 155: 重複・無効IDを除去（担当者が二重表示されるバグ対策）
+  const seen = {};
+  return S.tkVisibleMembers.filter(function(id){
+    if(seen[id] || valid.indexOf(id) < 0) return false;
+    seen[id] = true; return true;
+  });
 }
 
 function isThisWeek(due){
