@@ -12749,7 +12749,7 @@ function refreshAllAvatarsAcrossScreens() {
 
 const BOARD_TYPE_META = {
   prep:  { label:'準備リスト', color:'#DCFCE7', iconColor:'#22C55E', bgKey:'bg_green2' },
-  share: { label:'家族共有',   color:'#EDE9FE', iconColor:'#8B5CF6', bgKey:'bg_yellow1' },
+  share: { label:'家族ボード', color:'#EDE9FE', iconColor:'#8B5CF6', bgKey:'bg_yellow1' },
   memo:  { label:'汎用メモ',   color:'#FEF3C7', iconColor:'#F59E0B', bgKey:'bg_yellow2' },
 };
 
@@ -12758,7 +12758,7 @@ const SHARE_CATS = ['体調面','習い事','学校・園','連絡','その他']
 /* 用途別ボードメタ（Wave 17：白紙感解消） */
 const INTENT_META = {
   'family-share': {
-    label: '家族共有', baseType: 'share', icon: 'chat',
+    label: '家族ボード', baseType: 'share', icon: 'chat',
     addBtn: '共有を追加',
     desc: '家族に共有したい出来事や連絡を残せます。',
     titlePh: '例：今日の連絡メモ',
@@ -13032,12 +13032,9 @@ function openBoardCreateModal(boardId) {
   const isEdit = !!boardId;
   document.getElementById('m-board-create-title').textContent = isEdit ? 'ボードを編集' : 'ボードを作成';
   document.getElementById('bc-id').value = boardId || '';
-  // 作成モードでは選択中の用途名をボード名の初期値にする
-  document.getElementById('bc-name').value = isEdit ? '' : (INTENT_META[_bcIntent].label || '');
   if(isEdit) {
     const b = (S.customBoards||[]).find(b=>b.id===boardId);
     if(b) {
-      document.getElementById('bc-name').value = b.name;
       _bcIntent = b.intent || (b.type === 'prep' ? 'prep' : b.type === 'share' ? 'family-share' : 'memo');
       _bcType = INTENT_META[_bcIntent] ? INTENT_META[_bcIntent].baseType : (b.type || 'memo');
     }
@@ -13049,7 +13046,7 @@ function openBoardCreateModal(boardId) {
 function renderBcIntentGrid() {
   const grid = document.getElementById('bc-intent-grid');
   if(!grid) return;
-  const order = ['family-share','prep','lessons','health','shopping','submissions','memo'];
+  const order = ['family-share','health','shopping','memo'];
   grid.innerHTML = order.map(key => {
     const m = INTENT_META[key];
     return `<button type="button" class="bc-intent-btn ${_bcIntent===key?'selected':''}" data-intent="${H(key)}" onclick="selectBcIntent('${H(key)}')">
@@ -13063,29 +13060,10 @@ function renderBcIntentGrid() {
     const m = INTENT_META[_bcIntent];
     descEl.innerHTML = H(m.desc) + (m.note ? `<br><span style="color:var(--text-muted);font-size:10px;">${H(m.note)}</span>` : '');
   }
-  // ボード名プレースホルダーを intent に応じて
-  const nameInp = document.getElementById('bc-name');
-  if(nameInp && !nameInp.value) {
-    nameInp.placeholder = '例：' + INTENT_META[_bcIntent].label;
-  }
 }
 
 function selectBcIntent(key) {
   if(!INTENT_META[key]) return;
-  // 作成モード（編集ではない）かつ、現在のボード名が空 or 既存の用途名と一致している場合のみ自動反映
-  // → ユーザーが独自に編集した名前は保持する
-  const isEdit = !!document.getElementById('bc-id').value;
-  if(!isEdit) {
-    const nameInp = document.getElementById('bc-name');
-    if(nameInp) {
-      const cur = (nameInp.value || '').trim();
-      const intentLabels = Object.values(INTENT_META).map(m => m.label);
-      const isAutoFromIntent = !cur || intentLabels.indexOf(cur) >= 0;
-      if(isAutoFromIntent) {
-        nameInp.value = INTENT_META[key].label;
-      }
-    }
-  }
   _bcIntent = key;
   _bcType = INTENT_META[key].baseType;
   renderBcIntentGrid();
@@ -13095,8 +13073,7 @@ function selectBcIntent(key) {
 
 
 function saveBoardCreate() {
-  const name = document.getElementById('bc-name').value.trim();
-  if(!name) { showToast('ボード名を入力してください','error'); return; }
+  const name = (INTENT_META[_bcIntent] && INTENT_META[_bcIntent].label) || 'ボード';
   const id = document.getElementById('bc-id').value;
   if(!S.customBoards) S.customBoards = [];
   if(id) {
@@ -18391,10 +18368,6 @@ document.addEventListener('touchcancel', () => {
       </div>
       <div class="field" id="bc-intent-desc-field" style="font-size:11px;color:var(--text-sub);background:var(--bg-muted);padding:10px 12px;border-radius:10px;line-height:1.55;">
         <span id="bc-intent-desc"></span>
-      </div>
-      <div class="field">
-        <div class="field-label">ボード名 <span style="color:var(--red)">*</span></div>
-        <input class="input" id="bc-name" placeholder="例：小学校準備、習い事メモ、体調管理" maxlength="24">
       </div>
     </div>
     <div class="modal-actions">
