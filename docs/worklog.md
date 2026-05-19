@@ -11404,3 +11404,54 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: `33fec74`
 - メッセージ: `wave 181: new Familink avatar series as the main avatar set`
+
+## 2026-05-19 07:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+新アバターシリーズの導入・差し替え・円形仕上げ + 最終QA（Wave 181-190）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / index.html
+- .github/workflows/pages.yml / docs/worklog.md
+
+### 変更内容（Wave 181-190）
+- Wave 181: 北欧調の新アバター（ベーシック10/プレミアム10）を導入。
+  FAMILINK_BASIC / FAMILINK_PREMIUM / AVATARS_ALL を新設。アバター選択
+  画面を「ベーシック→プレミアム→これまでのアバター」のセクション構成へ。
+  ユーザー提供画像はチャット添付からセッション記録(JSONL)経由で復元。
+- Wave 182-184: 円形切り抜きの調整。縁の残り（切り抜き感）を解消し、
+  最終的に「円の形ちょうどに沿って透過で切り抜く」方式に確定。
+- Wave 185: ベーシック10点を高解像度版へ差し替え。
+- Wave 186-189: プレミアム10点を複数回ユーザー指定の新画像へ差し替え。
+  王冠/バッジが円フレームで切れないよう、デザイン外接半径を検出して
+  内接円に収める保護処理を実装。
+- Wave 187/190: APP_VERSION を v1.0.0 → v1.2.0（最新ビルド到達確認用）。
+- Wave 178-179: ルート index.html のリダイレクトにキャッシュ回避を付与、
+  Pages デプロイのトリガーを main 単独化（競合で公開が止まる不具合を修正）。
+
+### テスト結果（全グリーン）
+- 維持中の全自動テスト 約1,900検証 すべて PASS
+  （app-audit 70 / full-audit 43 / integration 55 / persistence 72 /
+   e2e-render 10 / edge 76 / scenario 27 / avatar系 62 /
+   avatar-v2-check 12 / hoku系全スイート / auth 25 ほか）
+- 旧 audit.js の「2 critical」は window.open（ブラウザ組込み）の誤検出。
+  実害なし（維持中の app-audit/full-audit は 0 fail）。
+- アバター構成検証：FAMILINK_BASIC 10 / FAMILINK_PREMIUM 10、全 WebP、
+  埋め込み画像とユーザー提供画像が一致することを比較確認済み。
+- 構文 OK / div 開閉 1533=1533 バランス
+
+### 未確認事項
+- 実機での表示反映（キャッシュ）。設定→バージョンが v1.2.0 なら最新。
+
+### iPhone確認ポイント
+- 設定→アバター設定で、ベーシック/プレミアムの新アバターが円形で
+  きれいに表示されるか（王冠バッジが切れていないか）
+- バージョン表示が v1.2.0 か
+
+### 次にやること
+- 実機で v1.2.0 とアバター表示を確認
+- ニュートラル系の不足分があれば追加
+
+### コミット
+- ハッシュ: Wave 181-190（33fec74 ... ead3913）
+- メッセージ: 各 wave コミット参照
