@@ -11455,3 +11455,57 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: Wave 181-190（33fec74 ... ead3913）
 - メッセージ: 各 wave コミット参照
+
+## 2026-05-19 22:30  env: 不明  branch: main / gh-pages
+
+### 作業名
+世界最高峰テスト・全量監査・クリーンアップ（QA総点検）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages ブランチ（デプロイ用）
+
+### 変更内容
+**調査範囲：18555行 / 関数614個 / console.log 8件 / Wave コメント196件 / LS操作等全量**
+
+#### 除去した残骸
+- `debugHokuParse()` 関数（8行）を完全削除（`console.log('[Hoku Debug]')` 2件含む）
+- `window.debugHokuParse = debugHokuParse` エクスポートも削除
+- Hoku v2 設計コメント内の `debugHokuParse` 参照を削除（関数が存在しなくなったため）
+- `_swipeCloseDetail` の誤解を招くコメント「Wave 44/45 テスト用に残す」を「詳細画面スワイプ閉じのラッパー」に修正
+
+#### iOS Safari バグ修正
+- `hm-symptoms-extra`（症状入力）の `font-size:13px` インライン上書きを削除
+  → `.input` クラスの 16px が適用され、iOS Safari の自動ズームが防止される
+
+#### 確認済み（変更なし・正常）
+- div 開閉バランス：1533=1533 ✓
+- saveS() エラー時にトースト通知あり（全呼び出し元保護済み）
+- Hoku API の fetch に AbortController + finally でリセット ✓
+- sendHokuMsg に finally で _hokuBusy リセット ✓
+- アバター ID 重複なし（FAMILINK_BASIC:10 / FAMILINK_PREMIUM:10 / OFFICIAL:16 / PREMIUM:14 = 50件）
+- XSS リスクなし（全 innerHTML 代入で H() エスケープ済み）
+- QA Debug パネルは意図的実装（#qa-debug ハッシュで起動）→ 維持
+
+### テスト結果
+- div 開閉バランス: 1533 = 1533 ✓
+- console.log 残骸: 0件（全削除）
+- debugHokuParse: 0件（削除済み）
+- 3ファイル同期: MD5 一致 ✓
+
+### 未確認事項
+- GitHub Pages Settings が GitHub Actions / gh-pages のどちらに設定されているか（ユーザー確認が必要）
+- iPhone 実機での症状入力ズーム改善確認
+
+### iPhone確認ポイント
+- 体調記録 → 「その他の症状」入力欄をタップ → ズームしないことを確認
+- バージョン表示が v1.2.0 であることを確認
+
+### 次にやること
+- GitHub Pages Settings を確認して公開URLを正しく開けるようにする（Settings → Pages → Source）
+- 実機で体調記録の症状入力ズーム改善を確認
+
+### コミット
+- ハッシュ: `13109d8`（main）/ `40986a6`（gh-pages）
+- メッセージ: `qa: remove debug remnants and fix iOS input zoom`
