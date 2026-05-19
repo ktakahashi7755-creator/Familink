@@ -11621,3 +11621,38 @@ OFFICIAL_AVATARS を全削除（新画像差し替え準備）
 ### コミット
 - ハッシュ: （コミット後に更新）
 - メッセージ: `chore: OFFICIAL_AVATARS を全削除（新画像差し替え準備）`
+
+## 2026-05-19 今夜  env: 不明  branch: main / claude/merge-and-push-main-u44Ty
+
+### 作業名
+「これまでのアバター」セクション完全削除 & GitHub Pages 配信元ブランチ特定・修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- .github/workflows/pages.yml（path: '.' → 'docs' に変更）
+
+### 変更内容
+- OFFICIAL_AVATARS / PREMIUM_AVATARS の定義・参照・コメントをすべて削除
+- AVATARS_ALL = [...FAMILINK_BASIC, ...FAMILINK_PREMIUM] のみに整理
+- section() 関数に空配列ガード追加（空なら非表示）
+- アバター選択画面から「これまでのアバター」セクションを完全除去
+- GitHub Pages 配信元が claude/merge-and-push-main-u44Ty ブランチと判明し、同ブランチにも反映
+- iPhone での表示確認済み（ユーザーから「消えました」との報告）
+
+### テスト結果
+- iPhone Safari 実機で「これまでのアバター」セクションが非表示になったことを確認 ✓
+- GitHub raw URL で OFFICIAL_AVATARS / PREMIUM_AVATARS / これまでのアバター がゼロ件 ✓
+
+### 未確認事項
+- 新しいアバター画像の受け取りと差し替え（ユーザー待ち）
+
+### iPhone確認ポイント
+- アバター選択でベーシック・プレミアムの2セクションのみ表示されるか
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: `82f8b94`（main）/ `063b239`（claude/merge-and-push-main-u44Ty）
+- メッセージ: `feat: これまでのアバター セクションを完全削除`
