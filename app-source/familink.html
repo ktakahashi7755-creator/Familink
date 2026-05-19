@@ -12623,10 +12623,12 @@ function renderAvatarGrid() {
       <div class="avatar-grid-label">${H(a.label)}</div>
     </div>`;
   };
-  const section = (title, sub, list) =>
-    `<div class="avatar-sec-head"><span class="avatar-sec-title">${H(title)}</span>`
-    + (sub ? `<span class="avatar-sec-sub">${H(sub)}</span>` : '')
-    + `</div><div class="avatar-sec-grid">${list.map(itemHtml).join('')}</div>`;
+  const section = (title, sub, list) => {
+    if (!list.length) return '';
+    return `<div class="avatar-sec-head"><span class="avatar-sec-title">${H(title)}</span>`
+      + (sub ? `<span class="avatar-sec-sub">${H(sub)}</span>` : '')
+      + `</div><div class="avatar-sec-grid">${list.map(itemHtml).join('')}</div>`;
+  };
   el.innerHTML =
       section('ベーシック', '家族みんなに', FAMILINK_BASIC)
     + section('プレミアム', 'やさしいきらめき', FAMILINK_PREMIUM)
