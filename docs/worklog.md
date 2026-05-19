@@ -11259,3 +11259,55 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: `e472ac5`
 - メッセージ: `wave 176: C8 - add usage style (solo / family-team) data scope`
+
+## 2026-05-18 21:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+公開が止まっていた不具合の修正（Wave 177-179）
+
+### 変更ファイル
+- app-source/familink.html（APP_VERSION）
+- index.html（キャッシュ回避リダイレクト）
+- .github/workflows/pages.yml（デプロイトリガー修正）
+- docs/index.html / docs/worklog.md
+
+### 症状
+- 端末で「利用スタイル」(Wave 176) が表示されない。新規インストールでも
+  同じ。「データのバックアップ」(Wave 172) は表示される。
+  → 公開サイトが Wave 172 付近で止まっていた。
+
+### 根本原因
+- Pages デプロイ用ワークフローの push トリガーが 3 ブランチ
+  （TzM1F / merge-and-push-main / main）対象だった。
+- 1 回の `git push` で 3 ブランチを更新すると 3 つの run がほぼ同時に
+  起動し、concurrency group "pages" の cancel-in-progress により
+  後発が先発を打ち消す。結果、main の run までキャンセルされ、
+  公開が更新されないことがあった。
+
+### 変更内容
+- Wave 177: APP_VERSION を v1.0.0 → v1.1.0（最新ビルド到達の確認用）
+- Wave 178: ルート index.html のリダイレクトに ?t=<timestamp> を付与。
+  端末が古い familink.html を保持し続ける問題を緩和。
+- Wave 179: ワークフローの push トリガーを main 1 本に限定。
+  push 1 回 = run 1 回となり競合が発生しなくなる。
+
+### テスト結果
+- renderSettings の出力に「利用スタイル」「openUsageModeModal」が
+  含まれることをハーネスで確認済（コードは正しい）
+- full-audit 43 PASS / 構文 OK
+
+### 未確認事項
+- 環境からは github.io へ到達できず（Host not in allowlist）、公開済み
+  サイトの実体は未確認。Wave 179 のワークフロー修正後、main への push
+  で 1 回だけ run が走り公開されるはず。要・実機での再確認。
+
+### iPhone確認ポイント
+- push 後 3〜5 分待ち、Safari で ?v= を付けて開く
+- 設定→バージョンが v1.1.0 なら最新。利用スタイルが表示される
+
+### 次にやること
+- 実機で v1.1.0 と「利用スタイル」表示を確認
+- 確認できたら C9（入力時の共有範囲選択＋鍵アイコン）へ
+
+### コミット
+- ハッシュ: `5f30ede` / `a0f192c` / `f397f36`
