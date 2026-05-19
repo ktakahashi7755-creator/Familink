@@ -11548,5 +11548,5 @@ S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レ�
 - App Store公開前チェックリスト（docs/app-store-release-checklist.md）の作成・確認
 
 ### コミット
-- ハッシュ: （コミット後に更新）
+- ハッシュ: `46ff835`
 - メッセージ: `fix: Hoku削除ロジック・null安全・XSSエスケープ・長文レスポンス圧縮（S/A級6件）`
