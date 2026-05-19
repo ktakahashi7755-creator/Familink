@@ -11509,3 +11509,44 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: `13109d8`（main）/ `40986a6`（gh-pages）
 - メッセージ: `qa: remove debug remnants and fix iOS input zoom`
+
+---
+
+## 2026-05-19 14:30  env: 不明  branch: main
+
+### 作業名
+S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レスポンス）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+1. **[S] Hoku削除サイレントスライス廃止**：`_hokuFindDeleteTargets` の `if(vague && res.length>6) res=res.slice(-6)` を削除。代わりに `_hokuHandleDelete` 側で「N件あるよ、どれを消す？」と案内するよう変更。ユーザーが「全部」と言った場合の誤削除（6件のみ削除）を防止。
+2. **[A] Hoku確認フロー肯定語追加**：`handleConfirmation` の yes 正規表現に `わかった|了解|オーケー|大丈夫|おk|ｏｋ` を追加。これらで `_pendingAction` が残留するバグを修正。
+3. **[S] `S.events.push` null安全**：`S.events.push(...)` を `(S.events=S.events||[]).push(...)` に変更。LocalStorageから`null`がロードされた際のクラッシュを防止。
+4. **[S] `S.txs.push` null安全**：同様に `(S.txs=S.txs||[]).push(...)` に変更。
+5. **[S] XSSエスケープ修正**：`vc-member` selectの `memSel.innerHTML` 内で `m.id` と `m.name` に `H()` エスケープを追加（line 16265）。
+6. **[A] Hoku長文レスポンス圧縮**：スワイプ操作案内（15行→4行）・曜日ルーティン案内（13行→3行）をチャットバブルに収まるサイズに圧縮。
+
+### テスト結果
+- diff 確認：全6修正が意図どおり適用済み
+- 未実施：実機での動作確認
+
+### 未確認事項
+- Hoku削除フロー：「タスク消して」で20件ある場合の案内メッセージ確認
+- `handleConfirmation` で「わかった」が正しく肯定判定されるか確認
+- 他の `memSel.innerHTML` パターン（line 6957, 11617, 11936等）の同様XSS漏れ確認
+
+### iPhone確認ポイント
+- Hokuで「予定全部消して」→「〇件まとめて削除する？」→「わかった」→削除実行されるか
+- Hokuで「タスク消して」（曖昧）→「N件あるよ、どれを消す？」と案内されるか
+
+### 次にやること
+- 他箇所の `innerHTML` XSSパターン確認（line 6957 / 11617 / 11936）
+- Agent監査で指摘された `MEMBERS[0]` 存在チェック漏れ（line 8683, 8685等）の修正
+- App Store公開前チェックリスト（docs/app-store-release-checklist.md）の作成・確認
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `fix: Hoku削除ロジック・null安全・XSSエスケープ・長文レスポンス圧縮（S/A級6件）`

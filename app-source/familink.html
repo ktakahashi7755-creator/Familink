@@ -7054,7 +7054,7 @@ function saveEvent() {
     if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を更新しました');
   } else {
-    S.events.push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
+    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -8748,7 +8748,7 @@ function saveTx() {
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('保存しました');
   } else {
-    S.txs.push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
+    (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('記録しました');
   }
@@ -14133,7 +14133,7 @@ function handleConfirmation(text) {
   const action = _pendingAction;
   _pendingAction = null;
   if(!action) return hokuLocalAnswer(text);
-  const yes = text.match(/^(はい|うん|お願い|やって|OK|ok|よろしく|追加して|登録して|消して|完了|そうして|いいよ|ええ|あ|そう)/i);
+  const yes = text.match(/^(はい|うん|お願い|やって|OK|ok|よろしく|追加して|登録して|消して|完了|そうして|いいよ|ええ|あ|そう|わかった|了解|オーケー|大丈夫|おk|ｏｋ)/i);
   const no  = text.match(/^(いや|やめ|キャンセル|違|ちがう|no|NG|ng|やっぱり)/i);
   if(no) return 'わかった、やめておくね。';
   if(!yes) return continueAction(action, text);
@@ -14416,7 +14416,7 @@ function _hokuFindDeleteTargets(d){
     if(ok) res.push({ store:def.key, id:it.id, label:_hokuDelLabel(cat,it), cat:cat });
   });
   if(d.scope==='last' && res.length) res=[res[res.length-1]];
-  if(vague && res.length>6) res=res.slice(-6);
+  // vague かつ大量ヒットはここでスライスせず _hokuHandleDelete で案内する
   return res;
 }
 
@@ -14459,6 +14459,11 @@ function _hokuHandleDelete(d){
   if(d.all){
     _pendingAction={ type:'hoku_delete', params:{ label:targets.length+'件', items:targets, category:d.category } };
     return catLabel+'を '+targets.length+' 件まとめて削除する？元には戻せないよ。';
+  }
+  // vague かつ件数が多い場合は絞り込みを促す（サイレントスライスを避ける）
+  const vague=(!d.query && !d.date && !d.all && d.scope!=='last');
+  if(vague && targets.length>6){
+    return catLabel+'が '+targets.length+' 件あるよ。どれを消す？\n件名や日付を教えてね（例：「昨日の体育」）。';
   }
   _pendingAction={ type:'hoku_delete_pick', params:{ candidates:targets, category:d.category } };
   const lines=targets.slice(0,6).map(function(t,i){ return (i+1)+'. '+t.label; });
@@ -16262,7 +16267,7 @@ function voiceConfirmRender() {
   const memSel = document.getElementById('vc-member');
   if(memSel) {
     const all = [{id:'',name:'（指定なし）'}].concat(MEMBERS.map(m => ({id:m.id, name:m.name})));
-    memSel.innerHTML = all.map(m => `<option value="${m.id}"${m.id === (p.member||'')?' selected':''}>${m.name}</option>`).join('');
+    memSel.innerHTML = all.map(m => `<option value="${H(m.id)}"${m.id === (p.member||'')?' selected':''}>${H(m.name)}</option>`).join('');
   }
   // 各フィールド
   const setVal = (id,v)=>{ const e=document.getElementById(id); if(e) e.value = v||''; };
@@ -16725,18 +16730,9 @@ function hokuLocalAnswer(q) {
      q.match(/(準備|持ち物|ルーティン).*(毎週|曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜|時間割)/) ||
      q.match(/曜日(別|ごと|ルーティン)/) ||
      q.match(/時間割/)) {
-    return '曜日ごとの準備（ルーティン・時間割）は、準備リスト画面の「ルーティン・時間割」タブで管理できます。'+NL+NL+
-      '【登録できる項目】'+NL+
-      '・対象メンバー（パパ／ママ／お子さん別）'+NL+
-      '・曜日（月〜日）'+NL+
-      '・準備タイトル（例：体操服）'+NL+
-      '・カテゴリ（学校／幼稚園／習い事 など）'+NL+
-      '・表示タイミング：前日・当日・前日と当日'+NL+
-      '・有効/無効の切替'+NL+NL+
-      '【自動反映】'+NL+
-      '今日・明日タブの上部に「ルーティン候補」が出るので、ボタン 1 つで反映できます。'+NL+
-      '同じルーティンが今日に既に反映されていれば、重複追加されません。'+NL+NL+
-      'まずは「準備リスト → ルーティン・時間割」を開いて、＋ボタンから 1 件登録してみてください。';
+    return '曜日ごとの準備は「準備リスト → ルーティン・時間割」タブで管理できるよ。'+NL+
+      'メンバー・曜日・タイトル・表示タイミング（前日/当日）を設定できる。'+NL+
+      '今日・明日タブの上部に「ルーティン候補」が出て、ボタン 1 つで反映できるよ。';
   }
   /* Wave 48：メンバー別表示の問い合わせ */
   if(q.match(/(準備|持ち物).*(メンバー|子ども|表示|非表示|だけ表示|個別)/) ||
@@ -16779,21 +16775,10 @@ function hokuLocalAnswer(q) {
      q.match(/戻るボタン|戻り方/) ||
      q.match(/(モーダル|画面|詳細).*(閉じ|とじ)/) ||
      q.match(/スワイプ操作|ジェスチャー/)) {
-    return 'Familink は iPhone のように自然なジェスチャーで戻る・閉じるができます。'+NL+NL+
-      '【右にスワイプで戻る】'+NL+
-      '・どのページからでも、画面を右にスワイプすると前の画面に戻れます'+NL+
-      '・詳細画面では親画面（家族ボードや一覧）へ戻ります'+NL+
-      '・ホームで履歴がない時は何も起きません'+NL+NL+
-      '【下にスワイプで閉じる】'+NL+
-      '・モーダル（予定・家計・体調記録など）を上から下にスワイプで閉じられます'+NL+
-      '・入力途中の内容がある場合は確認が表示されます'+NL+
-      '・削除確認モーダルではスワイプ閉じは無効（誤操作防止）'+NL+NL+
-      '【無効になる場面（誤操作防止）】'+NL+
-      '・入力中 / リスト・カレンダー・グラフをスクロール中'+NL+
-      '・画面左端 20px はブラウザ戻ると競合するため無視'+NL+
-      '・斜めスワイプ・短すぎるスワイプは無効'+NL+
-      '・ログイン / 初期設定画面では誤操作で抜けないよう無効'+NL+NL+
-      '従来どおり下部のタブバーや戻るボタンも使えます。';
+    return '右スワイプ → 前の画面に戻る'+NL+
+      '下スワイプ → モーダル（入力画面）を閉じる'+NL+
+      '入力中・スクロール中はスワイプが無効になるよ（誤操作防止）。'+NL+
+      '下部のタブバーや戻るボタンも使えるよ。';
   }
 
   /* Wave 93: 挨拶 — ユーザーの言葉に合わせて返す（時間帯で上書きしない） */
