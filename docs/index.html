@@ -1215,6 +1215,27 @@ select.input {
    SETTINGS SCREEN
    ============================================================ */
 .settings-section { padding: 16px 16px 4px; }
+/* C8: 利用スタイル選択カード */
+.usage-mode-card {
+  display: block; width: 100%; text-align: left;
+  border: 1.5px solid var(--border-light); border-radius: 14px;
+  background: #fff; padding: 14px; margin-bottom: 10px;
+  cursor: pointer; transition: var(--t-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.usage-mode-card:active { transform: scale(.98); }
+.usage-mode-card.selected { border-color: var(--primary); background: var(--primary-light); }
+.usage-mode-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.usage-mode-card-title { font-size: 15px; font-weight: 800; color: var(--text); }
+.usage-mode-card-sub {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  background: var(--bg-muted); border-radius: var(--r-full); padding: 2px 8px;
+}
+.usage-mode-card-badge {
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: var(--primary); border-radius: var(--r-full); padding: 2px 9px;
+}
+.usage-mode-card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
 .settings-title {
   font-size: 11px; font-weight: 700; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px;
@@ -3143,6 +3164,21 @@ nav#tabbar.hidden { display: none !important; }
     </div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-data-share')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- C8: 利用スタイル（個人利用 / 家族・チーム利用） -->
+<div id="m-usage-mode" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">利用スタイル</div>
+    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
+      Familink の使い方を選べます。あとから設定でいつでも切り替えられます。
+    </p>
+    <div id="usage-mode-body" class="modal-form"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-usage-mode')">閉じる</button>
     </div>
   </div>
 </div>
@@ -5163,6 +5199,53 @@ function ob2Skip() {
 function displayName() {
   if(S.userProfile && S.userProfile.displayName) return S.userProfile.displayName;
   return (S.user && S.user.name) || 'ゲスト';
+}
+
+/* C8: 利用スタイル（個人利用 / 家族・チーム利用）。
+   S.userProfile.usageMode に保存。未設定は 'family'（家族向けアプリの既定）。
+   既存ユーザーの userProfile に無くても 'family' 扱いで後方互換。 */
+function getUsageMode() {
+  return (S.userProfile && S.userProfile.usageMode === 'solo') ? 'solo' : 'family';
+}
+function isSoloMode() { return getUsageMode() === 'solo'; }
+function usageModeLabel() {
+  return isSoloMode() ? 'ひとりで使う' : '家族で使う';
+}
+function openUsageModeModal() {
+  renderUsageModeModal();
+  openModal('m-usage-mode');
+}
+function renderUsageModeModal() {
+  const body = document.getElementById('usage-mode-body');
+  if(!body) return;
+  const mode = getUsageMode();
+  const opts = [
+    { k:'family', t:'家族で使う', sub:'チーム利用',
+      d:'メンバーを招待して、予定・タスク・体調を家族みんなで分担・共有します。' },
+    { k:'solo', t:'ひとりで使う', sub:'個人利用',
+      d:'まずは自分用に記録します。あとから家族を招待してチーム利用に切り替えられます。' }
+  ];
+  body.innerHTML = opts.map(o =>
+    '<button class="usage-mode-card' + (mode===o.k?' selected':'') + '" onclick="setUsageMode(\'' + o.k + '\')">'
+    + '<div class="usage-mode-card-head">'
+    +   '<span class="usage-mode-card-title">' + o.t + '</span>'
+    +   (mode===o.k ? '<span class="usage-mode-card-badge">選択中</span>' : '<span class="usage-mode-card-sub">' + o.sub + '</span>')
+    + '</div>'
+    + '<div class="usage-mode-card-desc">' + o.d + '</div>'
+    + '</button>'
+  ).join('');
+}
+function setUsageMode(mode) {
+  if(mode !== 'solo' && mode !== 'family') return;
+  if(!S.userProfile) S.userProfile = {};
+  const changed = S.userProfile.usageMode !== mode;
+  S.userProfile.usageMode = mode;
+  saveS();
+  closeModal('m-usage-mode');
+  renderSettings();
+  if(changed) {
+    showToast(mode==='solo' ? '個人利用に設定しました' : '家族（チーム）利用に設定しました');
+  }
 }
 
 /* プロフィール編集（Wave 21A） */
@@ -12290,6 +12373,11 @@ function renderSettings() {
       <div class="settings-item" onclick="openProfileEdit()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
         <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openUsageModeModal()">
+        <div class="settings-item-icon" style="background:#EEF7F0">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#52C47A')}</div>
+        <div class="settings-item-label">利用スタイル</div>
+        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${usageModeLabel()}</div>
       </div>
       ${accountSecHtml}
     </div>
