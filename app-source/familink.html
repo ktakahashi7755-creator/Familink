@@ -12622,8 +12622,8 @@ function renderAvatarGrid() {
       + `</div><div class="avatar-sec-grid">${list.map(itemHtml).join('')}</div>`;
   };
   el.innerHTML =
-      section('ベーシック', '家族みんなに', FAMILINK_BASIC)
-    + section('プレミアム', 'やさしいきらめき', FAMILINK_PREMIUM);
+      section('ベーシック', '', FAMILINK_BASIC)
+    + section('プレミアム', '', FAMILINK_PREMIUM);
 }
 
 function selectAvatarItem(avatarId) {
