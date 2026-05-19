@@ -11355,3 +11355,52 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: `28d5a76`
 - メッセージ: `wave 180: add aria-labels to remaining icon-only buttons`
+
+## 2026-05-19 06:50  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+新アバターシリーズの導入（Wave 181）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / docs/worklog.md
+
+### 変更内容
+- ユーザー提供の北欧調アバター20点を、チャット添付からセッション記録
+  （JSONL）経由で復元。円形マスク＋透過処理し 460px webp 化。
+- FAMILINK_BASIC（10点）/ FAMILINK_PREMIUM（10点）を新規定義。
+  AVATARS_ALL = 新20 + 既存(OFFICIAL16 + PREMIUM13) = 49点。
+- アバター解決系（avHtml / selectAvatarItem / confirmAvatarSelect）を
+  AVATARS_ALL 参照に統一。新旧どちらの ID も解決可能で後方互換。
+- アバター選択画面をセクション構成に刷新：
+  「ベーシック」→「プレミアム」→「これまでのアバター」。
+  新デザインがメイン、既存29点は下に配置（ユーザー要望どおり）。
+- 旧カテゴリタブ（baby/children/adult/senior/premium）は廃止。
+
+### テスト結果（全グリーン）
+- 新規 avatar-v2-check 12件 PASS（配列数/src/プレミアム判定/ID一意/
+  グリッド3セクション描画/新旧ID描画）
+- avatar 11 / avatar-fullscreen 20 / avatar-propagation 19 /
+  full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 ほか全 PASS
+- 構文 OK / div 開閉 1533=1533
+
+### 未確認事項
+- 提供画像は20点。ボード全23点に対しニュートラル系3点
+  （ベーシック「ニュートラルな子ども」「ニュートラルな大人」、
+  プレミアム1点）が未受領。受領後に追加する。
+- プレミアム10点の家族役割マッピングは外見ベースの推定ラベル。
+
+### iPhone確認ポイント
+- 設定→アバター設定で、上から「ベーシック」「プレミアム」
+  「これまでのアバター」の順にセクション表示されるか
+- 新アバターを選んで決定 → 各画面に反映されるか
+- 既存アバターを設定済みのメンバーが引き続き正しく表示されるか
+- プレミアムアバターに鍵/スターのバッジが出るか
+
+### 次にやること
+- ニュートラル系3点を受領したら FAMILINK_BASIC/PREMIUM に追加
+- 実機でアバター選択画面の表示確認
+
+### コミット
+- ハッシュ: `33fec74`
+- メッセージ: `wave 181: new Familink avatar series as the main avatar set`
