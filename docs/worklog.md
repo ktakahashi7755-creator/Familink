@@ -11550,3 +11550,45 @@ S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レ�
 ### コミット
 - ハッシュ: `46ff835`
 - メッセージ: `fix: Hoku削除ロジック・null安全・XSSエスケープ・長文レスポンス圧縮（S/A級6件）`
+
+---
+
+## 2026-05-19 15:00  env: 不明  branch: main
+
+### 作業名
+アバター画像全差し替え（OFFICIAL_AVATARS 10枚・PREMIUM_AVATARS 7枚）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+- OFFICIAL_AVATARS（旧16枚・合計302KB）を新10枚に完全入れ替え
+  - av2_baby, av2_boy_green, av2_boy_blue, av2_boy_school, av2_girl_sailor
+  - av2_boy_suit, av2_mama_bun, av2_mama_ponytail, av2_papa_glasses, av2_mama_bob
+- PREMIUM_AVATARS（旧14枚）を新7枚（ファンタジー系）に完全入れ替え
+  - av2_knight_boy, av2_wizard_boy, av2_knight_girl, av2_witch_girl
+  - av2_pirate_girl, av2_dragon_black, av2_dragon_red
+- 画像フォーマット：JPEG 350-450KB → WebP 200×200px 6-12KB（約95%削減）
+- ファイルサイズ：2288KB → 2056KB（-232KB削減）
+
+### テスト結果
+- 新アバターID 4件の存在確認 ✓
+- 旧アバターID（avatar_baby_01等）はコメントのみ残存・機能影響なし ✓
+- docs/index.html サイズ一致 ✓
+
+### 未確認事項
+- アバター選択画面での新画像の表示確認（実機）
+- 既存ユーザーが旧アバターIDを保存していた場合の表示（AVATARS_ALL.findで未ヒット → 中立グレーになる）
+
+### iPhone確認ポイント
+- アバター選択画面を開いて「これまでのアバター」セクションに17枚が表示されるか
+- 各アバターをタップして適用できるか
+
+### 次にやること
+- 実機でアバター表示確認
+- 必要に応じて「これまでのアバター」セクションラベルを変更
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `feat: アバター全差し替え（OFFICIAL 10枚・PREMIUM 7枚、WebP圧縮）`
