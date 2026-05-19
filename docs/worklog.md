@@ -11311,3 +11311,47 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 
 ### コミット
 - ハッシュ: `5f30ede` / `a0f192c` / `f397f36`
+
+## 2026-05-18 22:10  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全体検証＋アクセシビリティ仕上げ（Wave 180）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / docs/worklog.md
+
+### 全体検証の結果
+- 維持中の全自動テストスイートを網羅実行：約1,900検証がすべて PASS
+  （app-audit 70 / full-audit 43 / integration 55 / persistence 72 /
+   e2e-render 10 / edge 76 / scenario 27 / hoku 系全スイート
+   （delete 39 / mega 101 / fuzz 171 / flow 33 ほか）/ avatar 系 /
+   auth 25 / folder 19 / wave60 30 / wave64 系 / usage-mode 12 ほか）
+- クラッシュした旧テスト（qa-wave3〜11 / sweep21 / task-debug）は
+  playwright 未導入が原因、wave66-auth は削除済み関数を参照する
+  ステイルなハーネス。いずれも現行アプリのバグではない。
+- 旧 audit.js の「2 critical」は window.open（組込み）と
+  raw .av render 1件の誤検出。実害なし。
+
+### 変更内容（改善）
+- アイコン/SVG のみで可視テキストを持たないボタン10件に aria-label を
+  補完（Hoku音声 / 家計の前月次月ナビ4件 / メンバー追加・表示設定3件 /
+  タスク削除選択 / アバター選択の閉じる）
+
+### テスト結果
+- 上記スイート全 PASS / 構文 OK / div 開閉 1533=1533
+
+### 未確認事項
+- 公開サイトの実機反映（Wave 179 のデプロイ修正後）。バージョンが
+  v1.1.0 になっていれば成功。
+
+### iPhone確認ポイント
+- VoiceOver 利用時、アイコンボタンが意味のある名前で読み上げられるか
+- 各画面の操作が従来どおり動くか
+
+### 次にやること
+- 実機で v1.1.0 と「利用スタイル」表示を確認
+- 確認後 C9（入力時の共有範囲選択＋鍵アイコン）へ
+
+### コミット
+- ハッシュ: `28d5a76`
+- メッセージ: `wave 180: add aria-labels to remaining icon-only buttons`
