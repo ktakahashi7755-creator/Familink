@@ -11592,3 +11592,32 @@ S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レ�
 ### コミット
 - ハッシュ: （コミット後に更新）
 - メッセージ: `feat: アバター全差し替え（OFFICIAL 10枚・PREMIUM 7枚、WebP圧縮）`
+
+## 2026-05-19 今日  env: 不明  branch: main
+
+### 作業名
+OFFICIAL_AVATARS を全削除（新画像差し替え準備）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- OFFICIAL_AVATARS（旧10枚：av2_baby〜av2_mama_bob）を全削除し空配列に変更
+- ユーザーから新しいアバター画像の送付待ちのため、一旦空配列で保存
+
+### テスト結果
+- grep で OFFICIAL_AVATARS = [] 確認済み ✓
+
+### 未確認事項
+- 新画像の受け取り・差し替え（次セッション）
+
+### iPhone確認ポイント
+- 新画像差し替え後に実機確認予定
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `chore: OFFICIAL_AVATARS を全削除（新画像差し替え準備）`
