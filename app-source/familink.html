@@ -3795,7 +3795,7 @@ nav#tabbar.hidden { display: none !important; }
       <div class="field">
         <div class="field-label">症状（複数選択可）</div>
         <div id="hm-symptom-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
-        <input class="input" id="hm-symptoms-extra" placeholder="その他の症状を自由入力" style="font-size:13px;">
+        <input class="input" id="hm-symptoms-extra" placeholder="その他の症状を自由入力">
       </div>
       <div class="field">
         <div class="field-label">飲んだ薬</div>
@@ -15541,7 +15541,6 @@ function _hokuMakeIntent(intentType, raw, text, source, confidence, entities, ex
    ・既存 parseHokuIntent は温存（後方互換）。V2 はその上位レイヤー。
    ・候補(candidates)で「別解析を試す」思想を表現。
    ・nextAction で confirm / ask_clarification / clarify_unknown / answer を分離。
-   ・debugHokuParse でコンソールから解析結果を確認できる。
    ============================================================ */
 
 /* 入力テキストの正規化レイヤー（全角→半角・漢数字・時刻・フィラー除去） */
@@ -15664,14 +15663,6 @@ function parseHokuIntentV2(text, context) {
   };
 }
 
-/* HOKU Debug Console — 解析結果をコンソールで確認する開発用関数 */
-function debugHokuParse(text) {
-  const r = parseHokuIntentV2(text, { source:'text' });
-  try { console.log('[Hoku Debug] ' + JSON.stringify(r, null, 2)); }
-  catch(e) { console.log('[Hoku Debug]', r); }
-  return r;
-}
-try { if(typeof window !== 'undefined') window.debugHokuParse = debugHokuParse; } catch(e) {}
 
 /* 聞き返し後の返答からカテゴリを判定（hoku_clarify チェーン用） */
 function _hokuClarifyCategory(text) {
@@ -17512,7 +17503,7 @@ function appNavBack() {
   return false;
 }
 
-/* ── 後方互換ラッパー（Wave 44/45 テスト用に残す） ── */
+/* ── 詳細画面スワイプ閉じのラッパー ── */
 function _swipeCloseDetail() {
   const cur = (typeof S !== 'undefined' && S) ? S.screen : null;
   if(cur && SWIPE_DETAIL_SCREENS.indexOf(cur) >= 0 && typeof goBack === 'function') goBack();
