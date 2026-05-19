@@ -11199,3 +11199,63 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 ### コミット
 - ハッシュ: `245f9a9`
 - メッセージ: `wave 175: remove 19 orphaned CSS classes and 2 dead keyframes`
+
+## 2026-05-18 20:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 要件定義（familink-requirements-architect で確定）
+- ユーザーストーリー：親として、まず自分ひとりで記録を始めたい／
+  あとから家族を招待してチームに広げたい。利用スタイルを明示できると
+  画面の文言や招待導線が自分の状況に合う。
+- 受け入れ条件：
+  - AC1: 設定で「家族で使う」「ひとりで使う」を選べる
+  - AC2: 選択は端末に保存され、再起動後も保持される
+  - AC3: 未設定の既存ユーザーは「家族で使う」扱いで挙動が変わらない
+  - AC4: getUsageMode/isSoloMode で他機能から区分を参照できる
+- データ要件：S.userProfile.usageMode（'family' 既定 / 'solo'）。
+  既存の永続化キー userProfile に追加するため新規キー不要・後方互換。
+
+### 変更内容
+- ヘルパー getUsageMode / isSoloMode / usageModeLabel を追加
+- 設定→アカウント・設定に「利用スタイル」項目を追加（現在値を右に表示）
+- モーダル m-usage-mode を新規追加（家族で使う / ひとりで使う の2カード選択）
+- .usage-mode-card 系の CSS を追加
+- setUsageMode で保存・再描画・トースト通知
+
+### スコープの線引き
+- C8 は「区分の確立＋最低限UI」まで。各データへの共有範囲適用や
+  鍵アイコン表示は C9 の範囲。C9 は本コミットの isSoloMode/getUsageMode
+  の上に実装する想定。
+
+### テスト結果（全グリーン）
+- 新規 usage-mode-test 12件 PASS（既定値/切替/不正値無視/
+  userProfile永続/モーダル描画）
+- full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 / scenario 27 / member 16 / displayname 7 ほか全 PASS
+- 構文 OK / div 開閉 1533=1533 バランス
+
+### 未確認事項
+- オンボーディング時に利用スタイルを選ばせるかは未実装（既定 family）。
+  必要なら別途検討（オンボーディング変更は要確認領域のため保留）。
+
+### iPhone確認ポイント
+- 設定→アカウント・設定に「利用スタイル」が出るか、右側に現在値
+  （家族で使う / ひとりで使う）が表示されるか
+- タップでモーダルが開き、2カードから選択 → 選択中バッジが移り、
+  トーストが出て設定に戻るか
+- アプリを開き直しても選択が保持されているか
+
+### 次にやること
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+  （C8 の getUsageMode/isSoloMode を基盤に実装）
+
+### コミット
+- ハッシュ: `e472ac5`
+- メッセージ: `wave 176: C8 - add usage style (solo / family-team) data scope`
