@@ -2506,6 +2506,21 @@ nav#tabbar.hidden { display: none !important; }
   color:#fff; font-size:11px; font-weight:700; border-radius:var(--r-full);
   padding:6px 12px; border:none; cursor:pointer; white-space:nowrap;
 }
+
+/* Hoku daily usage bar for free users */
+.hoku-usage-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:8px 16px;
+  background:linear-gradient(135deg,#FFF8EC,#F0F7FF);
+  border-bottom:1px solid var(--border-light);
+  font-size:11px; color:var(--text-sub);
+}
+.hoku-usage-count { font-weight:700; color:var(--text); }
+.hoku-usage-upgrade {
+  background:linear-gradient(135deg,#4A90E2,#6B7FE3); color:#fff;
+  border:none; border-radius:var(--r-full); font-size:11px; font-weight:700;
+  padding:5px 12px; cursor:pointer; white-space:nowrap;
+}
 </style>
 </head>
 <body>
@@ -3057,6 +3072,7 @@ nav#tabbar.hidden { display: none !important; }
     <button class="hoku-reset-btn" onclick="resetHoku()">クリア</button>
   </div>
 
+  <div id="hoku-usage-bar"></div>
   <!-- サジェスト質問 -->
   <div class="hoku-sugg-wrap" id="hoku-suggs"></div>
 
@@ -14903,7 +14919,25 @@ function _hokuHandleDelete(d){
 /* ── UI関数 ── */
 function openHoku() { go('s-hoku'); renderHoku(); }
 
-function renderHoku() { renderHokuSuggs(); renderHokuMsgs(); hokuVoiceInit(); }
+function renderHoku() {
+  renderHokuSuggs(); renderHokuMsgs(); hokuVoiceInit();
+  // Daily usage bar for free users
+  var bar = document.getElementById('hoku-usage-bar');
+  if(bar) {
+    if(!S.isPremiumUser) {
+      var today = new Date().toISOString().slice(0,10);
+      var du = S.hokuDailyUsage;
+      var used = (du && du.date===today) ? du.count : 0;
+      var left = Math.max(0, 5 - used);
+      bar.innerHTML = '<div class="hoku-usage-bar">'
+        + '<span>👑 Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / 5回</span></span>'
+        + '<button class="hoku-usage-upgrade" onclick="go(\'s-premium\')">無制限にする</button>'
+        + '</div>';
+    } else {
+      bar.innerHTML = '';
+    }
+  }
+}
 
 function renderHokuSuggs() {
   const el = document.getElementById('hoku-suggs');
