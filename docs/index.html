@@ -2925,7 +2925,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-grid" id="home-grid"></div>
-    <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
+    <button class="home-add-btn" onclick="openBoardCreateModal(null)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>ボードを追加</button>
   </div>
 </div>
 
@@ -12869,7 +12869,7 @@ function renderPremium() {
           + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
           + '<div class="prm-hero-already">✓ プレミアム会員</div>'
         : '<div class="prm-hero-title">Familink<br>Premium</div>'
-          + '<div class="prm-hero-sub">家族の大切な記録を、安心して残せる場所へ。<br>ストレージ拡張・プレミアムアバター・一括バックアップ。</div>'
+          + '<div class="prm-hero-sub">家族の記録を、もっと豊かに。もっと安心に。<br><span style="font-size:12px;opacity:.8;">20GBストレージ・プレミアムアバター・一括バックアップ</span></div>'
       )
     + '</div>';
 
@@ -12955,7 +12955,7 @@ function renderPremium() {
   const faqs = [
     { q:'家族もプレミアム機能を使えますか？', a:'はい。代表者1名がプレミアム契約すると、同じ家族スペース内のメンバーも対象機能を利用できます。' },
     { q:'無料期間中に解約できますか？', a:'はい。無料期間中に解約すれば料金は発生しません。' },
-    { q:'プランは変更できますか？', a:'将来的に月額プラン・年額プランを選べるようにする予定です。' },
+    { q:'プランは変更できますか？', a:'現在は月額プランのみご用意しています。年額プランなどのご要望はフィードバックからお聞かせください。' },
     { q:'解約するとどうなりますか？', a:'プレミアム限定機能は利用できなくなりますが、保存済みの基本データは削除されません。' },
     { q:'購入を復元できますか？', a:'はい。購入済みの場合は「購入を復元」から状態を確認できます。' },
   ];
@@ -13006,12 +13006,12 @@ function prmToggleFaq(i) {
   item.classList.toggle('open');
 }
 function prmStartPremium() {
-  showAlert('開発中のお知らせ',
-    '現在、App Store課金連携は開発中です。\nこのボタンは将来のプレミアム契約導線として準備されています。');
+  showAlert('近日公開予定',
+    'プレミアムプランは現在準備中です。\nApp Storeでの正式公開をお楽しみに。');
 }
 function prmRestorePurchase() {
-  showAlert('開発中のお知らせ',
-    '現在、App Store課金連携は開発中です。\n購入の復元は正式リリース後にご利用いただけます。');
+  showAlert('購入の復元',
+    'プレミアムプランの正式リリース後にご利用いただけます。\nすでに購入済みの場合は、リリース後に自動で反映されます。');
 }
 function showAlert(title, msg) {
   if(typeof showConfirm === 'function') {
@@ -15191,9 +15191,9 @@ function renderHokuMsgs() {
       <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
       <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
       <div class="hoku-empty-chips">
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">今日の予定</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">タスク確認</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">家計確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定を教えて')">今日の予定は？</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今週のタスクを整理して')">タスクを整理</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認したい')">今月の家計</button>
       </div>
       <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
