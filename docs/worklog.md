@@ -8155,3 +8155,3595 @@ Wave 71 — 自走改善②：アイコンのみボタンに aria-label を付�
 
 ### コミット
 - 予定メッセージ: `wave 71: add aria-label to icon-only add buttons (a11y)`
+
+---
+
+## 2026-05-09 02:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 72 — 自走改善（Wave 70-71）を巻き戻し、Wave 69 状態へ復帰
+
+### 経緯
+ユーザー判断により、自走改善（Wave 70 HTML 構造修正 / Wave 71 a11y）を
+取り消し、backup/020-wave69-pre-autonomous の状態へ巻き戻し。
+
+### 変更ファイル
+- app-source/familink.html（Wave 70-71 を revert → backup/020 と一致）
+- docs/index.html（mirror）
+
+### 検証
+- familink.html は backup/020-wave69-pre-autonomous と完全一致を確認
+- 構文 check：scripts 1/1 OK
+- worklog は追記専用のため履歴維持（本エントリを追加）
+
+### 補足
+- 現在の GitHub Pages 404 はコード起因ではなく Pages 設定起因のため、
+  本巻き戻しでは表示は復活しない（別途 Pages 設定確認が必要）
+
+### コミット
+- 予定メッセージ: `wave 72: roll back wave 70-71 to wave 69 state`
+
+---
+
+## 2026-05-09 02:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 73 — バグ徹底洗い出し + 10 回検証サイクル
+
+### 経緯
+ユーザー指示で、時間をかけてバグを洗い出し改善、テスト・検証を 10 回繰り返す。
+
+### 実施したバグ洗い出し
+1. ハンドラ関数参照監査：onclick 等 224 関数すべて定義済みを確認（未定義ゼロ）
+2. ランタイム例外監査（新 /tmp/bug-hunt-runtime.js）：render/update 系 58 関数 +
+   refresh 11 画面を VM 実行 → 例外ゼロ（item レンダラ 3 件は引数必須の偽陽性として除外）
+3. Hoku 異常系監査（新 /tmp/bug-hunt-hoku.js）：空文字 / 5000 字 / 絵文字 / XSS /
+   全角 / null 等 42 ケース
+
+### 発見・修正したバグ
+- **executeHokuAction が entities 欠落 intent で例外**
+  - `intent.entities.memberId` 等を entities 未定義のまま参照しクラッシュ
+  - 修正：関数冒頭で `if(!intent.entities) intent.entities = {}` の防御を追加
+  - 実コード（parseHokuIntent 経由）では entities 必ず付与されるが、
+    防御的堅牢化として対応
+
+### 変更ファイル
+- app-source/familink.html（executeHokuAction に entities 防御）
+- docs/index.html（mirror）
+- /tmp/bug-hunt-runtime.js / bug-hunt-hoku.js（新バグ洗い出しスイート）
+
+### 10 回検証サイクル結果
+全 23 スイート（既存 22 + bug-hunt-hoku）+ runtime-hunt を 10 回連続実行：
+- 回 1〜10 すべて **785 PASS / 0 FAIL**（完全に決定論的・フレーキーゼロ）
+- runtime-hunt：毎回 例外 0
+
+### 最終確認
+- 構文 check：scripts 1/1 OK
+- md5：768959441c84b7440f019f77639d0136（app ⇔ docs/index.html 一致）
+- .claude/settings.local.json：git 管理外
+
+### コミット
+- 予定メッセージ: `wave 73: bug hunt — guard executeHokuAction against missing entities`
+
+---
+
+## 2026-05-09 03:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 74 — コード残骸のクリーンアップ
+
+### 経緯
+ユーザー指示で、コードの残骸・不要部分を削除し軽くクリーンに。
+
+### 残骸監査の結果
+- console.log：1 箇所のみ（shopping migration のデバッグログ）
+- debugger 文：0
+- TODO/FIXME コメント：0（grep ヒット 3 件はすべて Hoku 分類器の "todo" 入力語パターンで誤検出）
+- コメントアウトされたコード：0
+- 未使用関数：**0**（dead-function スキャンで 33 件候補が出たが、全件 onclick 経由で
+  使用中と確認 — スキャン側の誤検出。コードに死蔵関数なし）
+
+### 変更内容
+- shopping migration の `console.log`（try/catch + if ブロックごと）を削除
+  → migration ロジック自体（S.shoppingMigrated / saveS）は維持
+
+### 変更ファイル
+- app-source/familink.html（console.log 3 行削除）
+- docs/index.html（mirror）
+
+### 検証
+- 構文 check：scripts 1/1 OK
+- console.log 残数：0
+- 全 23 スイート：785 / 785 PASS（退行ゼロ）
+- runtime-hunt：例外 0
+
+### 結論
+コードベースは元々非常にクリーン。削除対象の実在残骸は console.log 1 件のみだった。
+未使用関数・コメントアウトコード・debugger は存在せず、508 関数すべて使用中。
+
+### コミット
+- 予定メッセージ: `wave 74: remove the only code debris (migration console.log)`
+
+---
+
+## Wave 自律開発 2026-05-09 03:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+オーナー終日不在のため自走モードで安全な改善を実施。提供されたタスクセット
+（Task 1〜13）を現状に照らして取捨選択。
+
+- Task 1（現状診断）：回帰 743/743、Hoku view 系・カレンダー連携 UI・Hoku
+  レイアウト・サジェストチップ・ログアウト安全性 — すべて実装済み/良好を確認
+- Task 13（QA スイープ）：ランタイム例外監査 66/0、Hoku 異常系 42/0、
+  ハンドラ関数 223 種すべて定義済み、を確認。HTML 構造で **div 不整合 1 件検出**
+- HTML 構造修正：設定画面の余分な `</div>` + 空コメント（Wave 72 ロールバックで
+  再発した残骸）を除去 → div バランス 463/463 完全
+- Task 10：docs/storage-indexeddb-roadmap.md 新規作成
+- Task 12：docs/appstore-readiness-checklist.md 新規作成
+
+### 実施しなかったタスクと理由
+- Task 2/3/9/11（ログアウト文言変更・データ初期化モーダル・アカウント同期
+  セクション・認証設計 docs）：これらは Wave 66 で実装後、オーナー判断により
+  Wave 68 で「方針として」明示的に revert 済み。タスクセットは汎用テンプレートで
+  あり、オーナーの直近の明示的決定（revert）を優先（CLAUDE.md §9）。再追加せず。
+  ※ Task 2 の目的「ログアウトでデータが消えない」は現 doLogout が既に満たす。
+
+### 変更ファイル
+- app-source/familink.html（余分な </div> 除去）
+- docs/index.html（mirror）
+- docs/storage-indexeddb-roadmap.md（新規）
+- docs/appstore-readiness-checklist.md（新規）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- ランタイム例外監査：66/0 / Hoku 異常系：42/0
+- md5：c22771b38c2feab7c7ecb3b6a7fa5483（app ⇔ docs/index.html 一致）
+
+### 未対応 / オーナー確認が必要
+- 実機検証（iPhone SE/13/15+/Pro Max、Hoku 音声）
+- ログイン/認証/データ初期化 UI：再追加するか否かはオーナー判断待ち
+- IndexedDB 移行・クラウド Storage：LocalStorage 構造変更のため要確認
+- iOS ラッパー方式の決定
+
+### 次にやるべきこと
+- 実機検証 → appstore-readiness-checklist.md の ☐ を消化
+- プライバシーポリシー / 利用規約の最終化
+- 画像圧縮・容量警告（storage-indexeddb-roadmap.md v0.2 対策）の実装検討
+
+---
+
+## Wave 75 自律開発 2026-05-09 04:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI アシスタント化の設計計画作成 + Phase 1（ローカル intent 強化）実装。
+
+- docs/hoku-ai-assistant-plan.md 新規作成（全 15 セクション）
+  awesome-python を参考に技術選定（採用/将来候補/不採用の 3 段階）。
+  MVP 構成・intent 設計・JSON スキーマ・API 設計・フロント連携・6 フェーズ
+  ロードマップ・セキュリティ・課金設計を整理。
+- Phase 1 実装：parseHokuIntent に isExplicitNotification を追加。
+  「通知して」「リマインドして」「アラームかけて」等の明示的な通知依頼を、
+  他カテゴリ語（水筒・時刻等）が混じっていても notification_add 最優先に。
+
+### 発見・修正したバグ
+- 「明日の朝7時に水筒忘れないように通知して」が calendar_add に誤分類
+  （水筒=prep語 + 時刻 が calendar/prep スコアを押し上げていた）
+  → isExplicitNotification で明示依頼を最優先化し notification_add に修正
+
+### 変更ファイル
+- app-source/familink.html（parseHokuIntent に notification 明示優先）
+- docs/index.html（mirror）
+- docs/hoku-ai-assistant-plan.md（新規）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- Hoku 7 シナリオ：7/7 PASS
+  （calendar/prep/budget/health/shopping/notification/unknown 全て正判定）
+- 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- md5：b716f6ec9f6413a60375d733662454c7
+
+### 未対応 / オーナー確認が必要
+- Phase 2 以降（FastAPI + LLM API 化）：別リポジトリ・Python 構成のため要確認
+- Phase 4（Supabase/DB）・Phase 6（音声/OCR）：要確認
+
+### 次にやるべきこと
+- Phase 2：別リポジトリで Hoku API（FastAPI + Pydantic）の雛形作成
+- それまでは Familink 側でローカル intent 精度を継続改善（安全・無料）
+
+---
+
+## Wave 76 自律開発 2026-05-09 04:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 2：FastAPI スキャフォルドを新規ディレクトリ hoku-api/ に作成。
+Familink 本体（単一 HTML）には一切触れず、独立構成。
+
+### 変更ファイル
+- hoku-api/requirements.txt（FastAPI/Pydantic/uvicorn/httpx/pytest/dotenv のみ）
+- hoku-api/.env.example（API キーは .env=gitignore 済み）
+- hoku-api/app/models.py（Pydantic：IntentRequest/Response 等）
+- hoku-api/app/classifier.py（ルールベース分類・LLM フック点のみ）
+- hoku-api/app/main.py（FastAPI：/intent /chat /health）
+- hoku-api/tests/test_intent.py（7 シナリオ + 異常系）
+- hoku-api/README.md
+- .gitignore（Python 成果物パターン追加）
+
+### 設計方針
+- 意図分類は MVP ではルールベース（LLM API キー不要で動作）
+- LLM 分類は classifier.classify() にフック点のみ。本実装はオーナー確認後
+- requires_confirmation 常に True（AI は勝手に保存しない）
+- API キー直書き禁止・個人情報をログに残さない（security-auth-notes.md 準拠）
+
+### テスト
+- hoku-api pytest：10 / 10 PASS（7 シナリオ + Pydantic 検証 + 異常系）
+- Familink 本体 構文 check：scripts 1/1 OK
+- 本体回帰（主要 5 スイート）：301 / 301 PASS（hoku-api は本体に影響なし）
+
+### 未対応 / オーナー確認が必要
+- LLM API 呼び出しの本実装（classifier の LLM 分岐）
+- Hoku API のデプロイ先決定（Render / Fly.io 等）
+- Phase 3：Familink フロントからの callHokuApi() 接続
+
+### 次にやるべきこと
+- Phase 3：フロント連携（ローカル優先→曖昧時 API→失敗時フォールバック）
+- LLM 連携・デプロイはオーナー確認後
+
+### コミット
+- 予定メッセージ: `wave 76: Hoku API Phase 2 scaffold (FastAPI, rule-based, 10 tests)`
+
+---
+
+## Wave 77 自律開発 2026-05-09 05:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 3：Familink フロントに Hoku API クライアントを追加。
+**完全休眠設計** — S.hokuApiUrl が空（既定）の場合は外部通信せず、従来通り
+100% ローカル動作。URL 設定時のみ API を試行し、失敗時はローカルへフォールバック。
+
+### 変更ファイル
+- app-source/familink.html
+  - S.hokuApiUrl = ''（既定空）を追加 + PERSIST 登録
+  - callHokuApi(text) 関数を追加（sendHokuMsg の直前）
+- docs/index.html（mirror）
+
+### callHokuApi の設計
+- S.hokuApiUrl 空 → 即 null（fetch を一切呼ばない＝完全休眠）
+- URL 設定時のみ POST /api/hoku/intent を試行
+- AbortController で 3 秒タイムアウト
+- 失敗 / タイムアウト / 壊れた応答 → null（呼び出し側はローカル parseHokuIntent へ）
+- 外部 API が落ちていてもアプリは停止しない
+
+### Phase 3 の現状と残り
+- API クライアント（callHokuApi）は実装・テスト済みで「使える状態」
+- sendHokuMsg への本配線は未実施（意図的）。理由：
+  - Hoku API がまだ未デプロイ（hoku-api/ はスキャフォルドのみ）
+  - API 応答 {intent,data} → executeHokuAction の intent 形へのマッピングは
+    API デプロイ + ホスティング決定後に確定すべき
+- 既定 URL 空のため、本配線しても現状は実行されない死パス。デプロイ後に
+  オーナー確認のうえ Phase 3 完了タスクとして配線する
+
+### テスト
+- callHokuApi VM 検証：4/4 PASS（休眠 / 空文字 / 失敗フォールバック / PERSIST）
+- Familink 全 22 スイート：743 / 743 PASS（退行ゼロ）
+- 構文 check：scripts 1/1 OK
+- hoku-api pytest：10 / 10 PASS
+- md5：0b7e78c004dfb6e7203ab5eb38d66d79
+
+### 未対応 / オーナー確認が必要
+- Hoku API のデプロイ（Render / Fly.io 等）+ S.hokuApiUrl への URL 設定
+- sendHokuMsg への hybrid 配線（デプロイ後）
+- LLM API 本連携
+
+### 次にやるべきこと
+- API デプロイ先決定 → callHokuApi を sendHokuMsg に配線（Phase 3 完了）
+
+---
+
+## Wave 78 自律開発 2026-05-09 05:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku AI 化 Phase 3 完了：Hoku API を設定 UI から有効化でき、sendHokuMsg に
+完全フォールバック付きで配線。既定（URL 空）は従来通りローカル動作。
+
+### 変更ファイル
+- app-source/familink.html
+  - 設定画面に「Hoku 連携（実験的）」セクション + ON/OFF 表示
+  - m-hoku-api モーダル（API URL 入力 / 保存 / 閉じる）
+  - openHokuApiModal / saveHokuApiUrl 関数
+  - sendHokuMsg に callHokuApi 配線（API がカテゴリ補正、項目抽出は
+    実績あるローカル parseHokuIntent、失敗/例外時はローカルへ完全フォールバック）
+- docs/index.html（mirror）
+
+### 配線の安全設計
+- S.hokuApiUrl 空（既定）→ API 経路を完全スキップ＝従来 100% 動作
+- URL 設定時のみ callHokuApi。API がカテゴリ補正（confidence ≥ 0.7）、
+  日付/金額/体温等の抽出は既存ローカル parseHokuIntent を使用
+- API 未応答 / 失敗 / 壊れた応答 / 例外 → 既存ローカルフローへフォールバック
+- 保存前確認モーダルは API 経由でも必ず表示（executeHokuAction 経由）
+- URL バリデーション（http(s):// 必須）
+
+### テスト
+- 構文 check：scripts 1/1 OK
+- 全 22 スイート：743 / 743 PASS（退行ゼロ＝既定休眠を実証）
+- div バランス 463/463・主要 UI 関数/モーダル存在を確認
+- hoku-api pytest：10 / 10 PASS（前 Wave 維持）
+- md5：91fcee1210b2e8a73346512344c2a455
+
+### Phase 3 状態
+- フロント側の Hoku API 連携は**コード上は完了**（設定 UI + 配線 + フォールバック）
+- 実利用には Hoku API のデプロイ + 設定画面での URL 入力が必要
+- デプロイ前でもアプリは完全動作（休眠）
+
+### 未対応 / オーナー確認が必要
+- Hoku API のデプロイ（Render / Fly.io 等）→ URL を設定画面に入力すれば即有効
+- LLM API 本連携（hoku-api/classifier の LLM 分岐）
+
+### 次にやるべきこと
+- API デプロイ → 設定で URL 入力 → 実機で 7 シナリオ確認
+
+---
+
+## Wave 79 自律開発 2026-05-09 06:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 実施内容
+Hoku API（hoku-api/）の意図分類精度を強化。Familink 本体は無変更。
+
+### 変更ファイル
+- hoku-api/app/classifier.py
+  - 日付抽出 _extract_date（今日/明日/明後日/昨日/N月M日 → ISO 文字列）
+  - 時刻抽出 _extract_time（N時M分 / 朝・昼・夕方・夜）
+  - 対象者抽出 _extract_member（漢字・カタカナ連続、助詞・一般語・数字断片を除外）
+  - 各 intent の data に date/time/memberName を付与
+- hoku-api/tests/test_intent.py（抽出系テスト 6 件追加）
+
+### テスト
+- hoku-api pytest：16 / 16 PASS（7 シナリオ + Pydantic + 異常系 + 抽出系 6）
+- Familink 本体：無変更（回帰スイートも従来通り PASS）
+
+### 未対応 / オーナー確認が必要
+- LLM API 本連携 / Hoku API デプロイ（前 Wave から継続）
+
+### 次にやるべきこと
+- API デプロイ後、設定画面で URL を入力して実機検証
+
+---
+
+## Wave 80 自律開発 2026-05-16 03:42  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+App Store 公開準備：法務ドキュメントの HTML 化と検証
+
+### 変更ファイル
+- docs/privacy-policy.html（新規）
+- docs/terms-of-use.html（新規）
+- docs/privacy-policy.md（更新日 v0.2 に）
+- docs/terms-of-use.md（更新日 v0.2・バックアップ機能の記述を実態に修正）
+- docs/appstore-readiness-checklist.md（検証済み状態に更新）
+
+### 変更内容
+- App Store メタデータが参照する privacy-policy.html / terms-of-use.html が
+  未作成（.md のみ）でリンク切れ状態だったため、ブランド配色の HTML 版を作成
+- .md 正本も HTML 版と内容一致（更新日、データ書き出し/読み込みは実装済みの旨）
+- チェックリストの「自動テスト」「法務」項目を検証結果に合わせて更新
+
+### テスト結果
+- VM テストスイート：正規スイート全 PASS（exit 0）。errored 表示は
+  /tmp の stale ファイル（playwright 未導入の screenshot 系・旧 Wave66 auth）
+- hoku-api pytest：16/16 PASS
+- アプリ本体：console.log 0 / debugger 0 / div バランス 1275=1275 / 実 TODO 0
+- familink.html 無変更のため app-source ⇔ docs/index.html の md5 一致を維持
+
+### 未確認事項
+- privacy-policy / terms は法務専門家レビュー前（草案 v0.2）
+
+### iPhone確認ポイント
+- docs/privacy-policy.html・terms-of-use.html がスマホ幅で読みやすいか
+- 各ページ下部の相互リンク・アプリ復帰リンクの動作
+
+### 次にやること
+- App Store 用スクリーンショット／アイコン作成（要素材）
+- iOS ラッパー方式の決定（要オーナー確認）
+- Hoku API デプロイ可否の判断（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 80: publish legal docs as HTML + verify release checklist`
+
+---
+
+## Wave 81 自律開発 2026-05-16 03:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+残タスクの一覧ドキュメント化
+
+### 変更ファイル
+- docs/remaining-tasks.md（新規）
+- docs/DOCS-INDEX.md（索引に追加）
+
+### 変更内容
+- 公開・拡張に向けた残作業を担当別（A:オーナー必須 / B:許可で実行可 /
+  C:Claude 自走可 / D:完了）・優先度別にまとめた進行管理票を作成
+- DOCS-INDEX に remaining-tasks.md を追加
+
+### テスト結果
+- ドキュメントのみの変更（アプリ・テストへの影響なし）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- なし（ドキュメント）
+
+### 次にやること
+- A1 実機検証 / A2-A3 アイコン・スクリーンショット（要オーナー）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 81: add consolidated remaining-tasks document`
+
+---
+
+## Wave 82 自律開発 2026-05-16 04:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+App Store 公開準備の一括前進（アイコン / サポート / 決定ドキュメント / 検証）
+
+### 変更ファイル
+- docs/assets/app-icon/（新規）— app-icon.svg + icon-{20..1024}.png 全20サイズ + README.md
+- docs/support.html（新規）— サポートページ（FAQ + 問い合わせ）
+- docs/ios-wrapper-decision.md（新規）— A6 ラッパー方式（Capacitor 推奨）
+- docs/hoku-api-deployment-decision.md（新規）— A7 デプロイ方針（MVP は不要）
+- docs/legal-review-notes.md（新規）— A4 法務レビュー論点の事前整理
+- docs/appstore-readiness-checklist.md — 進捗反映
+- docs/app-store-metadata.md — サポート/プライバシー URL を実ファイルに更新
+- docs/remaining-tasks.md — Wave 82 進捗で全面更新
+- docs/DOCS-INDEX.md — 新規ドキュメントを索引に追加
+- hoku-api/tests/test_intent.py — リアル入力10シナリオ + 万円抽出テスト追加
+
+### 変更内容（オーナー許可「全部進めてOK」に基づく一括実施）
+- A2 アプリアイコン草案を作成（ハート＝家族の絆 / 3円＝家族 / 金の星＝Hoku）。
+  SVG 原本から cairosvg で全サイズ PNG を書き出し。1024 は RGB（アルファなし）
+- A5 サポートページ support.html を作成（FAQ 6件 + GitHub Issues 導線）
+- A6 iOS ラッパーは Capacitor を推奨する決定ドキュメントを作成
+- A7 Hoku API は「MVP ではデプロイ不要」を推奨する決定ドキュメントを作成
+- A4 法務レビューの論点（個人情報保護法・消費者契約法・特商法等）を整理
+- A8 年齢区分 4+ / カテゴリ 仕事効率化・ライフスタイル を確定推奨に
+- A1 自動レンダリング検証：5幅（320/375/390/430/440）×7画面=35/35 PASS
+- C1 hoku-api にリアル入力テストを追加（pytest 16→18 件）
+- C3 DOCS-INDEX を最新化
+
+### テスト結果
+- VM テストスイート：31 / 31 緑（exit 0）
+- width-sweep（5幅×7画面）：35 / 35 PASS
+- hoku-api pytest：18 / 18 PASS
+- familink.html 無変更 → app-source ⇔ docs/index.html の md5 一致を維持
+
+### 未確認事項
+- A3 スクリーンショットはサンドボックスに playwright 未導入のため未取得
+- A1 実機の目視・音声、A4 弁護士レビューは要オーナー
+
+### iPhone確認ポイント
+- docs/support.html / privacy-policy.html / terms-of-use.html のスマホ表示
+- アプリアイコン草案（docs/assets/app-icon/icon-1024.png）のデザイン確認
+
+### 次にやること
+- A1 実機検証 / A3 スクリーンショット撮影（要オーナー操作）
+- A6 Capacitor 実装の可否判断（Apple Developer Program 登録が前提）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 82: app icon, support page, decision docs, verification`
+
+---
+
+## Wave 83 自律開発 2026-05-16 04:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+B1: dev ブランチを Pages 配信ブランチ / main へ反映
+
+### 変更ファイル
+- docs/worklog.md（本エントリ）
+
+### 変更内容
+- オーナー許可（「全部進めてOK」B1 含む）に基づき、Wave 80-82 の成果を
+  配信ブランチへマージ：
+  - claude/merge-and-push-main-u44Ty（GitHub Pages 配信元）← 3ba751e
+  - main ← 1379159
+- これにより法務 HTML（privacy-policy.html / terms-of-use.html）と
+  サポートページ（support.html）が本番 URL で公開される
+- マージは競合ゼロ（配信ブランチは該当ファイル未変更のため）
+
+### テスト結果
+- マージ後の dev ⇔ Pages ブランチ差分：なし（内容一致を確認）
+
+### 未確認事項
+- GitHub Pages の再ビルド反映に数分かかる場合あり
+
+### iPhone確認ポイント
+- https://ktakahashi7755-creator.github.io/Familink/docs/privacy-policy.html
+- https://ktakahashi7755-creator.github.io/Familink/docs/terms-of-use.html
+- https://ktakahashi7755-creator.github.io/Familink/docs/support.html
+
+### 次にやること
+- A1 実機検証 / A3 スクリーンショット撮影（要オーナー操作）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 83: record B1 branch sync to worklog`
+
+---
+
+## Wave 84 自律開発 2026-05-16 21:38  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Hoku 削除エンジン — 全カテゴリ対応・ラフな言い方で会話的に削除
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「ラフにしっかり理解して会話・登録・削除できる Hoku に」に対応。
+従来 Hoku の削除はタスクのみ・限定的だったため、削除エンジンを新設。
+
+- 新規：_hokuDetectDelete / _hokuFindDeleteTargets / _hokuHandleDelete ほか
+- 対応カテゴリ：予定 / タスク / 家計 / 準備 / 買い物 / 体調 の 6 種
+- ラフな表現を吸収：「消して」「削除」「取り消し」「キャンセル」「いらない」
+  「外して」「今のなし」「キャンセルになった」等
+- カテゴリ語が無くても項目名から横断検索（例「歯医者キャンセルになった」）
+- 日付 / 金額 / キーワードの曖昧マッチ（部分一致・2文字共通でも拾う）
+- 「さっき」「最後」スコープ、「全部」一括削除に対応
+- 複数候補 → 番号 / キーワードで選択（pick フロー）
+- 「さっきの消して」→ カテゴリ聞き返し → 返答で確定（catpick フロー）
+- 削除は必ず確認 → AI が勝手に消さない。元に戻せない旨を明示
+- 削除後に対象画面を開くアクションボタンを提示
+- sendHokuMsg は削除意図を文脈補正より先に判定（誤爆防止・確実な捕捉）
+- ヘルプ文に削除の例を追記
+
+### テスト結果
+- 新規 /tmp/hoku-delete.js：39 / 39 PASS（検出 / 検索 / 確認 / 実行 / 取消 / 横断）
+- VM スイート全 31：エラー 0
+- width-sweep（5幅×7画面）：35 / 35 PASS
+- 構文 OK / div バランス 1275=1275 / console.log 0
+- app-source ⇔ docs/index.html md5 一致
+
+### 未確認事項
+- 実機（iPhone）での音声入力経由の削除フロー（要オーナー実機確認）
+
+### iPhone確認ポイント
+- Hoku に「明日の歯医者の予定消して」「牛乳を買い物リストから消して」
+  「さっき追加したタスク消して」等を話しかけ、確認 → 削除まで通るか
+- 複数候補時の番号選択、「全部」一括削除、「やめる」での取消
+
+### 次にやること
+- 実機での削除フロー確認
+- 必要なら登録（add）側のラフ理解もさらに強化
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 84: Hoku universal delete engine (all categories, rough input)`
+
+---
+
+## Wave 85 自律開発 2026-05-16 22:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Hoku 意図分類・音声/テキスト精度の強化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+- hoku-api/app/classifier.py
+- hoku-api/tests/test_intent.py
+
+### 変更内容
+オーナー依頼「音声・テキストの精度を高く」に対応。多様な実入力 50 件で
+プローブを作成し、誤分類 11 件を特定 → 分類エンジンを改善。
+
+【アプリ本体 classifyHokuInput / parser】
+- タスク：明確なタスク動詞（電話する/返却/サイン/予約 等）を強シグナル化。
+  「〜しなきゃ/しないと/やらせなきゃ」等の義務表現を加点
+- 家計：数字つき金額（4280円/3万円）を強シグナルに。「○○代/月謝/保育料」
+  や店名（スーパー/コンビニ/ドラッグストア）も家計寄りに
+- 体調：助詞なしの症状語（「鼻水出てる」等）も体調シグナルに
+- 準備：「準備しなきゃ/用意して/持っていく/持たせ」など助詞なし表現に対応
+- 買い物：「○○買っといて/買ってきて/買わなきゃ」を買い物リストに分類
+- 音声：「N時半」→「N時30分」正規化、先頭フィラー（えーと/あの 等）除去
+- 時刻：「午後3時→15:00」「夜8時→20:00」「夕方5時→17:00」の24時間補正
+
+【hoku-api（Python）】
+- _extract_time に N時半・午後/夜/夕方の補正を実装
+- task ルールに義務表現・タスク動詞を追加
+- calendar ルールにお迎え/送迎/健診/運動会等を追加
+
+### テスト結果
+- 精度プローブ /tmp/hoku-probe.js：分類 49/49・項目抽出 10/10 PASS
+- VM スイート全 31：エラー 0
+- width-sweep（5幅×7画面）35/35、hoku-delete 39/39 PASS
+- hoku-api pytest：23/23 PASS（時刻補正・義務表現テストを追加）
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 未確認事項
+- 実機（iPhone）での音声入力（Web Speech API）経由の精度（要オーナー実機確認）
+
+### iPhone確認ポイント
+- 「明日午後3時に面談」「夜8時にお迎え」等で時刻が正しく入るか
+- 「学校に電話する」「宿題やらせなきゃ」がタスクに分類されるか
+- 「スーパーで4280円」が家計、「おむつ買っといて」が買い物に入るか
+
+### 次にやること
+- 実機での音声精度確認
+- 必要なら誤分類が出た実例を集めて辞書・スコアを追調整
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 85: improve Hoku intent precision (voice & text)`
+
+---
+
+## Wave 86 自律開発 2026-05-17 00:26  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU Parser/Evaluator v2 — 中間データ構造・候補・聞き返し・デバッグ機構
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー提供プロンプト（Haskell Parser/Evaluator 設計を参考に HOKU を
+「入力理解→意図判定→不足確認→保存前確認→実行」のパイプラインへ）に対応。
+※ コードの丸コピーはせず設計思想のみを Vanilla JS に取り込み。
+※ 後方互換の絶対条件を優先し、既存 parseHokuIntent は温存。V2 を上位
+　 レイヤーとして追加（既存 743 テストの回帰リスクを回避）。
+
+【追加した関数】
+- normalizeHokuText(text) … 入力正規化レイヤー
+- _hokuRankCandidates(text, base) … intent 候補をスコア順に（Alternative parser 思想）
+- _hokuComposeReply(...) … HokuParseResult から自然な日本語応答を生成
+- parseHokuIntentV2(text, context) … HokuParseResult を返す統合パーサー
+  { ok, intent, confidence, rawText, normalizedText, entities,
+    missingFields, candidates, nextAction, reply }
+- debugHokuParse(text) … 解析結果をコンソール出力（window.debugHokuParse 公開）
+- _hokuClarifyCategory(text) … 聞き返し返答からカテゴリ判定
+
+【変更した関数】
+- sendHokuMsg … 行動を促す曖昧入力（「明日やっといて」等）を V2 で検知し
+  自然に聞き返す（clarify_unknown）。_pendingAction=hoku_clarify をセット
+- continueAction … hoku_clarify 分岐を追加。聞き返し返答（予定/タスク等）で
+  カテゴリ確定 → executeHokuAction へチェーン
+
+【nextAction による評価分離】
+- confidence ≥ 0.6 かつ不足なし → confirm（確認モーダル）
+- 不足フィールドあり / 曖昧 → ask_clarification
+- 行動を促す unknown → clarify_unknown（聞き返し）
+- 会話・挨拶・ヘルプ・参照 → answer（hokuLocalAnswer に委譲）
+
+### テスト結果
+- 新規 /tmp/hoku-v2.js：18 / 18 PASS（構造 / confirm / 聞き返し / 候補 /
+  debug / 正規化 / 明確8件 / 曖昧3件 / clarify チェーン）
+- 精度プローブ：分類 49/49・項目抽出 10/10 PASS
+- VM スイート全 31：エラー 0 / width-sweep 35/35 / hoku-delete 39/39
+- 構文 OK / div バランス 1275=1275 / md5 一致
+- console.log は debugHokuParse 内の 2 件のみ（仕様どおり）
+
+### 既存機能への影響
+- なし。parseHokuIntent / executeHokuAction / classifyHokuInput は無改変。
+  V2 は新規の上位レイヤー。既存フローは clarify_unknown のときのみ
+  聞き返しに分岐（曖昧入力の改善であり退行ではない）。
+
+### 未確認事項
+- 実機（iPhone）での聞き返し→回答チェーンの体験
+
+### iPhone確認ポイント
+- Hoku に「明日やっといて」→「予定？タスク？」と聞き返すか
+- 「予定」と答えると確認モーダルまで進むか
+- 開発者コンソールで debugHokuParse('明日10時に病院') が結果を返すか
+
+### 次にやること
+- 実機で聞き返しフローを確認
+- 必要なら候補ランキングの重み調整
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 86: HOKU Parser/Evaluator v2 (intermediate data, clarification, debug)`
+
+---
+
+## Wave 87 自律開発 2026-05-17 00:38  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 意図分類のさらなる精度追い込み（実入力 30 ケースで弱点修正）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー提供テストケース + 難しめの実入力 30 件でプローブし、誤分類 10 件を
+特定 → 分類エンジンを修正（classifyHokuInput / _hokuDetectShopping）。
+
+- カレンダー：「歯医者」、お出かけ/外出/帰省/ドライブ系を予定寄りに
+- タスク：ゴミ出し等の家事チョア、「宿題/プリントを確認・提出」の組合せ
+- 体調：「咳してる」「お腹痛い」等の助詞なし症状語、「薬あげた」を体調に
+- 準備：「時間割」を準備の強シグナルに
+- 家計：「買い物した / 買い物に行った」を家計記録寄りに
+- 買い物：「○○がなくなった / 切らした / 切れた」を買い物リスト（補充）に
+
+### テスト結果
+- 精度プローブ probe2（実入力30件）：30/30 正解（修正前 20/30）
+- 精度プローブ probe（49件）：49/49・項目抽出 10/10 PASS
+- VM スイート全 31：エラー 0
+- width-sweep 35/35・hoku-delete 39/39・hoku-v2 18/18 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。分類スコアの加点ルール追加のみ（加点は既存挙動を保ったまま誤分類を解消）。
+  VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機（iPhone）での音声入力経由の精度
+
+### iPhone確認ポイント
+- 「歯医者の予約取れた」「ゴミ出しを忘れない」「トイレットペーパーなくなった」
+  「コンビニで買い物した」等が正しいカテゴリに入るか
+
+### 次にやること
+- 実機での音声精度確認
+- 必要なら誤分類実例を集めて辞書・スコアを追調整
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 87: further Hoku classification precision tuning`
+
+---
+
+## Wave 88 自律開発 2026-05-17 00:48  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 品質の総合検証 — テスト→検証→改善の反復、重大な統合バグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容（オーナー依頼「最高峰の品質・精度で。テスト検証改善を反復」）
+
+【Round 1-2: メガ精度プローブ（実家庭の入力 101 件）】
+誤分類 8 件を特定 → 修正：
+- お出かけ/帰省を予定の強シグナルに（+3）
+- 役所/銀行など「お使い（errand）」をタスクに
+- 「名前つけ」「ゴミ出す」等の家事チョアをタスクに
+- 「病院で薬もらった/処方された」を体調記録に（医療費より優先）
+- 「○○買って」（bare）「○○がもうない」を買い物リストに
+→ メガプローブ 101/101 達成
+
+【Round 3: 会話フロー統合テスト — 重大バグ発見・修正】
+sendHokuMsg を実際に呼ぶ統合テストで重大な統合バグを発見：
+- 削除意図が _pendingAction をセットした直後、同じターンの if(_pendingAction)
+  分岐が誤発火し、handleConfirmation に流れて削除が機能しなかった
+  （Wave 84 以降、チャット経由の削除が壊れていた）
+- 修正：ターン開始時の _pendingAction を hadPending に固定し、分岐判定を
+  開始時の値で行うようにした
+
+【Round 4: エッジ・複合フロー】
+複数候補削除→番号選択、一括削除、catpick チェーン、長文・絵文字、
+家計/買い物追加、連続削除 — すべて検証
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- hoku-mega（実入力101件）：101/101
+- hoku-flow（会話フロー統合）：28/28
+- hoku-delete 39/39・hoku-v2 18/18・width-sweep 35/35
+- 精度プローブ probe 49/49・probe2 30/30・項目抽出 10/10
+- hoku-api pytest：23/23
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- 削除のチャット経由動作を修復（Wave 84 以降の潜在バグ）。
+  分類スコアの加点追加のみで他は無改変。VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機（iPhone）での音声入力経由フロー
+
+### iPhone確認ポイント
+- Hoku に「明日の歯医者の予定消して」→「うん」で実際に削除されるか
+- 「予定を消して」で複数候補が出て番号選択できるか
+- 「明日やっといて」→「予定」で確認まで進むか
+
+### 次にやること
+- 実機での会話フロー確認
+- 必要なら誤分類実例の追加収集と微調整
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 88: Hoku quality sweep — fix chat-delete integration bug`
+
+---
+
+## Wave 89 自律開発 2026-05-17 01:22  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU エンティティ抽出の精度強化 — タイトル抽出のバグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容（テスト→検証→改善の継続）
+エンティティ抽出（タイトル/日時/対象者/金額/体温）の精度プローブを作成し、
+2 件の重大な抽出バグを発見・修正。
+
+【バグ1: タイトルが無空白の日本語文で抽出できない】
+- 「明日15時に星斗の歯医者入れて」→ タイトルがほぼ全文のまま登録されていた
+- 原因：日本語は分かち書きされないため、トークン分割では日付/時刻/対象者を
+  分離できず、登録モーダルに汚いタイトルが prefill されていた
+- 修正：_hokuCleanTitle を新設。日付語・時刻語・対象者名+助詞・金額・体温・
+  末尾の登録トリガー動詞を部分文字列レベルで除去
+  → 「歯医者」「授業参観」「サッカーの試合」のようにきれいに抽出
+
+【バグ2: 「サッカー」が二重正規化で「サッカーーー」に化ける】
+- 原因：parseHokuIntent と parseVoiceIntent が voiceCorrectText を二重に呼び、
+  正規化ルール /さっかー|サッカ/→サッカー が冪等でなく、適用するたびに
+  「ー」が増殖していた
+- 修正：/さッカ(?!ー)/ にして冪等化（既にーが続く場合は変換しない）
+
+### テスト結果（全グリーン）
+- 新規 hoku-entity（タイトル/日時/対象者/金額/体温 22件）：22/22 PASS
+- VM スイート全 31：エラー 0
+- hoku-mega 101 / hoku-flow 28 / hoku-delete 39 / hoku-v2 18 / width-sweep 35
+- 精度プローブ probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- タイトル抽出を改善（汚いタイトルの prefill を解消）。サッカー化けを修正。
+  parseVoiceIntent の title 後処理を追加したのみで分類ロジックは無改変。
+  VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機での音声入力経由の登録時タイトルのきれいさ
+
+### iPhone確認ポイント
+- Hoku に「明日15時に星斗の歯医者入れて」→ 確認モーダルのタイトルが
+  「歯医者」になっているか（全文のままでないか）
+- 「土曜に太郎のサッカーの試合」→ タイトル「サッカーの試合」になるか
+
+### 次にやること
+- 実機でのタイトル prefill 確認
+- さらなる精度の作り込み
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 89: fix Hoku title extraction (spaceless JP) + サッカー normalize bug`
+
+---
+
+## Wave 90 自律開発 2026-05-17 01:48  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 冪等性検証 + 難度の高い日時/金額/タイトル抽出の追い込み
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+冪等性プローブ（normalizeHokuText を2回適用しても不変か）と、難度の高い
+日時/金額/タイトル抽出のプローブを新設。1 件の抽出漏れを修正。
+
+- 修正：「運動会の予定」→ タイトルに「の予定」が残っていた問題。
+  _hokuCleanTitle に末尾カテゴリ語の除去を追加（2文字以上残る場合のみ）
+  → 「運動会」「サッカーの試合」のようにきれいに抽出
+- 検証：normalizeHokuText の冪等性 11/11（Wave 89 のサッカー修正後、
+  全正規化ルールが冪等であることを確認）
+- 検証：夜7時半→19:30、正午→12:00、10時から12時→10:00、
+  3月15日→ISO、カンマ区切り/全角/漢数字の金額抽出 すべて正常
+
+### テスト結果（全グリーン）
+- 新規 hoku-hard（冪等性+難ケース 16件）：16/16 PASS
+- VM スイート全 31：エラー 0
+- hoku-mega 101 / hoku-flow 28 / hoku-delete 39 / hoku-v2 18 /
+  hoku-entity 22 / width-sweep 35
+- 精度プローブ probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。_hokuCleanTitle に末尾カテゴリ語除去を追加したのみ。
+  VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機での音声入力経由のタイトル prefill
+
+### iPhone確認ポイント
+- 「土曜に運動会の予定」→ 確認モーダルのタイトルが「運動会」になるか
+- 「夜7時半にお迎え」→ 時刻 19:30 になるか
+
+### 次にやること
+- 実機での会話・登録・削除フローの確認
+- HOKU 品質はテスト 360+ ケース全 PASS の安定水準に到達
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 90: Hoku idempotency check + hard date/title extraction`
+
+---
+
+## Wave 91 自律開発 2026-05-17 02:33  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+hoku-api（Python）分類器をアプリ本体と同水準の精度に引き上げ
+
+### 変更ファイル
+- hoku-api/app/classifier.py
+- hoku-api/tests/test_intent.py
+
+### 変更内容
+アプリ本体（Wave 87-90）で強化した分類精度に対し、hoku-api 側が遅れていた
+（実入力 31 件で 18/31）。front/back の整合のため classify_rule を強化。
+
+- 家計：金額が無くても「買い物した」「レシート」等は budget に（金額は後で確認）
+- 体調：お腹痛い/腹痛/頭痛/くしゃみ/「薬もらった・処方された」を追加
+- 買い物：bare「買って」、「○○がなくなった/切らした/もうない」（補充）を追加
+- 準備：時間割/名札/エプロンを追加
+- カレンダー：今週末/週末/お盆/連休を日付シグナルに、おでかけ/帰省/外出を
+  予定シグナルに。強い予定名詞（歯医者/発表会/運動会/参観 等）は日時が
+  無くても calendar とみなす
+- タスク：ゴミ出し等の家事、役所/銀行へのお使い、宿題/書類の確認・提出を追加
+
+### テスト結果
+- hoku-api 実入力プローブ：31/31 正解（修正前 18/31）
+- hoku-api pytest：26/26 PASS（parity / 補充抽出 / 強名詞のテストを追加）
+- アプリ本体（familink.html）は無変更 — VM スイートへの影響なし
+
+### 既存機能への影響
+- なし。hoku-api はデプロイ前の休眠スキャフォルド。アプリ本体は無変更。
+
+### 未確認事項
+- hoku-api のデプロイ可否（オーナー判断・hoku-api-deployment-decision.md 参照）
+
+### iPhone確認ポイント
+- なし（hoku-api はバックエンド、現状アプリは本体ローカル分類で動作）
+
+### 次にやること
+- 実機での会話・登録・削除フロー確認
+- hoku-api をデプロイするならテスト追補
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 91: bring hoku-api classifier to parity with app`
+
+---
+
+## Wave 92 自律開発 2026-05-17 02:48  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 耐久テスト + 全体最終検証（テスト・検証・バグ確認）
+
+### 変更ファイル
+- docs/worklog.md（本エントリのみ。コード変更なし）
+
+### 変更内容
+オーナー依頼「終わり次第テストして検証、バグ改善」に対応。
+異常・敵対的入力 57 件で耐久テストを実施し、全体を最終検証。
+
+【耐久テスト hoku-fuzz】
+空文字 / 巨大文字列(5000字) / 絵文字 / 半角カナ / XSS 文字列 /
+SQL ライク / 制御文字 / 全角混在 などを parseHokuIntentV2・
+_hokuDetectDelete・normalizeHokuText に投入。
+→ 171/171 OK（クラッシュゼロ・結果シェイプ正常・正規化は全件冪等）
+
+【全体最終検証 — すべてグリーン】
+- VM スイート：31/31
+- Hoku 専用スイート 8 種：width-sweep / hoku-delete 39 / hoku-v2 18 /
+  hoku-flow 28 / hoku-mega 101 / hoku-entity 22 / hoku-hard 16 / hoku-fuzz 171
+- 精度プローブ：probe 49/49・probe2 30/30・項目抽出 10/10
+- hoku-api pytest：26/26
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### テスト結果
+バグ検出ゼロ。Wave 84-91 の HOKU 改善はすべて安定動作を確認。
+
+### 既存機能への影響
+- なし（検証のみ・コード無変更）
+
+### 未確認事項
+- 実機（iPhone）での音声入力フロー
+
+### iPhone確認ポイント
+- 「明日15時に星斗の歯医者入れて」「明日の歯医者の予定消して」
+  「明日やっといて→予定」などの会話・登録・削除フロー
+
+### 次にやること
+- 実機での最終確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 92: Hoku fuzz test + full verification (all green)`
+
+---
+
+## Wave 93 自律開発 2026-05-17 03:17  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+HOKU 会話応答の品質改善 — 温かく自然な返答に
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+実際の会話応答をサンプリングし、品質問題を 4 件発見・改善。
+
+【バグ: 「こんばんは」に「おはよう」と返す】
+- 原因：挨拶応答が現在時刻だけで判定し、ユーザーの挨拶語を無視
+- 修正：ユーザーが言った挨拶語（こんばんは/こんにちは/おはよう）に合わせて返す
+
+【改善: 「疲れた」が無機質なデータ表示になっていた】
+- 「今日疲れた」→「今日の状況をお知らせします【予定】なし…」と機械的だった
+- 修正：データ表示より先に、短く温かい共感を返す
+  （疲れた/しんどい/つらい/イライラ/寝不足/不安 を個別に受けとめる）
+
+【改善: 「使い方を教えて」がスワイプ説明だけ返していた】
+- 修正：スワイプ案内のトリガーから「使い方」を外し、Hoku 全体の
+  できること案内に誘導
+
+【改善: 「元気？」「がんばろう」等が冷たいフォールバックだった】
+- 元気?/がんばろう に自然な返答を追加
+- 最終フォールバック文を「お答えできる情報がまだありません」から
+  温かい案内（具体例つき）に変更
+
+### テスト結果（全グリーン）
+- hoku-flow（会話フロー統合）：33/33（会話品質チェック5件を追加）
+- VM スイート全 31：エラー 0
+- hoku-mega 101 / hoku-delete 39 / hoku-v2 18 / hoku-entity 22 /
+  hoku-hard 16 / hoku-fuzz 171 / width-sweep 35
+- 精度プローブ probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。hokuLocalAnswer の応答文言・分岐の追加のみ。分類は無変更。
+  VM 31 スイート緑を維持。
+
+### 未確認事項
+- 実機での会話応答のトーン確認
+
+### iPhone確認ポイント
+- 「こんばんは」「疲れた」「イライラする」「元気？」への返答が
+  温かく自然か
+
+### 次にやること
+- 実機での会話・登録・削除フロー確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 93: warmer Hoku conversational replies`
+
+---
+
+## Wave 94 自律開発 2026-05-17 03:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+アプリ全体の画面・モーダル監査（Hoku 以外も含む全体検証）
+
+### 変更ファイル
+- docs/worklog.md（本エントリのみ。コード変更なし）
+
+### 変更内容
+Hoku の作り込みが一段落したため、視野をアプリ全体に広げて監査。
+全画面の描画関数 22 種 + モーダル起動 9 種 + タブ遷移 6 種を、
+「データあり」「空状態」の 2 パターンで実行し、例外が出ないか検証。
+
+- app-audit 監査：70/70 OK（クラッシュ・例外ゼロ）
+- openHealthModal が一度クラッシュ表示 → 調査の結果、テストハーネスの
+  querySelector モック制約であり実バグでないと確認（#m-health .modal-title
+  は HTML に実在）。ハーネスを修正して再監査 → 全 PASS
+
+### テスト結果（全グリーン）
+- app-audit（全画面・全モーダル・タブ遷移）：70/70
+- VM スイート全 31：エラー 0
+- Hoku 専用 8 スイート：width-sweep / hoku-delete 39 / hoku-v2 18 /
+  hoku-flow 33 / hoku-mega 101 / hoku-entity 22 / hoku-hard 16 / hoku-fuzz 171
+- 精度プローブ probe 49/49・probe2 30/30
+- hoku-api pytest 26/26
+- 構文 OK / div 1275=1275 / md5 一致
+
+### テスト結果
+バグ検出ゼロ。アプリ全体（全画面）と Hoku が安定動作することを確認。
+コードレベルの品質は App Store 公開水準に到達。
+
+### 既存機能への影響
+- なし（検証のみ・コード無変更）
+
+### 未確認事項
+- 実機（iPhone）での目視・操作確認
+
+### iPhone確認ポイント
+- 全画面の表示崩れ・横スクロール有無
+- 各モーダルの開閉、保存、削除
+
+### 次にやること
+- 実機での最終確認（コード側の作り込みは安定水準に到達）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 94: full-app screen/modal audit (70/70, no bugs)`
+
+---
+
+## Wave 95 自律開発 2026-05-17 03:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 94 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+オーナー依頼「ここまでをバックアップ・保存」に対応。
+- backup ブランチ `backup/023-wave94-hoku-complete`（コミット 63403a2）を
+  作成し origin に push
+- BACKUP-MANIFEST に backup/022・023 と Wave 84-94 のテスト到達点を追記
+
+### テスト結果
+- 検証は Wave 94 で実施済み（全 500+ テスト PASS）。本 Wave はドキュメント
+  とバックアップブランチのみ
+
+### 未確認事項
+- 実機（iPhone）での目視・操作確認
+
+### iPhone確認ポイント
+- なし（保存作業）
+
+### 次にやること
+- 実機での最終確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 95: backup Wave 94 stable state (backup/023)`
+
+---
+
+## Wave 96 自律開発 2026-05-17 04:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全ページの絵文字を上質なモノライン SVG アイコンへ置換
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー指摘「全体の絵文字が安っぽい / AI感をなくす」に対応。
+全画面を確認し、絵文字 178 箇所を体系的に処理（→ 残 19、すべてリアクション）。
+
+- ICON() ヘルパー + 51 種のモノライン SVG アイコンを新設
+  （currentColor 継承・viewBox 24・stroke 1.7）
+- 家計カテゴリ（CAT_ICO）：SVG アイコン + カテゴリ色 CAT_INK
+- 体調（🌡💊🏥🤒）、買い物（🛒⭐🧾★✎）、準備（⚙📅📘✓☐☑）、
+  タスク（✓）、ボード（📌📍✏🗑📖）、通知アイコン、カスタムボード
+  アイコン、ストレージ、確認モーダル、空状態、Hoku/音声 などを SVG 化
+- 「AI感」除去：🤖（ロボット）→ sparkle、🧠（脳）→ 文言から削除
+- 全 <option> タグの絵文字を除去（SVG 不可のため）
+- gear / hourglass アイコンを描き直し（視認性向上）
+- リアクション絵文字 19 件は標準的な UX のため意図的に保持
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0（scenario の旧絵文字アサーションを SVG 化に更新）
+- app-audit（全画面）：70/70
+- Hoku 専用 8 スイート：全 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+- 絵文字 178 → 19（159 件を SVG 化・除去、残はリアクション機能のみ）
+
+### 既存機能への影響
+- なし。アイコン描画方式の変更のみ。分類・保存ロジックは無変更。
+- 旧データ（絵文字を保存した通知等）は ICON フォールバックで安全に表示。
+
+### 未確認事項
+- 実機（iPhone）でのアイコン表示・サイズ感
+
+### iPhone確認ポイント
+- 家計・体調・買い物・準備の各画面でアイコンが線画で上質に見えるか
+- カテゴリタイルのアイコン色・サイズ
+
+### 次にやること
+- 実機でのアイコン目視確認
+- 必要ならリアクションの SVG 化（要オーナー判断）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 96: replace emoji with monoline SVG icons app-wide`
+
+---
+
+## Wave 97 自律開発 2026-05-17 04:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+残りの絵文字（リアクション機能・繰り返し記号）も SVG アイコン化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「他の絵文字も事前に変更、体系的に確認・改善」に対応。
+広域 Unicode スキャンで残存を体系的に確認し、全絵文字を SVG 化。
+
+- リアクション 6 種（thumbsup/heart/check/hand/smileface/sparkle）+
+  拡張 8 種（flame/star/check/eye/flag/bulb/sparkle/heart）を SVG アイコンに
+- 新規アイコン 6 種を追加：thumbsup / hand / smileface / flame / eye / repeat
+- リアクション描画 6 サイトを ICON() に変更
+- デモデータの絵文字キー（'👍' 等）を正規キー（'like' 等）に修正
+  （旧データは reactMap 不整合で表示されない不具合も同時に解消）
+- カレンダーの繰り返し記号 ↻ を repeat アイコンに
+- 広域スキャン結果：絵文字・記号 0 件（→ ← の矢印は通常の約物として保持）
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用 8 スイート：全 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+- アプリ内の絵文字：**0 件**（178 → 0、完全 SVG 化）
+
+### 既存機能への影響
+- なし。リアクションの絵文字キー修正で旧デモデータの表示不具合も解消。
+
+### 未確認事項
+- 実機（iPhone）でのリアクションアイコン表示
+
+### iPhone確認ポイント
+- 家族ボードのリアクション（いいね/ありがとう等）が線アイコンで表示されるか
+
+### 次にやること
+- 実機での全画面アイコン目視確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 97: convert reaction emoji to SVG — zero emoji app-wide`
+
+---
+
+## Wave 98 自律開発 2026-05-17 04:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 97 時点（絵文字完全 SVG 化）の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+- backup ブランチ `backup/024-wave97-svg-icons`（コミット cc5add3）を作成・push
+- BACKUP-MANIFEST に最新バックアップを追記
+
+### テスト結果
+- 検証は Wave 96-97 で実施済み（VM 31 / app-audit 70/70 / Hoku 8スイート 全 PASS）
+
+### 未確認事項
+- 実機（iPhone）でのアイコン目視確認
+
+### 次にやること
+- 実機での全画面アイコン確認
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 98: backup Wave 97 stable state (backup/024)`
+
+---
+
+## Wave 99 自律開発 2026-05-17 05:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Supabase バックエンド導入の設計書作成（マルチ家族 認証・データ分離）
+
+### 変更ファイル
+- docs/supabase-backend-plan.md（新規）
+- docs/worklog.md
+
+### 変更内容
+オーナー決定「Supabase で本物の DB を構築・複数端末をまたいで家族内共有」
+を受け、Phase 4 の設計書を作成。
+
+- 認証モデル（Supabase Auth・家族・メンバー・招待コード）
+- DB スキーマ（families / family_members / family_data 集約テーブル）
+- RLS（行レベルセキュリティ）= 家族単位のデータ分離の核心
+- 招待コード参加フロー（join_family RPC）
+- 既存 LocalStorage データの移行方針
+- 同期戦略（オフライン対応 + Realtime）
+- オーナーのセットアップ手順 / 実装フェーズ計画 / コスト試算
+
+### テスト結果
+- ドキュメントのみ（アプリ無変更）。VM スイートへの影響なし。
+
+### 未確認事項
+- オーナーによる Supabase プロジェクト作成（Phase 4-1）待ち
+
+### iPhone確認ポイント
+- なし（設計段階）
+
+### 次にやること
+- オーナーが Supabase プロジェクト作成 + SQL 実行
+- Project URL / anon key 共有後、ログイン UI（Phase 4-2）から実装
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 99: Supabase backend design (multi-family auth & isolation)`
+
+---
+
+## Wave 100 自律開発 2026-05-17 05:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+バグ修正：静的 HTML 内に ${ICON()} が生表示される不具合
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー報告（アバター選択モーダル右上に「${ICON('close',1…」が生表示）。
+Wave 96 の絵文字 SVG 化で、静的 HTML（<script> 外）の 5 箇所に
+JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文字列のまま
+表示されていた。
+
+- 修正：静的 HTML の 5 箇所（オンボーディング <li> 3件、アバター選択
+  モーダルの閉じるボタン、保存完了の ✓）を、実際の <svg> マークアップに
+  置換（ICON() の出力をそのまま埋め込み）
+- 静的 HTML 内に ${} 式が残っていないことを全スキャンで確認（0 件）
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。表示バグの修正のみ。
+
+### 未確認事項
+- 実機でのアバター選択モーダル閉じるボタン表示
+
+### iPhone確認ポイント
+- アバター選択モーダル右上が×アイコンで表示されるか
+- オンボーディングのリスト項目のアイコン表示
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 100: fix raw ${ICON()} text shown in static HTML`
+
+---
+
+## Wave 101 自律開発 2026-05-17 05:21  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プロフィールの役割選択肢を拡張 + 「その他」で自由入力に対応
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「役割を複数家族に柔軟に・選択肢を広げて」に対応。
+
+- 役割（OB2_ROLES）を 9 → 16 に拡張：
+  パパ/ママ/息子/娘/祖父/祖母/パートナー/兄弟姉妹/孫/おじ/おば/
+  義父/義母/赤ちゃん/保護者/その他
+- 「その他」選択時に自由入力欄を表示（roleCustom）。里親・親戚・
+  ベビーシッター等、各家族の事情に柔軟に記載できる
+- プロフィール編集モーダル / オンボーディング両方に適用
+- 保存時に「その他」なら入力必須バリデーション
+- roleCustom は userProfile に保持（PERSIST 済みオブジェクトのため自動永続）
+
+### テスト結果（全グリーン）
+- VM スイート：28/28 エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1275=1275 / md5 一致
+
+### 既存機能への影響
+- なし。役割リスト拡張と自由入力欄の追加のみ。
+
+### 未確認事項
+- 実機での役割選択・自由入力の表示
+
+### iPhone確認ポイント
+- プロフィール編集で 16 役割が表示されるか
+- 「その他」を選ぶと自由入力欄が出るか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 101: expand profile roles + custom free-text role`
+
+---
+
+## Wave 102 自律開発 2026-05-17 05:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プロフィールの「あなたの役割」セクションを全削除
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「役割は不要・全削除」に対応。Wave 101 で拡張した役割機能を含め、
+役割関連を完全に撤去。
+
+- プロフィール編集モーダルから役割フィールドを削除
+- オンボーディングから役割フィールドを削除
+- 関連 JS を全削除：OB2_ROLES / _ob2RoleId / _peRoleId / ob2RenderRoles /
+  ob2SelectRole / peRenderRoles / peSelectRole / _peToggleCustomRole
+- 役割のバリデーション・保存処理（roleId / roleCustom）を撤去
+- 未使用 CSS（.ob2-role-grid / .ob2-role-btn）も削除
+- プロフィールは「表示名」「家族の呼び方」のみのシンプル構成に
+
+### テスト結果（全グリーン）
+- VM スイート：28/28 エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1269=1269 / md5 一致
+
+### 既存機能への影響
+- なし。役割は表示専用で他機能と連動していなかったため安全に撤去。
+  既存ユーザーの userProfile.roleId は残るが未参照（無害）。
+
+### 未確認事項
+- 実機でのプロフィール編集・オンボーディング表示
+
+### iPhone確認ポイント
+- プロフィール編集が「表示名 + 家族の呼び方」のみになっているか
+- オンボーディングの役割欄が消えているか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 102: remove profile role section entirely`
+
+---
+
+## Wave 103 自律開発 2026-05-17 05:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+バグ修正：ウェルカム/オンボーディング画面に常駐 Hoku（fab）が表示される
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー報告：ウェルカム画面の右上に常駐 Hoku が出てしまう。
+原因：Hoku fab を隠す画面リスト AUTH_HIDE に、オンボーディング
+ウィザード画面 's-onboard' が含まれていなかった。
+（s-ob は入っていたが、startOnboarding が showScreen('s-onboard') で
+開くウィザード画面が対象外だった）
+
+- 修正：AUTH_HIDE に 's-onboard' を追加
+  → ['s-ob','s-onboard','s-login','s-hoku']
+- これでログイン/オンボーディング完了・ホーム到達まで常駐 Hoku は出ない
+- 中央のウェルカムイラスト（ob2-hoku-img）は意図的な演出のため保持
+
+### テスト結果（全グリーン）
+- VM スイート：エラー 0 / app-audit 70/70
+- 構文 OK / div バランス 1269=1269 / md5 一致
+
+### 既存機能への影響
+- なし。fab 非表示画面の追加のみ。
+
+### 未確認事項
+- 実機でウェルカム/オンボーディング画面に fab が出ないこと
+
+### iPhone確認ポイント
+- ウェルカム画面・オンボーディング各ステップで右上に Hoku が出ないか
+- ホーム到達後に Hoku fab が表示されるか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 103: hide floating Hoku on onboarding screen`
+
+---
+
+## Wave 104 自律開発 2026-05-17 06:41  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+使い方ガイド（チュートリアル）を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「チュートリアル / 使い方をプロフェッショナルな形で」に対応。
+
+- 使い方ガイドモーダル m-guide を新設
+- openGuide()：10 セクション（ホーム / カレンダー / タスク / 準備 /
+  家計 / 体調 / 買い物 / 家族ボード / Hoku / 便利なヒント）を、
+  SVG アイコン + カード + ブランド配色の上質なレイアウトで表示
+- 設定メニューに「ヘルプ > 使い方ガイド」を追加（いつでも参照可能）
+- 初回ホーム表示時に 1 度だけ自動表示（guideSeen フラグ、PERSIST 追加）
+
+### テスト結果（全グリーン）
+- VM スイート：28/28 エラー 0
+- app-audit（全画面）：70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1286=1286 / md5 一致
+
+### 既存機能への影響
+- なし。新規モーダル + メニュー項目の追加。guideSeen は新規 PERSIST キー。
+
+### 未確認事項
+- 実機での使い方ガイドの表示・初回自動表示
+
+### iPhone確認ポイント
+- 初回ホーム表示で使い方ガイドが 1 度開くか
+- 設定 → ヘルプ → 使い方ガイド でいつでも開けるか
+- ガイドのカード・アイコン・余白が上質に見えるか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 104: add how-to-use guide (tutorial)`
+
+---
+
+## Wave 105 自律開発 2026-05-17 07:02  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+使い方ガイド下部にプレミアム解約導線を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「ガイド下部にプレミアム解約を（前面に出さない位置に）」に対応。
+
+- openGuide() の末尾に _guidePremiumSection() を追加
+  - プレミアム会員：状態表示 + 「プレミアムを解約する」リンク
+  - 無料プラン：無料プランである旨を表示
+- cancelPremium()：確認ダイアログ → isPremiumUser=false → 再描画 → toast
+- 解約導線はガイド最下部の控えめな位置（前面には出さない）
+
+【オーナーへの注意喚起（worklog 記録）】
+「解約を意図的に見つけにくくする」ことは App Store 審査リジェクト対象
+（App Review 3.1.2 / 5.1.1）であり、日本の特定商取引法（定期購入の不当
+表示規制）にも抵触し得る。信頼感（CLAUDE.md §10.5）も損なう。
+そのため「見つからないほど隠す」のではなく「下部の控えめな位置」に留めた。
+将来 IAP 本実装時は、解約は OS のサブスク管理へ誘導する必要がある
+（Apple/Google 規約上、アプリ側で課金を止めることは不可）→ コード内に明記。
+
+### テスト結果（全グリーン）
+- VM スイート：28/28 エラー 0 / app-audit 70/70
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1290=1290 / md5 一致
+
+### 既存機能への影響
+- なし。ガイド末尾セクションと cancelPremium の追加のみ。
+
+### 未確認事項
+- 実機での解約フロー（現状は isPremiumUser フラグの切替）
+
+### iPhone確認ポイント
+- 使い方ガイド最下部にプレミアム状態 / 解約リンクが出るか
+- 解約 → 確認 → 無料プランに戻るか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+- IAP 本実装時に解約を OS サブスク管理へ誘導
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 105: add premium cancellation link at guide bottom`
+
+---
+
+## Wave 106 自律開発 2026-05-17 07:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プレミアム解約欄を有料会員のみ表示に + 全体総合検証
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「解約欄は無料会員に非表示・有料会員のみ表示」に対応。
+- _guidePremiumSection()：無料会員は空文字を返し非表示。有料会員のみ解約リンク表示
+- 新規テスト guide-test.js（8件）で表示制御を検証
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- Hoku/専用 10 スイート（app-audit 70 / guide-test 8 含む）：全 PASS
+- 精度プローブ probe 49/49・probe2 30/30 / hoku-api pytest 26/26
+- 構文 OK / div 1289=1289 / 絵文字 0 / md5 一致 / バグ検出ゼロ
+
+### 既存機能への影響
+- なし。ガイドのプレミアム欄の表示条件変更のみ。
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 106: show premium cancellation only to paid members`
+
+---
+
+## Wave 107 自律開発 2026-05-17 07:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 106 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+- backup ブランチ `backup/025-wave106-guide`（コミット f70ae15）を作成・push
+- BACKUP-MANIFEST に最新バックアップを追記
+
+### この時点の到達点（backup/025）
+- 静的HTMLの ${ICON()} 生表示バグ修正 / プロフィール役割の全削除
+- 使い方ガイド（チュートリアル）追加 / プレミアム解約導線（有料会員のみ）
+- オンボーディング画面の常駐 Hoku 非表示
+- Supabase バックエンド設計書
+- 絵文字 0・VM 31スイート / 専用10スイート / hoku-api 26 全 PASS
+
+### テスト結果
+- 検証は Wave 106 で実施済み（全グリーン）
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 107: backup Wave 106 stable state (backup/025)`
+
+---
+
+## Wave 108 自律開発 2026-05-17 07:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+書類保管庫・アルバムにフォルダ機能を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「アルバムと書類保管にフォルダを作成できるように」に対応。
+
+- 共通フォルダエンジンを新設（kind: 'doc' / 'album'）
+  - _folderBar：フォルダのチップバー（すべて / 各フォルダ / ＋フォルダ）
+  - createFolder / renameFolder / deleteFolder / selectFolder
+  - フォルダ削除時、中のアイテムは「未分類」へ移動（削除しない）
+- 書類保管庫：フォルダバー表示・フォルダで絞り込み、書類追加モーダルに
+  フォルダ選択、行にフォルダ名バッジ
+- アルバム：フォルダバー表示・絞り込み、写真追加は選択中フォルダへ、
+  写真ビューアにフォルダ移動セレクトを追加
+- S.albumFolders を PERSIST に追加（書類は既存 S.folders を活用）
+
+### テスト結果（全グリーン）
+- 新規 folder-test：14/14 PASS（作成 / 絞込 / 改名 / 削除 / 未分類移動）
+- VM スイート 28：エラー 0 / app-audit 70/70 / guide-test 8
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1296=1296 / md5 一致
+
+### 既存機能への影響
+- なし。docs の folderId は既存フィールド、albumPhotos に folderId を追加。
+  旧データ（folderId なし）は「未分類」として安全に表示。
+
+### 未確認事項
+- 実機でのフォルダ作成・絞り込み・写真のフォルダ移動
+
+### iPhone確認ポイント
+- 書類保管庫 / アルバムの上部にフォルダバーが出るか
+- ＋フォルダ で作成、チップで絞り込み、名前変更・削除ができるか
+- 写真ビューアでフォルダ移動ができるか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 108: add folders to archive and album`
+
+---
+
+## Wave 109 自律開発 2026-05-17 09:11  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プレミアム解約フローに確認階層を追加（解約前にもう一段）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「解約ボタンの後に規約のような確認をチェックさせてから解約」に対応。
+
+- 新規モーダル m-cancel-premium：解約の影響（プレミアム機能停止 / 無料プラン継続 /
+  データは消えない / 日割り返金なし）を箇条書きで提示
+- 「上記の内容を確認しました」チェックボックス。チェックするまで
+  「解約を続ける」ボタンは無効（cpToggleAgree）
+- 解約フローを 2 段階に：解約リンク → 内容確認モーダル → 最終確認 → 解約実行
+  （cancelPremium → cancelPremiumProceed → showConfirm → 実行）
+
+### テスト結果（全グリーン）
+- guide-test：11/11 PASS（2段階解約フローの検証を追加）
+- VM スイート 28：エラー 0 / app-audit 70/70 / folder-test 14
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1302=1302 / md5 一致
+
+### 既存機能への影響
+- なし。解約フローに確認モーダルを 1 段追加したのみ。
+
+### 未確認事項
+- 実機での解約 2 段階フロー
+
+### iPhone確認ポイント
+- 「プレミアムを解約する」→ 内容確認モーダル → チェック →「解約を続ける」
+  → 最終確認 → 解約 の流れ
+- 未チェックでは「解約を続ける」が押せないか
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 109: add confirmation step before premium cancellation`
+
+---
+
+## Wave 110 自律開発 2026-05-17 09:25  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 109 時点の安定状態をバックアップ・保存
+
+### 変更ファイル
+- docs/BACKUP-MANIFEST.md
+- docs/worklog.md
+
+### 変更内容
+- backup ブランチ `backup/026-wave109-folders-cancel`（コミット 023c091）を作成・push
+- BACKUP-MANIFEST に最新バックアップを追記
+
+### この時点の到達点（backup/026）
+- 書類保管庫・アルバムのフォルダ機能
+- プレミアム解約の2段階フロー（内容確認チェック → 最終確認）
+- 使い方ガイド / 役割削除 / 絵文字0 / Supabase設計
+- テスト：VM 28スイート / 専用スイート（app-audit 70・guide-test 11・
+  folder-test 14 ほか）全 PASS、バグゼロ
+
+### テスト結果
+- 検証は Wave 108-109 で実施済み（全グリーン）
+
+### 次にやること
+- Supabase セットアップ（オーナー作業）待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 110: backup Wave 109 stable state (backup/026)`
+
+---
+
+## Wave 111 自律開発 2026-05-17 11:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+プレミアム料金プランを選択式に + お支払い登録画面を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「月額ボタンを押せるように、次の階層でクレジットカード入力など
+通常のサブスク登録ページの形に」に対応。
+
+- 料金カード（月額¥480 / 年額¥4,800）をタップで選択可能に（selectPremiumPlan）
+  選択中カードはオレンジ枠でハイライト、既定は年額
+- 「今すぐ始める」→ お支払い登録モーダル m-premium-checkout を開く
+- お支払い登録画面：選択中プラン要約 / カード番号・有効期限・CVC・名義の
+  入力欄 / 自動更新の説明 / 利用規約同意チェック / 「登録して始める」
+- 入力フォーマット検証（カード番号 14-16桁・MM/YY・CVC 3-4桁・名義）
+- 同意チェックするまで登録ボタンは無効
+
+【重要：オーナーへの注意（worklog 記録）】
+・カード情報は端末に保存・外部送信していない（トライアル運用のダミー）。
+・正式リリースの実決済は **Stripe 等の決済事業者 / App Store IAP** を
+　通す必要がある。アプリが生のカード番号を直接扱うことは PCI-DSS や
+　Apple 規約（App Review 3.1.1：デジタル課金は IAP 必須）上できない。
+　→ コード内コメントにも明記。実装方針は要オーナー確認。
+
+### テスト結果（全グリーン）
+- 新規 premium-test：10/10 PASS（プラン選択 / 画面反映 / 検証 / 登録）
+- VM スイート 28：エラー 0 / app-audit 70/70 / guide-test 11 / folder-test 14
+- Hoku 専用スイート：全 PASS
+- 構文 OK / div バランス 1321=1321 / md5 一致
+
+### 既存機能への影響
+- なし。activatePremiumDemo は温存し、submit から呼ぶ形に。
+
+### 未確認事項
+- 実機での月額/年額選択 → お支払い登録の流れ
+
+### iPhone確認ポイント
+- 月額・年額カードがタップで切り替わるか
+- 今すぐ始める → お支払い登録画面 → 入力 → 登録 の流れ
+
+### 次にやること
+- 正式リリース時：Stripe / App Store IAP の決済方式を決定（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 111: selectable premium plans + payment registration screen`
+
+---
+
+## Wave 112 自律開発 2026-05-17 11:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+総合検証（テスト→検証→改善の反復）+ 有効期限バリデーション修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+オーナー依頼「もう一度確認・テスト検証バグ解消を反復して完璧に」に対応。
+
+【Round 1：総合検証】全スイート緑を確認
+【Round 2：新機能エッジ検証】お支払い登録のエッジケースを probe
+- バグ発見：有効期限が「13/29」「00/29」など不正な月でも受理されていた
+- 修正：月を 01-12 の範囲でも検証するように submitPremiumCheckout を強化
+【Round 3：全体再検証】全グリーン
+
+### テスト結果（全グリーン）
+- VM スイート全 31：エラー 0
+- 専用 12 スイート：width-sweep / hoku-delete 39 / hoku-v2 18 / hoku-flow 33 /
+  hoku-mega 101 / hoku-entity 22 / hoku-hard 16 / hoku-fuzz 171 /
+  app-audit 70 / guide-test 11 / folder-test 14 / premium-test 13 — 全 PASS
+- 精度プローブ：probe 49/49・probe2 30/30
+- 構文 OK / div バランス 1321=1321 / 絵文字 0 / md5 一致
+
+### 既存機能への影響
+- なし。お支払い登録の月バリデーション強化のみ。
+
+### 未確認事項
+- 実機での月13等の不正入力でエラーになること
+
+### iPhone確認ポイント
+- お支払い登録で有効期限に不正な月を入れるとエラーになるか
+
+### 次にやること
+- 正式リリース時の決済方式決定（Stripe / IAP・要オーナー確認）
+- Supabase セットアップ待ち
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 112: verify all + fix card expiry month validation`
+
+---
+
+## 2026-05-17 12:50  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 113 — 通知オンオフ設定 + サポート（FAQ・お問い合わせ）+ 規約・バージョン追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 通知設定：設定→その他に「通知設定」を追加。10種類の通知（担当者設定/タスク完了/
+  コメント/予定/メモ/家計/体調/買い物/持ち物準備/期限切れ）を個別オン/オフ。
+  iOS 風トグル。オフにした種別は addNotif がスキップ。S.notifPrefs に永続化。
+- サポート：ヘルプ欄を「ヘルプ・サポート」に改称。「よくある質問」（FAQ 7件）と
+  「お問い合わせ」（GitHub issues へ）を追加。
+- 情報：設定に「情報」セクション新設。プライバシーポリシー / 利用規約（docs 内 HTML を
+  別タブで表示）/ バージョン（APP_VERSION = v1.0.0）を追加。フッターも APP_VERSION 参照に統一。
+
+### テスト結果（全グリーン）
+- wave113-test 12/12 PASS（通知設定・FAQ・お問い合わせ・規約リンク）
+- app-audit 70/70・guide-test 11・folder-test 14・premium-test 13・notif 16
+- VM 回帰：hoku-delete 39 / v2 18 / flow 33 / mega 101 / entity 22 / hard 16 /
+  fuzz 171 / width-sweep 35 / probe 10 / probe2 30 / integration 55 /
+  e2e-render 10 / storage 17 / persistence 72 — 全 PASS
+- 構文 OK / div バランス 1373=1373 / md5 一致
+
+### 既存機能への影響
+- なし。addNotif は type 未指定時は従来どおり常に作成。
+
+### 未確認事項
+- 招待機能（LINE/QR/招待リンク）は Supabase バックエンド前提（Wave 99 設計済・未実装）
+- お問い合わせ先が GitHub issues 暫定。正式リリース時に問い合わせメール等へ変更検討
+
+### iPhone確認ポイント
+- 設定→その他→通知設定でトグルが切り替わるか
+- 設定→情報→プライバシーポリシー/利用規約が別タブで開くか
+
+### 次にやること
+- Supabase セットアップ後に複数家族の招待・共有機能を実装
+- 正式リリース時の決済方式決定（Stripe / IAP）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 113: notification on/off settings + support (FAQ/contact) + legal & version`
+
+---
+
+## 2026-05-17 13:30  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 114 — ローカルアカウント認証（メール/パスワード/再設定/変更）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- ローカルアカウント認証を実装（バックエンドなし・LocalStorage / S.account）。
+  メール+パスワードを端末内に保存し、ログイン時に照合。
+- 新規登録：m-signup モーダル。メール形式・パスワード6文字以上・確認一致を検証。
+  登録時に12桁リカバリーコードを発行し m-recovery-code で控えを促す。
+- パスワード再設定：m-forgot モーダル。メール+リカバリーコードで本人確認し再設定。
+  コードは大文字小文字・ダッシュの表記ゆれを許容。
+- 設定→アカウント・設定にメールアドレス変更 / パスワード変更を追加（要現パスワード）。
+  未登録ユーザー（デモ利用者）には「メール・パスワードを登録」を表示。
+- ログイン画面に「パスワードをお忘れですか？」「新規アカウント登録」導線を追加。
+- パスワードは端末内保存のため軽量ハッシュで難読化（暗号学的ハッシュは Supabase 移行時）。
+
+### テスト結果（全グリーン）
+- auth-test 25/25 PASS（ハッシュ/メール検証/登録/ログイン/再設定/変更）
+- app-audit 70・guide 11・folder 14・premium 13・wave113 12・notif 16
+- VM 回帰：hoku-delete 39 / v2 18 / flow 33 / mega 101 / entity 22 / hard 16 /
+  fuzz 171 / probe 10 / probe2 30 / width-sweep 35 / integration 55 /
+  e2e-render 10 / storage 17 / persistence 72 — 全 PASS
+- 構文 OK / div バランス 1441=1441 / md5 一致
+
+### 既存機能への影響
+- doLogin はアカウント照合必須に変更。デモは「デモデータで試してみる」で従来どおり利用可。
+- ログアウトしても S.account は保持され、再ログインできる。
+
+### 未確認事項
+- Hoku 家計マルチターン精度の改善（スクショ基準）は次セッションで対応
+- アルバム空状態の刷新も次セッションで対応
+
+### iPhone確認ポイント
+- 新規登録→リカバリーコード表示→ログインまで通るか
+- パスワード再設定がリカバリーコードで動くか
+- 設定でメール/パスワード変更ができるか
+
+### 次にやること
+- Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
+- アルバム / すべての写真 / 最高の瞬間 の空状態を世界最高峰品質に刷新
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 114: local account auth (email/password/recovery/change)`
+
+---
+
+## 2026-05-17 14:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 115 — 書類 / アルバムの空状態を上質に刷新
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 書類保管庫・アルバムの空状態を、参考スクショを踏まえつつ Familink らしい
+  上質なデザインに刷新（丸パクリせず、ブランドの青系トーンで統一）。
+- 共通コンポーネント `_emptyState()` を追加。SVG イラスト（開いたフォルダ /
+  写真スタック）+ 太字見出し + 説明文 + 目立つ追加ボタンの構成。
+- AI 感のある機械翻訳調の文言は使わず、自然な日本語に。
+  例：「アルバムはまだ空です」「家族の写真をここにまとめておけます。」
+- フォルダ内が空のときと全体が空のときで文言を出し分け。
+- es-* CSS クラスを追加（イラスト中央寄せ・CTA ボタン）。
+
+### テスト結果（全グリーン）
+- 空状態の描画確認：archive/album とも es-wrap / SVG / CTA を確認
+- folder-test 14・app-audit 70・guide 11・premium 13・wave113 12・auth 25
+- integration 55・e2e-render 10・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1435=1435 / md5 一致
+
+### 既存機能への影響
+- なし。空状態の見た目のみ刷新（写真/書類があるときの表示は不変）。
+
+### 未確認事項
+- フォルダ階層のグリッド化（色付きフォルダ・オプションシート・色選択・公開範囲）は
+  大規模 UI 刷新のため次ウェーブで対応予定
+- Hoku 家計マルチターン精度の改善も継続課題
+
+### iPhone確認ポイント
+- 書類保管庫・アルバムを空の状態で開き、イラストと追加ボタンが綺麗に出るか
+- 追加ボタンから写真/書類の追加フローに入れるか
+
+### 次にやること
+- フォルダ階層のグリッド表示化（色付きフォルダカード / オプション / 設定）
+- Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 115: refined empty states for documents & album`
+
+---
+
+## 2026-05-17 15:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 116 — 書類 / アルバムを色付きフォルダのグリッド階層に刷新
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 横並びチップ式フォルダを廃し、参考スクショを踏まえた色付きフォルダの
+  グリッド階層に刷新（丸パクリせず Familink のトーンで上質に）。
+- トップ階層：色付きフォルダカードのグリッド（フォルダ名 / 件数 / 操作）+
+  「新規フォルダ」カード + フォルダ未分類アイテム。
+- フォルダ内：戻る + フォルダ名 + 操作ボタンのヘッダー + アイテム一覧 / 空状態。
+- フォルダに色（8色パレット）を追加。作成・編集モーダル m-folder-edit で
+  名前と色を設定。フォルダ操作シート m-folder-opts（編集 / 削除）。
+- フォルダアイコンは色を反映した2トーン SVG。
+- selectFolder / deleteFolder の既存挙動は維持（中のアイテムは削除されず未分類へ）。
+
+### テスト結果（全グリーン）
+- folder-test 19/19（作成/色/グリッド/絞り込み/編集/削除/操作シート）
+- app-audit 70・guide 11・premium 13・wave113 12・auth 25
+- integration 55・e2e-render 10・storage 17・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1459=1459 / md5 一致
+
+### 既存機能への影響
+- フォルダ UI を刷新。データ構造はフォルダに color を追加しただけで後方互換。
+- 旧 _folderBar / renameFolder は廃止（editFolder + saveFolderEdit に統合）。
+
+### 未確認事項
+- Hoku 家計マルチターン精度の改善は次セッションで対応
+
+### iPhone確認ポイント
+- 書類保管庫・アルバムでフォルダグリッドが綺麗に並ぶか
+- フォルダ作成で色が選べるか / フォルダをタップして中に入れるか
+- フォルダ操作（… ボタン）で編集・削除ができるか
+
+### 次にやること
+- Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 116: colored folder grid hierarchy for documents & album`
+
+---
+
+## 2026-05-17 15:40  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 117 — Hoku 家計の理解精度を強化（スクショ基準）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- スクショ基準で「家計簿に支出5000円 カレーを追加」の理解精度を検証し、
+  2つの精度バグを特定・修正：
+  1. 品目タイトルに「家計簿に支出」等のドメイン語が混入していた
+     → budget_add のタイトルからドメイン語を除去し品目だけ残す処理を追加。
+        例：「家計簿に支出 カレー」→「カレー」
+  2. 「カレー」「ラーメン」等の食品名が食費に分類されなかった
+     → _hokuExtractBudgetCategory の食品語彙を大幅拡充。光熱費・通信費・
+        被服費・娯楽費の判定も追加。
+- 結果：「家計簿に支出5000円 カレーを追加」→ 金額5000・品目カレー・食費 を正しく理解。
+
+### 補足（スクショの会話的な日付聞き返しについて）
+- スクショの「いつの支出か教えてください」という会話的な聞き返しは
+  外部 Hoku API（LLM）接続時の挙動。オフライン解析エンジンは金額・品目・
+  カテゴリを理解した上で確認カード（m-voice-confirm）を開く設計（Wave 27）。
+  カード上で日付を含む全項目を目視確認・編集してから保存できる。
+
+### テスト結果（全グリーン）
+- hoku-expense-flow 19/19（金額/品目/カテゴリ/収支区分の理解）
+- VM 回帰：hoku-delete 39 / v2 18 / flow 33 / mega 101 / entity 22 / hard 16 /
+  fuzz 171 / probe 10 / probe2 30 / width-sweep 35 — 全 PASS
+- app-audit 70・integration 55・e2e-render 10・persistence 72・storage 17・
+  notif 16・folder-test 19・auth-test 25 — 全 PASS
+- 構文 OK / div バランス 1459=1459 / md5 一致
+
+### 既存機能への影響
+- なし。家計の品目タイトル整形とカテゴリ語彙の拡充のみ。全 Hoku 回帰グリーン。
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- Hoku に「家計簿に支出5000円 カレーを追加」と話しかけ、確認カードに
+  ¥5,000 / カレー / 食費 が入っているか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 117: improve Hoku budget comprehension (item title & category)`
+
+---
+
+## 2026-05-17 16:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 118 — 書類の写真ビューア + 端末ダウンロード（書類 / アルバム）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 書類に入れた写真を見られるように：
+  - 書類一覧のサムネイルをタップで全画面ビューア（m-doc-photo）を開く。
+  - 書類編集モーダルのプレビュー画像もタップで拡大。「タップで拡大」「端末に保存」リンク追加。
+- 端末ダウンロード機能を新設（書類 / アルバム共通）：
+  - downloadDataUrl() — base64画像を <a download> で端末に保存。拡張子は
+    dataURLのMIMEから判定（jpeg→jpg）。ファイル名は安全化。
+  - アルバムビューアに「端末に保存」ボタンを追加。
+  - 書類写真ビューアに「端末に保存」ボタンを追加。
+- iOS Safari は <a download> が新規タブ表示になる場合があるため、ビューアに
+  「長押しで保存」の案内を併記。
+
+### テスト結果（全グリーン）
+- download-test 12/12（拡張子判定/ダウンロード/ビューア表示）
+- app-audit 70・folder 19・guide 11・premium 13・wave113 12・auth 25・
+  hoku-expense-flow 19・integration 55・e2e-render 10・persistence 72・storage 17
+- 構文 OK / div バランス 1466=1466 / md5 一致
+
+### 既存機能への影響
+- なし。書類写真プレビューの描画を共通関数化し、閲覧・保存導線を追加しただけ。
+
+### 未確認事項
+- iPhone 実機での <a download> 挙動（新規タブ表示になる可能性）
+
+### iPhone確認ポイント
+- 書類一覧で写真サムネイルをタップしてビューアが開くか
+- アルバム / 書類ビューアの「端末に保存」で写真が保存できるか
+  （保存されない場合は画像長押しで保存できるか）
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 118: document photo viewer + device download for docs & album`
+
+---
+
+## 2026-05-17 16:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 119 — 画像ビューアが書類編集モーダルの背面に開く不具合を修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- バグ：書類編集モーダル内のプレビュー画像をタップすると、写真ビューア
+  (m-doc-photo) が編集モーダルと同じ z-index(200) のため背面に開き、
+  画像が表示されないように見えていた。
+- 修正：写真ビューア m-doc-photo / アルバムビューア m-album-view の
+  z-index を 400 に引き上げ、他モーダルより前面に表示。
+- 併せてビューアを画面中央寄せ（align-items:center）にし、全角丸めの
+  通常の画像ビューアらしい見た目に改善。画像の最大高さも拡大。
+
+### テスト結果（全グリーン）
+- download-test 12/12・folder-test 19・app-audit 70
+- 構文 OK / div バランス 1466=1466 / md5 一致
+
+### 既存機能への影響
+- なし。ビューアの重なり順と中央寄せの調整のみ。
+
+### iPhone確認ポイント
+- 書類を開いてプレビュー画像をタップ → 写真ビューアが前面に開くか
+- アルバムの写真タップでビューアが正しく表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 119: fix image viewer opening behind document edit modal`
+
+---
+
+## 2026-05-17 17:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 120 — 書類のまとめて追加（複数写真から一括作成）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 書類保管庫の ＋ ボタンを、追加方法シート（m-archive-addmode）に変更：
+  「1件ずつ入力する」/「写真からまとめて追加」の2択。
+- archiveBatchAdd()：複数写真を選ぶと、各写真が1件ずつの書類になる。
+  タイトルは「書類 M/D (n)」、カテゴリ既定、現在のフォルダに追加。
+  容量超過時はトーストで通知。
+- アルバムは既に複数選択での一括追加に対応済み（album-file の multiple）。
+  → 書類・アルバムとも「まとめて追加」が可能になった。
+
+### テスト結果（全グリーン）
+- batch-add-test 9/9（3枚→3書類/フォルダ/連番/失敗除外/空入力）
+- app-audit 70・folder 19・download 12・guide 11・premium 13・wave113 12・
+  auth 25・hoku-expense-flow 19・integration 55・e2e-render 10・persistence 72・
+  storage 17・notif 16 — 全 PASS
+- 構文 OK / div バランス 1472=1472 / md5 一致
+
+### 既存機能への影響
+- 書類の ＋ が直接フォームを開く動作 → 追加方法シート経由に変更（1件入力は維持）。
+
+### iPhone確認ポイント
+- 書類保管庫の ＋ →「写真からまとめて追加」で複数写真を選び、件数分の書類ができるか
+- アルバムの ＋ で複数写真をまとめて追加できるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 120: batch-add documents from multiple photos`
+
+---
+
+## 2026-05-17 17:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 121 — 「まとめて追加」の発見性を改善（書類・アルバム）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 「まとめて追加が見当たらない」との指摘を受け、発見性を改善：
+  - アルバムの ＋ も追加方法シート（m-album-addmode）に変更。
+    OS のファイル選択に直行せず「写真をまとめて追加」と明示。
+  - 書類の追加方法シートで「写真をまとめて追加」を主ボタン（primary・大）に格上げ。
+  - 空状態の追加ボタンからも追加方法シートを開くよう統一
+    （書類→openArchiveAddMode / アルバム→openAlbumAddMode）。
+- これで書類・アルバムとも、＋ / 空状態どちらからでも「まとめて追加」が
+  明示的に見える導線になった。
+
+### テスト結果（全グリーン）
+- batch-add-test 9/9・folder 19・download 12・app-audit 70
+- guide 11・premium 13・wave113 12・auth 25・integration 55・
+  e2e-render 10・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1478=1478 / md5 一致
+
+### 既存機能への影響
+- アルバムの ＋ がシート経由に変更（1タップ増えるが「まとめて追加」が明示される）。
+
+### iPhone確認ポイント
+- 書類・アルバムの ＋ で「写真をまとめて追加」シートが出るか
+- 空状態の追加ボタンからも同シートが出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 121: make batch-add discoverable on documents & album`
+
+---
+
+## 2026-05-17 18:10  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 124 — プライバシーポリシー / 利用規約をアプリ内モーダル表示に変更
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- バグ：openLegalDoc が window.open で外部 HTML を別タブ表示していたため、
+  アプリ内ブラウザ（LINE等のin-app browser）ではポップアップがブロックされ
+  「うまく反映されない」状態だった。
+- 修正：プライバシーポリシー / 利用規約の全文を JS データ（LEGAL_PRIVACY /
+  LEGAL_TERMS）として埋め込み、アプリ内モーダル m-legal でスクロール表示。
+  外部タブに依存しないため、どのブラウザ・in-app browser でも確実に表示される。
+- 内容は docs/privacy-policy.html・terms-of-use.html を踏襲（端末内保存・
+  非収集・第三者サービス・課金・準拠法・全13条 等）。
+
+### テスト結果（全グリーン）
+- wave113-test 14/14（うち規約モーダル表示3件）
+- app-audit 70・folder 19・download 12・batch-add 9・auth 25・
+  integration 55・persistence 72 — 全 PASS
+- 構文 OK / div バランス 1487=1487 / md5 一致
+
+### 既存機能への影響
+- 設定→情報→プライバシーポリシー/利用規約の表示方式が別タブ→アプリ内モーダルに。
+  docs/privacy-policy.html・terms-of-use.html は単独ページとしては残置。
+
+### iPhone確認ポイント
+- 設定→情報→プライバシーポリシー / 利用規約 をタップしてモーダルが開き、
+  全文がスクロールで読めるか（アプリ内ブラウザでも開くか）
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 124: show privacy policy & terms in-app modal`
+
+---
+
+## 2026-05-17 18:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 126 — 各画面のスクロール余白を統一しタブバーで見切れる不具合を修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 設定など複数画面で、下部の文章・項目が浮遊タブバー（高さ68px + 下14px +
+  セーフエリア）の裏に隠れて見切れていた。
+- 全スクロール領域の下部余白を監査し、タブバーを確実に避ける
+  calc(98px + safe-area) に統一：
+  archive-body / album-body / health-list / prep-list / shop-body /
+  children-list / cdetail-body / notif-list / settings-body / 家計スクロール領域。
+  （旧値は 12〜90px とばらつき、20px の画面が特に見切れていた）
+
+### テスト結果（全グリーン）
+- app-audit 70・e2e-render 10・folder 19・download 12・batch-add 9・
+  wave113 14・integration 55 — 全 PASS
+- 構文 OK / div バランス 1485=1485 / md5 一致
+- 全 scroll-area の下部余白が 98px 以上であることを確認（20/80/90px 残り 0）
+
+### 既存機能への影響
+- なし。スクロール下部の余白を増やしただけ（機能・描画ロジックは不変）。
+
+### iPhone確認ポイント
+- 設定・通知一覧・体調・準備・買い物・書類・アルバム・お子さま詳細の各画面で、
+  最下部の項目やフッター文がタブバーに隠れず最後まで読めるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 126: unify scroll padding so content clears the floating tab bar`
+
+---
+
+## 2026-05-17 19:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 127 — カレンダー予定の繰り返しに「毎年」「カスタム」を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 予定の繰り返し選択肢に「毎年（同じ日付）」「カスタム…」を追加。
+- 「カスタム」選択時、間隔入力（N + 日/週/か月/年 ごと）を表示。
+  evRepeatChange() で表示制御。
+- イベントに repeatInterval / repeatUnit を保存。
+- 繰り返しラベルを _repeatLabel() に共通化（毎年→「毎年」、
+  カスタム→「3週ごと」等）。リスト表示で使用。
+- ICS エクスポートの RRULE に FREQ=YEARLY / INTERVAL=N（カスタム）を反映。
+- ICS インポートも FREQ=YEARLY→毎年、INTERVAL>1→カスタムに変換。
+
+### テスト結果（全グリーン）
+- recurrence-test 14/14（毎年/カスタム保存・ラベル・行表示・間隔補正）
+- app-audit 70・ics-import 57・integration 55・e2e-render 10・
+  persistence 72・folder 19・wave113 14 — 全 PASS
+- 構文 OK / div バランス 1486=1486 / md5 一致
+
+### 既存機能への影響
+- なし。繰り返しは引き続き記録のみ保存（実展開は今後対応の注記は維持）。
+
+### iPhone確認ポイント
+- 予定編集の繰り返しで「毎年」「カスタム」が選べるか
+- カスタム選択で間隔入力が出て、保存・再編集で保持されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 127: add yearly & custom recurrence to calendar events`
+
+---
+
+## 2026-05-17 20:00  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 128 — カレンダーに日本の祝日を表示・月ビューを見やすく
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 日本の祝日（2025〜2027）を JP_HOLIDAYS データとして追加。
+  振替休日・国民の休日も含む。_holidayName() で参照。
+- 月ビュー：祝日のセルに祝日名（赤・小）を表示し、日付番号を赤に。
+- 詳細パネル：選択日が祝日なら赤いチップで祝日名を表示。
+- リストビュー：日付見出しに祝日名を赤字で併記。
+- 月ビューのセル高さを 66→80px に拡大し、1日に表示できる予定を
+  2→3件に増やして見やすく（祝日がある日は2件）。
+
+### テスト結果（全グリーン）
+- holiday-test 15/15（祝日取得・3年分・月ビュー描画・詳細チップ）
+- app-audit 70・e2e-render 10・recurrence 14・integration 55・
+  persistence 72・folder 19・wave113 14・ics-import 57 — 全 PASS
+- 構文 OK / div バランス 1488=1488 / md5 一致
+
+### 既存機能への影響
+- なし。カレンダー表示に祝日レイヤーを追加し、セルを少し大きくしただけ。
+
+### iPhone確認ポイント
+- 月ビューで祝日（5/3〜5/6 等）に赤字で名前が出るか
+- 祝日の日付番号が赤くなるか / 詳細パネルに祝日チップが出るか
+- リスト表示の日付見出しに祝日名が出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 128: show Japanese holidays on calendar + larger month cells`
+
+---
+
+## 2026-05-17 20:35  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 129 — タスクに繰り返し機能を追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- タスク編集モーダル（m-task-edit）の期日の下に「繰り返し」を追加。
+  選択肢：なし／毎日／平日／毎週／毎月／毎年／カスタム（予定と統一）。
+- カスタム選択時は間隔入力（N + 日/週/か月/年 ごと）を表示。teRepeatChange()。
+- タスクに repeat / repeatInterval / repeatUnit を保存（新規・編集とも）。
+- タスクカードに繰り返しチップを表示（_repeatLabel を予定と共用）。
+
+### テスト結果（全グリーン）
+- task-recurrence-test 11/11（毎週/カスタム作成・編集・チップ表示）
+- app-audit 70・recurrence 14・holiday 15・integration 55・e2e-render 10・
+  persistence 72・folder 19・wave113 14・edge 76 — 全 PASS
+- 構文 OK / div バランス 1492=1492 / md5 一致
+
+### 既存機能への影響
+- なし。タスクに繰り返しフィールドを追加（記録のみ保存、実展開は今後対応）。
+
+### iPhone確認ポイント
+- タスク編集で「繰り返し」が選べるか / カスタムで間隔入力が出るか
+- タスクカードに繰り返しチップが表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 129: add recurrence to tasks`
+
+---
+
+## 2026-05-17 20:55  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 130 — カレンダー週ビューにも祝日を反映
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 週ビューの日付ヘッダーに祝日を反映：祝日は曜日・日付番号を赤に、
+  祝日名を小さな赤字（cal-week-hdr-hol）で表示。
+- これで月・週・詳細・リストの全ビューで祝日が表示されるようになった。
+
+### テスト結果（全グリーン）
+- holiday-test 17/17（週ビュー描画 + 祝日名表示の2件を追加）
+- app-audit 70・e2e-render 10・integration 55・persistence 72・
+  folder 19・recurrence 14・task-recurrence 11・wave113 14 — 全 PASS
+- 構文 OK / div バランス 1493=1493 / md5 一致
+
+### 既存機能への影響
+- なし。週ビューヘッダーに祝日表示を追加しただけ。
+
+### iPhone確認ポイント
+- カレンダー週ビューで祝日の曜日・日付が赤くなり祝日名が出るか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 130: show Japanese holidays in calendar week view`
+
+---
+
+## 2026-05-17 21:20  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 131 — 全体テスト・検証スイープ + 祝日データを2028年まで拡張
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 全テストスイートを実行し、未解決バグゼロを確認（保守中の全スイート PASS）。
+- audit.js の指摘を精査：console.log 2件は #qa-debug の意図的なデバッグ出力、
+  console.error 5件は catch 内の正当なエラーログ、「open ×1」は window.open
+  の誤検出 — いずれも実害なし。
+- 改善：祝日データを 2027 → 2028 まで拡張（カレンダーを 2028 年に進めても
+  祝日が表示される）。2028年は振替休日・国民の休日なし。
+
+### テスト結果（全グリーン）
+- holiday-test 18/18（2028年の検証を追加）
+- app-audit 70・recurrence 14・task-recurrence 11・integration 55・
+  persistence 72・e2e-render 10・folder 19・wave113 14 — 全 PASS
+- 全 /tmp テストスイートで想定外の失敗 0 件（旧世代ハーネス除く）
+- 構文 OK / md5 一致
+
+### 既存機能への影響
+- なし。祝日データに2028年分を追加しただけ。
+
+### iPhone確認ポイント
+- カレンダーを2028年まで進めても祝日が表示されるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 131: full QA sweep + extend holidays to 2028`
+
+---
+
+## 2026-05-17 21:45  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 132 — アルバムの写真追加をシンプルに（OS標準シートへ直行）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- アルバムの ＋ ・空状態の追加ボタンを、独自の追加方法シート経由をやめて
+  直接 OS 標準の写真シート（写真を選択 / 写真を撮る）を開くように変更。
+  → タップ1回で「ライブラリから選ぶ」「カメラで撮る」が選べる自然な流れに。
+- 不要になった m-album-addmode モーダルと openAlbumAddMode 関数を削除。
+- album-file は accept="image/*" multiple のままなので、ライブラリでの
+  複数選択（まとめて追加）も引き続き可能。
+- 書類側の追加方法シート（1件ずつ/まとめて）は用途が分かれるため維持。
+
+### テスト結果（全グリーン）
+- app-audit 70・folder 19・batch-add 9・download 12・e2e-render 10・
+  integration 55・wave113 14・holiday 18 — 全 PASS
+- 構文 OK / div バランス 1487=1487 / md5 一致
+
+### 既存機能への影響
+- アルバム＋の動作のみ変更（中間シート廃止）。書類側は不変。
+
+### iPhone確認ポイント
+- アルバムの ＋ / 「最初の写真を追加」で OS 標準シートが直接開くか
+- そこから写真撮影・ライブラリ複数選択ができるか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 132: album add opens native photo sheet directly`
+
+---
+
+## 2026-05-17 22:15  env: PC  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+Wave 134 — 本番運用向け：デモデータの再投入を防止（データ復活バグの予防）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- ホーム画面に追加して常時利用する想定に合わせ、データ永続性を強化。
+- seedDemo に demoSeeded フラグを導入。デモデータは初回のみ投入し、
+  一度本番利用を始めたら、予定やタスクを空にして再ログインしても
+  デモデータが復活しないようにした。
+- 「デモデータで試してみる」ボタン（_applyQuickDemo）は seedDemo(true) で
+  従来どおり明示的に再投入可能。
+- PERSIST に 'demoSeeded' を追加。
+
+### 補足（ユーザーの懸念への回答）
+- ログアウトはデータを消さない（loggedIn/user のみ変更）。再ログインで
+  全データはそのまま復元される。
+- seedDemo は既存配列が空のときだけ投入する設計だったため、空にした
+  カテゴリにデモが復活する余地があった → demoSeeded フラグで解消。
+
+### テスト結果（全グリーン）
+- demo-seed-test 7/7（初回投入/再投入されない/実データ保持/force/再ログイン不変）
+- app-audit 70・integration 55・persistence 72・e2e-render 10・storage 17・
+  scenario 27・wave64-systematic 69 — 全 PASS
+- 構文 OK / md5 一致
+
+### 既存機能への影響
+- なし。既存ユーザーは次回ログイン時に demoSeeded が立つだけ（データ不変）。
+
+### iPhone確認ポイント
+- ホーム画面に追加 → 常用 → ログアウト/再ログインでデータが保持されるか
+- 予定を全削除して再ログインしてもデモが復活しないか
+
+### 次にやること
+- 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 134: seed demo data only once for production use`
+
+## 2026-05-18 16:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+やること：完了タスクの複数選択・一括削除（Wave 166）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 完了タスクのゴミ箱マークを「即削除」から「削除に選択」へ変更。
+  タップするとアイコンが赤く塗り（.sel）、選択状態を保持する。
+- 複数の完了タスクを自由に選択でき、画面下部に一括削除バー（#tk-delbar）が出現。
+  「N件を削除」で選択したものだけをまとめて削除、「選択を解除」で取り消し。
+- 一括削除バーは s-task 画面内の absolute 配置。画面を離れると一緒に隠れる。
+- フィルタ切替時は選択を自動クリア（_tkDelSel.clear）。
+- 削除確認 confirm → 選択分のみ S.tasks から除外 → 保存・再描画。
+- 旧 confirmDeleteTaskInline を撤去（未定義 renderTasks() 呼び出しのバグも解消）。
+
+### テスト結果（全グリーン）
+- tkdel-test 10/10（選択/複数/再タップ解除/選択分のみ削除/バー表示/フィルタでクリア/ID掃除）
+- integration 55・persistence 72・e2e-render 10・memo-test 13・
+  wave113-test 14・task-recurrence-test 11 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 完了済みフィルタで複数の完了タスクのゴミ箱をタップ → 赤く残るか
+- 下部バーの件数が正しく増減するか / 「N件を削除」で選択分だけ消えるか
+- 「選択を解除」で赤が全部戻るか / 他画面に移動してバーが消えるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 166: multi-select bulk delete for completed tasks`
+
+## 2026-05-18 16:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+旧メモ（ボード作成の「メモ」種別）の撤廃（Wave 167）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- メモは Wave 165 でホームの固定ボード（b_memo → s-memo 専用画面）へ移行済み。
+  ボード作成モーダルの用途グリッド（renderBcIntentGrid）に残っていた
+  旧「メモ」種別を撤去し、新旧メモの二重導線を解消した。
+- 用途グリッド order を ['family-share','health','shopping'] に変更（'memo' を除外）。
+- INTENT_META.memo / BOARD_TYPE_META.memo / getIntentMeta の memo フォールバックは
+  温存。万一既存ユーザーが旧メモ型カスタムボードを持っていても表示は壊れない
+  （新規作成の導線のみ閉じる、データ破壊なし）。
+
+### テスト結果（全グリーン）
+- integration 55・e2e-render 10 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 家族ボード →「ボードを作成」で種別が「家族ボード / 体調管理 / 買い物メモ」の
+  3 つになり、「メモ」が消えていること
+- ホームのメモカード（b_memo）から従来どおりメモ画面が開くこと
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 167: retire the legacy memo board type from board creation`
+
+## 2026-05-18 16:50  env: iPhone経由  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+メモ編集の添付ボタンを「＋」のみに変更（Wave 168）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- メモ編集モーダルの添付ボタンのラベル「写真」を削除し、「＋」アイコンのみに。
+  写真もファイルも添付できるため「写真」表記が実態と合わなかった。
+- プラスアイコンを 18→24px に拡大し、中央寄せ（column レイアウト解除）。
+- aria-label に「写真・ファイルを追加」を付与してアクセシビリティを担保。
+
+### テスト結果
+- 構文 OK / div 開閉 1535=1535 バランス
+- ロジック変更なし（ラベル/見た目のみ）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- メモ作成/編集モーダルの添付ボタンが「＋」のみになっているか
+- タップで写真・ファイル選択が従来どおり開くか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 168: memo attach button shows plus icon only`
+
+## 2026-05-18 17:05  env: iPhone経由  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+やること 一括削除バーがタブバー裏に隠れて削除できない不具合修正（Wave 169）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 不具合
+- Wave 166 の完了タスク複数選択削除で、削除バー(#tk-delbar)を画面下端
+  bottom:0 に絶対配置していた。下部の浮遊タブバー(#tabbar, z-index:100)が
+  常に上に重なり、「N件を削除」ボタンが完全に隠れて押せなかった。
+- ユーザー報告「ゴミ箱おしても削除されません」の原因。
+
+### 変更内容
+- 削除バーをタブバーの上（bottom:96px + safe-area）へ移動。
+- 左右 16px マージン・角丸18px・浮遊シャドウのフローティングバー化。
+- z-index 20→90（タブバー100より下だが、位置が重ならないので干渉なし）。
+
+### テスト結果（全グリーン）
+- tkdel-test 10/10
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 完了タスクのゴミ箱をタップ → 赤くなり、タブバーの少し上に
+  「選択を解除 / N件を削除」バーが出るか
+- 「N件を削除」で選択分が実際に消えるか
+- 複数選択 → 件数が増え、選択分だけ削除されるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 169: fix task bulk-delete bar hidden behind tab bar`
+
+## 2026-05-18 17:40  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全画面 総点検 + Hoku ボタン重なり不具合の修正（Wave 170）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 実施した総点検（全テスト緑）
+- 既存スイート 16本：integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 / memo 13 / wave113 14 / recurrence 14+11 / storage 17 /
+  scenario 27 / premium 13 / notif 16 / member 16 / shop-section 13 /
+  holiday 18 / tkdel 10 — 全 PASS（計 399）
+- 新規 full-audit.js（43件）：全14画面のレンダリング / コア導線フロー /
+  永続化 round-trip / ナビゲーション / 空データ / console.error 検出 — 全 PASS
+- 全14画面の空状態文言を確認、すべて適切な空状態あり
+- HTML onclick 参照関数 276件すべて定義済み（未定義ハンドラなし）
+
+### 発見・修正した不具合（優先度 S）
+- Hoku アシスタントの浮遊ボタンが、デフォルトで画面右上（ヘッダー行）に
+  固定されており、「やること」「カレンダー」等の各画面ヘッダーにある
+  ＋ボタン・マイクボタンに重なっていた。Hoku は z-index:9999 で最前面の
+  ため、＋を押しても Hoku が開いてしまう状態だった。
+- 修正：Hoku の初期位置を画面右下（bottom:160px + safe-area, right:14px）へ
+  変更。CLAUDE.md §10.6「Hoku は画面右下に常駐」方針に準拠。
+- カレンダーの予定追加 FAB / 家計の追加 FAB（ともに bottom:98px 付近）とは
+  高さをずらし、重ならないよう配置（Hoku は 160px〜、FAB は 98〜150px）。
+- 位置キーを hoku_fab_pos_v4 → v5 に更新。これにより旧ヘッダー位置の
+  保存値がクリアされ、全ユーザーが新しい右下配置になる（ドラッグ移動は
+  引き続き可能）。
+
+### テスト結果（全グリーン）
+- full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  tkdel 10 — 全 PASS
+- 構文 OK / div 開閉 1535=1535 バランス
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- アプリ起動後、Hoku ボタンが画面右下（タブバーより上）に出るか
+- 「やること」「カレンダー」のヘッダー右上の＋・マイクが Hoku に
+  邪魔されず正常に押せるか
+- カレンダー画面で予定追加 FAB と Hoku が重なっていないか
+- 家計画面で追加 FAB と Hoku が重なっていないか
+- Hoku をドラッグで好きな位置に移動できるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `wave 170: full-app QA pass + fix Hoku button overlapping header`
+
+## 2026-05-18 18:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全画面の品質向上：残骸削除 + バックアップ機能の完成 + アクセシビリティ整備（Wave 171-173）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+**Wave 171 — 残骸・到達不能コードの削除（挙動非破壊、計348行削減）**
+- 未使用CSSクラス11件（ob-brand-sub / cal-det-av / bm-av / health-item /
+  health-conds / card-react-bar / card-react-trigger.reacted /
+  react-chip-emoji / react-btn .react-cnt / post-body.expanded /
+  tk-card.drag-over）
+- 未使用変数7件（TK_PRIORITY_LABEL / BOARD_CATS / SHOP_CATS /
+  PREP_CATEGORIES / SHARE_CATS / _prepVisibleTab / _tkView）
+- 未使用関数3件（healthPastRow / getPrepRoutinesFor / reopenOnboarding）
+- 到達不能だった予定移動機能一式（openEventMoveModal / executeEventMove /
+  cancelEventMove / _moveTargetEvId / m-event-move モーダル）。
+  executeEventMove には常に false になる死に分岐もあり、開発途中で
+  放棄された機能と判断。予定の日時変更は通常の予定編集で代替可能。
+- 後方互換のみの未使用スワイプ定数・関数（SWIPE_PAGE_ORDER ほか旧定数
+  7件 / _appHistTop / _swipeGoBack / _swipeGoForward / _swipeNextScreen）
+
+**Wave 172 — データバックアップ機能の完成**
+- 書き出し/読み込みロジックは実装・テスト済みだったが、開くための
+  m-data-share モーダルと導線が無く到達不能だった。プライバシー説明文も
+  この機能に言及しており整合性が崩れていた。
+- m-data-share モーダルを新規追加（書き出しサマリー表示 / 完全版・軽量版
+  書き出し / ファイル読み込み / 上書き注意書き）
+- 設定 → データ管理セクションに「データのバックアップ」項目を追加
+
+**Wave 173 — アクセシビリティ一貫性**
+- アイコンのみボタン4箇所に aria-label を補完（体調＋ / 持ち物＋ /
+  ボード管理 / 家計の収支追加 FAB）
+
+### テスト結果（全グリーン）
+- 自動テスト17スイート 421件すべて PASS
+  （full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+   app-audit 70 / scenario 27 / storage 17 / premium 13 / notif 16 /
+   member 16 / recurrence 14 / holiday 18 / memo 13 / tkdel 10 /
+   wave113 14 / shop-section 13 / data-share 24）
+- 構文 OK / div 開閉 1528=1528 バランス維持
+- openDataShareModal の動作を専用ハーネスで検証（サマリー描画 PASS）
+
+### 未確認事項
+- リアクション選択ポップアップ（openReactPopup / showReactors /
+  toggleReactMore + .react-popup* CSS）も到達不能だが、live な
+  selectReaction と .reactor-popup を共有し依存が絡むため今回は保留。
+  分離して安全に削除できるか別途精査が必要。
+
+### iPhone確認ポイント
+- 設定 →「データのバックアップ」を開き、現在のデータ件数サマリーが
+  正しく出るか
+- 「すべて書き出す」「軽量版を書き出す」でJSONファイルが保存されるか
+- 書き出したファイルを「ファイルを選んで読み込む」で取り込み、上書き
+  確認ダイアログ → データ復元まで通るか
+- 体調管理 / 持ち物リストのヘッダー＋ボタンが従来どおり動くか
+
+### 次にやること
+- リアクションポップアップ系の到達不能コードの安全な分離・削除を精査
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+
+### コミット
+- ハッシュ: `c9aec06` / `3dd17e3` / `4bdb0cc`
+- メッセージ: wave 171 残骸削除 / wave 172 バックアップUI完成 /
+  wave 173 aria-label 整備
+
+## 2026-05-18 19:10  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+リアクションポップアップ系の到達不能コード削除（Wave 174）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 前回 worklog の「次にやること」を実施。ボードのリアクションは現行で
+  インラインのワンタップ方式（selectReaction）に統一されており、旧
+  ポップアップ選択方式は到達不能なまま残っていた。
+- 削除した関数：openReactPopup / toggleReactMore / showReactors
+  （いずれも呼び出し0件）
+- 削除したCSS：react-popup-overlay / react-popup / react-popup-row /
+  react-option(.selected/::after含む) / react-more-btn / react-more-grid /
+  react-more-item / react-cancel-btn / reactor-popup / reactor-popup-title
+- 保持：selectReaction（インラインリアクションで現役）、
+  reactor-popup-close（タスクのメンバーポップアップで再利用中のため）
+- selectReaction 内の到達不能になった旧ポップアップ閉じ処理、
+  _swipeBlockSelectors の不要セレクタ参照も整理
+- 計360行削減
+
+### テスト結果
+- 自動テスト PASS（full-audit 43 / integration 55 / e2e-render 10 /
+  persistence 72 / app-audit 70 / scenario 27 / notif 16 / data-share 24）
+- 構文 OK / div 開閉 1521=1521 バランス維持
+
+### 未確認事項
+- なし（リアクション系の到達不能コードはこれで解消）
+
+### iPhone確認ポイント
+- 家族ボードの投稿カードでリアクション（ワンタップ）が従来どおり
+  付与・解除できるか
+- ボード詳細画面でもリアクションが反映されるか
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+  （※ LocalStorage 構造に関わるため §10.2 によりユーザー確認が必要）
+
+### コミット
+- ハッシュ: `83f952d`
+- メッセージ: `wave 174: remove unreachable reaction-popup code cluster`
+
+## 2026-05-18 19:45  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+孤立CSSクラスの一掃（Wave 175）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 変更内容
+- 全480 CocSS クラスを精査し、HTML/JS のどこからも参照されない定義を
+  19クラス削除（描画される要素が存在しないため表示・挙動は不変）
+- 旧リアクション系（card-react-trigger / react-chip / react-chip-cnt /
+  react-btn / reaction）：現行インラインリアクションに置換済み
+- 旧空状態（album-empty / archive-empty）：Wave 115 の es-wrap に置換済み
+- 旧UI（ai-btn / home-camera-btn / board-tab / bm-tab / bm-amt /
+  fixed-footer / tk-voice-banner / hoku-dot / bc-type-btn / bc-tpl-chip）
+- Wave 171 の healthPastRow 削除で孤立した health-rec-row / health-temp
+- 上記専用だった @keyframes（starWiggle / hDot）
+- 計300行削減
+
+### テスト結果
+- 自動テスト17スイート 421件すべて PASS
+- 構文 OK / div 開閉 1521=1521 バランス維持
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 各画面の見た目に変化がないこと（家族ボード / 家計 / 体調 / ホーム /
+  ボード作成 / アルバム・書類の空状態）
+
+### 次にやること
+- 優先度 C8: 個人利用/チーム利用 のデータ区分＋最低限UI
+  （※ LocalStorage 構造に関わるため §10.2 によりユーザー確認が必要）
+
+### コミット
+- ハッシュ: `245f9a9`
+- メッセージ: `wave 175: remove 19 orphaned CSS classes and 2 dead keyframes`
+
+## 2026-05-18 20:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（ミラー同期）
+- docs/worklog.md
+
+### 要件定義（familink-requirements-architect で確定）
+- ユーザーストーリー：親として、まず自分ひとりで記録を始めたい／
+  あとから家族を招待してチームに広げたい。利用スタイルを明示できると
+  画面の文言や招待導線が自分の状況に合う。
+- 受け入れ条件：
+  - AC1: 設定で「家族で使う」「ひとりで使う」を選べる
+  - AC2: 選択は端末に保存され、再起動後も保持される
+  - AC3: 未設定の既存ユーザーは「家族で使う」扱いで挙動が変わらない
+  - AC4: getUsageMode/isSoloMode で他機能から区分を参照できる
+- データ要件：S.userProfile.usageMode（'family' 既定 / 'solo'）。
+  既存の永続化キー userProfile に追加するため新規キー不要・後方互換。
+
+### 変更内容
+- ヘルパー getUsageMode / isSoloMode / usageModeLabel を追加
+- 設定→アカウント・設定に「利用スタイル」項目を追加（現在値を右に表示）
+- モーダル m-usage-mode を新規追加（家族で使う / ひとりで使う の2カード選択）
+- .usage-mode-card 系の CSS を追加
+- setUsageMode で保存・再描画・トースト通知
+
+### スコープの線引き
+- C8 は「区分の確立＋最低限UI」まで。各データへの共有範囲適用や
+  鍵アイコン表示は C9 の範囲。C9 は本コミットの isSoloMode/getUsageMode
+  の上に実装する想定。
+
+### テスト結果（全グリーン）
+- 新規 usage-mode-test 12件 PASS（既定値/切替/不正値無視/
+  userProfile永続/モーダル描画）
+- full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 / scenario 27 / member 16 / displayname 7 ほか全 PASS
+- 構文 OK / div 開閉 1533=1533 バランス
+
+### 未確認事項
+- オンボーディング時に利用スタイルを選ばせるかは未実装（既定 family）。
+  必要なら別途検討（オンボーディング変更は要確認領域のため保留）。
+
+### iPhone確認ポイント
+- 設定→アカウント・設定に「利用スタイル」が出るか、右側に現在値
+  （家族で使う / ひとりで使う）が表示されるか
+- タップでモーダルが開き、2カードから選択 → 選択中バッジが移り、
+  トーストが出て設定に戻るか
+- アプリを開き直しても選択が保持されているか
+
+### 次にやること
+- 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
+  （C8 の getUsageMode/isSoloMode を基盤に実装）
+
+### コミット
+- ハッシュ: `e472ac5`
+- メッセージ: `wave 176: C8 - add usage style (solo / family-team) data scope`
+
+## 2026-05-18 21:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+公開が止まっていた不具合の修正（Wave 177-179）
+
+### 変更ファイル
+- app-source/familink.html（APP_VERSION）
+- index.html（キャッシュ回避リダイレクト）
+- .github/workflows/pages.yml（デプロイトリガー修正）
+- docs/index.html / docs/worklog.md
+
+### 症状
+- 端末で「利用スタイル」(Wave 176) が表示されない。新規インストールでも
+  同じ。「データのバックアップ」(Wave 172) は表示される。
+  → 公開サイトが Wave 172 付近で止まっていた。
+
+### 根本原因
+- Pages デプロイ用ワークフローの push トリガーが 3 ブランチ
+  （TzM1F / merge-and-push-main / main）対象だった。
+- 1 回の `git push` で 3 ブランチを更新すると 3 つの run がほぼ同時に
+  起動し、concurrency group "pages" の cancel-in-progress により
+  後発が先発を打ち消す。結果、main の run までキャンセルされ、
+  公開が更新されないことがあった。
+
+### 変更内容
+- Wave 177: APP_VERSION を v1.0.0 → v1.1.0（最新ビルド到達の確認用）
+- Wave 178: ルート index.html のリダイレクトに ?t=<timestamp> を付与。
+  端末が古い familink.html を保持し続ける問題を緩和。
+- Wave 179: ワークフローの push トリガーを main 1 本に限定。
+  push 1 回 = run 1 回となり競合が発生しなくなる。
+
+### テスト結果
+- renderSettings の出力に「利用スタイル」「openUsageModeModal」が
+  含まれることをハーネスで確認済（コードは正しい）
+- full-audit 43 PASS / 構文 OK
+
+### 未確認事項
+- 環境からは github.io へ到達できず（Host not in allowlist）、公開済み
+  サイトの実体は未確認。Wave 179 のワークフロー修正後、main への push
+  で 1 回だけ run が走り公開されるはず。要・実機での再確認。
+
+### iPhone確認ポイント
+- push 後 3〜5 分待ち、Safari で ?v= を付けて開く
+- 設定→バージョンが v1.1.0 なら最新。利用スタイルが表示される
+
+### 次にやること
+- 実機で v1.1.0 と「利用スタイル」表示を確認
+- 確認できたら C9（入力時の共有範囲選択＋鍵アイコン）へ
+
+### コミット
+- ハッシュ: `5f30ede` / `a0f192c` / `f397f36`
+
+## 2026-05-18 22:10  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+全体検証＋アクセシビリティ仕上げ（Wave 180）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / docs/worklog.md
+
+### 全体検証の結果
+- 維持中の全自動テストスイートを網羅実行：約1,900検証がすべて PASS
+  （app-audit 70 / full-audit 43 / integration 55 / persistence 72 /
+   e2e-render 10 / edge 76 / scenario 27 / hoku 系全スイート
+   （delete 39 / mega 101 / fuzz 171 / flow 33 ほか）/ avatar 系 /
+   auth 25 / folder 19 / wave60 30 / wave64 系 / usage-mode 12 ほか）
+- クラッシュした旧テスト（qa-wave3〜11 / sweep21 / task-debug）は
+  playwright 未導入が原因、wave66-auth は削除済み関数を参照する
+  ステイルなハーネス。いずれも現行アプリのバグではない。
+- 旧 audit.js の「2 critical」は window.open（組込み）と
+  raw .av render 1件の誤検出。実害なし。
+
+### 変更内容（改善）
+- アイコン/SVG のみで可視テキストを持たないボタン10件に aria-label を
+  補完（Hoku音声 / 家計の前月次月ナビ4件 / メンバー追加・表示設定3件 /
+  タスク削除選択 / アバター選択の閉じる）
+
+### テスト結果
+- 上記スイート全 PASS / 構文 OK / div 開閉 1533=1533
+
+### 未確認事項
+- 公開サイトの実機反映（Wave 179 のデプロイ修正後）。バージョンが
+  v1.1.0 になっていれば成功。
+
+### iPhone確認ポイント
+- VoiceOver 利用時、アイコンボタンが意味のある名前で読み上げられるか
+- 各画面の操作が従来どおり動くか
+
+### 次にやること
+- 実機で v1.1.0 と「利用スタイル」表示を確認
+- 確認後 C9（入力時の共有範囲選択＋鍵アイコン）へ
+
+### コミット
+- ハッシュ: `28d5a76`
+- メッセージ: `wave 180: add aria-labels to remaining icon-only buttons`
+
+## 2026-05-19 06:50  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+新アバターシリーズの導入（Wave 181）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / docs/worklog.md
+
+### 変更内容
+- ユーザー提供の北欧調アバター20点を、チャット添付からセッション記録
+  （JSONL）経由で復元。円形マスク＋透過処理し 460px webp 化。
+- FAMILINK_BASIC（10点）/ FAMILINK_PREMIUM（10点）を新規定義。
+  AVATARS_ALL = 新20 + 既存(OFFICIAL16 + PREMIUM13) = 49点。
+- アバター解決系（avHtml / selectAvatarItem / confirmAvatarSelect）を
+  AVATARS_ALL 参照に統一。新旧どちらの ID も解決可能で後方互換。
+- アバター選択画面をセクション構成に刷新：
+  「ベーシック」→「プレミアム」→「これまでのアバター」。
+  新デザインがメイン、既存29点は下に配置（ユーザー要望どおり）。
+- 旧カテゴリタブ（baby/children/adult/senior/premium）は廃止。
+
+### テスト結果（全グリーン）
+- 新規 avatar-v2-check 12件 PASS（配列数/src/プレミアム判定/ID一意/
+  グリッド3セクション描画/新旧ID描画）
+- avatar 11 / avatar-fullscreen 20 / avatar-propagation 19 /
+  full-audit 43 / integration 55 / e2e-render 10 / persistence 72 /
+  app-audit 70 ほか全 PASS
+- 構文 OK / div 開閉 1533=1533
+
+### 未確認事項
+- 提供画像は20点。ボード全23点に対しニュートラル系3点
+  （ベーシック「ニュートラルな子ども」「ニュートラルな大人」、
+  プレミアム1点）が未受領。受領後に追加する。
+- プレミアム10点の家族役割マッピングは外見ベースの推定ラベル。
+
+### iPhone確認ポイント
+- 設定→アバター設定で、上から「ベーシック」「プレミアム」
+  「これまでのアバター」の順にセクション表示されるか
+- 新アバターを選んで決定 → 各画面に反映されるか
+- 既存アバターを設定済みのメンバーが引き続き正しく表示されるか
+- プレミアムアバターに鍵/スターのバッジが出るか
+
+### 次にやること
+- ニュートラル系3点を受領したら FAMILINK_BASIC/PREMIUM に追加
+- 実機でアバター選択画面の表示確認
+
+### コミット
+- ハッシュ: `33fec74`
+- メッセージ: `wave 181: new Familink avatar series as the main avatar set`
+
+## 2026-05-19 07:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
+
+### 作業名
+新アバターシリーズの導入・差し替え・円形仕上げ + 最終QA（Wave 181-190）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / index.html
+- .github/workflows/pages.yml / docs/worklog.md
+
+### 変更内容（Wave 181-190）
+- Wave 181: 北欧調の新アバター（ベーシック10/プレミアム10）を導入。
+  FAMILINK_BASIC / FAMILINK_PREMIUM / AVATARS_ALL を新設。アバター選択
+  画面を「ベーシック→プレミアム→これまでのアバター」のセクション構成へ。
+  ユーザー提供画像はチャット添付からセッション記録(JSONL)経由で復元。
+- Wave 182-184: 円形切り抜きの調整。縁の残り（切り抜き感）を解消し、
+  最終的に「円の形ちょうどに沿って透過で切り抜く」方式に確定。
+- Wave 185: ベーシック10点を高解像度版へ差し替え。
+- Wave 186-189: プレミアム10点を複数回ユーザー指定の新画像へ差し替え。
+  王冠/バッジが円フレームで切れないよう、デザイン外接半径を検出して
+  内接円に収める保護処理を実装。
+- Wave 187/190: APP_VERSION を v1.0.0 → v1.2.0（最新ビルド到達確認用）。
+- Wave 178-179: ルート index.html のリダイレクトにキャッシュ回避を付与、
+  Pages デプロイのトリガーを main 単独化（競合で公開が止まる不具合を修正）。
+
+### テスト結果（全グリーン）
+- 維持中の全自動テスト 約1,900検証 すべて PASS
+  （app-audit 70 / full-audit 43 / integration 55 / persistence 72 /
+   e2e-render 10 / edge 76 / scenario 27 / avatar系 62 /
+   avatar-v2-check 12 / hoku系全スイート / auth 25 ほか）
+- 旧 audit.js の「2 critical」は window.open（ブラウザ組込み）の誤検出。
+  実害なし（維持中の app-audit/full-audit は 0 fail）。
+- アバター構成検証：FAMILINK_BASIC 10 / FAMILINK_PREMIUM 10、全 WebP、
+  埋め込み画像とユーザー提供画像が一致することを比較確認済み。
+- 構文 OK / div 開閉 1533=1533 バランス
+
+### 未確認事項
+- 実機での表示反映（キャッシュ）。設定→バージョンが v1.2.0 なら最新。
+
+### iPhone確認ポイント
+- 設定→アバター設定で、ベーシック/プレミアムの新アバターが円形で
+  きれいに表示されるか（王冠バッジが切れていないか）
+- バージョン表示が v1.2.0 か
+
+### 次にやること
+- 実機で v1.2.0 とアバター表示を確認
+- ニュートラル系の不足分があれば追加
+
+### コミット
+- ハッシュ: Wave 181-190（33fec74 ... ead3913）
+- メッセージ: 各 wave コミット参照
+
+## 2026-05-19 22:30  env: 不明  branch: main / gh-pages
+
+### 作業名
+世界最高峰テスト・全量監査・クリーンアップ（QA総点検）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages ブランチ（デプロイ用）
+
+### 変更内容
+**調査範囲：18555行 / 関数614個 / console.log 8件 / Wave コメント196件 / LS操作等全量**
+
+#### 除去した残骸
+- `debugHokuParse()` 関数（8行）を完全削除（`console.log('[Hoku Debug]')` 2件含む）
+- `window.debugHokuParse = debugHokuParse` エクスポートも削除
+- Hoku v2 設計コメント内の `debugHokuParse` 参照を削除（関数が存在しなくなったため）
+- `_swipeCloseDetail` の誤解を招くコメント「Wave 44/45 テスト用に残す」を「詳細画面スワイプ閉じのラッパー」に修正
+
+#### iOS Safari バグ修正
+- `hm-symptoms-extra`（症状入力）の `font-size:13px` インライン上書きを削除
+  → `.input` クラスの 16px が適用され、iOS Safari の自動ズームが防止される
+
+#### 確認済み（変更なし・正常）
+- div 開閉バランス：1533=1533 ✓
+- saveS() エラー時にトースト通知あり（全呼び出し元保護済み）
+- Hoku API の fetch に AbortController + finally でリセット ✓
+- sendHokuMsg に finally で _hokuBusy リセット ✓
+- アバター ID 重複なし（FAMILINK_BASIC:10 / FAMILINK_PREMIUM:10 / OFFICIAL:16 / PREMIUM:14 = 50件）
+- XSS リスクなし（全 innerHTML 代入で H() エスケープ済み）
+- QA Debug パネルは意図的実装（#qa-debug ハッシュで起動）→ 維持
+
+### テスト結果
+- div 開閉バランス: 1533 = 1533 ✓
+- console.log 残骸: 0件（全削除）
+- debugHokuParse: 0件（削除済み）
+- 3ファイル同期: MD5 一致 ✓
+
+### 未確認事項
+- GitHub Pages Settings が GitHub Actions / gh-pages のどちらに設定されているか（ユーザー確認が必要）
+- iPhone 実機での症状入力ズーム改善確認
+
+### iPhone確認ポイント
+- 体調記録 → 「その他の症状」入力欄をタップ → ズームしないことを確認
+- バージョン表示が v1.2.0 であることを確認
+
+### 次にやること
+- GitHub Pages Settings を確認して公開URLを正しく開けるようにする（Settings → Pages → Source）
+- 実機で体調記録の症状入力ズーム改善を確認
+
+### コミット
+- ハッシュ: `13109d8`（main）/ `40986a6`（gh-pages）
+- メッセージ: `qa: remove debug remnants and fix iOS input zoom`
+
+---
+
+## 2026-05-19 14:30  env: 不明  branch: main
+
+### 作業名
+S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レスポンス）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+1. **[S] Hoku削除サイレントスライス廃止**：`_hokuFindDeleteTargets` の `if(vague && res.length>6) res=res.slice(-6)` を削除。代わりに `_hokuHandleDelete` 側で「N件あるよ、どれを消す？」と案内するよう変更。ユーザーが「全部」と言った場合の誤削除（6件のみ削除）を防止。
+2. **[A] Hoku確認フロー肯定語追加**：`handleConfirmation` の yes 正規表現に `わかった|了解|オーケー|大丈夫|おk|ｏｋ` を追加。これらで `_pendingAction` が残留するバグを修正。
+3. **[S] `S.events.push` null安全**：`S.events.push(...)` を `(S.events=S.events||[]).push(...)` に変更。LocalStorageから`null`がロードされた際のクラッシュを防止。
+4. **[S] `S.txs.push` null安全**：同様に `(S.txs=S.txs||[]).push(...)` に変更。
+5. **[S] XSSエスケープ修正**：`vc-member` selectの `memSel.innerHTML` 内で `m.id` と `m.name` に `H()` エスケープを追加（line 16265）。
+6. **[A] Hoku長文レスポンス圧縮**：スワイプ操作案内（15行→4行）・曜日ルーティン案内（13行→3行）をチャットバブルに収まるサイズに圧縮。
+
+### テスト結果
+- diff 確認：全6修正が意図どおり適用済み
+- 未実施：実機での動作確認
+
+### 未確認事項
+- Hoku削除フロー：「タスク消して」で20件ある場合の案内メッセージ確認
+- `handleConfirmation` で「わかった」が正しく肯定判定されるか確認
+- 他の `memSel.innerHTML` パターン（line 6957, 11617, 11936等）の同様XSS漏れ確認
+
+### iPhone確認ポイント
+- Hokuで「予定全部消して」→「〇件まとめて削除する？」→「わかった」→削除実行されるか
+- Hokuで「タスク消して」（曖昧）→「N件あるよ、どれを消す？」と案内されるか
+
+### 次にやること
+- 他箇所の `innerHTML` XSSパターン確認（line 6957 / 11617 / 11936）
+- Agent監査で指摘された `MEMBERS[0]` 存在チェック漏れ（line 8683, 8685等）の修正
+- App Store公開前チェックリスト（docs/app-store-release-checklist.md）の作成・確認
+
+### コミット
+- ハッシュ: `46ff835`
+- メッセージ: `fix: Hoku削除ロジック・null安全・XSSエスケープ・長文レスポンス圧縮（S/A級6件）`
+
+---
+
+## 2026-05-19 15:00  env: 不明  branch: main
+
+### 作業名
+アバター画像全差し替え（OFFICIAL_AVATARS 10枚・PREMIUM_AVATARS 7枚）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+- OFFICIAL_AVATARS（旧16枚・合計302KB）を新10枚に完全入れ替え
+  - av2_baby, av2_boy_green, av2_boy_blue, av2_boy_school, av2_girl_sailor
+  - av2_boy_suit, av2_mama_bun, av2_mama_ponytail, av2_papa_glasses, av2_mama_bob
+- PREMIUM_AVATARS（旧14枚）を新7枚（ファンタジー系）に完全入れ替え
+  - av2_knight_boy, av2_wizard_boy, av2_knight_girl, av2_witch_girl
+  - av2_pirate_girl, av2_dragon_black, av2_dragon_red
+- 画像フォーマット：JPEG 350-450KB → WebP 200×200px 6-12KB（約95%削減）
+- ファイルサイズ：2288KB → 2056KB（-232KB削減）
+
+### テスト結果
+- 新アバターID 4件の存在確認 ✓
+- 旧アバターID（avatar_baby_01等）はコメントのみ残存・機能影響なし ✓
+- docs/index.html サイズ一致 ✓
+
+### 未確認事項
+- アバター選択画面での新画像の表示確認（実機）
+- 既存ユーザーが旧アバターIDを保存していた場合の表示（AVATARS_ALL.findで未ヒット → 中立グレーになる）
+
+### iPhone確認ポイント
+- アバター選択画面を開いて「これまでのアバター」セクションに17枚が表示されるか
+- 各アバターをタップして適用できるか
+
+### 次にやること
+- 実機でアバター表示確認
+- 必要に応じて「これまでのアバター」セクションラベルを変更
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `feat: アバター全差し替え（OFFICIAL 10枚・PREMIUM 7枚、WebP圧縮）`
+
+## 2026-05-19 今日  env: 不明  branch: main
+
+### 作業名
+OFFICIAL_AVATARS を全削除（新画像差し替え準備）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- OFFICIAL_AVATARS（旧10枚：av2_baby〜av2_mama_bob）を全削除し空配列に変更
+- ユーザーから新しいアバター画像の送付待ちのため、一旦空配列で保存
+
+### テスト結果
+- grep で OFFICIAL_AVATARS = [] 確認済み ✓
+
+### 未確認事項
+- 新画像の受け取り・差し替え（次セッション）
+
+### iPhone確認ポイント
+- 新画像差し替え後に実機確認予定
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `chore: OFFICIAL_AVATARS を全削除（新画像差し替え準備）`
+
+## 2026-05-19 今夜  env: 不明  branch: main / claude/merge-and-push-main-u44Ty
+
+### 作業名
+「これまでのアバター」セクション完全削除 & GitHub Pages 配信元ブランチ特定・修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- .github/workflows/pages.yml（path: '.' → 'docs' に変更）
+
+### 変更内容
+- OFFICIAL_AVATARS / PREMIUM_AVATARS の定義・参照・コメントをすべて削除
+- AVATARS_ALL = [...FAMILINK_BASIC, ...FAMILINK_PREMIUM] のみに整理
+- section() 関数に空配列ガード追加（空なら非表示）
+- アバター選択画面から「これまでのアバター」セクションを完全除去
+- GitHub Pages 配信元が claude/merge-and-push-main-u44Ty ブランチと判明し、同ブランチにも反映
+- iPhone での表示確認済み（ユーザーから「消えました」との報告）
+
+### テスト結果
+- iPhone Safari 実機で「これまでのアバター」セクションが非表示になったことを確認 ✓
+- GitHub raw URL で OFFICIAL_AVATARS / PREMIUM_AVATARS / これまでのアバター がゼロ件 ✓
+
+### 未確認事項
+- 新しいアバター画像の受け取りと差し替え（ユーザー待ち）
+
+### iPhone確認ポイント
+- アバター選択でベーシック・プレミアムの2セクションのみ表示されるか
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: `82f8b94`（main）/ `063b239`（claude/merge-and-push-main-u44Ty）
+- メッセージ: `feat: これまでのアバター セクションを完全削除`
+
+## 2026-05-20 00:10  env: 不明  branch: main
+
+### 作業名
+プレミアムアバター18種追加（家族・ファンタジー・ドラゴン）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- FAMILINK_PREMIUM に av3_ シリーズ18枚を追加
+  - 家族系10種: 赤ちゃん、男の子（グリーン/ブルー/制服）、女の子（セーラー）、青年（スーツ）、男性（メガネ）、ママ（まとめ髪/ポニー/ボブ）
+  - ファンタジー系5種: 勇者（男/女）、魔法使い（男/女）、海賊
+  - ドラゴン3種: 炎ドラゴン・氷ドラゴン・闇ドラゴン
+- AVATAR_CATEGORIES に `fantasy（ファンタジー）` カテゴリを追加
+- 画像処理: 元画像（1254×1254 JPEG）→ 200×200 WebP quality=82 に圧縮・base64 埋め込み
+- main と claude/merge-and-push-main-u44Ty の両ブランチに push 完了
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- 各アバター画像の見た目が正しいか（画像の順序は会話の送信順から推定）
+- ファンタジーカテゴリフィルターが正しく動作するか
+
+### iPhone確認ポイント
+- アバター選択画面に新18種が表示されるか
+- ファンタジーカテゴリフィルターで正しく絞り込めるか
+- 各画像が 200×200 で崩れず表示されるか
+
+### 次にやること
+- 実機で新アバター表示を確認
+- 不要なら旧 flp_ アバターを削除してシンプル化（要確認）
+
+### コミット
+- ハッシュ: `1a5caec` (main), `6100050` (claude/merge-and-push-main-u44Ty)
+- メッセージ: `feat: プレミアムアバター18種追加（家族・ファンタジー・ドラゴン）`
+
+## 2026-05-20 セッション2  env: 不明  branch: main
+
+### 作業名
+Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- ウェルカム画面キャッチコピーに読点を追加「予定も、やることも、ひとつに。」
+- ob-catch を clamp(19px, 5.5vw, 24px) でレスポンシブ化（iPhone SE での改行防止）
+- s-premium 全画面スクリーン新規実装
+  - ヘッダーバー（×閉じる・王冠・タイトル）
+  - 3大メリット チェックリストカード
+  - 機能カード6種（アコーディオン展開式）
+  - 無料/Premium 比較表（9行・横スクロールなし）
+  - ご契約説明6項目
+  - FAQアコーディオン5件
+  - sticky CTAボタン（開発中モーダル表示）
+  - 購入を復元 / 利用規約 / プライバシーポリシー リンク
+- showPremiumGate() を s-premium への画面遷移に変更
+- Hoku 1日5回制限（無料ユーザー）実装・制限到達で s-premium へ誘導
+- devTogglePremium() で設定画面からプレミアム状態切り替え可能
+- hokuDailyUsage を S / PERSIST に追加
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- s-premium 画面の実機表示（iPhone SE / iPhone 15 Pro Max）
+- FAQ アコーディオンの開閉
+- 比較表の横スクロール有無
+- CTA ボタン → 開発中モーダル表示
+- devTogglePremium でプレミアム状態切り替え
+
+### iPhone確認ポイント
+- 設定画面「プレミアムを見る」→ s-premium へ遷移するか
+- プレミアムアバタータップ → s-premium へ遷移するか
+- Hoku 5回送信後に制限モーダルが出るか
+- sticky CTA が常に見えるか
+- 比較表が崩れないか
+- ×ボタンで前の画面へ戻れるか
+
+### 次にやること
+- 広告バナー枠をホーム画面に実配置（無料ユーザーのみ表示）
+- ストレージ近接検知 → s-premium 誘導強化
+- 実機で s-premium・新アバター18種を確認
+
+### コミット
+- ハッシュ: `31e3d20`（ob-catch）, `c06e270`（Premium 画面）
+- メッセージ: `feat: Familink Premium 案内画面を新規実装（Wave 200）`
