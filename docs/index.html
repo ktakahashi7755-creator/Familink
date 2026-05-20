@@ -1903,7 +1903,7 @@ select.input {
 .tk-delbar.show { display:flex; }
 .tk-delbar-cancel {
   flex:1; padding:13px; border-radius:12px; cursor:pointer;
-  background:var(--bg-soft); border:1.5px solid var(--border-light);
+  background:#F4F7FD; border:1.5px solid var(--border-light);
   color:var(--text-sub); font-size:14px; font-weight:600;
 }
 .tk-delbar-del {
@@ -2341,7 +2341,7 @@ nav#tabbar.hidden { display: none !important; }
   width:34px; height:34px; border-radius:50%; border:none;
   background:var(--bg-muted); color:var(--text); font-size:18px; line-height:1;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; flex-shrink:0; transition:var(--t-base);
+  cursor:pointer; flex-shrink:0; transition:var(--t);
 }
 .prm-close-btn:active { transform:scale(.88); }
 .prm-header-title { flex:1; text-align:center; font-size:15px; font-weight:700;
@@ -2392,7 +2392,7 @@ nav#tabbar.hidden { display: none !important; }
   margin:0 16px 10px; background:#fff;
   border:1px solid var(--border-light); border-radius:16px;
   padding:16px; display:flex; align-items:flex-start; gap:14px;
-  cursor:pointer; transition:var(--t-base);
+  cursor:pointer; transition:var(--t);
 }
 .prm-feature-card:active { opacity:.8; }
 .prm-feature-icon {
@@ -2528,7 +2528,7 @@ nav#tabbar.hidden { display: none !important; }
   background:linear-gradient(135deg,#F0F7FF,#FFF8EC);
   border:1px solid #D8E8FF; padding:12px 14px;
   display:flex; align-items:center; gap:12px; cursor:pointer;
-  -webkit-tap-highlight-color:transparent; transition:var(--t-base);
+  -webkit-tap-highlight-color:transparent; transition:var(--t);
 }
 .home-ad-strip:active { opacity:.8; }
 .home-ad-strip-icon {
@@ -2979,7 +2979,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="home-menu" onclick="go('s-settings')" id="home-avatar-btn" aria-label="設定・メニューを開く">
       <span></span><span></span><span></span>
     </button>
-    <span class="home-header-mid home-date-mid" id="home-date-mid"></span>
+    <span class="home-header-mid" id="home-date-mid" style="display:flex;align-items:center;justify-content:center;"></span>
     <!-- Wave 57: 通知ベル（常時表示）→ s-notif -->
     <button class="home-bell" onclick="go('s-notif')" id="home-bell-btn" aria-label="通知">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -5396,7 +5396,7 @@ function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-ok').textContent = btnTxt;
-  document.getElementById('confirm-icon').innerHTML = (typeof ICON==='function') ? ICON(icon,40) : '';
+  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (typeof ICON==='function') ? ICON(icon,40) : '';
   _confirmCb = cb;
   openModal('m-confirm');
 }
@@ -5989,7 +5989,7 @@ function renderHome() {
   if(dateMid) {
     const now = new Date();
     const d = now.getDate(), mo = now.getMonth()+1, wd = ['日','月','火','水','木','金','土'][now.getDay()];
-    dateMid.textContent = `${mo}/${d}（${wd}）`;
+    dateMid.innerHTML = `<span class="home-date-mid">${mo}/${d}（${wd}）</span>`;
   }
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
@@ -10157,7 +10157,7 @@ function deleteBoardComment(postId, commentId) {
 /* ── コメント ── */
 function submitBoardComment(postId) {
   const input = document.getElementById('bdetail-comment-input');
-  const text  = input?.value.trim();
+  const text  = input?.value?.trim();
   if(!text) return;
   const a = getAnn(postId);
   if(!a) return;
@@ -12841,6 +12841,7 @@ function goChildDetail(id) {
    ============================================================ */
 function renderNotif() {
   const el = document.getElementById('notif-list');
+  if(!el) return;
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
@@ -13056,8 +13057,8 @@ function renderPremium() {
   // ── links area ────────────────────────────────────────────
   const linksHtml = '<div class="prm-links">'
     + '<button class="prm-link" onclick="prmRestorePurchase()">購入を復元</button>'
-    + '<button class="prm-link" onclick="openLegalDoc('terms')">利用規約</button>'
-    + '<button class="prm-link" onclick="openLegalDoc('privacy')">プライバシーポリシー</button>'
+    + '<button class="prm-link" onclick="openLegalDoc(\'terms\')">利用規約</button>'
+    + '<button class="prm-link" onclick="openLegalDoc(\'privacy\')">プライバシーポリシー</button>'
     + '</div><div style="height:8px"></div>';
 
   const body = document.getElementById('prm-body');
@@ -13065,14 +13066,16 @@ function renderPremium() {
 
   // ── sticky CTA ────────────────────────────────────────────
   const ctaBar = document.getElementById('prm-cta-bar');
-  if(ctaBar) ctaBar.className = 'prm-cta-bar';
-  ctaBar.innerHTML = isPrem
-    ? '<div class="prm-cta-already">✓ プレミアム利用中</div>'
-    : '<button class="prm-cta-btn" onclick="prmStartPremium()">'
-      + '<span>プレミアムプランを選ぶ</span>'
-      + '<span class="prm-cta-btn-sub">1ヶ月お試し無料</span>'
-      + '</button>'
-      + linksHtml;
+  if(ctaBar) {
+    ctaBar.className = 'prm-cta-bar';
+    ctaBar.innerHTML = isPrem
+      ? '<div class="prm-cta-already">✓ プレミアム利用中</div>'
+      : '<button class="prm-cta-btn" onclick="prmStartPremium()">'
+        + '<span>プレミアムプランを選ぶ</span>'
+        + '<span class="prm-cta-btn-sub">1ヶ月お試し無料</span>'
+        + '</button>'
+        + linksHtml;
+  }
 }
 
 function prmToggleFeature(i) {
