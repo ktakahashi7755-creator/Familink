@@ -11879,3 +11879,58 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: `17bc293`（品質CSS）, `ad21076`（UX品質向上）
 - メッセージ: `feat: 世界最高峰クオリティCSS...` / `feat: UX品質大幅向上...`
+
+## 2026-05-20 セッション6  env: 不明  branch: main
+
+### 作業名
+世界最高峰テスト — 全バグ修正・CSS変数完全修正・null安全強化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+**バグ修正（CRITICAL）**
+1. `renderPremium()`: `ctaBar.innerHTML` の null dereference バグ修正
+   → `if(ctaBar) { ctaBar.className ...; ctaBar.innerHTML ... }` に変更
+2. JS構文エラー: `openLegalDoc('terms')` のシングルクォート衝突
+   → `openLegalDoc(\'terms\')` にエスケープ（node --check で ✓ 確認）
+
+**バグ修正（HIGH）**
+3. `hokuSend()`: `input?.value.trim()` → `input?.value?.trim()` null安全修正
+4. `showConfirm()`: `confirm-icon` getElementById null guard 追加
+5. `renderNotif()`: `el` null guard 追加
+
+**CSS変数修正**
+6. `--bg-soft`（未定義変数）→ `#F4F7FD` に置換（タスク削除バーキャンセルボタン）
+7. `--t-base`（未定義変数）→ `var(--t)` に統一（3箇所）
+
+**UI修正**
+8. `home-date-mid`: flex-1スパン全幅ストレッチ問題修正（インライン<span>ピルで表示）
+
+### テスト結果
+- HTML div バランス: 1621/1621 ✓
+- JS 構文チェック: node --check ✓ CLEAN
+- 未定義CSS変数: 0件 ✓
+- 未定義keyframes: 0件 ✓
+- テンプレートリテラル: 876個（偶数）✓
+- 全15項目チェック: 15/15 ✓
+
+### 未確認事項
+- 実機での全バグ修正の動作確認
+- home-date-mid ピル表示の確認
+
+### iPhone確認ポイント
+- プレミアム画面のCTAボタンが正常表示・タップできるか
+- 利用規約・プライバシーポリシーのモーダルが開くか
+- Hokuの残り回数が正確に表示・減少するか
+- 通知画面が正常表示されるか
+
+### 次にやること
+- 実機テスト（iPhone SE / 15 Pro Max）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store 申請用スクリーンショット作成
+
+### コミット
+- ハッシュ: `45bbf00`
+- メッセージ: `fix: 世界最高峰テスト — バグ修正・CSS変数修正・null安全強化`
