@@ -5,7 +5,7 @@
 <script>
 // キャッシュバスター: version.txt と照合して古いキャッシュを自動排除
 (function(){
-  var V='20260520';
+  var V='20260520d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   fetch('version.txt?t='+Date.now())
@@ -630,8 +630,8 @@ select.input {
 .archive-row .archive-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
 .archive-row .archive-actions button {
   background:transparent; border:1px solid var(--border-light);
-  border-radius:8px; padding:4px 8px; font-size:11px; color:var(--text-muted);
-  cursor:pointer;
+  border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted);
+  cursor:pointer; min-height:44px;
 }
 .archive-row .archive-actions button.del:hover { color:var(--red); border-color:var(--red); }
 
@@ -1192,7 +1192,7 @@ select.input {
 .recurring-row .rr-amount { font-size:15px; font-weight:800; color:var(--text); }
 .recurring-row .rr-amount.income { color:#16A34A; }
 .recurring-row .rr-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
-.recurring-row .rr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 9px; font-size:11px; color:var(--text-muted); cursor:pointer; }
+.recurring-row .rr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted); cursor:pointer; min-height:44px; }
 .recurring-row .rr-actions button:hover { color:var(--primary); border-color:var(--primary); }
 .recurring-row .rr-actions .rr-del:hover { color:var(--red); border-color:var(--red); }
 .cf-card { background:var(--bg-card); border:1.5px solid var(--border-light); border-radius:14px; padding:14px; margin:0 16px 10px; box-shadow:var(--s-sm); }
@@ -1958,7 +1958,7 @@ select.input {
 .member-row .mr-role.parent { background:#EBF4FF; color:#2563EB; }
 .member-row .mr-role.child  { background:#FEF3C7; color:#92400E; }
 .member-row .mr-actions { display:flex; gap:4px; }
-.member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 10px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
+.member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted); cursor:pointer; min-height:44px; }
 .member-row .mr-actions button:hover { color:var(--primary); border-color:var(--primary); }
 .member-row .mr-actions .mr-del:hover { color:var(--red); border-color:var(--red); }
 .me-role-btn { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-size:13px; font-weight:700; cursor:pointer; color:var(--text-muted); transition:var(--t-spring); }
@@ -5206,6 +5206,9 @@ function loadS() {
     const d = JSON.parse(localStorage.getItem(SK) || '{}');
     Object.assign(S, d);
   } catch(e) {}
+  // 配列フィールドが undefined のままだとクラッシュするため初期値を補完
+  const arrDefaults = ['events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','memos','memoFolders','albums','shopping','shoppingLists','growthPhotos'];
+  arrDefaults.forEach(function(k){ if(!Array.isArray(S[k])) S[k] = []; });
 }
 
 /* ============================================================
@@ -7725,7 +7728,7 @@ function showIcsFallback(text) {
         <textarea id="ics-fallback-text" readonly
           style="width:100%;min-height:200px;font-family:monospace;font-size:11px;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff;"></textarea>
         <div class="modal-actions" style="margin-top:10px;">
-          <button class="btn btn-primary btn-block" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('ics-fallback-text').value).then(()=>showToast('コピーしました'))">テキストをコピー</button>
+          <button class="btn btn-primary btn-block" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('ics-fallback-text').value).then(()=>showToast('コピーしました')).catch(()=>showToast('コピーできませんでした','error'))">テキストをコピー</button>
           <button class="btn btn-ghost btn-block" onclick="document.getElementById('m-ics-fallback').remove()">閉じる</button>
         </div>
       </div>`;
@@ -7985,13 +7988,16 @@ function clearTkDelSel(){
 function runTkBulkDelete(){
   const n = _tkDelSel.size;
   if(!n) return;
-  if(!confirm(`選択した${n}件のタスクを削除しますか？`)) return;
-  S.tasks = (S.tasks||[]).filter(t=>!_tkDelSel.has(t.id));
-  _tkDelSel.clear();
-  saveS();
-  renderTaskScreen();
-  if(typeof renderHome==='function') renderHome();
-  showToast(`${n}件のタスクを削除しました`);
+  showConfirm('タスクを削除', `選択した${n}件のタスクを削除しますか？\nこの操作は元に戻せません。`, '削除する', function() {
+    S.tasks = (S.tasks||[]).filter(t=>!_tkDelSel.has(t.id));
+    _tkDelSel.clear();
+    saveS();
+    renderTaskScreen();
+    if(typeof renderHome==='function') renderHome();
+    showToast(`${n}件のタスクを削除しました`);
+  });
+  // early return so old code doesn't run (showConfirm is async)
+  return;
 }
 
 function toggleTkMemberVisible(id) {
@@ -7999,7 +8005,7 @@ function toggleTkMemberVisible(id) {
   let newVisible;
   if(visible.includes(id)) {
     newVisible = visible.filter(v=>v!==id);
-    if(!newVisible.length) { showToast('最低1人は表示してください','error'); return; }
+    if(!newVisible.length) { showToast('最低1名を表示してください','error'); return; }
     if(_tkMember === id) _tkMember = 'all';
   } else {
     newVisible = [...visible, id];
@@ -8935,20 +8941,23 @@ function saveRecurringTx() {
 }
 function deleteRecurringTxFromModal() {
   if(!_rtEditingId) return;
-  if(!confirm('この固定収支を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
-  deleteRecurringTx(_rtEditingId);
-  _rtEditingId = null;
-  closeModal('m-recurring-tx');
-  renderRecurringSection();
-  showToast('削除しました','success');
+  const rid = _rtEditingId;
+  showConfirm('固定収支を削除', 'この固定収支を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。', '削除する', function() {
+    deleteRecurringTx(rid);
+    _rtEditingId = null;
+    closeModal('m-recurring-tx');
+    renderRecurringSection();
+    showToast('削除しました','success');
+  });
 }
 function confirmDeleteRecurringTx(id) {
   const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
   if(!r) return;
-  if(!confirm('「'+ (r.desc || r.cat) +'」を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
-  deleteRecurringTx(id);
-  renderRecurringSection();
-  showToast('削除しました','success');
+  showConfirm('固定収支を削除', '「'+ (r.desc || r.cat) +'」を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。', '削除する', function() {
+    deleteRecurringTx(id);
+    renderRecurringSection();
+    showToast('削除しました','success');
+  });
 }
 function toggleRecurringEnabled(id) {
   const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
@@ -9215,11 +9224,15 @@ function openTxModal(id) {
 function deleteCurrentTx() {
   const id = document.getElementById('bm-id').value;
   if(!id) return;
-  S.txs = (S.txs||[]).filter(t => t.id !== id);
-  saveS();
-  closeModal('m-budget');
-  renderBudget();
-  showToast('削除しました');
+  const tx = (S.txs||[]).find(t => t.id === id);
+  if(!tx) return;
+  showConfirm('明細を削除', `「${tx.desc || tx.cat}」を削除しますか？\nこの操作は元に戻せません。`, '削除する', () => {
+    S.txs = (S.txs||[]).filter(t => t.id !== id);
+    saveS();
+    closeModal('m-budget');
+    renderBudget();
+    showToast('削除しました');
+  });
 }
 
 function renderBmMemberBtns(selected) {
@@ -10428,18 +10441,20 @@ function saveMemoEdit() {
 function deleteMemo() {
   if(!_memoEditId) return;
   const id = _memoEditId;
-  if(!confirm('このメモを削除しますか？')) return;
-  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
-  saveS();
-  closeModal('m-memo-edit');
-  renderMemo();
-  showToast('メモを削除しました');
+  showConfirm('メモを削除', 'このメモを削除しますか？\nこの操作は元に戻せません。', '削除する', function() {
+    S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+    saveS();
+    closeModal('m-memo-edit');
+    renderMemo();
+    showToast('メモを削除しました');
+  });
 }
 function deleteMemoById(id) {
-  if(!confirm('このメモを削除しますか？')) return;
-  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
-  saveS();
-  renderMemo();
+  showConfirm('メモを削除', 'このメモを削除しますか？\nこの操作は元に戻せません。', '削除する', function() {
+    S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+    saveS();
+    renderMemo();
+  });
 }
 
 function renderHealth() {
@@ -12669,27 +12684,30 @@ function confirmDeleteMember() {
   const m = MEMBERS.find(function(x){ return x.id===_meEditingId; });
   if(!m) return;
   if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
-  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
-  unlinkMemberFromAllData(_meEditingId);
-  MEMBERS = MEMBERS.filter(function(x){ return x.id !== _meEditingId; });
-  persistMembersToS();
-  saveS();
-  closeModal('m-member-edit');
-  refreshAfterMemberChange();
-  showToast(m.name+' を削除しました','success');
-  _meEditingId = null;
+  const eid = _meEditingId;
+  showConfirm('メンバーを削除', '「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。', '削除する', function() {
+    unlinkMemberFromAllData(eid);
+    MEMBERS = MEMBERS.filter(function(x){ return x.id !== eid; });
+    persistMembersToS();
+    saveS();
+    closeModal('m-member-edit');
+    refreshAfterMemberChange();
+    showToast(m.name+' を削除しました','success');
+    _meEditingId = null;
+  });
 }
 function confirmDeleteMemberFromList(id) {
   const m = MEMBERS.find(function(x){ return x.id===id; });
   if(!m) return;
   if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
-  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
-  unlinkMemberFromAllData(id);
-  MEMBERS = MEMBERS.filter(function(x){ return x.id !== id; });
-  persistMembersToS();
-  saveS();
-  refreshAfterMemberChange();
-  showToast(m.name+' を削除しました','success');
+  showConfirm('メンバーを削除', '「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。', '削除する', function() {
+    unlinkMemberFromAllData(id);
+    MEMBERS = MEMBERS.filter(function(x){ return x.id !== id; });
+    persistMembersToS();
+    saveS();
+    refreshAfterMemberChange();
+    showToast(m.name+' を削除しました','success');
+  });
 }
 
 /* 削除されたメンバーIDを参照しているデータをクリア（履歴は残し、紐付けだけ外す） */
@@ -15334,7 +15352,7 @@ function hokuMicSetState(state) {
   const hints = document.getElementById('hoku-voice-hints');
   if(hints) hints.style.display = (state === 'listening') ? 'none' : '';
   if(state === 'listening')   hokuVoiceShowStatus('聞き取り中… 話しかけてください','listening');
-  else if(state === 'unsupported') hokuVoiceShowStatus('音声入力はこの端末では使えないため、テキストで相談してください','warn');
+  else if(state === 'unsupported') hokuVoiceShowStatus('この端末では音声入力をご利用いただけません。テキストでご相談ください','warn');
   else hokuVoiceShowStatus('','');
 }
 
@@ -16969,7 +16987,7 @@ const VOICE_STATE_TEXT = {
   confirming:  '内容を確認してください',
   saved:       '保存しました',
   error:       '聞き取れなかった。もう一回いける？',
-  unsupported: '音声入力はこの端末では使えないため、テキストで相談してください'
+  unsupported: 'この端末では音声入力をご利用いただけません。テキストでご相談ください'
 };
 function hokuVoiceSetPhase(phase) {
   hokuVoiceShowStatus(VOICE_STATE_TEXT[phase] || '', phase);
