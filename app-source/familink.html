@@ -5057,7 +5057,7 @@ function renderStorageModal() {
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
     + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
-    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);">👑 ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
+    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A90E2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
@@ -15191,9 +15191,9 @@ function renderHokuMsgs() {
       <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
       <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
       <div class="hoku-empty-chips">
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">📅 今日の予定</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">✅ タスク確認</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">💰 家計確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">今日の予定</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">タスク確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">家計確認</button>
       </div>
       <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
