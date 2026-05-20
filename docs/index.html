@@ -487,6 +487,32 @@ select.input {
 .ob-desc {
   font-size: 14px; color: var(--text-sub); line-height: 1.85; margin-bottom: 24px;
 }
+/* Feature highlights */
+.ob-features {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-bottom: 24px;
+}
+.ob-feat-item {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 8px rgba(26,36,64,.05);
+  animation: ob-feat-in .4s ease both;
+}
+.ob-feat-item:nth-child(2) { animation-delay: .08s; }
+.ob-feat-item:nth-child(3) { animation-delay: .16s; }
+@keyframes ob-feat-in {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.ob-feat-icon {
+  width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ob-feat-body { flex: 1; min-width: 0; }
+.ob-feat-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.ob-feat-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; line-height: 1.4; }
 /* Feature chips: text-forward, minimal, refined */
 .ob-cta { display: flex; flex-direction: column; gap: 12px; }
 .ob-btn-start {
@@ -660,6 +686,11 @@ select.input {
   padding: 16px 16px calc(98px + env(safe-area-inset-bottom));
 }
 .home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.home-date-mid {
+  font-size: 13px; font-weight: 700; color: var(--primary);
+  background: var(--primary-light); border-radius: var(--r-full);
+  padding: 3px 10px; letter-spacing: .2px;
+}
 .home-grid {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 12px; margin-bottom: 14px;
@@ -2534,7 +2565,13 @@ nav#tabbar.hidden { display: none !important; }
    ============================================================ */
 
 /* Smooth page transitions */
-.screen { transition: opacity .15s ease; }
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen:not(.hidden) { animation: screen-in .22s cubic-bezier(.22,1,.36,1) both; }
+/* No animation for ob/login screens (avoid flash on first load) */
+#s-ob:not(.hidden), #s-login:not(.hidden), #s-onboard:not(.hidden) { animation: none; }
 
 /* Better scroll behavior */
 html { scroll-behavior: smooth; }
@@ -2716,6 +2753,51 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   color: #7A5800;
 }
 
+
+/* ── Hoku Empty State ── */
+.hoku-empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 36px 24px 20px; text-align: center;
+}
+.hoku-empty-img {
+  width: 88px; height: 88px; object-fit: contain;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 16px rgba(74,144,226,.18));
+  animation: prm-float 3s ease-in-out infinite;
+}
+.hoku-empty-title {
+  font-size: 20px; font-weight: 800; color: var(--text);
+  margin-bottom: 6px; letter-spacing: -.3px;
+}
+.hoku-empty-sub {
+  font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6;
+}
+.hoku-empty-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin-bottom: 20px;
+}
+.hoku-empty-chip {
+  background: #fff; border: 1.5px solid var(--border-light);
+  border-radius: var(--r-full); padding: 8px 14px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; transition: var(--t-spring);
+  box-shadow: 0 2px 8px rgba(26,36,64,.06);
+}
+.hoku-empty-chip:active { transform: scale(.94); background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+.hoku-empty-voice {
+  font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.hoku-empty-voice-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red); opacity: .8;
+  animation: mic-pulse 1.8s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%,100% { transform: scale(1); opacity: .8; }
+  50%      { transform: scale(1.4); opacity: .4; }
+}
+
 /* ── Toast: Better styling ── */
 .toast {
   border-radius: var(--r-lg) !important;
@@ -2748,6 +2830,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div style="height:20px"></div>
     <div class="ob-catch">家族をチームに。<br>予定も、やることも、ひとつに。</div>
     <div class="ob-desc">Familinkは、家族やパートナーと予定・やること・家計などを共有できるアプリです。忙しい毎日でも、大切な人とのつながりを支えます。</div>
+
+    <!-- Feature highlights -->
+    <div class="ob-features">
+      <div class="ob-feat-item">
+        <div class="ob-feat-icon" style="background:linear-gradient(135deg,#EBF4FF,#D0E8FF)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A90E2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="ob-feat-body">
+          <div class="ob-feat-title">予定を家族でシェア</div>
+          <div class="ob-feat-sub">カレンダーで家族全員の予定を管理</div>
+        </div>
+      </div>
+      <div class="ob-feat-item">
+        <div class="ob-feat-icon" style="background:linear-gradient(135deg,#EDFFF5,#CCFAE6)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52C47A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="ob-feat-body">
+          <div class="ob-feat-title">タスクをチームで完了</div>
+          <div class="ob-feat-sub">やることを家族で分担・見える化</div>
+        </div>
+      </div>
+      <div class="ob-feat-item">
+        <div class="ob-feat-icon" style="background:linear-gradient(135deg,#FFF8EB,#FFE9B3)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div class="ob-feat-body">
+          <div class="ob-feat-title">Hokuがサポート</div>
+          <div class="ob-feat-sub">AIが予定・家計入力をお手伝い</div>
+        </div>
+      </div>
+    </div>
 
     <div class="ob-cta">
       <button class="ob-btn-start" onclick="go('s-login')">
@@ -2866,7 +2979,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="home-menu" onclick="go('s-settings')" id="home-avatar-btn" aria-label="設定・メニューを開く">
       <span></span><span></span><span></span>
     </button>
-    <span class="home-header-mid"></span>
+    <span class="home-header-mid home-date-mid" id="home-date-mid"></span>
     <!-- Wave 57: 通知ベル（常時表示）→ s-notif -->
     <button class="home-bell" onclick="go('s-notif')" id="home-bell-btn" aria-label="通知">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -5870,6 +5983,13 @@ function renderHome() {
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
     greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
+  }
+  // Today's date in header
+  const dateMid = document.getElementById('home-date-mid');
+  if(dateMid) {
+    const now = new Date();
+    const d = now.getDate(), mo = now.getMonth()+1, wd = ['日','月','火','水','木','金','土'][now.getDay()];
+    dateMid.textContent = `${mo}/${d}（${wd}）`;
   }
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
@@ -13000,9 +13120,10 @@ function renderSettings() {
 
   const premiumHtml = S.isPremiumUser
     ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>プレミアム会員</div>'
+      + '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">すべての機能が使い放題です</div>'
     : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>Familink Premium</div>'
-      +'<div class="menu-premium-desc">特別アバター・ボード追加で<br>家族をもっと便利に。月額480円。</div>'
-      +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">プレミアムを見る</button>';
+      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#E05E00">今なら1ヶ月無料</strong>で体験できます</div>'
+      +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">1ヶ月無料でためす →</button>';
 
   const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#4A90E2');
   const lockIcon = si('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>','#7A6FD0');
@@ -15162,9 +15283,17 @@ function renderHokuMsgs() {
   const msgs = _hokuMsgs;
 
   if(!msgs.length) {
-    el.innerHTML = `<div style="text-align:center;padding:32px 20px 0;color:var(--text-muted);font-size:13px;line-height:1.9;">
-      何する？予定・タスク・家計、声でもいけるよ。<br>
-      <span style="display:inline-block;margin-top:10px;padding:4px 10px;background:var(--bg-muted);border-radius:999px;font-size:11px;">${ICON('mic',12)} マイクで音声入力もできる</span>
+    const nm = (S.userProfile && S.userProfile.displayName) || (S.user && S.user.name) || '';
+    el.innerHTML = `<div class="hoku-empty-state">
+      <img src="${IMGS.hoku}" class="hoku-empty-img" alt="Hoku">
+      <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
+      <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
+      <div class="hoku-empty-chips">
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">📅 今日の予定</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">✅ タスク確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">💰 家計確認</button>
+      </div>
+      <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
     return;
   }
