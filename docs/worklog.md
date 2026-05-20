@@ -12068,3 +12068,56 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: `c625d89`（main）/ `cce9155`（gh-pages）
 - メッセージ: `feat: アプリ品質向上（文言・UX改善）`
+
+## 2026-05-20 env: 不明  branch: main / gh-pages
+
+### 作業名
+世界最高峰テスト・バグ修正・iOS Safari完全対応
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages/index.html（直接push）
+- gh-pages/version.txt（20260520b）
+
+### 変更内容
+**クリティカルバグ修正**
+- 重複ID `memo-body`（div + textarea）→ div を `memo-list` に改名。renderMemo()を対応更新。メモの保存・読み込みが正常化
+- 重複ID `vc-title`（表示div + input）→ div を `vc-modal-title` に改名。voiceConfirmRender()を対応更新。音声確認タイトル入力が正常化
+- `avatar-cat-tabs` 要素が存在しなかった → アバター選択モーダルにカテゴリタブ div を追加。アバターカテゴリフィルタが機能するように
+
+**iOS Safari 自動ズーム防止（font-size 全修正）**
+- `.card-comment-input` 13px → 16px
+- 音声確認モーダル全フォーム（vc-cat, vc-member, vc-title, vc-date, vc-time, vc-amount, vc-temp, vc-note）14px → 16px
+- アルバムフォルダ select 12px → 16px
+- ICS import textarea 11px → 16px
+
+**キャッシュバスター実装**
+- version.txt を追加。ページ起動時に自動照合 → 古いキャッシュを自動排除
+
+### テスト結果
+- 重複ID: 0 ✓
+- Backtick: 876 (even) ✓
+- div: 1619/1619 ✓
+- font-size < 16px on interactive inputs: 0 ✓（file input除く）
+- 全 onclick/go()/openModal() ターゲット: 存在確認済み ✓
+
+### 未確認事項
+- iPhone実機でメモ保存・読み込みが正常になったか確認
+- アバターモーダルのカテゴリタブ表示確認
+- 音声確認モーダルでタイトル事前入力・保存が正常か確認
+
+### iPhone確認ポイント
+- メモ編集: 既存内容がテキストエリアに表示され、保存できるか
+- アバター選択: カテゴリタブ（すべて/赤ちゃん/子ども...）が表示されるか
+- 音声確認: タイトル入力欄に認識テキストが入力済みになるか
+- コメント入力: タップ時にズームしないか（font-size 16px対応）
+
+### 次にやること
+- iPhone実機テスト（上記確認ポイント）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store申請準備
+
+### コミット
+- ハッシュ: `a519be5`（main）/ `7cb56cf`（gh-pages）
+- メッセージ: `fix: 世界最高峰バグ修正 — 重複ID・音声モーダル・アバタータブ・iOS zoom防止`
