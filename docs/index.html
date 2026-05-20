@@ -2,6 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1407,7 +1410,7 @@ select.input {
   flex: 1; min-height: 44px; max-height: 120px;
   border-radius: 22px; background: var(--bg-muted);
   border: 1.5px solid transparent;
-  padding: 11px 16px; font-size: 15px; line-height: 1.4;
+  padding: 11px 16px; font-size: 16px; line-height: 1.4;
   resize: none; outline: none; font-family: var(--font); color: var(--text);
   transition: var(--t); overflow-y: auto;
 }
@@ -2525,6 +2528,205 @@ nav#tabbar.hidden { display: none !important; }
   border:none; border-radius:var(--r-full); font-size:11px; font-weight:700;
   padding:5px 12px; cursor:pointer; white-space:nowrap;
 }
+
+/* ============================================================
+   WORLD-CLASS QUALITY — Global Polish
+   ============================================================ */
+
+/* Smooth page transitions */
+.screen { transition: opacity .15s ease; }
+
+/* Better scroll behavior */
+html { scroll-behavior: smooth; }
+
+/* Improved focus rings */
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2.5px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Premium Screen: Enhanced Animations ── */
+@keyframes prm-fade-up {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes prm-crown-pulse {
+  0%,100% { box-shadow: 0 4px 18px rgba(255,179,0,.35), 0 0 0 0 rgba(255,179,0,.4); }
+  50%      { box-shadow: 0 4px 28px rgba(255,179,0,.5), 0 0 0 12px rgba(255,179,0,.0); }
+}
+@keyframes prm-float {
+  0%,100% { transform: translateY(0px) rotate(-2deg); }
+  50%      { transform: translateY(-6px) rotate(2deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes prm-cta-pulse {
+  0%,100% { box-shadow: 0 4px 18px rgba(74,144,226,.40); }
+  50%      { box-shadow: 0 6px 28px rgba(74,144,226,.60); }
+}
+
+/* Crown: animated glow */
+.prm-crown {
+  animation: prm-crown-pulse 2.8s ease-in-out infinite;
+}
+
+/* Hero section: smooth entrance */
+.prm-hero { animation: prm-fade-up .5s ease both; }
+.prm-checklist { animation: prm-fade-up .5s .1s ease both; }
+.prm-section-title { animation: prm-fade-up .4s .15s ease both; }
+
+/* CTA button: pulse glow */
+.prm-cta-btn {
+  animation: prm-cta-pulse 2.5s ease-in-out infinite;
+  letter-spacing: .3px;
+}
+
+/* Feature cards: refined hover */
+.prm-feature-card {
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, border-color .18s ease;
+  box-shadow: var(--s-card);
+}
+.prm-feature-card:active {
+  transform: scale(.98);
+  box-shadow: var(--s-sm);
+  border-color: var(--primary-mid);
+}
+
+/* Compare table: header gradient */
+.prm-compare-head-cell.premium {
+  background: linear-gradient(135deg,#4A90E2,#5B6FD0);
+  font-weight: 800; letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.15);
+}
+
+/* Checklist card: gradient border */
+.prm-checklist {
+  background: linear-gradient(#FFFBEF,#FFFBEF) padding-box,
+              linear-gradient(135deg,#FFE066,#FFB300,#FFD060) border-box;
+  border: 1.5px solid transparent;
+}
+
+/* Check icon: gradient background */
+.prm-check-icon {
+  background: linear-gradient(135deg,#52C47A,#4A90E2);
+  box-shadow: 0 2px 8px rgba(74,144,226,.25);
+}
+
+/* FAQ item hover */
+.prm-faq-q:hover { color: var(--primary); }
+
+/* CTA links: better spacing */
+.prm-links { gap: 24px; }
+.prm-link:hover { opacity: .8; }
+
+/* ── Settings Premium Card: Enhanced ── */
+.menu-premium-card {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #EBF4FF 0%, #FFF8EC 50%, #F0EBFF 100%);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+.menu-premium-card::before {
+  content: '';
+  position: absolute; inset: -1px; z-index: 0;
+  background: linear-gradient(135deg, #4A90E2, #FFB300, #9B7EDE);
+  border-radius: inherit;
+  opacity: .25;
+  pointer-events: none;
+}
+
+/* ── Home Ad Banner: More Polished ── */
+.home-ad-strip {
+  box-shadow: 0 3px 16px rgba(74,144,226,.12);
+  background: linear-gradient(135deg, #EBF4FF 0%, #FFF8EC 50%, #F0FFF4 100%);
+  border: 1.5px solid rgba(74,144,226,.18);
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
+}
+.home-ad-strip:active {
+  transform: scale(.98);
+  box-shadow: 0 2px 8px rgba(74,144,226,.1);
+}
+
+/* ── Hoku Usage Bar: Polished ── */
+.hoku-usage-bar {
+  background: linear-gradient(135deg,#FFF8EC,#EBF4FF);
+  border-bottom: 1px solid rgba(74,144,226,.12);
+}
+.hoku-usage-upgrade {
+  box-shadow: 0 2px 10px rgba(74,144,226,.3);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.hoku-usage-upgrade:active {
+  transform: scale(.95);
+  box-shadow: none;
+}
+
+/* ── Welcome Screen: Better Typography ── */
+.ob-brand-name {
+  background: linear-gradient(135deg, #4A90E2, #7B5BD0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ob-catch { letter-spacing: -.4px; }
+.ob-btn-start {
+  box-shadow: 0 6px 24px rgba(74,144,226,.42), 0 1px 4px rgba(74,144,226,.2);
+  letter-spacing: .3px;
+}
+
+/* ── Cards: Consistent depth ── */
+.modal { box-shadow: 0 -4px 40px rgba(26,36,64,.16), 0 0 0 0.5px rgba(255,255,255,.3); }
+
+/* ── Buttons: Universal active feedback ── */
+.btn:active { transform: scale(.97); }
+.btn-ghost:active { background: var(--bg-muted); }
+
+/* ── Input: Better focus ── */
+.input:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(74,144,226,.12), 0 2px 8px rgba(74,144,226,.08);
+}
+
+/* ── Tab bar: Subtle top border ── */
+#tabbar {
+  border-top: 1px solid rgba(74,144,226,.1);
+  box-shadow: 0 -2px 16px rgba(26,36,64,.06);
+}
+
+/* ── Header: Consistent style ── */
+.header {
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(74,144,226,.1);
+  box-shadow: 0 1px 8px rgba(26,36,64,.05);
+}
+
+/* ── Scroll area: Better padding ── */
+.scroll-area { overscroll-behavior: contain; }
+
+/* ── Premium badge: Shimmer ── */
+.prm-badge {
+  background: linear-gradient(90deg, #FFE066 0%, #FFB300 40%, #FFE066 80%);
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+  color: #7A5800;
+}
+
+/* ── Toast: Better styling ── */
+.toast {
+  border-radius: var(--r-lg) !important;
+  box-shadow: 0 8px 32px rgba(26,36,64,.18) !important;
+  font-weight: 600 !important;
+}
+
+/* ── Compare table: Row hover ── */
+.prm-compare-row { transition: background .15s ease; }
+.prm-compare-row:active { background: var(--primary-light) !important; }
+
 </style>
 </head>
 <body>
