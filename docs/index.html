@@ -2483,6 +2483,29 @@ nav#tabbar.hidden { display: none !important; }
   padding:14px; text-align:center; color:var(--text-muted);
   font-size:11px;
 }
+
+/* Ad banner for free users on home screen */
+.home-ad-strip {
+  margin:12px 16px 4px; border-radius:14px;
+  background:linear-gradient(135deg,#F0F7FF,#FFF8EC);
+  border:1px solid #D8E8FF; padding:12px 14px;
+  display:flex; align-items:center; gap:12px; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; transition:var(--t-base);
+}
+.home-ad-strip:active { opacity:.8; }
+.home-ad-strip-icon {
+  width:40px; height:40px; border-radius:12px; flex-shrink:0;
+  background:linear-gradient(135deg,#FFE066,#FFB300);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.home-ad-strip-body { flex:1; min-width:0; }
+.home-ad-strip-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.home-ad-strip-sub { font-size:11px; color:var(--text-sub); line-height:1.4; }
+.home-ad-strip-cta {
+  flex-shrink:0; background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  color:#fff; font-size:11px; font-weight:700; border-radius:var(--r-full);
+  padding:6px 12px; border:none; cursor:pointer; white-space:nowrap;
+}
 </style>
 </head>
 <body>
@@ -2632,6 +2655,7 @@ nav#tabbar.hidden { display: none !important; }
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-grid" id="home-grid"></div>
+    <div id="home-ad-bar"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
   </div>
 </div>
@@ -4765,6 +4789,7 @@ function renderStorageModal() {
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
     + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
+    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);">👑 ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
@@ -5724,6 +5749,22 @@ function renderHome() {
     return hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending);
   }).join('');
 
+  // Ad banner for free users
+  var adBar = document.getElementById('home-ad-bar');
+  if(adBar) {
+    if(!S.isPremiumUser) {
+      adBar.innerHTML = '<div class="home-ad-strip" onclick="go(\'s-premium\')">'
+        + '<div class="home-ad-strip-icon">👑</div>'
+        + '<div class="home-ad-strip-body">'
+        + '<div class="home-ad-strip-title">広告なし・Hoku無制限・20GB</div>'
+        + '<div class="home-ad-strip-sub">プレミアムを1ヶ月無料で体験</div>'
+        + '</div>'
+        + '<button class="home-ad-strip-cta" onclick="event.stopPropagation();go(\'s-premium\')">詳しく見る</button>'
+        + '</div>';
+    } else {
+      adBar.innerHTML = '';
+    }
+  }
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
 }

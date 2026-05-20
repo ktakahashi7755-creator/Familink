@@ -11694,3 +11694,56 @@ OFFICIAL_AVATARS を全削除（新画像差し替え準備）
 ### コミット
 - ハッシュ: `1a5caec` (main), `6100050` (claude/merge-and-push-main-u44Ty)
 - メッセージ: `feat: プレミアムアバター18種追加（家族・ファンタジー・ドラゴン）`
+
+## 2026-05-20 セッション2  env: 不明  branch: main
+
+### 作業名
+Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- ウェルカム画面キャッチコピーに読点を追加「予定も、やることも、ひとつに。」
+- ob-catch を clamp(19px, 5.5vw, 24px) でレスポンシブ化（iPhone SE での改行防止）
+- s-premium 全画面スクリーン新規実装
+  - ヘッダーバー（×閉じる・王冠・タイトル）
+  - 3大メリット チェックリストカード
+  - 機能カード6種（アコーディオン展開式）
+  - 無料/Premium 比較表（9行・横スクロールなし）
+  - ご契約説明6項目
+  - FAQアコーディオン5件
+  - sticky CTAボタン（開発中モーダル表示）
+  - 購入を復元 / 利用規約 / プライバシーポリシー リンク
+- showPremiumGate() を s-premium への画面遷移に変更
+- Hoku 1日5回制限（無料ユーザー）実装・制限到達で s-premium へ誘導
+- devTogglePremium() で設定画面からプレミアム状態切り替え可能
+- hokuDailyUsage を S / PERSIST に追加
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- s-premium 画面の実機表示（iPhone SE / iPhone 15 Pro Max）
+- FAQ アコーディオンの開閉
+- 比較表の横スクロール有無
+- CTA ボタン → 開発中モーダル表示
+- devTogglePremium でプレミアム状態切り替え
+
+### iPhone確認ポイント
+- 設定画面「プレミアムを見る」→ s-premium へ遷移するか
+- プレミアムアバタータップ → s-premium へ遷移するか
+- Hoku 5回送信後に制限モーダルが出るか
+- sticky CTA が常に見えるか
+- 比較表が崩れないか
+- ×ボタンで前の画面へ戻れるか
+
+### 次にやること
+- 広告バナー枠をホーム画面に実配置（無料ユーザーのみ表示）
+- ストレージ近接検知 → s-premium 誘導強化
+- 実機で s-premium・新アバター18種を確認
+
+### コミット
+- ハッシュ: `31e3d20`（ob-catch）, `c06e270`（Premium 画面）
+- メッセージ: `feat: Familink Premium 案内画面を新規実装（Wave 200）`
