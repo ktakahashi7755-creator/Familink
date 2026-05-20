@@ -1661,7 +1661,7 @@ select.input {
 .card-comment-input {
   flex:1; min-width:0; height:34px; padding:0 12px;
   border:1.5px solid var(--border); border-radius:var(--r-full);
-  background:#fff; font-size:13px; color:var(--text);
+  background:#fff; font-size:16px; color:var(--text);
   outline:none; transition:border-color .15s;
 }
 .card-comment-input:focus { border-color:var(--primary); }
@@ -2986,7 +2986,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
-  <div class="scroll-area" id="memo-body" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="memo-list" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- メモ：追加方法シート -->
@@ -3066,7 +3066,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <img id="m-album-view-img" src="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <span style="font-size:11px;opacity:.8;flex:none;">フォルダ</span>
-      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:12px;"></select>
+      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:16px;"></select>
     </div>
   </div>
 </div>
@@ -10225,7 +10225,7 @@ function _memoCardPreview() {
 }
 function renderMemo() {
   _ensureMemo();
-  const body = document.getElementById('memo-body');
+  const body = document.getElementById('memo-list');
   if(!body) return;
   if(_memoFolder && !_memoFolderById(_memoFolder)) _memoFolder = '';
   const cur = _memoFolder;
@@ -16978,7 +16978,7 @@ function hokuHandleVoiceText(text) {
 function voiceConfirmRender() {
   const p = _voiceParsed; if(!p) return;
   // Wave 61: モーダルタイトルをカテゴリ別の短文へ動的更新
-  const titleEl = document.getElementById('vc-title');
+  const titleEl = document.getElementById('vc-modal-title');
   if(titleEl && typeof getHokuConfirmTitle === 'function') {
     titleEl.textContent = getHokuConfirmTitle(p.category || 'default');
   }
@@ -18802,6 +18802,8 @@ document.addEventListener('touchcancel', () => {
       </div>
       <input type="file" id="av-photo-input" accept="image/*" style="display:none;" onchange="onAvatarPhotoPicked(event)">
     </div>
+    <!-- カテゴリタブ -->
+    <div id="avatar-cat-tabs" style="display:flex;gap:8px;padding:8px 16px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;"></div>
     <!-- アバターグリッド -->
     <div id="avatar-grid" style="padding:4px 16px 16px;"></div>
     <!-- 決定ボタン -->
@@ -18922,7 +18924,7 @@ document.addEventListener('touchcancel', () => {
       <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
       <div class="field">
         <div class="field-label">予定データを貼り付け</div>
-        <textarea class="input" id="ics-text-input" rows="4" placeholder="外部カレンダーからコピーした予定データ" style="font-family:monospace;font-size:11px;"></textarea>
+        <textarea class="input" id="ics-text-input" rows="4" placeholder="外部カレンダーからコピーした予定データ" style="font-family:monospace;font-size:16px;"></textarea>
       </div>
       <button class="btn btn-outline btn-block" onclick="parseIcsAndPreview()" style="margin-bottom:14px;">解析してプレビュー</button>
 
@@ -19048,7 +19050,7 @@ document.addEventListener('touchcancel', () => {
 <div id="m-voice-confirm" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title" id="vc-title">これで保存する？</div>
+    <div class="modal-title" id="vc-modal-title">これで保存する？</div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">聞き取った内容</div>
     <div id="vc-recognized" style="background:rgba(74,144,226,.06);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);line-height:1.5;"></div>
     <div id="vc-corrected" style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;"></div>
@@ -19058,42 +19060,42 @@ document.addEventListener('touchcancel', () => {
       <div>
         <label style="font-size:11px;color:var(--text-muted);">登録先</label>
         <select id="vc-cat" onchange="voiceConfirmToggleFields()" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff;"></select>
       </div>
       <div id="vc-row-member">
         <label style="font-size:11px;color:var(--text-muted);">対象メンバー</label>
         <select id="vc-member" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff;"></select>
       </div>
       <div>
         <label style="font-size:11px;color:var(--text-muted);">タイトル / 内容</label>
         <input id="vc-title" type="text" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-date" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">日付</label>
         <input id="vc-date" type="date" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-time" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">時刻</label>
         <input id="vc-time" type="time" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-amount" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">金額（円）</label>
         <input id="vc-amount" type="number" class="form-input" min="0"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-temp" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">体温（℃）</label>
         <input id="vc-temp" type="number" step="0.1" min="34" max="42" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-note">
         <label style="font-size:11px;color:var(--text-muted);">メモ（任意）</label>
         <input id="vc-note" type="text" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
     </div>
 
