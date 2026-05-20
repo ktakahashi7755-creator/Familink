@@ -11785,3 +11785,50 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: `56d22e9`（広告バナー）, `a6459c1`（Hoku残り回数バー）
 - メッセージ: `feat: 広告バナー・ストレージ誘導・Hoku残り回数バー追加`
+
+## 2026-05-20 セッション4  env: 不明  branch: main
+
+### 作業名
+品質改善・v1.3.0・App Store 申請前チェック・PWA manifest 追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- docs/manifest.json（新規）
+- docs/appstore-readiness-checklist.md
+
+### 変更内容
+- devTogglePremium() がホーム/Hoku/プレミアム画面を即時リフレッシュ
+- hokuSend() がカウント後に残り回数バーを即時更新
+- prm-cta-bar の position:sticky を除去（flex レイアウトで不要）
+- ctaBar.className で直接スタイル付与（ネスト簡素化）
+- APP_VERSION を v1.3.0 にバージョンアップ
+- meta description / OG タグを追加（SEO・App Store 向け）
+- PWA manifest.json を新規作成・HTML に link 追加
+- appstore-readiness-checklist.md を v1.3.0 向けに更新
+
+### テスト結果
+- コードレビュー: 全チェック項目 20/21 ✓（alert() は音声テスト用のみ・問題なし）
+- 未実施: 実機動作確認
+
+### 未確認事項
+- 実機でのプレミアム画面全体テスト
+- Hoku 残り回数バーのカウント精度
+- devTogglePremium での各画面リフレッシュ
+
+### iPhone確認ポイント
+- 設定画面「開発用」トグルでプレミアム切り替え
+- ホーム広告バナー表示・非表示切り替え
+- Hoku 残り回数バー更新
+- プレミアム画面 CTA sticky 表示
+- manifest.json で PWA インストール動作
+
+### 次にやること
+- iOS Capacitor ラッパーの検討（要オーナー確認）
+- App Store 申請用スクリーンショットの作成
+- TestFlight 配布の準備
+- 実機テスト（iPhone SE / 15 Pro Max）
+
+### コミット
+- ハッシュ: `2b97e56`, `8b35d12`
+- メッセージ: `fix: プレミアム画面品質改善・v1.3.0 へバージョンアップ` / `feat: PWA manifest.json 追加`
