@@ -9330,6 +9330,17 @@ function openFaq() {
   openModal('m-faq');
 }
 function openContact() { openModal('m-contact'); }
+function copyAppLink() {
+  const url = location.href.split('?')[0].split('#')[0];
+  if(navigator.clipboard && location.protocol === 'https:') {
+    navigator.clipboard.writeText(url).then(()=>showToast('リンクをコピーしました')).catch(()=>_showAppLinkFallback(url));
+  } else {
+    _showAppLinkFallback(url);
+  }
+}
+function _showAppLinkFallback(url) {
+  prompt('リンクを長押しでコピーしてください', url);
+}
 /* プライバシーポリシー / 利用規約を別タブで開く（docs/ 内の HTML） */
 /* ── 法的文書（アプリ内表示。外部タブ依存をやめ確実に表示） ── */
 const LEGAL_PRIVACY = {
@@ -13151,6 +13162,11 @@ function renderSettings() {
       <div class="settings-item" onclick="openContact()">
         <div class="settings-item-icon" style="background:#EAF7EE">${si('<path d="M4 4h16v13H7l-3 3z"/>','#3A9E6B')}</div>
         <div class="settings-item-label">お問い合わせ</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="copyAppLink()">
+        <div class="settings-item-icon" style="background:#EEF2FA">${si('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>','#5B7196')}</div>
+        <div class="settings-item-label">アプリのリンクをコピー<div style="font-size:11px;color:var(--text-muted);font-weight:400;">家族に共有して一緒に使えます</div></div>
+        <div class="settings-arrow">${si('<path d="M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.866m-6 .17h8c1.105 0 2 .91 2 2.035v10.857C20 21.09 19.105 22 18 22h-8c-1.105 0-2-.911-2-2.036V9.107c0-1.124.895-2.036 2-2.036z"/>','#5B7196')}</div>
       </div>
     </div>
 
