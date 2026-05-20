@@ -2397,7 +2397,7 @@ nav#tabbar.hidden { display: none !important; }
 .prm-feature-card:active { opacity:.8; }
 .prm-feature-icon {
   width:48px; height:48px; border-radius:14px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-size:22px;
+  display:flex; align-items:center; justify-content:center;
 }
 .prm-feature-body { flex:1; min-width:0; }
 .prm-feature-name {
@@ -2522,44 +2522,6 @@ nav#tabbar.hidden { display: none !important; }
   font-size:11px;
 }
 
-/* Ad banner for free users on home screen */
-.home-ad-strip {
-  margin:12px 16px 4px; border-radius:14px;
-  background:linear-gradient(135deg,#F0F7FF,#FFF8EC);
-  border:1px solid #D8E8FF; padding:12px 14px;
-  display:flex; align-items:center; gap:12px; cursor:pointer;
-  -webkit-tap-highlight-color:transparent; transition:var(--t);
-}
-.home-ad-strip:active { opacity:.8; }
-.home-ad-strip-icon {
-  width:40px; height:40px; border-radius:12px; flex-shrink:0;
-  background:linear-gradient(135deg,#FFE066,#FFB300);
-  display:flex; align-items:center; justify-content:center; font-size:18px;
-}
-.home-ad-strip-body { flex:1; min-width:0; }
-.home-ad-strip-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
-.home-ad-strip-sub { font-size:11px; color:var(--text-sub); line-height:1.4; }
-.home-ad-strip-cta {
-  flex-shrink:0; background:linear-gradient(135deg,#4A90E2,#6B7FE3);
-  color:#fff; font-size:11px; font-weight:700; border-radius:var(--r-full);
-  padding:6px 12px; border:none; cursor:pointer; white-space:nowrap;
-}
-
-/* Hoku daily usage bar for free users */
-.hoku-usage-bar {
-  display:flex; align-items:center; justify-content:space-between;
-  gap:10px; padding:8px 16px;
-  background:linear-gradient(135deg,#FFF8EC,#F0F7FF);
-  border-bottom:1px solid var(--border-light);
-  font-size:11px; color:var(--text-sub);
-}
-.hoku-usage-count { font-weight:700; color:var(--text); }
-.hoku-usage-upgrade {
-  background:linear-gradient(135deg,#4A90E2,#6B7FE3); color:#fff;
-  border:none; border-radius:var(--r-full); font-size:11px; font-weight:700;
-  padding:5px 12px; cursor:pointer; white-space:nowrap;
-}
-
 /* ============================================================
    WORLD-CLASS QUALITY — Global Polish
    ============================================================ */
@@ -2672,32 +2634,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   border-radius: inherit;
   opacity: .25;
   pointer-events: none;
-}
-
-/* ── Home Ad Banner: More Polished ── */
-.home-ad-strip {
-  box-shadow: 0 3px 16px rgba(74,144,226,.12);
-  background: linear-gradient(135deg, #EBF4FF 0%, #FFF8EC 50%, #F0FFF4 100%);
-  border: 1.5px solid rgba(74,144,226,.18);
-  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
-}
-.home-ad-strip:active {
-  transform: scale(.98);
-  box-shadow: 0 2px 8px rgba(74,144,226,.1);
-}
-
-/* ── Hoku Usage Bar: Polished ── */
-.hoku-usage-bar {
-  background: linear-gradient(135deg,#FFF8EC,#EBF4FF);
-  border-bottom: 1px solid rgba(74,144,226,.12);
-}
-.hoku-usage-upgrade {
-  box-shadow: 0 2px 10px rgba(74,144,226,.3);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.hoku-usage-upgrade:active {
-  transform: scale(.95);
-  box-shadow: none;
 }
 
 /* ── Welcome Screen: Better Typography ── */
@@ -6091,22 +6027,8 @@ function renderHome() {
     return hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending);
   }).join('');
 
-  // Ad banner for free users
   var adBar = document.getElementById('home-ad-bar');
-  if(adBar) {
-    if(!S.isPremiumUser) {
-      adBar.innerHTML = '<div class="home-ad-strip" onclick="go(\'s-premium\')">'
-        + '<div class="home-ad-strip-icon">👑</div>'
-        + '<div class="home-ad-strip-body">'
-        + '<div class="home-ad-strip-title">広告なし・Hoku無制限・20GB</div>'
-        + '<div class="home-ad-strip-sub">プレミアムを1ヶ月無料で体験</div>'
-        + '</div>'
-        + '<button class="home-ad-strip-cta" onclick="event.stopPropagation();go(\'s-premium\')">詳しく見る</button>'
-        + '</div>';
-    } else {
-      adBar.innerHTML = '';
-    }
-  }
+  if(adBar) adBar.innerHTML = '';
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
 }
@@ -12933,6 +12855,12 @@ function renderPremium() {
 
   const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
+  // ── SVG icons for feature cards ───────────────────────────
+  const svgCloud    = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A7AE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+  const svgStar     = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C89A20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  const svgTag      = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
+  const svgDownload = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2C9E7D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
   // ── hero ──────────────────────────────────────────────────
   const heroHtml = '<div class="prm-header-bar">'
     + '<button class="prm-close-btn" onclick="goBack()" aria-label="閉じる">×</button>'
@@ -12945,14 +12873,14 @@ function renderPremium() {
         ? '<div class="prm-hero-title">プレミアム利用中</div>'
           + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
           + '<div class="prm-hero-already">✓ プレミアム会員</div>'
-        : '<div class="prm-hero-title">プレミアムを<br>1ヶ月無料で体験しよう</div>'
-          + '<div class="prm-hero-sub">家族みんなで、もっと快適にFamilinkを使えます。<br><span style="font-size:12px;color:var(--text-muted);">広告なしで、Hokuも、保存容量も、家族みんなでもっと快適に。</span></div>'
+        : '<div class="prm-hero-title">Familink<br>Premium</div>'
+          + '<div class="prm-hero-sub">家族の大切な記録を、安心して残せる場所へ。<br>ストレージ拡張・プレミアムアバター・一括バックアップ。</div>'
       )
     + '</div>';
 
   // ── 3 benefits ────────────────────────────────────────────
   const benefitsHtml = '<div class="prm-checklist">'
-    + ['広告なしで家族管理に集中できる','Hokuを制限なく使える','写真・書類・思い出をたっぷり保存できる'].map(b =>
+    + ['家族の写真・記録を20GBたっぷり保存できる','プレミアムアバターで家族メンバーをより個性豊かに','データを一括ダウンロードして安心バックアップ'].map(b =>
         '<div class="prm-check-item">'
         + '<div class="prm-check-icon">' + checkIcon + '</div>'
         + '<span>' + b + '</span></div>'
@@ -12961,22 +12889,16 @@ function renderPremium() {
 
   // ── feature cards ─────────────────────────────────────────
   const features = [
-    { icon:'📵', bg:'#FFF0F0', name:'広告なしで使える',
-      desc:'家族の予定・タスク・家計管理を、広告に邪魔されず快適に使えます。',
-      detail:'無料プランでは画面に広告が表示されます。プレミアムでは一切表示されません。' },
-    { icon:'💾', bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
+    { icon: svgCloud,    bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
       desc:'写真、動画、書類、思い出をまとめて保存できます。',
       detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
-    { icon:'🤖', bg:'#F0FFF4', name:'Hokuを制限なしで使える',
-      desc:'予定追加、タスク整理、買い物メモ、家計入力などをHokuに何度でも相談できます。',
-      detail:'無料プランでは1日5回まで利用できます。プレミアムでは無制限です。' },
-    { icon:'👑', bg:'#FFFAEB', name:'プレミアムアバターが使える',
+    { icon: svgStar,     bg:'#FFFAEB', name:'プレミアムアバターが使える',
       desc:'家族メンバーごとに特別なアバターを設定できます。',
       detail:'プレミアムアバターは18種類以上。ファンタジーやドラゴンシリーズも選べます。' },
-    { icon:'🏷️', bg:'#F5F0FF', name:'思い出をタグで整理',
+    { icon: svgTag,      bg:'#F5F0FF', name:'思い出をタグで整理',
       desc:'子ども別、イベント別、日付別に思い出を探しやすく整理できます。',
       detail:'アルバムやボードの写真・記録にタグをつけて、あとから素早く検索できます。' },
-    { icon:'📦', bg:'#F0FFF8', name:'まとめてダウンロード',
+    { icon: svgDownload, bg:'#F0FFF8', name:'まとめてダウンロード',
       desc:'写真・書類・家族データを必要な時にまとめて保存できます。',
       detail:'年度末の整理や端末変更時に、家族の記録を一括でバックアップできます。' },
   ];
@@ -12996,15 +12918,13 @@ function renderPremium() {
 
   // ── compare table ─────────────────────────────────────────
   const rows = [
-    ['価格',          '¥0',       '¥480/月'],
-    ['広告非表示',     '—',        '✓'],
-    ['ストレージ',     '500MB',    '20GB'],
-    ['Hoku利用',      '1日5回',   '無制限'],
-    ['プレミアムアバター','—',     '✓'],
-    ['写真/書類管理',  '基本機能', '拡張機能'],
-    ['思い出タグ',     '—',        '✓'],
-    ['まとめてDL',     '—',        '✓'],
-    ['今後の限定機能', '—',        '✓'],
+    ['価格',           '¥0',       '¥480/月'],
+    ['ストレージ',      '500MB',    '20GB'],
+    ['プレミアムアバター','—',      '✓'],
+    ['写真/書類管理',   '基本機能', '拡張機能'],
+    ['思い出タグ',      '—',        '✓'],
+    ['まとめてDL',      '—',        '✓'],
+    ['今後の限定機能',  '—',        '✓'],
   ];
   const compareHtml = '<div class="prm-section-title">プラン比較</div>'
     + '<div class="prm-compare-wrap">'
@@ -15253,22 +15173,8 @@ function openHoku() { go('s-hoku'); renderHoku(); }
 
 function renderHoku() {
   renderHokuSuggs(); renderHokuMsgs(); hokuVoiceInit();
-  // Daily usage bar for free users
   var bar = document.getElementById('hoku-usage-bar');
-  if(bar) {
-    if(!S.isPremiumUser) {
-      var today = new Date().toISOString().slice(0,10);
-      var du = S.hokuDailyUsage;
-      var used = (du && du.date===today) ? du.count : 0;
-      var left = Math.max(0, 5 - used);
-      bar.innerHTML = '<div class="hoku-usage-bar">'
-        + '<span>👑 Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / 5回</span></span>'
-        + '<button class="hoku-usage-upgrade" onclick="go(\'s-premium\')">無制限にする</button>'
-        + '</div>';
-    } else {
-      bar.innerHTML = '';
-    }
-  }
+  if(bar) bar.innerHTML = '';
 }
 
 function renderHokuSuggs() {
@@ -15337,26 +15243,6 @@ function hokuSend() {
   const input = document.getElementById('hoku-input');
   const text  = input?.value.trim();
   if(!text) return;
-  // Hoku 1日5回制限（無料ユーザーのみ）
-  if(!S.isPremiumUser) {
-    const today = new Date().toISOString().slice(0,10);
-    if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) {
-      S.hokuDailyUsage = { date: today, count: 0 };
-    }
-    if(S.hokuDailyUsage.count >= 5) {
-      showConfirm(
-        'Hokuの利用制限',
-        '無料プランでは1日5回までHokuを利用できます。\nプレミアムにアップグレードすると無制限でご利用いただけます。',
-        'プレミアムを見る',
-        function(){ go('s-premium'); },
-        'info'
-      );
-      return;
-    }
-    S.hokuDailyUsage.count++;
-    saveS();
-    try { renderHoku(); } catch(_){} // update usage bar
-  }
   input.value = '';
   input.style.height = '';
   sendHokuMsg(text);
