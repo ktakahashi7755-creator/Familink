@@ -5,7 +5,7 @@
 <script>
 // キャッシュバスター: version.txt と照合して古いキャッシュを自動排除
 (function(){
-  var V='20260520d';
+  var V='20260520e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   fetch('version.txt?t='+Date.now())
@@ -798,6 +798,32 @@ select.input {
   transition: var(--t);
 }
 .home-add-btn:active { background: var(--bg-muted); }
+/* ── ホーム プレミアムバナー ── */
+.home-prm-banner {
+  margin: 0 0 12px;
+  background: linear-gradient(135deg, #FFFBEB, #FFF8E1);
+  border: 1.5px solid #FFD97D;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.home-prm-banner:active { opacity: .85; }
+.home-prm-banner-icon {
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(135deg, #FFE566, #F59E0B);
+  box-shadow: 0 4px 14px rgba(245,158,11,.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.home-prm-banner-body { flex: 1; min-width: 0; }
+.home-prm-banner-title { font-size: 13px; font-weight: 800; color: #92400E; margin-bottom: 2px; }
+.home-prm-banner-sub { font-size: 11px; color: #B45309; line-height: 1.4; }
+.home-prm-banner-btn {
+  flex-shrink: 0; background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #fff; border: none; border-radius: 20px;
+  font-size: 11px; font-weight: 700; padding: 7px 12px; cursor: pointer;
+  font-family: var(--font); white-space: nowrap;
+}
 
 /* ============================================================
    CALENDAR — Yahoo スタイル刷新版
@@ -2956,6 +2982,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-grid" id="home-grid"></div>
+    <div id="home-prm-banner"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>ボードを追加</button>
   </div>
 </div>
@@ -6060,6 +6087,24 @@ function renderHome() {
 
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
+
+  // プレミアムバナー（非会員のみ表示）
+  const prmBanner = document.getElementById('home-prm-banner');
+  if(prmBanner) {
+    if(!S.isPremiumUser) {
+      const crownSvg = '<svg width="28" height="28" viewBox="0 0 32 32" fill="white"><path d="M4 27h24v3H4v-3z"/><path d="M5.5 26.5L7.5 14l5.5 6L16 5l3 15 5.5-6 2 12.5H5.5z"/><circle cx="8" cy="13" r="2" opacity=".5"/><circle cx="16" cy="5" r="2" opacity=".5"/><circle cx="24" cy="13" r="2" opacity=".5"/></svg>';
+      prmBanner.innerHTML = '<div class="home-prm-banner" onclick="go(\'s-premium\')">'
+        + '<div class="home-prm-banner-icon">'+crownSvg+'</div>'
+        + '<div class="home-prm-banner-body">'
+        +   '<div class="home-prm-banner-title">広告なし・Hoku無制限・20GB</div>'
+        +   '<div class="home-prm-banner-sub">プレミアムを1ヶ月無料で体験</div>'
+        + '</div>'
+        + '<button class="home-prm-banner-btn" onclick="event.stopPropagation();go(\'s-premium\')">詳しく見る</button>'
+        + '</div>';
+    } else {
+      prmBanner.innerHTML = '';
+    }
+  }
 }
 
 /* ============================================================
@@ -12911,8 +12956,10 @@ function renderPremium() {
   const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
   // ── SVG icons for feature cards (white filled, premium gradient bg) ────
-  const svgCloud    = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>';
-  const svgCrown    = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M5 16L3 5l5.5 5L12 2l3.5 8L21 5l-2 11H5zm2.3 3h9.4c.3 1.1-.5 2-1.3 2H8.6c-.8 0-1.6-.9-1.3-2z"/></svg>';
+  const svgNoAds   = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>';
+  const svgHoku    = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7zm3 18H9v1a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1zm-4-9h2V9h2l-3-3-3 3h2v2z"/></svg>';
+  const svgCloud   = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>';
+  const svgCrown   = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M5 16L3 5l5.5 5L12 2l3.5 8L21 5l-2 11H5zm2.3 3h9.4c.3 1.1-.5 2-1.3 2H8.6c-.8 0-1.6-.9-1.3-2z"/></svg>';
   const svgBookmark = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
   const svgArchive  = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5h3V8h4v4h3l-5 5z"/></svg>';
 
@@ -12935,7 +12982,7 @@ function renderPremium() {
 
   // ── 3 benefits ────────────────────────────────────────────
   const benefitsHtml = '<div class="prm-checklist">'
-    + ['家族の写真・記録を20GBたっぷり保存できる','プレミアムアバターで家族メンバーをより個性豊かに','データを一括ダウンロードして安心バックアップ'].map(b =>
+    + ['広告ゼロで家族の時間を快適に','Hokuに制限なく相談できる','家族の記録を20GBたっぷり保存できる'].map(b =>
         '<div class="prm-check-item">'
         + '<div class="prm-check-icon">' + checkIcon + '</div>'
         + '<span>' + b + '</span></div>'
@@ -12944,6 +12991,12 @@ function renderPremium() {
 
   // ── feature cards ─────────────────────────────────────────
   const features = [
+    { icon: svgNoAds,    bg:'linear-gradient(135deg,#FB7185,#E11D48)', name:'広告なしで使える',
+      desc:'家族の予定・タスク・家計管理を、広告に邪魔されず快適に使えます。',
+      detail:'無料プランでは広告が表示されますが、プレミアムでは完全に非表示になります。' },
+    { icon: svgHoku,     bg:'linear-gradient(135deg,#34D399,#059669)', name:'Hokuを制限なしで使える',
+      desc:'予定追加、タスク整理、買い物メモ、家計入力などをHokuに何度でも相談できます。',
+      detail:'無料プランでは月10回までです。プレミアムでは制限なく使えます。' },
     { icon: svgCloud,    bg:'linear-gradient(135deg,#60A5FA,#2563EB)', name:'ストレージを20GBまで拡張',
       desc:'写真、動画、書類、思い出をまとめて保存できます。',
       detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
@@ -12953,7 +13006,7 @@ function renderPremium() {
     { icon: svgBookmark, bg:'linear-gradient(135deg,#C084FC,#7C3AED)', name:'思い出をタグで整理',
       desc:'子ども別、イベント別、日付別に思い出を探しやすく整理できます。',
       detail:'アルバムやボードの写真・記録にタグをつけて、あとから素早く検索できます。' },
-    { icon: svgArchive,  bg:'linear-gradient(135deg,#34D399,#059669)', name:'まとめてダウンロード',
+    { icon: svgArchive,  bg:'linear-gradient(135deg,#818CF8,#4F46E5)', name:'まとめてダウンロード',
       desc:'写真・書類・家族データを必要な時にまとめて保存できます。',
       detail:'年度末の整理や端末変更時に、家族の記録を一括でバックアップできます。' },
   ];
@@ -12974,12 +13027,12 @@ function renderPremium() {
   // ── compare table ─────────────────────────────────────────
   const rows = [
     ['価格',           '¥0',       '¥480/月'],
-    ['ストレージ',      '500MB',    '20GB'],
-    ['プレミアムアバター','—',      '✓'],
-    ['写真/書類管理',   '基本機能', '拡張機能'],
-    ['思い出タグ',      '—',        '✓'],
-    ['まとめてDL',      '—',        '✓'],
-    ['今後の限定機能',  '—',        '✓'],
+    ['広告表示',       'あり',     'なし'],
+    ['Hoku利用',       '月10回',   '無制限'],
+    ['ストレージ',     '500MB',    '20GB'],
+    ['プレミアムアバター','—',     '✓'],
+    ['思い出タグ',     '—',        '✓'],
+    ['まとめてDL',     '—',        '✓'],
   ];
   const compareHtml = '<div class="prm-section-title">プラン比較</div>'
     + '<div class="prm-compare-wrap">'
