@@ -12121,3 +12121,60 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: `a519be5`（main）/ `7cb56cf`（gh-pages）
 - メッセージ: `fix: 世界最高峰バグ修正 — 重複ID・音声モーダル・アバタータブ・iOS zoom防止`
+
+---
+
+## 2026-05-20 env: 不明  branch: main
+
+### 作業名
+世界最高峰品質パス②  — 全削除操作に確認ダイアログ・クラッシュ防止・タップ領域改善
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`
+- `docs/version.txt`（20260520d）
+- `gh-pages: index.html / version.txt`
+
+### 変更内容
+**CRITICAL バグ修正**
+- `deleteCurrentTx()`: 確認なしに収支データを削除していた → `showConfirm()` で確認ダイアログを追加
+- `loadS()`: localStorage に欠損フィールドがあるとクラッシュする恐れ → 配列フィールド15種の undefined を `[]` で補完
+
+**confirm() → showConfirm() 統一（5箇所）**
+- `deleteMemo()` / `deleteMemoById()`: ネイティブ confirm() → showConfirm() に変換
+- `confirmDeleteMember()` / `confirmDeleteMemberFromList()`: 同上
+- `deleteRecurringTxFromModal()` / `confirmDeleteRecurringTx()`: 固定収支削除も統一
+- `runTkBulkDelete()`: タスク一括削除も確認ダイアログ化
+
+**iOS HIG タップ領域確保**
+- `.archive-row .archive-actions button`: padding 4px→10px、min-height:44px
+- `.recurring-row .rr-actions button`: 同上
+- `.member-row .mr-actions button`: 同上
+
+**その他 UX 改善**
+- ICS コピーボタン: `.catch()` を追加（コピー失敗時にエラートースト表示）
+- 音声入力不可メッセージ: より自然な日本語に修正
+- タスク表示人数警告文: 「最低1人は」→「最低1名を」に修正
+
+### テスト結果
+- 文法エラーなし（目視確認）
+- `showConfirm` の参照先 `m-confirm` モーダルは既存で存在確認済み
+- 未実施: iPhone実機テスト
+
+### 未確認事項
+- iPhone実機でアバターモーダルカテゴリタブ確認（前回申し送り）
+- 削除確認ダイアログが正常に表示されるか
+
+### iPhone確認ポイント
+- 収支明細: 削除ボタンタップ → 確認ダイアログが表示されるか
+- メンバー削除: 確認ダイアログが表示されるか
+- archive/recurring/member ボタンが 44px 以上のタップ領域があるか
+
+### 次にやること
+- iPhone実機テスト（上記確認ポイント）
+- App Store申請準備（アイコン・スクショ・説明文）
+- 残存 confirm() の showConfirm() 変換（設定画面のデータ削除系）
+
+### コミット
+- ハッシュ: `97af176`（main）/ `5c50c61`（gh-pages）
+- メッセージ: `fix: 世界最高峰品質パス — 全削除操作に確認ダイアログ追加・クラッシュ防止・タップ領域改善`
