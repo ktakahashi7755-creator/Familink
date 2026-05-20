@@ -2285,6 +2285,204 @@ nav#tabbar.hidden { display: none !important; }
   z-index: 1;
 }
 
+
+/* ============================================================
+   Premium Screen (s-premium)
+   ============================================================ */
+#s-premium { display:flex; flex-direction:column; background:var(--bg); }
+.prm-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+.prm-header-bar {
+  position:sticky; top:0; z-index:10; display:flex; align-items:center;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background:rgba(255,255,255,.94); backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--border-light);
+}
+.prm-close-btn {
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:var(--bg-muted); color:var(--text); font-size:18px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:var(--t-base);
+}
+.prm-close-btn:active { transform:scale(.88); }
+.prm-header-title { flex:1; text-align:center; font-size:15px; font-weight:700;
+  color:var(--text); margin:0 8px; }
+.prm-hero {
+  padding:28px 20px 20px; text-align:center;
+  background:linear-gradient(160deg,#F0F7FF 0%,#FFF8EC 60%,#fff 100%);
+}
+.prm-crown {
+  width:60px; height:60px; border-radius:50%;
+  background:linear-gradient(135deg,#FFE066,#FFB300);
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 14px; box-shadow:0 4px 18px rgba(255,179,0,.35);
+}
+.prm-hero-title {
+  font-size:24px; font-weight:900; color:var(--text);
+  line-height:1.3; margin-bottom:10px; letter-spacing:-.5px;
+}
+.prm-hero-sub {
+  font-size:13px; color:var(--text-sub); line-height:1.65; margin-bottom:0;
+}
+.prm-hero-already {
+  display:inline-block; background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  color:#fff; font-size:13px; font-weight:700; border-radius:var(--r-full);
+  padding:8px 20px; margin-top:12px;
+}
+/* Benefits checklist */
+.prm-checklist {
+  margin:0 16px 16px; background:#FFFBEF;
+  border-radius:16px; padding:18px 18px; border:1px solid #FFE599;
+}
+.prm-check-item {
+  display:flex; align-items:flex-start; gap:10px;
+  font-size:15px; font-weight:600; color:var(--text); line-height:1.5;
+}
+.prm-check-item + .prm-check-item { margin-top:12px; }
+.prm-check-icon {
+  flex-shrink:0; width:22px; height:22px; border-radius:50%;
+  background:linear-gradient(135deg,#4A90E2,#52C47A);
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+/* Feature cards */
+.prm-section-title {
+  font-size:17px; font-weight:800; color:var(--text);
+  padding:0 20px; margin:20px 0 12px;
+}
+.prm-feature-card {
+  margin:0 16px 10px; background:#fff;
+  border:1px solid var(--border-light); border-radius:16px;
+  padding:16px; display:flex; align-items:flex-start; gap:14px;
+  cursor:pointer; transition:var(--t-base);
+}
+.prm-feature-card:active { opacity:.8; }
+.prm-feature-icon {
+  width:48px; height:48px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+}
+.prm-feature-body { flex:1; min-width:0; }
+.prm-feature-name {
+  font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; line-height:1.3;
+}
+.prm-feature-desc { font-size:12px; color:var(--text-sub); line-height:1.6; }
+.prm-badge {
+  display:inline-block; background:linear-gradient(135deg,#FFE066,#FFB300);
+  color:#7A5800; font-size:10px; font-weight:800;
+  border-radius:var(--r-full); padding:2px 8px; margin-top:6px;
+}
+.prm-expand-btn {
+  flex-shrink:0; color:var(--text-muted); font-size:18px; padding:4px;
+  transition:transform .2s; line-height:1;
+}
+.prm-feature-card.open .prm-expand-btn { transform:rotate(180deg); }
+.prm-feature-expand {
+  overflow:hidden; max-height:0; transition:max-height .25s ease;
+}
+.prm-feature-card.open .prm-feature-expand { max-height:200px; }
+.prm-feature-expand-inner {
+  padding:10px 0 0; font-size:12px; color:var(--text-sub);
+  line-height:1.65; border-top:1px solid var(--border-light); margin-top:10px;
+}
+/* Compare table */
+.prm-compare-wrap { margin:0 16px 16px; border-radius:16px; overflow:hidden;
+  border:1px solid var(--border-light); }
+.prm-compare-head { display:grid; grid-template-columns:1fr 1fr 1fr; }
+.prm-compare-head-cell {
+  padding:10px 6px; text-align:center; font-size:12px; font-weight:700;
+  background:var(--bg-muted); color:var(--text-sub);
+}
+.prm-compare-head-cell.premium {
+  background:linear-gradient(135deg,#4A90E2,#6B7FE3); color:#fff;
+}
+.prm-compare-row { display:grid; grid-template-columns:1fr 1fr 1fr;
+  border-top:1px solid var(--border-light); }
+.prm-compare-row:nth-child(even) { background:#FAFBFF; }
+.prm-compare-cell {
+  padding:10px 6px; text-align:center; font-size:12px; color:var(--text);
+  display:flex; align-items:center; justify-content:center; line-height:1.4;
+}
+.prm-compare-cell.label {
+  justify-content:flex-start; padding-left:12px; color:var(--text-sub);
+  font-weight:600; text-align:left;
+}
+.prm-compare-cell.premium { font-weight:700; color:#3A6FC4; }
+.prm-chk { color:#52C47A; font-size:16px; font-weight:800; }
+.prm-dash { color:var(--text-muted); font-size:16px; }
+/* Terms */
+.prm-terms {
+  margin:0 16px 16px; background:var(--bg-muted);
+  border-radius:16px; padding:18px;
+}
+.prm-terms-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:12px; }
+.prm-terms-item {
+  font-size:12px; color:var(--text-sub); line-height:1.7;
+  padding:0 0 0 14px; position:relative; margin-bottom:6px;
+}
+.prm-terms-item::before {
+  content:'•'; position:absolute; left:0; color:var(--text-muted);
+}
+/* FAQ */
+.prm-faq { margin:0 16px 16px; }
+.prm-faq-item {
+  border-bottom:1px solid var(--border-light); overflow:hidden;
+}
+.prm-faq-q {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 4px; font-size:14px; font-weight:600; color:var(--text);
+  cursor:pointer; -webkit-tap-highlight-color:transparent; gap:8px;
+}
+.prm-faq-q:active { opacity:.7; }
+.prm-faq-arrow {
+  flex-shrink:0; font-size:16px; color:var(--text-muted);
+  transition:transform .2s; line-height:1;
+}
+.prm-faq-item.open .prm-faq-arrow { transform:rotate(180deg); }
+.prm-faq-a {
+  max-height:0; overflow:hidden; transition:max-height .25s ease;
+  font-size:13px; color:var(--text-sub); line-height:1.7;
+}
+.prm-faq-item.open .prm-faq-a { max-height:200px; }
+.prm-faq-a-inner { padding:0 4px 14px; }
+/* CTA bar */
+.prm-cta-bar {
+  position:sticky; bottom:0; left:0; right:0; z-index:10;
+  background:#fff; border-top:1px solid var(--border-light);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 20px rgba(0,0,0,.08);
+}
+.prm-cta-btn {
+  width:100%; height:56px; border-radius:var(--r-full);
+  background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  color:#fff; font-size:17px; font-weight:800; border:none;
+  box-shadow:0 4px 18px rgba(74,144,226,.40);
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:1px; cursor:pointer;
+  transition:var(--t-spring); -webkit-tap-highlight-color:transparent;
+}
+.prm-cta-btn:active { transform:scale(.97); }
+.prm-cta-btn-sub { font-size:11px; font-weight:600; opacity:.82; }
+.prm-cta-already {
+  width:100%; height:52px; border-radius:var(--r-full);
+  background:var(--bg-muted); color:var(--text-sub);
+  font-size:14px; font-weight:700; border:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:default;
+}
+.prm-links {
+  display:flex; justify-content:center; gap:20px;
+  padding:10px 0 0;
+}
+.prm-link {
+  font-size:12px; color:var(--primary); background:none; border:none;
+  cursor:pointer; text-decoration:underline; padding:4px;
+}
+/* ad banner for free users */
+.prm-ad-banner {
+  margin:0 16px 16px; background:var(--bg-muted);
+  border:1px dashed var(--border); border-radius:12px;
+  padding:14px; text-align:center; color:var(--text-muted);
+  font-size:11px;
+}
 </style>
 </head>
 <body>
@@ -3391,6 +3589,13 @@ nav#tabbar.hidden { display: none !important; }
   <div class="scroll-area" id="settings-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
+
+<!-- ===== PREMIUM SCREEN ===== -->
+<div id="s-premium" class="screen hidden">
+  <div class="prm-scroll" id="prm-body"></div>
+  <div id="prm-cta-bar"></div>
+</div>
+
 <!-- ===== MODALS ===== -->
 
 <!-- 使い方ガイド -->
@@ -4367,10 +4572,11 @@ let S = {
   },
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
+  hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
 };
 
 const APP_VERSION = 'v1.2.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders'];
 
 function saveS() {
   const d = {};
@@ -4860,7 +5066,7 @@ let _navStack = [];
 function _navApply(id) {
   S.prev = S.screen;
   showScreen(id);
-  const noTab = ['s-ob', 's-login', 's-onboard'];
+  const noTab = ['s-ob', 's-login', 's-onboard', 's-premium'];
   document.getElementById('tabbar').classList.toggle('hidden', noTab.includes(id));
   refresh(id);
 }
@@ -4916,6 +5122,7 @@ function refresh(id) {
     case 's-archive':  renderArchive(); break;
     case 's-album':    renderAlbum(); break;
     case 's-memo':     renderMemo(); break;
+    case 's-premium':  renderPremium(); break;
   }
 }
 
@@ -12321,6 +12528,196 @@ function _refreshNotifBadges() {
 /* ============================================================
    SETTINGS
    ============================================================ */
+
+
+function devTogglePremium() {
+  S.isPremiumUser = !S.isPremiumUser;
+  saveS();
+  try { renderSettings(); } catch(_){}
+  showToast(S.isPremiumUser ? 'プレミアム ON（開発用）' : '無料プラン（開発用）', 'success');
+}
+
+/* ============================================================
+   Wave 200 — Familink Premium Screen
+   ============================================================ */
+function renderPremium() {
+  const isPrem = S.isPremiumUser;
+  const H = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  // ── hero ──────────────────────────────────────────────────
+  const heroHtml = '<div class="prm-header-bar">'
+    + '<button class="prm-close-btn" onclick="goBack()" aria-label="閉じる">×</button>'
+    + '<div class="prm-header-title">Familink Premium</div>'
+    + '<div style="width:34px"></div>'
+    + '</div>'
+    + '<div class="prm-hero">'
+    + '<div class="prm-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg></div>'
+    + (isPrem
+        ? '<div class="prm-hero-title">プレミアム利用中</div>'
+          + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
+          + '<div class="prm-hero-already">✓ プレミアム会員</div>'
+        : '<div class="prm-hero-title">プレミアムを<br>1ヶ月無料で体験しよう</div>'
+          + '<div class="prm-hero-sub">家族みんなで、もっと快適にFamilinkを使えます。<br><span style="font-size:12px;color:var(--text-muted);">広告なしで、Hokuも、保存容量も、家族みんなでもっと快適に。</span></div>'
+      )
+    + '</div>';
+
+  // ── 3 benefits ────────────────────────────────────────────
+  const benefitsHtml = '<div class="prm-checklist">'
+    + ['広告なしで家族管理に集中できる','Hokuを制限なく使える','写真・書類・思い出をたっぷり保存できる'].map(b =>
+        '<div class="prm-check-item">'
+        + '<div class="prm-check-icon">' + checkIcon + '</div>'
+        + '<span>' + b + '</span></div>'
+      ).join('')
+    + '</div>';
+
+  // ── feature cards ─────────────────────────────────────────
+  const features = [
+    { icon:'📵', bg:'#FFF0F0', name:'広告なしで使える',
+      desc:'家族の予定・タスク・家計管理を、広告に邪魔されず快適に使えます。',
+      detail:'無料プランでは画面に広告が表示されます。プレミアムでは一切表示されません。' },
+    { icon:'💾', bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
+      desc:'写真、動画、書類、思い出をまとめて保存できます。',
+      detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
+    { icon:'🤖', bg:'#F0FFF4', name:'Hokuを制限なしで使える',
+      desc:'予定追加、タスク整理、買い物メモ、家計入力などをHokuに何度でも相談できます。',
+      detail:'無料プランでは1日5回まで利用できます。プレミアムでは無制限です。' },
+    { icon:'👑', bg:'#FFFAEB', name:'プレミアムアバターが使える',
+      desc:'家族メンバーごとに特別なアバターを設定できます。',
+      detail:'プレミアムアバターは18種類以上。ファンタジーやドラゴンシリーズも選べます。' },
+    { icon:'🏷️', bg:'#F5F0FF', name:'思い出をタグで整理',
+      desc:'子ども別、イベント別、日付別に思い出を探しやすく整理できます。',
+      detail:'アルバムやボードの写真・記録にタグをつけて、あとから素早く検索できます。' },
+    { icon:'📦', bg:'#F0FFF8', name:'まとめてダウンロード',
+      desc:'写真・書類・家族データを必要な時にまとめて保存できます。',
+      detail:'年度末の整理や端末変更時に、家族の記録を一括でバックアップできます。' },
+  ];
+  const featureCardsHtml = '<div class="prm-section-title">プレミアムの機能</div>'
+    + features.map((f,i) =>
+        '<div class="prm-feature-card" id="prm-fc-'+i+'" onclick="prmToggleFeature('+i+')">'
+        + '<div class="prm-feature-icon" style="background:'+f.bg+'">'+f.icon+'</div>'
+        + '<div class="prm-feature-body">'
+        +   '<div class="prm-feature-name">'+f.name+'</div>'
+        +   '<div class="prm-feature-desc">'+f.desc+'</div>'
+        +   '<div class="prm-badge">Premiumのみ</div>'
+        +   '<div class="prm-feature-expand"><div class="prm-feature-expand-inner">'+f.detail+'</div></div>'
+        + '</div>'
+        + '<div class="prm-expand-btn">›</div>'
+        + '</div>'
+      ).join('');
+
+  // ── compare table ─────────────────────────────────────────
+  const rows = [
+    ['価格',          '¥0',       '¥480/月'],
+    ['広告非表示',     '—',        '✓'],
+    ['ストレージ',     '500MB',    '20GB'],
+    ['Hoku利用',      '1日5回',   '無制限'],
+    ['プレミアムアバター','—',     '✓'],
+    ['写真/書類管理',  '基本機能', '拡張機能'],
+    ['思い出タグ',     '—',        '✓'],
+    ['まとめてDL',     '—',        '✓'],
+    ['今後の限定機能', '—',        '✓'],
+  ];
+  const compareHtml = '<div class="prm-section-title">プラン比較</div>'
+    + '<div class="prm-compare-wrap">'
+    + '<div class="prm-compare-head">'
+    + '<div class="prm-compare-head-cell" style="background:#fff;"></div>'
+    + '<div class="prm-compare-head-cell">無料</div>'
+    + '<div class="prm-compare-head-cell premium">Premium</div>'
+    + '</div>'
+    + rows.map(([lbl,free,prem]) =>
+        '<div class="prm-compare-row">'
+        + '<div class="prm-compare-cell label">'+lbl+'</div>'
+        + '<div class="prm-compare-cell">' + (free==='✓'?'<span class="prm-chk">✓</span>': free==='—'?'<span class="prm-dash">—</span>':free) + '</div>'
+        + '<div class="prm-compare-cell premium">' + (prem==='✓'?'<span class="prm-chk">✓</span>': prem==='—'?'<span class="prm-dash">—</span>':prem) + '</div>'
+        + '</div>'
+      ).join('')
+    + '</div>';
+
+  // ── terms ─────────────────────────────────────────────────
+  const termsList = [
+    '1ヶ月無料でお試しいただけます。',
+    '無料期間中に解約すれば料金はかかりません。',
+    '無料期間終了後は、月額480円で自動更新されます。',
+    'ご契約と解約は、App Storeのアカウント設定から行えます。',
+    '家族で利用する場合も、代表者1名の契約でプレミアム機能を利用できます。',
+    '購入済みの場合は「購入を復元」から状態を確認できます。',
+  ];
+  const termsHtml = '<div class="prm-section-title">プレミアムのご契約について</div>'
+    + '<div class="prm-terms">'
+    + termsList.map(t => '<div class="prm-terms-item">'+t+'</div>').join('')
+    + '</div>';
+
+  // ── FAQ ───────────────────────────────────────────────────
+  const faqs = [
+    { q:'家族もプレミアム機能を使えますか？', a:'はい。代表者1名がプレミアム契約すると、同じ家族スペース内のメンバーも対象機能を利用できます。' },
+    { q:'無料期間中に解約できますか？', a:'はい。無料期間中に解約すれば料金は発生しません。' },
+    { q:'プランは変更できますか？', a:'将来的に月額プラン・年額プランを選べるようにする予定です。' },
+    { q:'解約するとどうなりますか？', a:'プレミアム限定機能は利用できなくなりますが、保存済みの基本データは削除されません。' },
+    { q:'購入を復元できますか？', a:'はい。購入済みの場合は「購入を復元」から状態を確認できます。' },
+  ];
+  const faqHtml = '<div class="prm-section-title">よくある質問</div>'
+    + '<div class="prm-faq">'
+    + faqs.map((faq,i) =>
+        '<div class="prm-faq-item" id="prm-faq-'+i+'" onclick="prmToggleFaq('+i+')">'
+        + '<div class="prm-faq-q"><span>'+faq.q+'</span><span class="prm-faq-arrow">›</span></div>'
+        + '<div class="prm-faq-a"><div class="prm-faq-a-inner">'+faq.a+'</div></div>'
+        + '</div>'
+      ).join('')
+    + '</div>';
+
+  // ── links area ────────────────────────────────────────────
+  const linksHtml = '<div class="prm-links">'
+    + '<button class="prm-link" onclick="prmRestorePurchase()">購入を復元</button>'
+    + '<button class="prm-link" onclick="openLegalDoc('terms')">利用規約</button>'
+    + '<button class="prm-link" onclick="openLegalDoc('privacy')">プライバシーポリシー</button>'
+    + '</div><div style="height:8px"></div>';
+
+  const body = document.getElementById('prm-body');
+  if(body) body.innerHTML = heroHtml + benefitsHtml + featureCardsHtml + compareHtml + termsHtml + faqHtml + linksHtml;
+
+  // ── sticky CTA ────────────────────────────────────────────
+  const ctaBar = document.getElementById('prm-cta-bar');
+  if(ctaBar) ctaBar.innerHTML = isPrem
+    ? '<div class="prm-cta-bar"><div class="prm-cta-already">✓ プレミアム利用中</div></div>'
+    : '<div class="prm-cta-bar">'
+      + '<button class="prm-cta-btn" onclick="prmStartPremium()">'
+      +   '<span>プレミアムプランを選ぶ</span>'
+      +   '<span class="prm-cta-btn-sub">1ヶ月お試し無料</span>'
+      + '</button>'
+      + linksHtml
+      + '</div>';
+}
+
+function prmToggleFeature(i) {
+  const card = document.getElementById('prm-fc-'+i);
+  if(!card) return;
+  card.classList.toggle('open');
+  const btn = card.querySelector('.prm-expand-btn');
+  if(btn) btn.textContent = card.classList.contains('open') ? '‹' : '›';
+}
+function prmToggleFaq(i) {
+  const item = document.getElementById('prm-faq-'+i);
+  if(!item) return;
+  item.classList.toggle('open');
+}
+function prmStartPremium() {
+  showAlert('開発中のお知らせ',
+    '現在、App Store課金連携は開発中です。\nこのボタンは将来のプレミアム契約導線として準備されています。');
+}
+function prmRestorePurchase() {
+  showAlert('開発中のお知らせ',
+    '現在、App Store課金連携は開発中です。\n購入の復元は正式リリース後にご利用いただけます。');
+}
+function showAlert(title, msg) {
+  if(typeof showConfirm === 'function') {
+    showConfirm(title, msg, 'OK', function(){}, 'info');
+  } else {
+    alert(title + '\n' + msg);
+  }
+}
+
 function renderSettings() {
   const u = S.user||MEMBERS[0];
   const uid = H(u.id);
@@ -12340,7 +12737,7 @@ function renderSettings() {
     ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>プレミアム会員</div>'
     : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>Familink Premium</div>'
       +'<div class="menu-premium-desc">特別アバター・ボード追加で<br>家族をもっと便利に。月額480円。</div>'
-      +'<button class="menu-premium-btn" onclick="showPremiumGate()">プレミアムを見る</button>';
+      +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">プレミアムを見る</button>';
 
   const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#4A90E2');
   const lockIcon = si('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>','#7A6FD0');
@@ -12475,6 +12872,20 @@ function renderSettings() {
       <div class="settings-item" onclick="doLogout()">
         <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
         <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
+      </div>
+    </div>
+
+    <!-- Dev: プレミアム切替トグル（本番想定では非表示に） -->
+    <div class="settings-section" style="opacity:.6">
+      <div class="settings-title" style="font-size:11px">開発用オプション</div>
+      <div class="settings-item" onclick="devTogglePremium()">
+        <div class="settings-item-icon" style="background:#F3F4F6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+        </div>
+        <div class="settings-item-label" style="font-size:12px;color:var(--text-muted)">プレミアム状態を切り替え（開発用）
+          <div style="font-size:11px;color:var(--primary)">\${S.isPremiumUser ? 'ON（プレミアム中）' : 'OFF（無料中）'}</div>
+        </div>
+        <div class="settings-arrow">\${S.isPremiumUser ? '●' : '○'}</div>
       </div>
     </div>
 
@@ -12659,9 +13070,7 @@ function selectAvatarItem(avatarId) {
 
 /* プレミアムゲートモーダルを表示 */
 function showPremiumGate() {
-  document.getElementById('m-premium-gate')?.classList.remove('hidden');
-  if(typeof selectPremiumPlan === 'function') selectPremiumPlan(_premiumPlan);
-  openModal('m-premium-gate');
+  go('s-premium');
 }
 
 function closePremiumGate() {
@@ -14513,6 +14922,25 @@ function hokuSend() {
   const input = document.getElementById('hoku-input');
   const text  = input?.value.trim();
   if(!text) return;
+  // Hoku 1日5回制限（無料ユーザーのみ）
+  if(!S.isPremiumUser) {
+    const today = new Date().toISOString().slice(0,10);
+    if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) {
+      S.hokuDailyUsage = { date: today, count: 0 };
+    }
+    if(S.hokuDailyUsage.count >= 5) {
+      showConfirm(
+        'Hokuの利用制限',
+        '無料プランでは1日5回までHokuを利用できます。\nプレミアムにアップグレードすると無制限でご利用いただけます。',
+        'プレミアムを見る',
+        function(){ go('s-premium'); },
+        'info'
+      );
+      return;
+    }
+    S.hokuDailyUsage.count++;
+    saveS();
+  }
   input.value = '';
   input.style.height = '';
   sendHokuMsg(text);
