@@ -11978,3 +11978,49 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `feat: ホーム広告削除・Hoku無制限化・プレミアム画面プロ品質リデザイン`
+
+## 2026-05-20 env: 不明  branch: claude/display-current-link-IUqy1
+
+### 作業名
+バグ修正・デッドコード削除・整合性修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+**バグ修正**
+- `hokuSend()`: `input?.value.trim()` → `input?.value?.trim()` (input が null 時に throw する null safety bug)
+- 体調記録症状チップ: `var(--green-light)` → `var(--secondary-light)` (未定義 CSS 変数による描画崩れ)
+
+**整合性修正**
+- 設定画面プレミアムカード説明文: 「広告なし・Hoku無制限」→「20GBストレージ・プレミアムアバター・一括バックアップ」に更新（機能変更と合わせて）
+
+**デッドコード削除**
+- `hokuDailyUsage: null` を S state から削除
+- `hokuDailyUsage` を PERSIST 配列から削除
+- `<div id="hoku-usage-bar">` HTML 要素を削除（常に空、不要）
+- `renderHoku()` の usage-bar クリアコードを削除
+- `<div id="home-ad-bar">` HTML 要素を削除（常に空、不要）
+- `renderHome()` の adBar クリアコードを削除
+
+### テスト結果
+- Backtick 偶数: 876 ✓
+- div バランス: 1613/1613 ✓
+- 未定義 CSS 変数: 0 ✓
+- 全13チェック: PASSED ✓
+
+### 未確認事項
+- 実機での体調記録症状チップ（緑色）表示確認
+
+### iPhone確認ポイント
+- 体調記録: 平熱症状のチップが緑色で表示されるか
+- Hoku: 入力フィールドが null でも安全に動作するか
+
+### 次にやること
+- 実機テスト（iPhone）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `fix: null safety修正・--green-light未定義修正・デッドコード削除`
