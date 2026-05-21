@@ -6,20 +6,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
-// キャッシュバスター: version.txt と照合して古いキャッシュを自動排除
+// キャッシュバスター: version.txtに依存せず即時リダイレクトでCDNキャッシュを強制バイパス
 (function(){
-  var V='20260520f';
+  var V='20260520g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
-  // cache:'no-store' でブラウザキャッシュを完全にバイパス
-  fetch('version.txt?t='+Date.now(),{cache:'no-store'})
-    .then(function(r){return r.text();})
-    .then(function(v){
-      v=v.trim();
-      if(v&&v!==V){
-        location.replace(location.pathname+'?v='+v+'&r='+Date.now()+(location.hash||''));
-      }
-    }).catch(function(){});
+  location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
 })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
