@@ -2397,8 +2397,9 @@ nav#tabbar.hidden { display: none !important; }
 .prm-feature-card:active { opacity:.8; }
 .prm-feature-icon {
   width:48px; height:48px; border-radius:14px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-size:22px;
+  display:flex; align-items:center; justify-content:center;
 }
+.prm-feature-icon svg { display:block; }
 .prm-feature-body { flex:1; min-width:0; }
 .prm-feature-name {
   font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; line-height:1.3;
@@ -2410,8 +2411,8 @@ nav#tabbar.hidden { display: none !important; }
   border-radius:var(--r-full); padding:2px 8px; margin-top:6px;
 }
 .prm-expand-btn {
-  flex-shrink:0; color:var(--text-muted); font-size:18px; padding:4px;
-  transition:transform .2s; line-height:1;
+  flex-shrink:0; color:var(--text-muted); padding:4px;
+  transition:transform .3s ease; display:flex; align-items:center;
 }
 .prm-feature-card.open .prm-expand-btn { transform:rotate(180deg); }
 .prm-feature-expand {
@@ -2534,7 +2535,7 @@ nav#tabbar.hidden { display: none !important; }
 .home-ad-strip-icon {
   width:40px; height:40px; border-radius:12px; flex-shrink:0;
   background:linear-gradient(135deg,#FFE066,#FFB300);
-  display:flex; align-items:center; justify-content:center; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
 }
 .home-ad-strip-body { flex:1; min-width:0; }
 .home-ad-strip-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
@@ -5124,7 +5125,7 @@ function renderStorageModal() {
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
     + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
-    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);">👑 ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
+    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);" style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
@@ -6096,7 +6097,7 @@ function renderHome() {
   if(adBar) {
     if(!S.isPremiumUser) {
       adBar.innerHTML = '<div class="home-ad-strip" onclick="go(\'s-premium\')">'
-        + '<div class="home-ad-strip-icon">👑</div>'
+        + '<div class="home-ad-strip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><rect x="3" y="19" width="18" height="2.5" rx="1.2"/></svg></div>'
         + '<div class="home-ad-strip-body">'
         + '<div class="home-ad-strip-title">広告なし・Hoku無制限・20GB</div>'
         + '<div class="home-ad-strip-sub">プレミアムを1ヶ月無料で体験</div>'
@@ -12960,23 +12961,31 @@ function renderPremium() {
     + '</div>';
 
   // ── feature cards ─────────────────────────────────────────
+  const _si = (paths, color) =>
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
   const features = [
-    { icon:'📵', bg:'#FFF0F0', name:'広告なしで使える',
+    { icon: _si('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>', '#D94444'),
+      bg:'#FFF0F0', name:'広告なしで使える',
       desc:'家族の予定・タスク・家計管理を、広告に邪魔されず快適に使えます。',
       detail:'無料プランでは画面に広告が表示されます。プレミアムでは一切表示されません。' },
-    { icon:'💾', bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
+    { icon: _si('<polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>', '#4A90E2'),
+      bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
       desc:'写真、動画、書類、思い出をまとめて保存できます。',
       detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
-    { icon:'🤖', bg:'#F0FFF4', name:'Hokuを制限なしで使える',
+    { icon: _si('<path d="M12 3l1.5 4.5 4.5 1.5-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M5 17l.75 2.25L8 20l-2.25.75L5 23l-.75-2.25L2 20l2.25-.75z"/><path d="M18 2l.75 2.25L21 5l-2.25.75L18 8l-.75-2.25L15 5l2.25-.75z"/>', '#16A34A'),
+      bg:'#F0FFF4', name:'Hokuを制限なしで使える',
       desc:'予定追加、タスク整理、買い物メモ、家計入力などをHokuに何度でも相談できます。',
       detail:'無料プランでは1日5回まで利用できます。プレミアムでは無制限です。' },
-    { icon:'👑', bg:'#FFFAEB', name:'プレミアムアバターが使える',
+    { icon: _si('<path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/>', '#D97706'),
+      bg:'#FFFAEB', name:'プレミアムアバターが使える',
       desc:'家族メンバーごとに特別なアバターを設定できます。',
       detail:'プレミアムアバターは18種類以上。ファンタジーやドラゴンシリーズも選べます。' },
-    { icon:'🏷️', bg:'#F5F0FF', name:'思い出をタグで整理',
+    { icon: _si('<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>', '#7C3AED'),
+      bg:'#F5F0FF', name:'思い出をタグで整理',
       desc:'子ども別、イベント別、日付別に思い出を探しやすく整理できます。',
       detail:'アルバムやボードの写真・記録にタグをつけて、あとから素早く検索できます。' },
-    { icon:'📦', bg:'#F0FFF8', name:'まとめてダウンロード',
+    { icon: _si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', '#0D9488'),
+      bg:'#F0FFF8', name:'まとめてダウンロード',
       desc:'写真・書類・家族データを必要な時にまとめて保存できます。',
       detail:'年度末の整理や端末変更時に、家族の記録を一括でバックアップできます。' },
   ];
@@ -12990,7 +12999,7 @@ function renderPremium() {
         +   '<div class="prm-badge">Premiumのみ</div>'
         +   '<div class="prm-feature-expand"><div class="prm-feature-expand-inner">'+f.detail+'</div></div>'
         + '</div>'
-        + '<div class="prm-expand-btn">›</div>'
+        + '<div class="prm-expand-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>'
         + '</div>'
       ).join('');
 
@@ -13082,8 +13091,6 @@ function prmToggleFeature(i) {
   const card = document.getElementById('prm-fc-'+i);
   if(!card) return;
   card.classList.toggle('open');
-  const btn = card.querySelector('.prm-expand-btn');
-  if(btn) btn.textContent = card.classList.contains('open') ? '‹' : '›';
 }
 function prmToggleFaq(i) {
   const item = document.getElementById('prm-faq-'+i);
@@ -15262,7 +15269,7 @@ function renderHoku() {
       var used = (du && du.date===today) ? du.count : 0;
       var left = Math.max(0, 5 - used);
       bar.innerHTML = '<div class="hoku-usage-bar">'
-        + '<span>👑 Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / 5回</span></span>'
+        + '<span style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / 5回</span></span>'
         + '<button class="hoku-usage-upgrade" onclick="go(\'s-premium\')">無制限にする</button>'
         + '</div>';
     } else {
