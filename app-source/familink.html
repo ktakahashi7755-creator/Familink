@@ -1312,12 +1312,12 @@ select.input {
 .menu-nav-desc { font-size:11px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
 .menu-nav-arrow { font-size:18px; color:var(--text-muted); flex-shrink:0; }
 .menu-nav-item.active .menu-nav-arrow { color:var(--primary); }
-.menu-premium-card { margin:4px 16px 8px; background:linear-gradient(135deg,#FFF8E1 0%,#FFF3CD 100%); border:1.5px solid #FFD700; border-radius:var(--r-lg); padding:16px 18px; }
-.menu-premium-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#B8860B; margin-bottom:5px; }
-.menu-premium-desc { font-size:12px; color:#92650A; line-height:1.6; margin-bottom:12px; }
-.menu-premium-btn { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#FFB800,#F59E0B); color:#fff; border:none; border-radius:var(--r-full); padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font); transition:var(--t); }
+.menu-premium-card { margin:4px 16px 8px; background:#F7FAFF; border:1px solid #C7D9F5; border-radius:var(--r-lg); padding:16px 18px; }
+.menu-premium-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#1E293B; margin-bottom:5px; }
+.menu-premium-desc { font-size:12px; color:#475569; line-height:1.6; margin-bottom:12px; }
+.menu-premium-btn { display:inline-flex; align-items:center; gap:6px; background:#4A90E2; color:#fff; border:none; border-radius:var(--r-full); padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font); transition:var(--t); }
 .menu-premium-btn:active { opacity:.85; }
-.menu-premium-member { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#B8860B; }
+.menu-premium-member { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#1E293B; }
 .menu-footer { text-align:center; padding:20px 16px 8px; color:var(--text-muted); font-size:12px; line-height:2; }
 .menu-footer-tagline { font-size:13px; color:var(--text-sub); font-weight:600; margin-bottom:4px; }
 
@@ -2660,20 +2660,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .prm-link:hover { opacity: .8; }
 
 /* ── Settings Premium Card: Enhanced ── */
-.menu-premium-card {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #EBF4FF 0%, #FFF8EC 50%, #F0EBFF 100%);
-  border: 1.5px solid transparent;
-  background-clip: padding-box;
-}
-.menu-premium-card::before {
-  content: '';
-  position: absolute; inset: -1px; z-index: 0;
-  background: linear-gradient(135deg, #4A90E2, #FFB300, #9B7EDE);
-  border-radius: inherit;
-  opacity: .25;
-  pointer-events: none;
-}
+.menu-premium-card::before { display: none; }
 
 /* ── Home Ad Banner: More Polished ── */
 .home-ad-strip {
@@ -5954,13 +5941,9 @@ function renderHome() {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
     greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
   }
-  // Today's date in header
+  // 日付表示なし（削除済み）
   const dateMid = document.getElementById('home-date-mid');
-  if(dateMid) {
-    const now = new Date();
-    const d = now.getDate(), mo = now.getMonth()+1, wd = ['日','月','火','水','木','金','土'][now.getDay()];
-    dateMid.innerHTML = `<span class="home-date-mid">${mo}/${d}（${wd}）</span>`;
-  }
+  if(dateMid) dateMid.innerHTML = '';
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
   const badge = document.getElementById('notif-badge');
@@ -13098,10 +13081,10 @@ function renderSettings() {
     +'</div><div class="menu-nav-arrow">›</div></div>';
 
   const premiumHtml = S.isPremiumUser
-    ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>プレミアム会員</div>'
+    ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="#4A90E2"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>プレミアム会員</div>'
       + '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">すべての機能が使い放題です</div>'
-    : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FFB800"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>Familink Premium</div>'
-      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#E05E00">今なら1ヶ月無料</strong>で体験できます</div>'
+    : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="#4A90E2"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>Familink Premium</div>'
+      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#4A90E2">今なら1ヶ月無料</strong>で体験できます</div>'
       +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">1ヶ月無料でためす →</button>';
 
   const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#4A90E2');
