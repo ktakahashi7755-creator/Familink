@@ -14,7 +14,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260520h';
+  var V='20260521a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -4927,7 +4927,7 @@ let S = {
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
 };
 
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders'];
 
 function saveS() {
@@ -5061,31 +5061,30 @@ function importFamilinkDataFromFile(ev) {
         .concat((data.tasks||[]).length ? '・タスク ' + (data.tasks||[]).length + ' 件' : [])
         .concat((data.albumPhotos||[]).length ? '・アルバム ' + (data.albumPhotos||[]).length + ' 枚' : [])
         .join('\n');
-      if(!confirm('以下の内容で現在のデータを上書きします。よろしいですか？\n\n' + summary + '\n\n※ 元には戻せません。事前にバックアップを書き出すことをおすすめします。')) {
-        ev.target.value = '';
-        return;
-      }
-      // PERSIST 列挙キーのみ取り込み
-      let imported = 0;
-      for(const k of PERSIST) {
-        if(typeof data[k] !== 'undefined' && data[k] !== null) {
-          S[k] = data[k];
-          imported++;
+      showConfirm('データを復元', '以下の内容で現在のデータを上書きします。\n\n' + summary + '\n\nこの操作は元に戻せません。', '復元する', function() {
+        // PERSIST 列挙キーのみ取り込み
+        let imported = 0;
+        for(const k of PERSIST) {
+          if(typeof data[k] !== 'undefined' && data[k] !== null) {
+            S[k] = data[k];
+            imported++;
+          }
         }
-      }
-      const ok = saveS();
-      if(!ok) {
-        showToast('保存に失敗しました（容量超過の可能性）','error');
-        return;
-      }
-      // メンバー反映
-      if(typeof applyMembersFromS === 'function') applyMembersFromS();
-      closeModal('m-data-share');
-      // 全画面再描画
-      try { renderHome(); } catch(e) {}
-      try { renderSettings(); } catch(e) {}
-      try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
-      showToast(imported + ' 種類のデータを読み込みました','success');
+        const ok = saveS();
+        if(!ok) {
+          showToast('保存に失敗しました（容量超過の可能性）','error');
+          return;
+        }
+        // メンバー反映
+        if(typeof applyMembersFromS === 'function') applyMembersFromS();
+        closeModal('m-data-share');
+        // 全画面再描画
+        try { renderHome(); } catch(e) {}
+        try { renderSettings(); } catch(e) {}
+        try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
+        showToast(imported + ' 種類のデータを読み込みました','success');
+      });
+
     } catch(e) {
       showToast('JSON の解析に失敗しました：' + e.message,'error');
     }
@@ -5152,46 +5151,49 @@ function storageAction(id) {
     const arr = (S.albumPhotos||[]).slice().sort((a,b)=>(a.takenAt||'').localeCompare(b.takenAt||''));
     const targets = arr.slice(0, Math.min(10, arr.length));
     if(!targets.length) return;
-    if(!confirm('古いアルバム写真 '+targets.length+' 件を削除します。よろしいですか？\n（タイトルやキャプションは残ります — 写真自体は復元できません）')) return;
-    const targetIds = new Set(targets.map(t=>t.id));
-    S.albumPhotos = (S.albumPhotos||[]).filter(p => !targetIds.has(p.id));
-    saveS();
-    renderStorageModal();
-    if(typeof renderAlbum === 'function') renderAlbum();
-    showToast(targets.length+' 件削除しました','success');
+    showConfirm('古い写真を削除', '古いアルバム写真 '+targets.length+' 件を削除します。\n写真自体は復元できません。', '削除する', function() {
+      const targetIds = new Set(targets.map(t=>t.id));
+      S.albumPhotos = (S.albumPhotos||[]).filter(p => !targetIds.has(p.id));
+      saveS();
+      renderStorageModal();
+      if(typeof renderAlbum === 'function') renderAlbum();
+      showToast(targets.length+' 件削除しました','success');
+    });
   } else if(id === 'delete-album-all') {
     const c = (S.albumPhotos||[]).length;
     if(!c) return;
-    if(!confirm('アルバム写真 '+c+' 件すべてを削除します。\nこの操作は元に戻せません。よろしいですか？')) return;
-    S.albumPhotos = [];
-    saveS();
-    renderStorageModal();
-    if(typeof renderAlbum === 'function') renderAlbum();
-    showToast(c+' 件削除しました','success');
+    showConfirm('写真を全削除', 'アルバム写真 '+c+' 件すべてを削除します。\nこの操作は元に戻せません。', '全削除する', function() {
+      S.albumPhotos = [];
+      saveS();
+      renderStorageModal();
+      if(typeof renderAlbum === 'function') renderAlbum();
+      showToast(c+' 件削除しました','success');
+    });
   } else if(id === 'delete-docs-photos') {
     const arr = (S.docs||[]).filter(d=>d.photo);
     if(!arr.length) return;
-    if(!confirm('書類保管庫の写真 '+arr.length+' 件を削除します。\n書類自体（タイトル・メモ）は残ります。よろしいですか？')) return;
-    arr.forEach(d => { d.photo = ''; });
-    saveS();
-    renderStorageModal();
-    if(typeof renderArchive === 'function') renderArchive();
-    showToast(arr.length+' 件の写真を削除しました','success');
+    showConfirm('書類写真を削除', '書類保管庫の写真 '+arr.length+' 件を削除します。\n書類自体（タイトル・メモ）は残ります。', '削除する', function() {
+      arr.forEach(d => { d.photo = ''; });
+      saveS();
+      renderStorageModal();
+      if(typeof renderArchive === 'function') renderArchive();
+      showToast(arr.length+' 件の写真を削除しました','success');
+    });
   } else if(id === 'delete-avatar-photos') {
     const c = Object.keys(S.userPhotos||{}).length;
     if(!c) return;
-    if(!confirm('メンバーのアバター写真 '+c+' 件すべてを削除します。\nメンバーは残り、アバターはイニシャル+カラーに戻ります。よろしいですか？')) return;
-    S.userPhotos = {};
-    // 写真型のアバタータイプもクリア（公式アバター設定はそのまま）
-    if(S.userAvatarType) {
-      Object.keys(S.userAvatarType).forEach(k => {
-        if(S.userAvatarType[k] === 'customPhoto') delete S.userAvatarType[k];
-      });
-    }
-    saveS();
-    renderStorageModal();
-    if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
-    showToast(c+' 件のアバター写真を削除しました','success');
+    showConfirm('アバター写真を削除', 'メンバーのアバター写真 '+c+' 件すべてを削除します。\nメンバーは残り、アバターはイニシャル+カラーに戻ります。', '全削除する', function() {
+      S.userPhotos = {};
+      if(S.userAvatarType) {
+        Object.keys(S.userAvatarType).forEach(k => {
+          if(S.userAvatarType[k] === 'customPhoto') delete S.userAvatarType[k];
+        });
+      }
+      saveS();
+      renderStorageModal();
+      if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
+      showToast(c+' 件のアバター写真を削除しました','success');
+    });
   }
 }
 
@@ -9107,11 +9109,12 @@ function renderCashflowSection() {
 
 function confirmApplyRecurring(y, m0) {
   const monthLabel = y + '年' + (m0 + 1) + '月';
-  if(!confirm(monthLabel+' の未反映の固定収支を実績（家計）に追加しますか？\n（重複は自動でスキップします）')) return;
-  const added = applyRecurringForMonth(y, m0);
-  showToast(added>0 ? added+' 件を実績に反映しました' : '反映できる新規はありません', added>0?'success':'info');
-  renderCashflowSection();
-  if(typeof renderBudget === 'function') renderBudget();
+  showConfirm('固定収支を反映', monthLabel+' の未反映の固定収支を実績（家計）に追加しますか？\n（重複は自動でスキップします）', '追加する', function() {
+    const added = applyRecurringForMonth(y, m0);
+    showToast(added>0 ? added+' 件を実績に反映しました' : '反映できる新規はありません', added>0?'success':'info');
+    renderCashflowSection();
+    if(typeof renderBudget === 'function') renderBudget();
+  });
 }
 
 /* ============================================================
@@ -10395,14 +10398,15 @@ function _memoFolderOptsDelete() {
   const id = _memoFolderOptsId;
   const f = _memoFolderById(id);
   if(!f) return;
-  if(!confirm('フォルダ「'+f.name+'」を削除しますか？\n中のメモとサブフォルダは上の階層へ移動します。')) return;
-  const parent = f.parentId || '';
-  S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
-  S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
-  S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
-  saveS();
-  renderMemo();
-  showToast('フォルダを削除しました');
+  showConfirm('フォルダを削除', 'フォルダ「'+f.name+'」を削除しますか？\n中のメモとサブフォルダは上の階層へ移動します。', '削除する', function() {
+    const parent = f.parentId || '';
+    S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
+    S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
+    S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
+    saveS();
+    renderMemo();
+    showToast('フォルダを削除しました');
+  });
 }
 /* ── メモ ── */
 /* メモのフォルダ選択肢（階層をインデント表示） */
@@ -11371,11 +11375,12 @@ function shopMarkPurchased(id) {
 }
 
 function shopDeleteItem(id) {
-  if(!confirm('この買い物項目を削除しますか？')) return;
-  S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
-  renderHome();
+  showConfirm('買い物項目を削除', 'この買い物項目を削除しますか？', '削除する', function() {
+    S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+    renderHome();
+  });
 }
 
 function shopAddToFrequent(id) {
@@ -11396,10 +11401,11 @@ function shopAddToFrequent(id) {
 }
 
 function shopFreqDelete(id) {
-  if(!confirm('「よく購入するもの」から削除しますか？')) return;
-  S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
+  showConfirm('よく購入するものを削除', '「よく購入するもの」から削除しますか？', '削除する', function() {
+    S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+  });
 }
 
 function shopFreqToList(id) {
@@ -11408,7 +11414,18 @@ function shopFreqToList(id) {
   if(!f) return;
   const dup = (S.shoppingItems||[]).some(function(it){ return it.name === f.name; });
   if(dup) {
-    if(!confirm('「'+f.name+'」は既にリストにあります。それでも追加しますか？')) return;
+    showConfirm('重複確認', '「'+f.name+'」は既にリストにあります。それでも追加しますか？', '追加する', function() {
+      const now = new Date().toISOString();
+      S.shoppingItems.push({
+        id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
+        memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+      });
+      saveS();
+      showToast('リストに追加しました','success');
+      renderShopping();
+      renderHome();
+    });
+    return;
   }
   const now = new Date().toISOString();
   S.shoppingItems.push({
@@ -11422,10 +11439,11 @@ function shopFreqToList(id) {
 }
 
 function shopHistDelete(id) {
-  if(!confirm('この履歴を削除しますか？')) return;
-  S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
+  showConfirm('履歴を削除', 'この履歴を削除しますか？', '削除する', function() {
+    S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+  });
 }
 
 /* ============================================================
@@ -11564,15 +11582,16 @@ function _folderOptsDelete() { closeModal('m-folder-opts'); deleteFolder(_folder
 function deleteFolder(kind, id) {
   const arr = _folderArr(kind), f = arr.find(x => x.id === id);
   if(!f) return;
-  if(!confirm('フォルダ「' + f.name + '」を削除しますか？\n中のアイテムは削除されず「未分類」に移動します。')) return;
-  const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
-  items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
-  const i = arr.indexOf(f);
-  if(i >= 0) arr.splice(i, 1);
-  _setCurFolder(kind, '');
-  saveS();
-  _folderRerender(kind);
-  showToast('フォルダを削除しました', 'success');
+  showConfirm('フォルダを削除', 'フォルダ「' + f.name + '」を削除しますか？\n中のアイテムは削除されず「未分類」に移動します。', '削除する', function() {
+    const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
+    items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
+    const i = arr.indexOf(f);
+    if(i >= 0) arr.splice(i, 1);
+    _setCurFolder(kind, '');
+    saveS();
+    _folderRerender(kind);
+    showToast('フォルダを削除しました', 'success');
+  });
 }
 
 /* ── Wave 115: 上質な空状態（書類 / アルバム共通） ── */
@@ -11769,10 +11788,11 @@ function saveArchiveAdd() {
   _archivePhotoBuf = null;
 }
 function archiveDelete(id) {
-  if(!confirm('この書類を削除しますか？写真も一緒に削除されます。')) return;
-  S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderArchive();
+  showConfirm('書類を削除', 'この書類を削除しますか？\n写真も一緒に削除されます。', '削除する', function() {
+    S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderArchive();
+  });
 }
 
 /* ============================================================
@@ -11884,12 +11904,13 @@ function albumViewMoveFolder() {
 }
 function albumDeleteCurrent() {
   if(!_albumViewId) return;
-  if(!confirm('この写真を削除しますか？')) return;
-  S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
-  saveS();
-  _albumViewId = null;
-  closeModal('m-album-view');
-  renderAlbum();
+  showConfirm('写真を削除', 'この写真を削除しますか？', '削除する', function() {
+    S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
+    saveS();
+    _albumViewId = null;
+    closeModal('m-album-view');
+    renderAlbum();
+  });
 }
 
 /* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
@@ -12478,18 +12499,19 @@ function seedPrepSampleRoutines(memberHint) {
     {dayOfWeek:'wed', title:'音楽の教科書', category:'教科書',       subject:'音楽',  quantity:'1冊'},
     {dayOfWeek:'wed', title:'鍵盤ハーモニカ', category:'教材',       subject:'音楽',  quantity:'1台'}
   ];
-  if(!confirm(memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？\n後から自由に編集・削除できます。')) return;
-  let added = 0;
-  for(const s of samples) {
-    const dup = (S.prepRoutines||[]).some(function(r){
-      return r.memberId === memberId && r.dayOfWeek === s.dayOfWeek && r.title === s.title;
-    });
-    if(dup) continue;
-    addPrepRoutine(Object.assign({ memberId: memberId, showTiming: 'previous_day_and_today', enabled: true, repeat: true }, s));
-    added++;
-  }
-  showToast(added+' 件のサンプルを追加しました','success');
-  renderPrep();
+  showConfirm('サンプルを追加', memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？\n後から自由に編集・削除できます。', '追加する', function() {
+    let added = 0;
+    for(const s of samples) {
+      const dup = (S.prepRoutines||[]).some(function(r){
+        return r.memberId === memberId && r.dayOfWeek === s.dayOfWeek && r.title === s.title;
+      });
+      if(dup) continue;
+      addPrepRoutine(Object.assign({ memberId: memberId, showTiming: 'previous_day_and_today', enabled: true, repeat: true }, s));
+      added++;
+    }
+    showToast(added+' 件のサンプルを追加しました','success');
+    renderPrep();
+  });
 }
 
 function applyTodayRoutines() { applyPrepRoutinesForDate(todayStr()); }
@@ -12909,12 +12931,13 @@ function deleteNotif(id) {
 function confirmClearAllNotifs() {
   const c = (S.notifs||[]).length;
   if(!c) { showToast('削除する通知はありません','info'); return; }
-  if(!confirm('通知 '+c+' 件をすべて削除しますか？\nこの操作は元に戻せません。')) return;
-  S.notifs = [];
-  saveS();
-  renderNotif();
-  _refreshNotifBadges();
-  showToast(c+' 件を削除しました','success');
+  showConfirm('通知を全削除', '通知 '+c+' 件をすべて削除しますか？\nこの操作は元に戻せません。', '全削除する', function() {
+    S.notifs = [];
+    saveS();
+    renderNotif();
+    _refreshNotifBadges();
+    showToast(c+' 件を削除しました','success');
+  });
 }
 /* 通知バッジ（ホーム右上ベル + 旧 notif-badge）を再描画 */
 function _refreshNotifBadges() {
@@ -12977,7 +13000,7 @@ function renderPremium() {
     + (isPrem
         ? '<div class="prm-hero-title">プレミアム利用中</div>'
           + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
-          + '<div class="prm-hero-already">✓ プレミアム会員</div>'
+          + '<div class="prm-hero-already"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> プレミアム会員</div>'
         : '<div class="prm-hero-title">Familink<br>Premium</div>'
           + '<div class="prm-hero-sub">家族の記録を、もっと豊かに。もっと安心に。<br><span style="font-size:12px;opacity:.8;">20GBストレージ・プレミアムアバター・一括バックアップ</span></div>'
       )
@@ -13100,7 +13123,7 @@ function renderPremium() {
   if(ctaBar) {
     ctaBar.className = 'prm-cta-bar';
     ctaBar.innerHTML = isPrem
-      ? '<div class="prm-cta-already">✓ プレミアム利用中</div>'
+      ? '<div class="prm-cta-already"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> プレミアム利用中</div>'
       : '<button class="prm-cta-btn" onclick="prmStartPremium()">'
         + '<span>プレミアムプランを選ぶ</span>'
         + '<span class="prm-cta-btn-sub">1ヶ月お試し無料</span>'
@@ -13634,15 +13657,16 @@ function onAvatarPhotoPicked(ev) {
 function resetAvatarToDefault() {
   if(!_avatarSelectTarget) return;
   const m = MEMBERS.find(function(x){ return x.id === _avatarSelectTarget; });
-  if(!confirm((m ? m.name : 'メンバー') + 'のアバターを既定（カラー＋イニシャル）に戻しますか？\n設定済みの写真や公式アバターはクリアされます。')) return;
-  if(S.userPhotos)     delete S.userPhotos[_avatarSelectTarget];
-  if(S.userAvatars)    delete S.userAvatars[_avatarSelectTarget];
-  if(S.userAvatarType) delete S.userAvatarType[_avatarSelectTarget];
-  saveS();
-  closeModal('m-avatar-select');
-  document.getElementById('m-avatar-select')?.classList.add('hidden');
-  refreshAllAvatarsAcrossScreens();
-  showToast('既定に戻しました','success');
+  showConfirm('アバターをリセット', (m ? m.name : 'メンバー') + 'のアバターを既定（カラー＋イニシャル）に戻しますか？\n設定済みの写真や公式アバターはクリアされます。', 'リセットする', function() {
+    if(S.userPhotos)     delete S.userPhotos[_avatarSelectTarget];
+    if(S.userAvatars)    delete S.userAvatars[_avatarSelectTarget];
+    if(S.userAvatarType) delete S.userAvatarType[_avatarSelectTarget];
+    saveS();
+    closeModal('m-avatar-select');
+    document.getElementById('m-avatar-select')?.classList.add('hidden');
+    refreshAllAvatarsAcrossScreens();
+    showToast('既定に戻しました','success');
+  });
 }
 
 /* Wave 60.2: アバター変更を全画面に伝播 */
@@ -14206,14 +14230,15 @@ function deleteBoardConfirm() {
   closeModal('m-board-menu');
   const b = (S.customBoards||[]).find(b=>b.id===_activeBoardId);
   if(!b) return;
-  if(!confirm(`「${b.name}」を削除しますか？項目もすべて削除されます。`)) return;
-  S.customBoards = (S.customBoards||[]).filter(b=>b.id!==_activeBoardId);
-  hoRemoveCustomBoard(_activeBoardId);
-  S.boardItems   = (S.boardItems||[]).filter(i=>i.boardId!==_activeBoardId);
-  S.boardSections= (S.boardSections||[]).filter(s=>s.boardId!==_activeBoardId);
-  hoRemoveCustomBoard(_activeBoardId);
-  saveS(); go('s-home'); renderHome();
-  showToast('ボードを削除しました');
+  showConfirm('ボードを削除', `「${b.name}」を削除しますか？\n項目もすべて削除されます。`, '削除する', function() {
+    S.customBoards = (S.customBoards||[]).filter(b=>b.id!==_activeBoardId);
+    hoRemoveCustomBoard(_activeBoardId);
+    S.boardItems   = (S.boardItems||[]).filter(i=>i.boardId!==_activeBoardId);
+    S.boardSections= (S.boardSections||[]).filter(s=>s.boardId!==_activeBoardId);
+    hoRemoveCustomBoard(_activeBoardId);
+    saveS(); go('s-home'); renderHome();
+    showToast('ボードを削除しました');
+  });
 }
 
 /* ── セクション管理 ── */
