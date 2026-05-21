@@ -13209,9 +13209,9 @@ function renderSettings() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
         </div>
         <div class="settings-item-label" style="font-size:12px;color:var(--text-muted)">プレミアム状態を切り替え（開発用）
-          <div style="font-size:11px;color:var(--primary)">\${S.isPremiumUser ? 'ON（プレミアム中）' : 'OFF（無料中）'}</div>
+          <div style="font-size:11px;color:var(--primary)">${S.isPremiumUser ? 'ON（プレミアム中）' : 'OFF（無料中）'}</div>
         </div>
-        <div class="settings-arrow">\${S.isPremiumUser ? '●' : '○'}</div>
+        <div class="settings-arrow">${S.isPremiumUser ? '●' : '○'}</div>
       </div>
     </div>
 
