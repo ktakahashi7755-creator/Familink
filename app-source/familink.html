@@ -2549,28 +2549,6 @@ nav#tabbar.hidden { display: none !important; }
   font-size:11px;
 }
 
-/* Ad banner for free users on home screen */
-.home-ad-strip {
-  margin:12px 16px 4px; border-radius:14px;
-  background:var(--primary-light);
-  border:1px solid var(--border); padding:12px 14px;
-  display:flex; align-items:center; gap:12px; cursor:pointer;
-  -webkit-tap-highlight-color:transparent; transition:var(--t);
-}
-.home-ad-strip:active { opacity:.8; }
-.home-ad-strip-icon {
-  width:40px; height:40px; border-radius:12px; flex-shrink:0;
-  background:#fff;
-  display:flex; align-items:center; justify-content:center;
-}
-.home-ad-strip-body { flex:1; min-width:0; }
-.home-ad-strip-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
-.home-ad-strip-sub { font-size:11px; color:var(--text-sub); line-height:1.4; }
-.home-ad-strip-cta {
-  flex-shrink:0; background:var(--grad-blue-violet);
-  color:#fff; font-size:11px; font-weight:700; border-radius:var(--r-full);
-  padding:6px 12px; border:none; cursor:pointer; white-space:nowrap;
-}
 
 /* Hoku daily usage bar for free users */
 .hoku-usage-bar {
@@ -2687,17 +2665,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 /* ── Settings Premium Card: Enhanced ── */
 .menu-premium-card::before { display: none; }
 
-/* ── Home Ad Banner: More Polished ── */
-.home-ad-strip {
-  box-shadow: var(--s-sm);
-  background: var(--primary-light);
-  border: 1px solid var(--border);
-  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
-}
-.home-ad-strip:active {
-  transform: scale(.98);
-  box-shadow: 0 2px 8px rgba(74,144,226,.1);
-}
 
 /* ── Hoku Usage Bar: Polished ── */
 .hoku-usage-bar {
@@ -6069,22 +6036,8 @@ function renderHome() {
     return hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending);
   }).join('');
 
-  // Ad banner for free users
   var adBar = document.getElementById('home-ad-bar');
-  if(adBar) {
-    if(!S.isPremiumUser) {
-      adBar.innerHTML = '<div class="home-ad-strip" onclick="go(\'s-premium\')">'
-        + '<div class="home-ad-strip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div>'
-        + '<div class="home-ad-strip-body">'
-        + '<div class="home-ad-strip-title">広告なし・Hoku無制限・20GB</div>'
-        + '<div class="home-ad-strip-sub">プレミアムを1ヶ月無料で体験</div>'
-        + '</div>'
-        + '<button class="home-ad-strip-cta" onclick="event.stopPropagation();go(\'s-premium\')">詳しく見る</button>'
-        + '</div>';
-    } else {
-      adBar.innerHTML = '';
-    }
-  }
+  if(adBar) adBar.innerHTML = '';
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
 }

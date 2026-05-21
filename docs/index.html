@@ -826,32 +826,6 @@ select.input {
   transition: var(--t);
 }
 .home-add-btn:active { background: var(--bg-muted); }
-/* ── ホーム プレミアムバナー ── */
-.home-prm-banner {
-  margin: 0 0 12px;
-  background: var(--premium-light);
-  border: 1.5px solid #FFE082;
-  border-radius: 16px;
-  padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px;
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
-}
-.home-prm-banner:active { opacity: .85; }
-.home-prm-banner-icon {
-  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
-  background: var(--grad-amber);
-  box-shadow: 0 4px 14px rgba(232,150,10,.25);
-  display: flex; align-items: center; justify-content: center;
-}
-.home-prm-banner-body { flex: 1; min-width: 0; }
-.home-prm-banner-title { font-size: 13px; font-weight: 800; color: var(--status-warn-text); margin-bottom: 2px; }
-.home-prm-banner-sub { font-size: 11px; color: var(--premium); line-height: 1.4; }
-.home-prm-banner-btn {
-  flex-shrink: 0; background: var(--grad-amber);
-  color: #fff; border: none; border-radius: 20px;
-  font-size: 11px; font-weight: 700; padding: 7px 12px; cursor: pointer;
-  font-family: var(--font); white-space: nowrap;
-}
 
 /* ============================================================
    CALENDAR — Yahoo スタイル刷新版
@@ -6070,23 +6044,8 @@ function renderHome() {
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
 
-  // プレミアムバナー（非会員のみ表示）
   const prmBanner = document.getElementById('home-prm-banner');
-  if(prmBanner) {
-    if(!S.isPremiumUser) {
-      const crownSvg = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M4 19L6 8l6 5.5L16 6l2 7 3.5-5.5L20 19H4z"/></svg>';
-      prmBanner.innerHTML = '<div class="home-prm-banner" onclick="go(\'s-premium\')">'
-        + '<div class="home-prm-banner-icon">'+crownSvg+'</div>'
-        + '<div class="home-prm-banner-body">'
-        +   '<div class="home-prm-banner-title">広告なし・Hoku無制限・20GB</div>'
-        +   '<div class="home-prm-banner-sub">プレミアムを1ヶ月無料で体験</div>'
-        + '</div>'
-        + '<button class="home-prm-banner-btn" onclick="event.stopPropagation();go(\'s-premium\')">詳しく見る</button>'
-        + '</div>';
-    } else {
-      prmBanner.innerHTML = '';
-    }
-  }
+  if(prmBanner) prmBanner.innerHTML = '';
 }
 
 /* ============================================================
