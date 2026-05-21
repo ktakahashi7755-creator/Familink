@@ -84,6 +84,32 @@
   /* ── Fonts ── */
   --font:        'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;
   --font-display:'Poppins','Noto Sans JP',sans-serif;
+  /* ── Premium / Amber ── */
+  --premium:            #E8960A;
+  --premium-light:      #FFFBEF;
+  --premium-bg:         #FFF8F0;
+  /* ── Status / Finance ── */
+  --status-income:      #16A34A;
+  --status-income-bg:   #DCFCE7;
+  --status-expense:     #DC2626;
+  --status-expense-bg:  #FFE4E4;
+  --status-warn:        #D97706;
+  --status-warn-bg:     #FEF3C7;
+  --status-warn-text:   #92400E;
+  --status-indigo:      #4F46E5;
+  --status-indigo-bg:   #EEF2FF;
+  /* ── Category (Board / Task) ── */
+  --cat-chore:      #16A34A; --cat-chore-bg:    #DCFCE7;
+  --cat-shop:       #2563EB; --cat-shop-bg:     #DBEAFE;
+  --cat-lesson:     #EC4899; --cat-lesson-bg:   #FCE7F3;
+  --cat-delivery:   #D97706; --cat-delivery-bg: #FEF3C7;
+  --cat-school:     #7C3AED; --cat-school-bg:   #EDE9FE;
+  --cat-import:     #DC2626; --cat-import-bg:   #FFE8E8;
+  /* ── Extended Gradients ── */
+  --grad-blue-violet: linear-gradient(135deg, #4A90E2 0%, #6B7FE3 100%);
+  --grad-amber:       linear-gradient(135deg, #FFE066 0%, #FFB800 100%);
+  --grad-progress:    linear-gradient(90deg,  #4A90E2 0%, #7BB3F5 100%);
+  --grad-health:      linear-gradient(90deg,  #FF9B4E 0%, #FF6B6B 100%);
 }
 
 /* ============================================================
@@ -97,7 +123,7 @@ html, body {
   height: 100%; max-width: 100%;
   overflow-x: hidden;
   overflow-y: hidden; /* #app 内でスクロールするため body はロック */
-  background: #E8EEF8;
+  background: var(--bg);
 }
 body { font-family: var(--font); color: var(--text); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 button { font-family: var(--font); cursor: pointer; }
@@ -440,7 +466,7 @@ select.input {
    WELCOME SCREEN
    ============================================================ */
 #s-ob {
-  background: linear-gradient(175deg, #EEF4FF 0%, #F6F9FF 45%, #FEF9EE 100%);
+  background: var(--bg);
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .ob-wrap {
@@ -537,7 +563,7 @@ select.input {
 /* ============================================================
    LOGIN SCREEN
    ============================================================ */
-#s-login { background: linear-gradient(162deg, #EBF4FF 0%, #F4F7FD 60%, #FFFDF5 100%); }
+#s-login { background: var(--bg); }
 .login-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .login-inner {
   min-height: 100%; display: flex; flex-direction: column;
@@ -588,7 +614,7 @@ select.input {
 .home-bell:active { transform:scale(.92); }
 .home-bell-badge {
   position:absolute; top:4px; right:4px;
-  min-width:16px; height:16px; padding:0 4px; border-radius:999px;
+  min-width:16px; height:16px; padding:0 4px; border-radius:var(--r-full);
   background:var(--red); color:#fff;
   font-size:10px; font-weight:700; line-height:16px;
   text-align:center; box-shadow:0 0 0 2px #fff;
@@ -608,7 +634,7 @@ select.input {
 .archive-row .archive-thumb img { width:100%; height:100%; object-fit:cover; }
 .archive-row .archive-main { flex:1; min-width:0; }
 .archive-row .archive-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:2px; word-break:break-word; }
-.archive-row .archive-cat   { display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:999px; background:#EEF2FF; color:#4F46E5; margin-right:6px; }
+.archive-row .archive-cat   { display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:var(--r-full); background:#EEF2FF; color:#4F46E5; margin-right:6px; }
 .archive-row .archive-meta  { font-size:11px; color:var(--text-muted); margin-top:3px; }
 .archive-row .archive-memo  { font-size:12px; color:var(--text); margin-top:4px; line-height:1.4; word-break:break-word; }
 .archive-row .archive-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
@@ -1168,13 +1194,13 @@ select.input {
 .recurring-row .rr-main { flex:1; min-width:0; }
 .recurring-row .rr-name { font-size:14px; font-weight:700; color:var(--text); word-break:break-word; }
 .recurring-row .rr-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-.recurring-row .rr-chip { font-size:10.5px; padding:1px 8px; border-radius:999px; }
-.recurring-row .rr-chip.income  { background:#DCFCE7; color:#16A34A; }
-.recurring-row .rr-chip.expense { background:#FFE8E8; color:#DC2626; }
-.recurring-row .rr-chip.cycle   { background:#EEF2FF; color:#4F46E5; }
+.recurring-row .rr-chip { font-size:10.5px; padding:1px 8px; border-radius:var(--r-full); }
+.recurring-row .rr-chip.income  { background:var(--status-income-bg);  color:var(--status-income); }
+.recurring-row .rr-chip.expense { background:var(--status-expense-bg); color:var(--status-expense); }
+.recurring-row .rr-chip.cycle   { background:var(--status-indigo-bg);  color:var(--status-indigo); }
 .recurring-row .rr-chip.member  { background:var(--bg-muted); color:var(--text-muted); }
 .recurring-row .rr-amount { font-size:15px; font-weight:800; color:var(--text); }
-.recurring-row .rr-amount.income { color:#16A34A; }
+.recurring-row .rr-amount.income { color:var(--status-income); }
 .recurring-row .rr-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
 .recurring-row .rr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 9px; font-size:11px; color:var(--text-muted); cursor:pointer; }
 .recurring-row .rr-actions button:hover { color:var(--primary); border-color:var(--primary); }
@@ -1184,11 +1210,11 @@ select.input {
 .cf-card .cf-row:last-child { border-bottom:none; }
 .cf-card .cf-label { font-size:12px; color:var(--text-muted); font-weight:600; }
 .cf-card .cf-value { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
-.cf-card .cf-value.pos { color:#16A34A; }
-.cf-card .cf-value.neg { color:#DC2626; }
+.cf-card .cf-value.pos { color:var(--status-income); }
+.cf-card .cf-value.neg { color:var(--status-expense); }
 .cf-card .cf-value.big { font-size:22px; font-weight:800; }
-.cf-warn { background:#FEF3C7; border:1px solid #F59E0B; color:#92400E; border-radius:10px; padding:10px 12px; margin:0 16px 12px; font-size:12px; line-height:1.5; }
-.cf-warn.danger { background:#FFE8E8; border-color:#DC2626; color:#991B1B; }
+.cf-warn { background:var(--status-warn-bg); border:1px solid var(--status-warn); color:var(--status-warn-text); border-radius:var(--r-sm); padding:10px 12px; margin:0 16px 12px; font-size:12px; line-height:1.5; }
+.cf-warn.danger { background:var(--status-expense-bg); border-color:var(--status-expense); color:#991B1B; }
 .tx-item {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 0; border-bottom: 1px solid var(--border-light);
@@ -1295,7 +1321,7 @@ select.input {
 .settings-arrow { font-size: 18px; color: var(--text-muted); }
 
 /* ── menu redesign ── */
-.menu-brand-header { padding:22px 18px 18px; background:linear-gradient(135deg,#EBF4FF 0%,#F4F7FF 100%); border-bottom:1px solid var(--border-light); }
+.menu-brand-header { padding:22px 18px 18px; background:var(--primary-light); border-bottom:1px solid var(--border); }
 .menu-brand-logo { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
 .menu-brand-name { font-size:20px; font-weight:800; color:var(--text); font-family:var(--font-display); }
 .menu-brand-tagline { font-size:11px; color:var(--text-sub); margin-top:1px; line-height:1.5; }
@@ -1417,7 +1443,7 @@ select.input {
 /* Hoku 応答下のアクションボタン群（カテゴリ別の次の操作導線） */
 .hoku-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .hoku-action-btn {
-  padding: 6px 12px; border-radius: 999px;
+  padding: 6px 12px; border-radius: var(--r-full);
   background: var(--primary); color: #fff;
   border: none; font-size: 12px; font-weight: 600;
   cursor: pointer; transition: var(--t-spring);
@@ -1490,7 +1516,7 @@ select.input {
 .hoku-listening-badge {
   position: absolute; left: 50%; top: -34px;
   transform: translateX(-50%);
-  padding: 4px 10px; border-radius: 999px;
+  padding: 4px 10px; border-radius: var(--r-full);
   background: #FF6B6B; color: #fff;
   font-size: 11px; font-weight: 700; white-space: nowrap;
   box-shadow: 0 2px 8px rgba(255,107,107,.35);
@@ -1757,12 +1783,12 @@ select.input {
   display:inline-flex;font-size:10px;font-weight:700;padding:2px 8px;
   border-radius:var(--r-full);
 }
-.post-cat.家事   { background:#DCFCE7;color:#16A34A; }
-.post-cat.買い物 { background:#DBEAFE;color:#2563EB; }
-.post-cat.習い事 { background:#FCE7F3;color:#EC4899; }
-.post-cat.配送   { background:#FEF3C7;color:#D97706; }
-.post-cat.学校   { background:#EDE9FE;color:#7C3AED; }
-.post-cat.重要   { background:#FFE8E8;color:#DC2626; }
+.post-cat.家事   { background:var(--cat-chore-bg);   color:var(--cat-chore); }
+.post-cat.買い物 { background:var(--cat-shop-bg);    color:var(--cat-shop); }
+.post-cat.習い事 { background:var(--cat-lesson-bg);  color:var(--cat-lesson); }
+.post-cat.配送   { background:var(--cat-delivery-bg);color:var(--cat-delivery); }
+.post-cat.学校   { background:var(--cat-school-bg);  color:var(--cat-school); }
+.post-cat.重要   { background:var(--cat-import-bg);  color:var(--cat-import); }
 .post-cat.その他 { background:var(--bg-muted);color:var(--text-muted); }
 /* 期限チップ */
 .post-expires {
@@ -1825,10 +1851,10 @@ select.input {
 .shop-row .shop-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:3px; }
 .shop-row .shop-qty,
 .shop-row .shop-cat {
-  font-size:10.5px; padding:1px 7px; border-radius:999px;
+  font-size:10.5px; padding:1px 7px; border-radius:var(--r-full);
   background:var(--bg-muted); color:var(--text-muted);
 }
-.shop-row .shop-cat { background:#EEF2FF; color:#4F46E5; }
+.shop-row .shop-cat { background:var(--status-indigo-bg); color:var(--status-indigo); }
 .shop-chk {
   flex-shrink:0; width:26px; height:26px; border-radius:50%;
   background:var(--bg-muted); border:1.5px solid var(--border-light);
@@ -1846,7 +1872,7 @@ select.input {
 .shop-iconbtn:hover { color:var(--primary); border-color:var(--primary); }
 .shop-iconbtn.shop-del:hover { color:var(--red); border-color:var(--red); }
 .shop-addlist {
-  flex-shrink:0; padding:6px 11px; border-radius:999px;
+  flex-shrink:0; padding:6px 11px; border-radius:var(--r-full);
   background:var(--primary); color:#fff; border:none; cursor:pointer;
   font-size:11.5px; font-weight:600; white-space:nowrap;
 }
@@ -1867,7 +1893,7 @@ select.input {
 /* Wave 60.13: 数量入力ワンタップ chip */
 .qty-chip {
   border:1.5px solid var(--border-light); background:#fff; color:var(--text);
-  border-radius:999px; padding:6px 14px; font-size:13px; font-weight:700;
+  border-radius:var(--r-full); padding:6px 14px; font-size:13px; font-weight:700;
   cursor:pointer; transition:var(--t-spring); min-width:38px;
 }
 .qty-chip:active { transform:scale(.92); }
@@ -1938,9 +1964,9 @@ select.input {
 /* Wave 59: 家族メンバー管理 */
 .member-row { display:flex; align-items:center; gap:12px; background:var(--bg-card); border:1.5px solid var(--border-light); border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--s-sm); }
 .member-row .mr-name { flex:1; font-size:15px; font-weight:700; color:var(--text); min-width:0; word-break:break-word; }
-.member-row .mr-role { font-size:11px; padding:2px 8px; border-radius:999px; color:var(--text-muted); background:var(--bg-muted); }
-.member-row .mr-role.parent { background:#EBF4FF; color:#2563EB; }
-.member-row .mr-role.child  { background:#FEF3C7; color:#92400E; }
+.member-row .mr-role { font-size:11px; padding:2px 8px; border-radius:var(--r-full); color:var(--text-muted); background:var(--bg-muted); }
+.member-row .mr-role.parent { background:var(--primary-light); color:var(--primary); }
+.member-row .mr-role.child  { background:var(--status-warn-bg); color:var(--status-warn-text); }
 .member-row .mr-actions { display:flex; gap:4px; }
 .member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 10px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
 .member-row .mr-actions button:hover { color:var(--primary); border-color:var(--primary); }
@@ -1992,7 +2018,7 @@ select.input {
    ONBOARDING (s-onboard) — Wave 13 初回体験
    ============================================================ */
 #s-onboard {
-  background: linear-gradient(162deg, #EBF4FF 0%, #F4F7FD 60%, #FFFDF5 100%);
+  background: var(--bg);
   min-height: 100vh;
   padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
   overflow-y: auto;
@@ -2003,7 +2029,7 @@ select.input {
   overflow: hidden; margin-bottom: 6px;
 }
 .ob2-progress-bar {
-  height: 100%; background: linear-gradient(90deg,#4A90E2,#7BB3F5);
+  height: 100%; background: var(--grad-progress);
   border-radius: 2px; transition: width .3s ease;
 }
 .ob2-step-indicator {
@@ -2036,7 +2062,7 @@ nav#tabbar.hidden { display: none !important; }
   border: 1px solid rgba(74,144,226,.12);
 }
 .ob2-btn-primary {
-  width: 100%; background: linear-gradient(135deg,#4A90E2,#7BB3F5);
+  width: 100%; background: var(--grad-primary);
   color: #fff; border: none; border-radius: 14px;
   padding: 16px; font-size: 16px; font-weight: 700;
   cursor: pointer; box-shadow: 0 4px 14px rgba(74,144,226,.3);
@@ -2161,14 +2187,14 @@ nav#tabbar.hidden { display: none !important; }
   filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
 }
 .avatar-cat-tab.premium {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  border-color: #FFA500;
+  background: var(--grad-amber);
+  border-color: var(--premium);
   color: #fff;
 }
 .avatar-cat-tab.premium.active {
-  background: linear-gradient(135deg, #FFB800, #E08000);
-  border-color: #E08000;
-  box-shadow: 0 2px 8px rgba(255,165,0,.4);
+  background: var(--grad-amber);
+  border-color: var(--premium);
+  box-shadow: 0 2px 8px rgba(232,150,10,.35);
 }
 
 /* ── Custom Boards ── */
@@ -2191,7 +2217,7 @@ nav#tabbar.hidden { display: none !important; }
 /* Wave 17: ボード詳細 用途別ヒーローカード */
 .cb-intent-hero {
   margin:14px 16px 8px; padding:14px 16px;
-  background:linear-gradient(135deg, var(--primary-light) 0%, #FFFDF5 100%);
+  background:var(--primary-light);
   border:1px solid rgba(74,144,226,.15); border-radius:14px;
 }
 .cb-intent-hero-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
@@ -2348,7 +2374,7 @@ nav#tabbar.hidden { display: none !important; }
   color:var(--text); margin:0 8px; }
 .prm-hero {
   padding:28px 20px 20px; text-align:center;
-  background:linear-gradient(160deg,#F0F7FF 0%,#FFF8EC 60%,#fff 100%);
+  background:var(--primary-light);
 }
 .prm-crown {
   width:60px; height:60px; border-radius:50%;
@@ -2364,13 +2390,13 @@ nav#tabbar.hidden { display: none !important; }
   font-size:13px; color:var(--text-sub); line-height:1.65; margin-bottom:0;
 }
 .prm-hero-already {
-  display:inline-block; background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  display:inline-block; background:var(--grad-blue-violet);
   color:#fff; font-size:13px; font-weight:700; border-radius:var(--r-full);
   padding:8px 20px; margin-top:12px;
 }
 /* Benefits checklist */
 .prm-checklist {
-  margin:0 16px 16px; background:#FFFBEF;
+  margin:0 16px 16px; background:var(--premium-light);
   border-radius:16px; padding:18px 18px; border:1px solid #FFE599;
 }
 .prm-check-item {
@@ -2380,7 +2406,7 @@ nav#tabbar.hidden { display: none !important; }
 .prm-check-item + .prm-check-item { margin-top:12px; }
 .prm-check-icon {
   flex-shrink:0; width:22px; height:22px; border-radius:50%;
-  background:linear-gradient(135deg,#4A90E2,#52C47A);
+  background:var(--grad-secondary);
   display:flex; align-items:center; justify-content:center; margin-top:1px;
 }
 /* Feature cards */
@@ -2406,8 +2432,8 @@ nav#tabbar.hidden { display: none !important; }
 }
 .prm-feature-desc { font-size:12px; color:var(--text-sub); line-height:1.6; }
 .prm-badge {
-  display:inline-block; background:linear-gradient(135deg,#FFE066,#FFB300);
-  color:#7A5800; font-size:10px; font-weight:800;
+  display:inline-block; background:var(--grad-amber);
+  color:var(--premium); font-size:10px; font-weight:800;
   border-radius:var(--r-full); padding:2px 8px; margin-top:6px;
 }
 .prm-expand-btn {
@@ -2432,7 +2458,7 @@ nav#tabbar.hidden { display: none !important; }
   background:var(--bg-muted); color:var(--text-sub);
 }
 .prm-compare-head-cell.premium {
-  background:linear-gradient(135deg,#4A90E2,#6B7FE3); color:#fff;
+  background:var(--grad-blue-violet); color:#fff;
 }
 .prm-compare-row { display:grid; grid-template-columns:1fr 1fr 1fr;
   border-top:1px solid var(--border-light); }
@@ -2491,7 +2517,7 @@ nav#tabbar.hidden { display: none !important; }
 }
 .prm-cta-btn {
   width:100%; height:56px; border-radius:var(--r-full);
-  background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  background:var(--grad-blue-violet);
   color:#fff; font-size:17px; font-weight:800; border:none;
   box-shadow:0 4px 18px rgba(74,144,226,.40);
   display:flex; flex-direction:column; align-items:center;
@@ -2526,8 +2552,8 @@ nav#tabbar.hidden { display: none !important; }
 /* Ad banner for free users on home screen */
 .home-ad-strip {
   margin:12px 16px 4px; border-radius:14px;
-  background:linear-gradient(135deg,#F0F7FF,#FFF8EC);
-  border:1px solid #D8E8FF; padding:12px 14px;
+  background:var(--primary-light);
+  border:1px solid var(--border); padding:12px 14px;
   display:flex; align-items:center; gap:12px; cursor:pointer;
   -webkit-tap-highlight-color:transparent; transition:var(--t);
 }
@@ -2541,7 +2567,7 @@ nav#tabbar.hidden { display: none !important; }
 .home-ad-strip-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
 .home-ad-strip-sub { font-size:11px; color:var(--text-sub); line-height:1.4; }
 .home-ad-strip-cta {
-  flex-shrink:0; background:linear-gradient(135deg,#4A90E2,#6B7FE3);
+  flex-shrink:0; background:var(--grad-blue-violet);
   color:#fff; font-size:11px; font-weight:700; border-radius:var(--r-full);
   padding:6px 12px; border:none; cursor:pointer; white-space:nowrap;
 }
@@ -2550,13 +2576,13 @@ nav#tabbar.hidden { display: none !important; }
 .hoku-usage-bar {
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; padding:8px 16px;
-  background:linear-gradient(135deg,#FFF8EC,#F0F7FF);
+  background:var(--bg-muted);
   border-bottom:1px solid var(--border-light);
   font-size:11px; color:var(--text-sub);
 }
 .hoku-usage-count { font-weight:700; color:var(--text); }
 .hoku-usage-upgrade {
-  background:linear-gradient(135deg,#4A90E2,#6B7FE3); color:#fff;
+  background:var(--grad-blue-violet); color:#fff;
   border:none; border-radius:var(--r-full); font-size:11px; font-weight:700;
   padding:5px 12px; cursor:pointer; white-space:nowrap;
 }
@@ -2634,22 +2660,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* Compare table: header gradient */
 .prm-compare-head-cell.premium {
-  background: linear-gradient(135deg,#4A90E2,#5B6FD0);
+  background: var(--grad-blue-violet);
   font-weight: 800; letter-spacing: .3px;
   text-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
 
-/* Checklist card: gradient border */
+/* Checklist card: amber border */
 .prm-checklist {
-  background: linear-gradient(#FFFBEF,#FFFBEF) padding-box,
-              linear-gradient(135deg,#FFE066,#FFB300,#FFD060) border-box;
-  border: 1.5px solid transparent;
+  background: var(--premium-light);
+  border: 1.5px solid #FFE082;
 }
 
 /* Check icon: gradient background */
 .prm-check-icon {
-  background: linear-gradient(135deg,#52C47A,#4A90E2);
-  box-shadow: 0 2px 8px rgba(74,144,226,.25);
+  background: var(--grad-secondary);
+  box-shadow: 0 2px 8px rgba(74,144,226,.20);
 }
 
 /* FAQ item hover */
@@ -2664,9 +2689,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ── Home Ad Banner: More Polished ── */
 .home-ad-strip {
-  box-shadow: 0 3px 16px rgba(74,144,226,.12);
-  background: linear-gradient(135deg, #EBF4FF 0%, #FFF8EC 50%, #F0FFF4 100%);
-  border: 1.5px solid rgba(74,144,226,.18);
+  box-shadow: var(--s-sm);
+  background: var(--primary-light);
+  border: 1px solid var(--border);
   transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
 }
 .home-ad-strip:active {
@@ -2676,8 +2701,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ── Hoku Usage Bar: Polished ── */
 .hoku-usage-bar {
-  background: linear-gradient(135deg,#FFF8EC,#EBF4FF);
-  border-bottom: 1px solid rgba(74,144,226,.12);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border-light);
 }
 .hoku-usage-upgrade {
   box-shadow: 0 2px 10px rgba(74,144,226,.3);
@@ -2690,7 +2715,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ── Welcome Screen: Better Typography ── */
 .ob-brand-name {
-  background: linear-gradient(135deg, #4A90E2, #7B5BD0);
+  background: var(--grad-blue-violet);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -2735,7 +2760,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ── Premium badge: Shimmer ── */
 .prm-badge {
-  background: linear-gradient(90deg, #FFE066 0%, #FFB300 40%, #FFE066 80%);
+  background: var(--grad-amber);
   background-size: 200% auto;
   animation: shimmer 2.5s linear infinite;
   color: #7A5800;
@@ -4606,7 +4631,7 @@ const SK = 'familink_v3';
    - MEMBERS は実行時の現在値（let）
    - S.members に永続化された配列があれば applyMembersFromS() でそれを採用 */
 const DEFAULT_MEMBERS = [
-  { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'linear-gradient(135deg,#4A90E2,#7BB3F5)' },
+  { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'var(--grad-primary)' },
   { id:'seiai',   name:'ママ',  role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
   { id:'seito',   name:'太郎',  role:'child',  av:'太', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
   { id:'seio',    name:'花子',  role:'child',  av:'花', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
@@ -4614,7 +4639,7 @@ const DEFAULT_MEMBERS = [
 ];
 let MEMBERS = DEFAULT_MEMBERS.slice();
 const MEMBER_GRADIENTS = [
-  'linear-gradient(135deg,#4A90E2,#7BB3F5)',
+  'var(--grad-primary)',
   'linear-gradient(135deg,#F07CB3,#FDA4AF)',
   'linear-gradient(135deg,#FF9B4E,#FFB800)',
   'linear-gradient(135deg,#52C47A,#86EFAC)',
@@ -5081,7 +5106,7 @@ function renderStorageModal() {
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
     + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
-    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);" style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:linear-gradient(135deg,#4A90E2,#6B7FE3);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
+    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);" style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:var(--grad-blue-violet);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
@@ -8500,7 +8525,7 @@ function renderBudget() {
             <span style="width:18px;text-align:center;color:${ink};">${ico}</span>
             <span style="font-size:12px;color:var(--text-sub);width:64px;flex-shrink:0;">${H(cat)}</span>
             <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;position:relative;">
-              <div style="position:absolute;left:0;top:0;bottom:0;width:${w}%;background:linear-gradient(90deg,#4A90E2,#7BB3F5);border-radius:4px;transition:width .3s ease;"></div>
+              <div style="position:absolute;left:0;top:0;bottom:0;width:${w}%;background:var(--grad-progress);border-radius:4px;transition:width .3s ease;"></div>
             </div>
             <span style="font-size:11px;font-weight:700;color:var(--text);width:64px;text-align:right;">${fmtAmt(amt)}</span>
           </div>`;
@@ -10680,7 +10705,7 @@ function renderHealthCharts(recs) {
         return `<div style="margin:6px 0;">
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="font-size:11px;color:var(--text-sub);min-width:54px;flex-shrink:0;">${H(s)}</div>
-            <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FF9B4E,#FF6B6B);"></div></div>
+            <div style="flex:1;height:8px;background:var(--bg-muted);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--grad-health);"></div></div>
             <div style="font-size:11px;font-weight:700;color:var(--text);min-width:24px;text-align:right;">${c}</div>
           </div>
           ${memberBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding-left:62px;">${memberBreakdown}</div>` : ''}
@@ -11085,7 +11110,7 @@ function renderShopListHtml() {
     html += '<div style="display:flex;align-items:center;gap:7px;margin:14px 2px 8px;">'
       + '<span style="width:9px;height:9px;border-radius:50%;background:'+sec.color+';flex:none;"></span>'
       + '<span style="font-size:13px;font-weight:800;color:'+sec.color+';">'+sec.label+'</span>'
-      + '<span style="font-size:11px;font-weight:700;color:'+sec.color+';background:'+sec.bg+';border-radius:999px;padding:1px 9px;">'+secItems.length+'</span>'
+      + '<span style="font-size:11px;font-weight:700;color:'+sec.color+';background:'+sec.bg+';border-radius:var(--r-full);padding:1px 9px;">'+secItems.length+'</span>'
       + '</div>';
     html += secItems.map(_shopRow).join('');
   });
@@ -11926,10 +11951,10 @@ function renderPrep() {
   html += `<div id="prep-member-chips" style="display:flex;gap:8px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;align-items:center;">`;
   // 「全員」チップ：visible が全員ならアクティブ
   const allActive = visibleMembers.length === MEMBERS.length;
-  html += `<button class="te-mem-btn ${allActive?'selected':''}" onclick="setPrepVisibleMembers(null);renderPrep();" style="flex-shrink:0;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;background:${allActive?'var(--primary)':'transparent'};color:${allActive?'#fff':'var(--text)'};border:1px solid ${allActive?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
+  html += `<button class="te-mem-btn ${allActive?'selected':''}" onclick="setPrepVisibleMembers(null);renderPrep();" style="flex-shrink:0;border-radius:var(--r-full);padding:6px 14px;font-size:12px;font-weight:700;background:${allActive?'var(--primary)':'transparent'};color:${allActive?'#fff':'var(--text)'};border:1px solid ${allActive?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
   for(const m of MEMBERS) {
     const on = visibleMembers.indexOf(m.id) >= 0;
-    html += `<button class="te-mem-btn ${on?'selected':''}" data-pmid="${H(m.id)}" onclick="togglePrepMemberVisible('${H(m.id)}')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px 5px 5px;font-size:12px;font-weight:700;background:${on?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${on?'var(--primary)':'var(--border)'};cursor:pointer;opacity:${on?'1':'0.55'};">
+    html += `<button class="te-mem-btn ${on?'selected':''}" data-pmid="${H(m.id)}" onclick="togglePrepMemberVisible('${H(m.id)}')" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:var(--r-full);padding:5px 12px 5px 5px;font-size:12px;font-weight:700;background:${on?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${on?'var(--primary)':'var(--border)'};cursor:pointer;opacity:${on?'1':'0.55'};">
       ${avHtml(m.id, 22, 10)}
       <span>${H(m.name)}</span>
     </button>`;
@@ -11956,7 +11981,7 @@ function renderPrep() {
         const dayLabel = PREP_DAY_LABELS_JA[dow];
         const visibleSugg = sugg.filter(s => !s.routine.memberId || visibleMembers.indexOf(s.routine.memberId) >= 0);
         if(visibleSugg.length > 0) {
-          html += `<div id="prep-suggest-banner" style="margin:6px 16px 10px;padding:12px;background:linear-gradient(135deg,#EBF4FF,#F5F3FF);border:1px solid #C7D2FE;border-radius:12px;">
+          html += `<div id="prep-suggest-banner" style="margin:6px 16px 10px;padding:12px;background:var(--primary-light);border:1px solid var(--border);border-radius:12px;">
             <div style="font-size:12px;font-weight:700;color:#4F46E5;margin-bottom:6px;">${ICON('calendar',12)} ${_prepTab==='today'?'今日':'明日'}（${dayLabel}曜日）のルーティン候補 ${visibleSugg.length}件</div>
             <div style="font-size:13px;color:var(--text);margin-bottom:8px;">${H(visibleSugg.slice(0,3).map(s => `${memberNameById(s.routine.memberId)||'共通'}：${s.routine.title}`).join('・'))}${visibleSugg.length>3?` 他${visibleSugg.length-3}件`:''}</div>
             <button onclick="${_prepTab==='today'?'applyTodayRoutines()':'applyTomorrowRoutines()'}" class="btn btn-primary" style="padding:6px 14px;font-size:12px;border-radius:8px;">${_prepTab==='today'?'今日':'明日'}の準備に追加</button>
@@ -12030,10 +12055,10 @@ function renderPrepRoutinesSectionHtml() {
 
   // メンバー選択行
   html += `<div style="display:flex;gap:6px;padding:10px 16px 4px;overflow-x:auto;scrollbar-width:none;">`;
-  html += `<button onclick="setPrepRoutineMember('all')" class="te-mem-btn ${memberId==='all'?'selected':''}" style="flex-shrink:0;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;background:${memberId==='all'?'var(--primary)':'transparent'};color:${memberId==='all'?'#fff':'var(--text)'};border:1px solid ${memberId==='all'?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
+  html += `<button onclick="setPrepRoutineMember('all')" class="te-mem-btn ${memberId==='all'?'selected':''}" style="flex-shrink:0;border-radius:var(--r-full);padding:5px 12px;font-size:12px;font-weight:700;background:${memberId==='all'?'var(--primary)':'transparent'};color:${memberId==='all'?'#fff':'var(--text)'};border:1px solid ${memberId==='all'?'var(--primary)':'var(--border)'};cursor:pointer;">全員</button>`;
   for(const m of MEMBERS) {
     const sel = memberId === m.id;
-    html += `<button onclick="setPrepRoutineMember('${H(m.id)}')" class="te-mem-btn ${sel?'selected':''}" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:700;background:${sel?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${sel?'var(--primary)':'var(--border)'};cursor:pointer;">
+    html += `<button onclick="setPrepRoutineMember('${H(m.id)}')" class="te-mem-btn ${sel?'selected':''}" style="flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:var(--r-full);padding:4px 10px 4px 4px;font-size:12px;font-weight:700;background:${sel?'rgba(74,144,226,0.08)':'transparent'};color:var(--text);border:1px solid ${sel?'var(--primary)':'var(--border)'};cursor:pointer;">
       ${avHtml(m.id, 20, 9)}
       <span>${H(m.name)}</span>
     </button>`;
@@ -12071,7 +12096,7 @@ function renderPrepRoutinesSectionHtml() {
     const label = PREP_DAY_LABELS_JA[day];
     const isToday    = (day === _todayDow);
     const isTomorrow = (day === _tomoDow);
-    const headerBg = isToday ? 'linear-gradient(135deg,#EBF4FF,#F5F3FF)' : 'var(--bg-muted)';
+    const headerBg = isToday ? 'var(--primary-light)' : 'var(--bg-muted)';
     const cardBorder = isToday ? '2px solid var(--primary)' : '1px solid var(--border-light)';
     const badge = isToday ? `<span style="font-size:10px;background:var(--primary);color:#fff;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:4px;">今日</span>`
                : isTomorrow ? `<span style="font-size:10px;background:#6366F1;color:#fff;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:4px;">明日</span>` : '';
@@ -13451,7 +13476,7 @@ function openPremiumCheckout() {
   const pl = _premiumPlanInfo();
   const sum = document.getElementById('pc-plan-summary');
   if(sum) sum.innerHTML =
-      '<div style="font-size:11px;font-weight:700;color:#B8860B;margin-bottom:3px;">選択中のプラン</div>'
+      '<div style="font-size:11px;font-weight:700;color:var(--premium);margin-bottom:3px;">選択中のプラン</div>'
     + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
     +   '<span style="font-size:14px;font-weight:800;color:var(--text);">'+pl.name+'</span>'
     +   '<span style="font-size:18px;font-weight:800;color:var(--text);">'+pl.price
@@ -18742,23 +18767,23 @@ document.addEventListener('touchcancel', () => {
       家族の予定・タスク・記録を<br>もっと便利に、もっと自由に。
     </div>
     <!-- プレミアム特典 -->
-    <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-radius:var(--r);padding:16px;margin-bottom:24px;text-align:left;">
-      <div style="font-size:12px;font-weight:700;color:#B8860B;margin-bottom:10px;">プレミアムでできること</div>
+    <div style="background:var(--premium-light);border-radius:var(--r);padding:16px;margin-bottom:24px;text-align:left;border:1px solid #FFE082;">
+      <div style="font-size:12px;font-weight:700;color:var(--premium);margin-bottom:10px;">プレミアムでできること</div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--premium)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
           家族ボードを複数作成・カスタムボード
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--premium)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
           家計管理の詳細機能・準備リストのテンプレート
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--premium)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
           Hokuの高度な提案・家族向けアドバイス
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--premium)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
           プレミアムアイコン・通知の高度設定
         </div>
       </div>
@@ -18778,7 +18803,7 @@ document.addEventListener('touchcancel', () => {
       </div>
     </div>
     <button class="btn btn-block" onclick="openPremiumCheckout()"
-      style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;font-weight:800;font-size:16px;border:none;box-shadow:0 4px 16px rgba(255,165,0,.4);margin-bottom:12px;">
+      style="background:var(--grad-amber);color:#fff;font-weight:800;font-size:16px;border:none;box-shadow:0 4px 16px rgba(255,165,0,.4);margin-bottom:12px;">
       今すぐ始める
     </button>
     <button class="btn btn-ghost btn-block" onclick="closePremiumGate()">キャンセル</button>
@@ -18792,7 +18817,7 @@ document.addEventListener('touchcancel', () => {
     <div class="modal-title">お支払い情報の登録</div>
     <div class="modal-form">
       <!-- 選択中プラン -->
-      <div id="pc-plan-summary" style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-radius:12px;padding:14px 16px;margin-bottom:4px;"></div>
+      <div id="pc-plan-summary" style="background:var(--premium-light);border-radius:12px;padding:14px 16px;margin-bottom:4px;border:1px solid #FFE082;"></div>
       <div class="field">
         <div class="field-label">カード番号</div>
         <input class="input" id="pc-number" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
@@ -18821,7 +18846,7 @@ document.addEventListener('touchcancel', () => {
         <span>利用規約・自動更新に同意します</span>
       </label>
       <button id="pc-submit" class="btn btn-block" disabled onclick="submitPremiumCheckout()"
-        style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff;font-weight:800;font-size:15px;border:none;opacity:.5;">
+        style="background:var(--grad-amber);color:#fff;font-weight:800;font-size:15px;border:none;opacity:.5;">
         登録して始める
       </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-premium-checkout')">戻る</button>
