@@ -2352,9 +2352,9 @@ nav#tabbar.hidden { display: none !important; }
 }
 .prm-crown {
   width:60px; height:60px; border-radius:50%;
-  background:linear-gradient(135deg,#FFE066,#FFB300);
+  background:#FFF8ED;
   display:flex; align-items:center; justify-content:center;
-  margin:0 auto 14px; box-shadow:0 4px 18px rgba(255,179,0,.35);
+  margin:0 auto 14px; box-shadow:0 4px 18px rgba(232,150,10,.12);
 }
 .prm-hero-title {
   font-size:24px; font-weight:900; color:var(--text);
@@ -2534,7 +2534,7 @@ nav#tabbar.hidden { display: none !important; }
 .home-ad-strip:active { opacity:.8; }
 .home-ad-strip-icon {
   width:40px; height:40px; border-radius:12px; flex-shrink:0;
-  background:linear-gradient(135deg,#FFE066,#FFB300);
+  background:#FFF8ED;
   display:flex; align-items:center; justify-content:center;
 }
 .home-ad-strip-body { flex:1; min-width:0; }
@@ -2589,8 +2589,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   to   { opacity:1; transform:translateY(0); }
 }
 @keyframes prm-crown-pulse {
-  0%,100% { box-shadow: 0 4px 18px rgba(255,179,0,.35), 0 0 0 0 rgba(255,179,0,.4); }
-  50%      { box-shadow: 0 4px 28px rgba(255,179,0,.5), 0 0 0 12px rgba(255,179,0,.0); }
+  0%,100% { box-shadow: 0 4px 18px rgba(232,150,10,.12), 0 0 0 0 rgba(232,150,10,.18); }
+  50%      { box-shadow: 0 4px 28px rgba(232,150,10,.20), 0 0 0 10px rgba(232,150,10,.0); }
 }
 @keyframes prm-float {
   0%,100% { transform: translateY(0px) rotate(-2deg); }
@@ -6049,7 +6049,7 @@ function renderHome() {
   if(adBar) {
     if(!S.isPremiumUser) {
       adBar.innerHTML = '<div class="home-ad-strip" onclick="go(\'s-premium\')">'
-        + '<div class="home-ad-strip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><rect x="3" y="19" width="18" height="2.5" rx="1.2"/></svg></div>'
+        + '<div class="home-ad-strip-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div>'
         + '<div class="home-ad-strip-body">'
         + '<div class="home-ad-strip-title">広告なし・Hoku無制限・20GB</div>'
         + '<div class="home-ad-strip-sub">プレミアムを1ヶ月無料で体験</div>'
@@ -12893,7 +12893,7 @@ function renderPremium() {
     + '<div style="width:34px"></div>'
     + '</div>'
     + '<div class="prm-hero">'
-    + '<div class="prm-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg></div>'
+    + '<div class="prm-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div>'
     + (isPrem
         ? '<div class="prm-hero-title">プレミアム利用中</div>'
           + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
@@ -13081,9 +13081,9 @@ function renderSettings() {
     +'</div><div class="menu-nav-arrow">›</div></div>';
 
   const premiumHtml = S.isPremiumUser
-    ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="#4A90E2"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>プレミアム会員</div>'
+    ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>プレミアム会員</div>'
       + '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">すべての機能が使い放題です</div>'
-    : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="#4A90E2"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>Familink Premium</div>'
+    : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>Familink Premium</div>'
       +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#4A90E2">今なら1ヶ月無料</strong>で体験できます</div>'
       +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">1ヶ月無料でためす →</button>';
 
@@ -18734,8 +18734,8 @@ document.addEventListener('touchcancel', () => {
   <div class="modal" style="text-align:center;padding:32px 24px calc(28px + env(safe-area-inset-bottom));">
     <div class="modal-grip" style="margin-bottom:20px;"></div>
     <!-- クラウンアイコン -->
-    <div style="width:72px;height:72px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 6px 24px rgba(255,170,0,.35);">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="#fff"><path d="M2 20h20v2H2v-2zm1-3L4 8l4 4 4-6 4 6 4-4 1 9H3z"/></svg>
+    <div style="width:72px;height:72px;background:#FFF8ED;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 6px 24px rgba(232,150,10,.14);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
     </div>
     <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Familink プレミアム</div>
     <div style="font-size:14px;color:var(--text-sub);line-height:1.7;margin-bottom:24px;">
