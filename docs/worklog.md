@@ -11455,3 +11455,726 @@ C8: 個人利用/チーム利用 のデータ区分＋最低限UI（Wave 176）
 ### コミット
 - ハッシュ: Wave 181-190（33fec74 ... ead3913）
 - メッセージ: 各 wave コミット参照
+
+## 2026-05-19 22:30  env: 不明  branch: main / gh-pages
+
+### 作業名
+世界最高峰テスト・全量監査・クリーンアップ（QA総点検）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages ブランチ（デプロイ用）
+
+### 変更内容
+**調査範囲：18555行 / 関数614個 / console.log 8件 / Wave コメント196件 / LS操作等全量**
+
+#### 除去した残骸
+- `debugHokuParse()` 関数（8行）を完全削除（`console.log('[Hoku Debug]')` 2件含む）
+- `window.debugHokuParse = debugHokuParse` エクスポートも削除
+- Hoku v2 設計コメント内の `debugHokuParse` 参照を削除（関数が存在しなくなったため）
+- `_swipeCloseDetail` の誤解を招くコメント「Wave 44/45 テスト用に残す」を「詳細画面スワイプ閉じのラッパー」に修正
+
+#### iOS Safari バグ修正
+- `hm-symptoms-extra`（症状入力）の `font-size:13px` インライン上書きを削除
+  → `.input` クラスの 16px が適用され、iOS Safari の自動ズームが防止される
+
+#### 確認済み（変更なし・正常）
+- div 開閉バランス：1533=1533 ✓
+- saveS() エラー時にトースト通知あり（全呼び出し元保護済み）
+- Hoku API の fetch に AbortController + finally でリセット ✓
+- sendHokuMsg に finally で _hokuBusy リセット ✓
+- アバター ID 重複なし（FAMILINK_BASIC:10 / FAMILINK_PREMIUM:10 / OFFICIAL:16 / PREMIUM:14 = 50件）
+- XSS リスクなし（全 innerHTML 代入で H() エスケープ済み）
+- QA Debug パネルは意図的実装（#qa-debug ハッシュで起動）→ 維持
+
+### テスト結果
+- div 開閉バランス: 1533 = 1533 ✓
+- console.log 残骸: 0件（全削除）
+- debugHokuParse: 0件（削除済み）
+- 3ファイル同期: MD5 一致 ✓
+
+### 未確認事項
+- GitHub Pages Settings が GitHub Actions / gh-pages のどちらに設定されているか（ユーザー確認が必要）
+- iPhone 実機での症状入力ズーム改善確認
+
+### iPhone確認ポイント
+- 体調記録 → 「その他の症状」入力欄をタップ → ズームしないことを確認
+- バージョン表示が v1.2.0 であることを確認
+
+### 次にやること
+- GitHub Pages Settings を確認して公開URLを正しく開けるようにする（Settings → Pages → Source）
+- 実機で体調記録の症状入力ズーム改善を確認
+
+### コミット
+- ハッシュ: `13109d8`（main）/ `40986a6`（gh-pages）
+- メッセージ: `qa: remove debug remnants and fix iOS input zoom`
+
+---
+
+## 2026-05-19 14:30  env: 不明  branch: main
+
+### 作業名
+S/A級バグ6件修正（Hoku削除ロジック・null安全・XSS・長文レスポンス）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+1. **[S] Hoku削除サイレントスライス廃止**：`_hokuFindDeleteTargets` の `if(vague && res.length>6) res=res.slice(-6)` を削除。代わりに `_hokuHandleDelete` 側で「N件あるよ、どれを消す？」と案内するよう変更。ユーザーが「全部」と言った場合の誤削除（6件のみ削除）を防止。
+2. **[A] Hoku確認フロー肯定語追加**：`handleConfirmation` の yes 正規表現に `わかった|了解|オーケー|大丈夫|おk|ｏｋ` を追加。これらで `_pendingAction` が残留するバグを修正。
+3. **[S] `S.events.push` null安全**：`S.events.push(...)` を `(S.events=S.events||[]).push(...)` に変更。LocalStorageから`null`がロードされた際のクラッシュを防止。
+4. **[S] `S.txs.push` null安全**：同様に `(S.txs=S.txs||[]).push(...)` に変更。
+5. **[S] XSSエスケープ修正**：`vc-member` selectの `memSel.innerHTML` 内で `m.id` と `m.name` に `H()` エスケープを追加（line 16265）。
+6. **[A] Hoku長文レスポンス圧縮**：スワイプ操作案内（15行→4行）・曜日ルーティン案内（13行→3行）をチャットバブルに収まるサイズに圧縮。
+
+### テスト結果
+- diff 確認：全6修正が意図どおり適用済み
+- 未実施：実機での動作確認
+
+### 未確認事項
+- Hoku削除フロー：「タスク消して」で20件ある場合の案内メッセージ確認
+- `handleConfirmation` で「わかった」が正しく肯定判定されるか確認
+- 他の `memSel.innerHTML` パターン（line 6957, 11617, 11936等）の同様XSS漏れ確認
+
+### iPhone確認ポイント
+- Hokuで「予定全部消して」→「〇件まとめて削除する？」→「わかった」→削除実行されるか
+- Hokuで「タスク消して」（曖昧）→「N件あるよ、どれを消す？」と案内されるか
+
+### 次にやること
+- 他箇所の `innerHTML` XSSパターン確認（line 6957 / 11617 / 11936）
+- Agent監査で指摘された `MEMBERS[0]` 存在チェック漏れ（line 8683, 8685等）の修正
+- App Store公開前チェックリスト（docs/app-store-release-checklist.md）の作成・確認
+
+### コミット
+- ハッシュ: `46ff835`
+- メッセージ: `fix: Hoku削除ロジック・null安全・XSSエスケープ・長文レスポンス圧縮（S/A級6件）`
+
+---
+
+## 2026-05-19 15:00  env: 不明  branch: main
+
+### 作業名
+アバター画像全差し替え（OFFICIAL_AVATARS 10枚・PREMIUM_AVATARS 7枚）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（sync）
+
+### 変更内容
+- OFFICIAL_AVATARS（旧16枚・合計302KB）を新10枚に完全入れ替え
+  - av2_baby, av2_boy_green, av2_boy_blue, av2_boy_school, av2_girl_sailor
+  - av2_boy_suit, av2_mama_bun, av2_mama_ponytail, av2_papa_glasses, av2_mama_bob
+- PREMIUM_AVATARS（旧14枚）を新7枚（ファンタジー系）に完全入れ替え
+  - av2_knight_boy, av2_wizard_boy, av2_knight_girl, av2_witch_girl
+  - av2_pirate_girl, av2_dragon_black, av2_dragon_red
+- 画像フォーマット：JPEG 350-450KB → WebP 200×200px 6-12KB（約95%削減）
+- ファイルサイズ：2288KB → 2056KB（-232KB削減）
+
+### テスト結果
+- 新アバターID 4件の存在確認 ✓
+- 旧アバターID（avatar_baby_01等）はコメントのみ残存・機能影響なし ✓
+- docs/index.html サイズ一致 ✓
+
+### 未確認事項
+- アバター選択画面での新画像の表示確認（実機）
+- 既存ユーザーが旧アバターIDを保存していた場合の表示（AVATARS_ALL.findで未ヒット → 中立グレーになる）
+
+### iPhone確認ポイント
+- アバター選択画面を開いて「これまでのアバター」セクションに17枚が表示されるか
+- 各アバターをタップして適用できるか
+
+### 次にやること
+- 実機でアバター表示確認
+- 必要に応じて「これまでのアバター」セクションラベルを変更
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `feat: アバター全差し替え（OFFICIAL 10枚・PREMIUM 7枚、WebP圧縮）`
+
+## 2026-05-19 今日  env: 不明  branch: main
+
+### 作業名
+OFFICIAL_AVATARS を全削除（新画像差し替え準備）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- OFFICIAL_AVATARS（旧10枚：av2_baby〜av2_mama_bob）を全削除し空配列に変更
+- ユーザーから新しいアバター画像の送付待ちのため、一旦空配列で保存
+
+### テスト結果
+- grep で OFFICIAL_AVATARS = [] 確認済み ✓
+
+### 未確認事項
+- 新画像の受け取り・差し替え（次セッション）
+
+### iPhone確認ポイント
+- 新画像差し替え後に実機確認予定
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `chore: OFFICIAL_AVATARS を全削除（新画像差し替え準備）`
+
+## 2026-05-19 今夜  env: 不明  branch: main / claude/merge-and-push-main-u44Ty
+
+### 作業名
+「これまでのアバター」セクション完全削除 & GitHub Pages 配信元ブランチ特定・修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- .github/workflows/pages.yml（path: '.' → 'docs' に変更）
+
+### 変更内容
+- OFFICIAL_AVATARS / PREMIUM_AVATARS の定義・参照・コメントをすべて削除
+- AVATARS_ALL = [...FAMILINK_BASIC, ...FAMILINK_PREMIUM] のみに整理
+- section() 関数に空配列ガード追加（空なら非表示）
+- アバター選択画面から「これまでのアバター」セクションを完全除去
+- GitHub Pages 配信元が claude/merge-and-push-main-u44Ty ブランチと判明し、同ブランチにも反映
+- iPhone での表示確認済み（ユーザーから「消えました」との報告）
+
+### テスト結果
+- iPhone Safari 実機で「これまでのアバター」セクションが非表示になったことを確認 ✓
+- GitHub raw URL で OFFICIAL_AVATARS / PREMIUM_AVATARS / これまでのアバター がゼロ件 ✓
+
+### 未確認事項
+- 新しいアバター画像の受け取りと差し替え（ユーザー待ち）
+
+### iPhone確認ポイント
+- アバター選択でベーシック・プレミアムの2セクションのみ表示されるか
+
+### 次にやること
+- ユーザーから新アバター画像を受け取り OFFICIAL_AVATARS に追加する
+
+### コミット
+- ハッシュ: `82f8b94`（main）/ `063b239`（claude/merge-and-push-main-u44Ty）
+- メッセージ: `feat: これまでのアバター セクションを完全削除`
+
+## 2026-05-20 00:10  env: 不明  branch: main
+
+### 作業名
+プレミアムアバター18種追加（家族・ファンタジー・ドラゴン）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- FAMILINK_PREMIUM に av3_ シリーズ18枚を追加
+  - 家族系10種: 赤ちゃん、男の子（グリーン/ブルー/制服）、女の子（セーラー）、青年（スーツ）、男性（メガネ）、ママ（まとめ髪/ポニー/ボブ）
+  - ファンタジー系5種: 勇者（男/女）、魔法使い（男/女）、海賊
+  - ドラゴン3種: 炎ドラゴン・氷ドラゴン・闇ドラゴン
+- AVATAR_CATEGORIES に `fantasy（ファンタジー）` カテゴリを追加
+- 画像処理: 元画像（1254×1254 JPEG）→ 200×200 WebP quality=82 に圧縮・base64 埋め込み
+- main と claude/merge-and-push-main-u44Ty の両ブランチに push 完了
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- 各アバター画像の見た目が正しいか（画像の順序は会話の送信順から推定）
+- ファンタジーカテゴリフィルターが正しく動作するか
+
+### iPhone確認ポイント
+- アバター選択画面に新18種が表示されるか
+- ファンタジーカテゴリフィルターで正しく絞り込めるか
+- 各画像が 200×200 で崩れず表示されるか
+
+### 次にやること
+- 実機で新アバター表示を確認
+- 不要なら旧 flp_ アバターを削除してシンプル化（要確認）
+
+### コミット
+- ハッシュ: `1a5caec` (main), `6100050` (claude/merge-and-push-main-u44Ty)
+- メッセージ: `feat: プレミアムアバター18種追加（家族・ファンタジー・ドラゴン）`
+
+## 2026-05-20 セッション2  env: 不明  branch: main
+
+### 作業名
+Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- ウェルカム画面キャッチコピーに読点を追加「予定も、やることも、ひとつに。」
+- ob-catch を clamp(19px, 5.5vw, 24px) でレスポンシブ化（iPhone SE での改行防止）
+- s-premium 全画面スクリーン新規実装
+  - ヘッダーバー（×閉じる・王冠・タイトル）
+  - 3大メリット チェックリストカード
+  - 機能カード6種（アコーディオン展開式）
+  - 無料/Premium 比較表（9行・横スクロールなし）
+  - ご契約説明6項目
+  - FAQアコーディオン5件
+  - sticky CTAボタン（開発中モーダル表示）
+  - 購入を復元 / 利用規約 / プライバシーポリシー リンク
+- showPremiumGate() を s-premium への画面遷移に変更
+- Hoku 1日5回制限（無料ユーザー）実装・制限到達で s-premium へ誘導
+- devTogglePremium() で設定画面からプレミアム状態切り替え可能
+- hokuDailyUsage を S / PERSIST に追加
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- s-premium 画面の実機表示（iPhone SE / iPhone 15 Pro Max）
+- FAQ アコーディオンの開閉
+- 比較表の横スクロール有無
+- CTA ボタン → 開発中モーダル表示
+- devTogglePremium でプレミアム状態切り替え
+
+### iPhone確認ポイント
+- 設定画面「プレミアムを見る」→ s-premium へ遷移するか
+- プレミアムアバタータップ → s-premium へ遷移するか
+- Hoku 5回送信後に制限モーダルが出るか
+- sticky CTA が常に見えるか
+- 比較表が崩れないか
+- ×ボタンで前の画面へ戻れるか
+
+### 次にやること
+- 広告バナー枠をホーム画面に実配置（無料ユーザーのみ表示）
+- ストレージ近接検知 → s-premium 誘導強化
+- 実機で s-premium・新アバター18種を確認
+
+### コミット
+- ハッシュ: `31e3d20`（ob-catch）, `c06e270`（Premium 画面）
+- メッセージ: `feat: Familink Premium 案内画面を新規実装（Wave 200）`
+
+## 2026-05-20 セッション3  env: 不明  branch: main
+
+### 作業名
+プレミアム課金導線の強化（広告バナー・Hoku残り回数バー・ストレージ誘導）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+1. ホーム画面に広告バナー配置（無料ユーザーのみ表示・タップで s-premium へ）
+2. ストレージ使用率70%以上で「ストレージを20GBに拡張」プレミアム誘導カードを表示
+3. Hoku画面に残り利用回数バーを追加（無料ユーザー向け：残り X / 5回 + 「無制限にする」ボタン）
+4. プレミアムユーザーは広告バナー・残り回数バーが完全非表示
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- ホーム画面の広告バナー表示・タップ動作
+- Hoku残り回数バーの回数カウント精度
+- ストレージ誘導カードの表示条件（70%以上）
+- devTogglePremium でバナー・バーが消えるか
+
+### iPhone確認ポイント
+- ホーム下部に広告バナーが表示されるか
+- Hoku画面上部に残り回数バーが表示されるか
+- プレミアム状態に切り替え後バナー/バーが消えるか
+
+### 次にやること
+- 実機で全体テスト（プレミアム画面・広告バナー・Hoku制限）
+- 年額プランの選択 UI（将来対応）
+- App Store 申請前チェック（familink-appstore-release-lead）
+
+### コミット
+- ハッシュ: `56d22e9`（広告バナー）, `a6459c1`（Hoku残り回数バー）
+- メッセージ: `feat: 広告バナー・ストレージ誘導・Hoku残り回数バー追加`
+
+## 2026-05-20 セッション4  env: 不明  branch: main
+
+### 作業名
+品質改善・v1.3.0・App Store 申請前チェック・PWA manifest 追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- docs/manifest.json（新規）
+- docs/appstore-readiness-checklist.md
+
+### 変更内容
+- devTogglePremium() がホーム/Hoku/プレミアム画面を即時リフレッシュ
+- hokuSend() がカウント後に残り回数バーを即時更新
+- prm-cta-bar の position:sticky を除去（flex レイアウトで不要）
+- ctaBar.className で直接スタイル付与（ネスト簡素化）
+- APP_VERSION を v1.3.0 にバージョンアップ
+- meta description / OG タグを追加（SEO・App Store 向け）
+- PWA manifest.json を新規作成・HTML に link 追加
+- appstore-readiness-checklist.md を v1.3.0 向けに更新
+
+### テスト結果
+- コードレビュー: 全チェック項目 20/21 ✓（alert() は音声テスト用のみ・問題なし）
+- 未実施: 実機動作確認
+
+### 未確認事項
+- 実機でのプレミアム画面全体テスト
+- Hoku 残り回数バーのカウント精度
+- devTogglePremium での各画面リフレッシュ
+
+### iPhone確認ポイント
+- 設定画面「開発用」トグルでプレミアム切り替え
+- ホーム広告バナー表示・非表示切り替え
+- Hoku 残り回数バー更新
+- プレミアム画面 CTA sticky 表示
+- manifest.json で PWA インストール動作
+
+### 次にやること
+- iOS Capacitor ラッパーの検討（要オーナー確認）
+- App Store 申請用スクリーンショットの作成
+- TestFlight 配布の準備
+- 実機テスト（iPhone SE / 15 Pro Max）
+
+### コミット
+- ハッシュ: `2b97e56`, `8b35d12`
+- メッセージ: `fix: プレミアム画面品質改善・v1.3.0 へバージョンアップ` / `feat: PWA manifest.json 追加`
+
+## 2026-05-20 セッション5  env: 不明  branch: main
+
+### 作業名
+世界最高峰クオリティ継続 — UX品質大幅向上（オンボーディング・Hoku・画面遷移）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+1. オンボーディングに機能ハイライト3枚追加（SVGアイコン×カラードカード・ob-feat-inアニメーション）
+   - 📅 予定を家族でシェア / ✅ タスクをチームで完了 / 🤖 Hokuがサポート
+2. Hoku空状態をウェルカムUIに刷新
+   - Hokuイメージ大（88px）・名前挨拶・クイック3ボタン・mic-pulseアニメーション
+3. 画面遷移にfade-up入場アニメーション（screen-in keyframes）追加
+4. ホームヘッダーに今日の日付ピル表示（M/D（曜日）形式）
+5. 設定画面プレミアムカードのコピー改善
+   - 無料版：「今なら1ヶ月無料」「1ヶ月無料でためす →」
+   - プレミアム会員：「すべての機能が使い放題です」
+6. 前セッション（CSS品質）もコミット・プッシュ済み（Google Fonts・5アニメ・backdrop-filter等）
+
+### テスト結果
+- HTMLバランス: div 1621/1621 ✓
+- 全改善項目の存在確認: 7/7 ✓
+- 未実施: 実機目視確認
+
+### 未確認事項
+- オンボーディング機能ハイライトのアニメーション（ob-feat-in）動作
+- Hoku空状態UIの表示・クイックチップタップ動作
+- 画面遷移アニメーション（screen-in）の自然さ
+- home-date-mid ピルの表示確認
+
+### iPhone確認ポイント
+- オンボーディング画面：機能ハイライト3枚が縦に綺麗に並ぶか
+- Hoku画面：空状態でHokuイメージ・タイトル・3チップが表示されるか
+- ホーム：ヘッダー中央に日付ピルが表示されるか
+- 全画面：画面遷移時にfade-upアニメーションが自然に動くか
+
+### 次にやること
+- 実機テスト（iPhone SE / 15 Pro Max）で全改善を確認
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store 申請用スクリーンショット作成
+
+### コミット
+- ハッシュ: `17bc293`（品質CSS）, `ad21076`（UX品質向上）
+- メッセージ: `feat: 世界最高峰クオリティCSS...` / `feat: UX品質大幅向上...`
+
+## 2026-05-20 セッション6  env: 不明  branch: main
+
+### 作業名
+世界最高峰テスト — 全バグ修正・CSS変数完全修正・null安全強化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（mirror）
+
+### 変更内容
+**バグ修正（CRITICAL）**
+1. `renderPremium()`: `ctaBar.innerHTML` の null dereference バグ修正
+   → `if(ctaBar) { ctaBar.className ...; ctaBar.innerHTML ... }` に変更
+2. JS構文エラー: `openLegalDoc('terms')` のシングルクォート衝突
+   → `openLegalDoc(\'terms\')` にエスケープ（node --check で ✓ 確認）
+
+**バグ修正（HIGH）**
+3. `hokuSend()`: `input?.value.trim()` → `input?.value?.trim()` null安全修正
+4. `showConfirm()`: `confirm-icon` getElementById null guard 追加
+5. `renderNotif()`: `el` null guard 追加
+
+**CSS変数修正**
+6. `--bg-soft`（未定義変数）→ `#F4F7FD` に置換（タスク削除バーキャンセルボタン）
+7. `--t-base`（未定義変数）→ `var(--t)` に統一（3箇所）
+
+**UI修正**
+8. `home-date-mid`: flex-1スパン全幅ストレッチ問題修正（インライン<span>ピルで表示）
+
+### テスト結果
+- HTML div バランス: 1621/1621 ✓
+- JS 構文チェック: node --check ✓ CLEAN
+- 未定義CSS変数: 0件 ✓
+- 未定義keyframes: 0件 ✓
+- テンプレートリテラル: 876個（偶数）✓
+- 全15項目チェック: 15/15 ✓
+
+### 未確認事項
+- 実機での全バグ修正の動作確認
+- home-date-mid ピル表示の確認
+
+### iPhone確認ポイント
+- プレミアム画面のCTAボタンが正常表示・タップできるか
+- 利用規約・プライバシーポリシーのモーダルが開くか
+- Hokuの残り回数が正確に表示・減少するか
+- 通知画面が正常表示されるか
+
+### 次にやること
+- 実機テスト（iPhone SE / 15 Pro Max）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store 申請用スクリーンショット作成
+
+### コミット
+- ハッシュ: `45bbf00`
+- メッセージ: `fix: 世界最高峰テスト — バグ修正・CSS変数修正・null安全強化`
+
+## 2026-05-20 env: 不明  branch: claude/display-current-link-IUqy1
+
+### 作業名
+ホーム広告バナー削除・Hoku無制限化・プレミアム画面の全面プロフェッショナル化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- ホーム画面のプレミアム訴求バナー（home-ad-bar）を全ユーザーに非表示化
+- Hokuの1日5回制限を完全撤廃（hokuSend/renderHokuの制限ロジックを削除）
+- プレミアム画面のヒーロータイトルを「プレミアムを1ヶ月無料で体験しよう」→「Familink Premium」へ簡潔化
+- ヒーローサブコピーを「大切な家族の記録を、安心して残せる場所へ。」に刷新
+- フィーチャーカードの絵文字アイコン（📵💾🤖👑🏷️📦）をSVGアイコンに全置換
+- フィーチャーカードから「広告なし」「Hoku無制限」の2項目を削除（非プレミアム限定ではなくなったため）
+- 比較テーブルから「広告非表示」「Hoku利用」の2行を削除
+- ベネフィットチェックリストを「20GBストレージ・プレミアムアバター・一括バックアップ」に更新
+- 不要CSS（.home-ad-strip系・.hoku-usage-bar系）を完全削除（-228行）
+
+### テスト結果
+- backtick偶数: 876 ✓
+- divバランス: 1615/1615 ✓
+- 削除すべき文字列の消去: 6/6 ✓
+- 追加すべき文字列の存在: 5/5 ✓
+
+### 未確認事項
+- 実機でのプレミアム画面SVGアイコン表示確認
+- Hoku画面でバー非表示（空要素）の確認
+
+### iPhone確認ポイント
+- プレミアム画面のSVGアイコン（4枚）が正しく表示されるか
+- ホーム画面がバナーなしでスッキリ表示されるか
+- Hoku画面に制限バーが表示されないか
+
+### 次にやること
+- 実機テスト（iPhone）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store 申請用スクリーンショット作成
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `feat: ホーム広告削除・Hoku無制限化・プレミアム画面プロ品質リデザイン`
+
+## 2026-05-20 env: 不明  branch: claude/display-current-link-IUqy1
+
+### 作業名
+バグ修正・デッドコード削除・整合性修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+**バグ修正**
+- `hokuSend()`: `input?.value.trim()` → `input?.value?.trim()` (input が null 時に throw する null safety bug)
+- 体調記録症状チップ: `var(--green-light)` → `var(--secondary-light)` (未定義 CSS 変数による描画崩れ)
+
+**整合性修正**
+- 設定画面プレミアムカード説明文: 「広告なし・Hoku無制限」→「20GBストレージ・プレミアムアバター・一括バックアップ」に更新（機能変更と合わせて）
+
+**デッドコード削除**
+- `hokuDailyUsage: null` を S state から削除
+- `hokuDailyUsage` を PERSIST 配列から削除
+- `<div id="hoku-usage-bar">` HTML 要素を削除（常に空、不要）
+- `renderHoku()` の usage-bar クリアコードを削除
+- `<div id="home-ad-bar">` HTML 要素を削除（常に空、不要）
+- `renderHome()` の adBar クリアコードを削除
+
+### テスト結果
+- Backtick 偶数: 876 ✓
+- div バランス: 1613/1613 ✓
+- 未定義 CSS 変数: 0 ✓
+- 全13チェック: PASSED ✓
+
+### 未確認事項
+- 実機での体調記録症状チップ（緑色）表示確認
+
+### iPhone確認ポイント
+- 体調記録: 平熱症状のチップが緑色で表示されるか
+- Hoku: 入力フィールドが null でも安全に動作するか
+
+### 次にやること
+- 実機テスト（iPhone）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `fix: null safety修正・--green-light未定義修正・デッドコード削除`
+
+## 2026-05-20 env: 不明  branch: main / gh-pages
+
+### 作業名
+アプリ全体品質向上・文言改善・デプロイ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages/index.html（直接push）
+
+### 変更内容
+**デプロイ修正**
+- gh-pagesブランチが古いバージョンのままだったことを発見し、最新コードを全反映
+
+**バグ修正**
+- 設定画面の`${S.isPremiumUser ? ...}`がエスケープ（`\${`）されてリテラル表示されていたのを修正
+
+**品質改善**
+- プレミアム「プレミアムプランを選ぶ」タップ: 「開発中のお知らせ」→「近日公開予定」に
+- プレミアム「購入を復元」タップ: 開発者向け文言 → 自然なユーザー向け文言に
+- プレミアムヒーローサブコピー: 「家族の記録を、もっと豊かに。もっと安心に。」
+- FAQ「プランは変更できますか？」: 「将来的に...予定」→ 自然な現在形に
+- ホーム「＋ ボードを追加」→ SVGアイコン + 「ボードを追加」にプロ化
+- Hoku空状態チップ: 自然な質問形式に改善（「今日の予定は？」など）
+
+### テスト結果
+- backtick偶数: 876 ✓、div 1613/1613 ✓、未定義CSS変数: 0 ✓
+
+### 未確認事項
+- プレミアム「近日公開予定」アラートのiPhone実機表示確認
+
+### iPhone確認ポイント
+- プレミアムCTAボタンタップ → 「近日公開予定」が表示されるか
+- Hoku空状態チップの文言が自然に見えるか
+
+### 次にやること
+- 実機テスト（iPhone）でプレミアム画面・Hoku画面の最終確認
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store申請用スクリーンショット作成
+
+### コミット
+- ハッシュ: `c625d89`（main）/ `cce9155`（gh-pages）
+- メッセージ: `feat: アプリ品質向上（文言・UX改善）`
+
+## 2026-05-20 env: 不明  branch: main / gh-pages
+
+### 作業名
+世界最高峰テスト・バグ修正・iOS Safari完全対応
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- gh-pages/index.html（直接push）
+- gh-pages/version.txt（20260520b）
+
+### 変更内容
+**クリティカルバグ修正**
+- 重複ID `memo-body`（div + textarea）→ div を `memo-list` に改名。renderMemo()を対応更新。メモの保存・読み込みが正常化
+- 重複ID `vc-title`（表示div + input）→ div を `vc-modal-title` に改名。voiceConfirmRender()を対応更新。音声確認タイトル入力が正常化
+- `avatar-cat-tabs` 要素が存在しなかった → アバター選択モーダルにカテゴリタブ div を追加。アバターカテゴリフィルタが機能するように
+
+**iOS Safari 自動ズーム防止（font-size 全修正）**
+- `.card-comment-input` 13px → 16px
+- 音声確認モーダル全フォーム（vc-cat, vc-member, vc-title, vc-date, vc-time, vc-amount, vc-temp, vc-note）14px → 16px
+- アルバムフォルダ select 12px → 16px
+- ICS import textarea 11px → 16px
+
+**キャッシュバスター実装**
+- version.txt を追加。ページ起動時に自動照合 → 古いキャッシュを自動排除
+
+### テスト結果
+- 重複ID: 0 ✓
+- Backtick: 876 (even) ✓
+- div: 1619/1619 ✓
+- font-size < 16px on interactive inputs: 0 ✓（file input除く）
+- 全 onclick/go()/openModal() ターゲット: 存在確認済み ✓
+
+### 未確認事項
+- iPhone実機でメモ保存・読み込みが正常になったか確認
+- アバターモーダルのカテゴリタブ表示確認
+- 音声確認モーダルでタイトル事前入力・保存が正常か確認
+
+### iPhone確認ポイント
+- メモ編集: 既存内容がテキストエリアに表示され、保存できるか
+- アバター選択: カテゴリタブ（すべて/赤ちゃん/子ども...）が表示されるか
+- 音声確認: タイトル入力欄に認識テキストが入力済みになるか
+- コメント入力: タップ時にズームしないか（font-size 16px対応）
+
+### 次にやること
+- iPhone実機テスト（上記確認ポイント）
+- iOS Capacitor ラッパー実装（要オーナー確認）
+- App Store申請準備
+
+### コミット
+- ハッシュ: `a519be5`（main）/ `7cb56cf`（gh-pages）
+- メッセージ: `fix: 世界最高峰バグ修正 — 重複ID・音声モーダル・アバタータブ・iOS zoom防止`
+
+---
+
+## 2026-05-20 env: 不明  branch: main
+
+### 作業名
+世界最高峰品質パス②  — 全削除操作に確認ダイアログ・クラッシュ防止・タップ領域改善
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`
+- `docs/version.txt`（20260520d）
+- `gh-pages: index.html / version.txt`
+
+### 変更内容
+**CRITICAL バグ修正**
+- `deleteCurrentTx()`: 確認なしに収支データを削除していた → `showConfirm()` で確認ダイアログを追加
+- `loadS()`: localStorage に欠損フィールドがあるとクラッシュする恐れ → 配列フィールド15種の undefined を `[]` で補完
+
+**confirm() → showConfirm() 統一（5箇所）**
+- `deleteMemo()` / `deleteMemoById()`: ネイティブ confirm() → showConfirm() に変換
+- `confirmDeleteMember()` / `confirmDeleteMemberFromList()`: 同上
+- `deleteRecurringTxFromModal()` / `confirmDeleteRecurringTx()`: 固定収支削除も統一
+- `runTkBulkDelete()`: タスク一括削除も確認ダイアログ化
+
+**iOS HIG タップ領域確保**
+- `.archive-row .archive-actions button`: padding 4px→10px、min-height:44px
+- `.recurring-row .rr-actions button`: 同上
+- `.member-row .mr-actions button`: 同上
+
+**その他 UX 改善**
+- ICS コピーボタン: `.catch()` を追加（コピー失敗時にエラートースト表示）
+- 音声入力不可メッセージ: より自然な日本語に修正
+- タスク表示人数警告文: 「最低1人は」→「最低1名を」に修正
+
+### テスト結果
+- 文法エラーなし（目視確認）
+- `showConfirm` の参照先 `m-confirm` モーダルは既存で存在確認済み
+- 未実施: iPhone実機テスト
+
+### 未確認事項
+- iPhone実機でアバターモーダルカテゴリタブ確認（前回申し送り）
+- 削除確認ダイアログが正常に表示されるか
+
+### iPhone確認ポイント
+- 収支明細: 削除ボタンタップ → 確認ダイアログが表示されるか
+- メンバー削除: 確認ダイアログが表示されるか
+- archive/recurring/member ボタンが 44px 以上のタップ領域があるか
+
+### 次にやること
+- iPhone実機テスト（上記確認ポイント）
+- App Store申請準備（アイコン・スクショ・説明文）
+- 残存 confirm() の showConfirm() 変換（設定画面のデータ削除系）
+
+### コミット
+- ハッシュ: `97af176`（main）/ `5c50c61`（gh-pages）
+- メッセージ: `fix: 世界最高峰品質パス — 全削除操作に確認ダイアログ追加・クラッシュ防止・タップ領域改善`

@@ -37,9 +37,8 @@ jobs:
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # リポジトリ全体をそのままアップロード
-          # ルートの index.html がリダイレクト → app-source/familink.html
-          path: '.'
+          # docs/index.html がアプリ本体（app-source/familink.html のコピー）
+          path: 'docs'
 
       - name: Deploy to GitHub Pages
         id: deployment

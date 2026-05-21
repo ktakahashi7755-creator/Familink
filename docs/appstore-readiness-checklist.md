@@ -1,5 +1,8 @@
 # App Store 公開前 チェックリスト
 
+> 最終更新: 2026-05-20 / v1.3.0 — Premium 画面・課金導線・Hoku制限・広告バナー実装済み
+
+
 Familink を App Store / Google Play に公開するために確認すべき残課題の一覧。
 状態：☐ 未着手 / ◐ 進行中 / ☑ 完了
 
@@ -54,7 +57,7 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 | 項目 | 状態 | 備考 |
 |---|---|---|
-| iOS ラッパー（Capacitor / WKWebView）| ☐ | **Capacitor 推奨**（docs/ios-wrapper-decision.md）。本実装は要オーナー確認 |
+| iOS ラッパー（Capacitor / WKWebView）| ☐ | **Capacitor 推奨**（docs/ios-wrapper-decision.md）。本実装は要オーナー確認。PWA manifest.json 追加済み |
 | TestFlight 配布 | ☐ | ラッパー後 |
 | GitHub Pages 配信 | ☑ | Deploy from a branch で公開中（site live 確認済み）|
 | オフライン動作 | ☑ | 単一 HTML / LocalStorage で完結 |
@@ -63,7 +66,7 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 | 項目 | 状態 | 備考 |
 |---|---|---|
-| 課金（IAP）導線 | ☐ | 設計のみ。本実装は要確認 |
+| 課金（IAP）導線 | ◐ | s-premium 画面・Hoku制限・広告バナー・ストレージ誘導を実装済み。本決済は App Store IAP 連携が必要 |
 | 本物のログイン | ☐ | 設計のみ。本実装は要確認 |
 | 家族同期（Supabase 等）| ☐ | 設計のみ。本実装は要確認 |
 | プッシュ通知 | ☐ | App Store 版で対応予定 |
