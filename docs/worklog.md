@@ -11747,3 +11747,46 @@ Familink Premium 案内画面 新規実装（Wave 200）+ ウェルカム文言�
 ### コミット
 - ハッシュ: `31e3d20`（ob-catch）, `c06e270`（Premium 画面）
 - メッセージ: `feat: Familink Premium 案内画面を新規実装（Wave 200）`
+
+---
+
+## 2026-05-21 23:00  env: 不明  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+deck.html バグ修正・投資家向け品質最終仕上げ
+
+### 変更ファイル
+- deck.html（リポジトリルート）
+
+### 変更内容
+- フッターの `./investor-data-room.html` リンクを `./docs/investor-data-room.html` に修正（404バグ解消）
+- アプリデモリンクを `./index.html`（リダイレクト）から `./app-source/familink.html`（直リンク）に変更
+- `<meta name="description">` 追加（SNS・メール共有時のプレビュー対応）
+- OG tags（og:title / og:description / og:type）追加
+- 外部フォント依存ゼロ・JS依存ゼロ・システムフォントのみ維持
+
+### テスト結果
+- コード検査：リンクパス・数値（TAM/SAM/SOM/LTV/CAC）整合性を手動確認済み
+- 実機確認：未実施（GitHub Actions デプロイ後にブラウザ確認）
+
+### 未確認事項
+- GitHub Actions（commit 7ffdf37）のデプロイ完了確認
+- iPhone Safari で deck.html が正常表示されるか
+- フッターリンク3つ（アプリデモ・ピッチ詳細・データルーム）が404にならないか
+- OG タグがSNS・LINEで正しくプレビューされるか
+
+### iPhone確認ポイント
+- deck.html が白画面にならずに表示されるか（外部フォント依存ゼロなので問題ないはず）
+- KPI グリッド・カードレイアウトが崩れないか
+- スクロールスムーズ・ナビが sticky で正常か
+- フッターリンク3つがタップできるか
+
+### 次にやること
+- deck.html 公開 URL の最終確認：https://ktakahashi7755-creator.github.io/Familink/deck.html
+- App Store 申請準備（Capacitorラッパー / アイコン / スクリーンショット）
+- 家族同期バックエンド（Supabase）実装
+- TestFlight 配布（30〜100家族へのクローズドβ）
+
+### コミット
+- ハッシュ: `7ffdf37`
+- メッセージ: `fix: deck.htmlのリンクバグ修正・OGメタ追加（投資家向け品質向上）`
