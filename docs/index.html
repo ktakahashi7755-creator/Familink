@@ -2,9 +2,6 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <script>
 // サービスワーカー登録: 今後のアップデートを自動で受け取る
 if('serviceWorker' in navigator){
@@ -14,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260522e';
+  var V='20260522f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1377,6 +1374,27 @@ select.input {
   background: var(--primary); border-radius: var(--r-full); padding: 2px 9px;
 }
 .usage-mode-card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
+/* ワークスペースカード */
+.ws-card {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; text-align: left;
+  border: 1.5px solid var(--border-light); border-radius: 14px;
+  background: #fff; padding: 14px; margin-bottom: 10px;
+  cursor: pointer; transition: var(--t-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.ws-card:active { transform: scale(.98); }
+.ws-card.selected { border-color: var(--primary); background: var(--primary-light); }
+.ws-card-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.ws-card-icon { font-size: 24px; flex-shrink: 0; }
+.ws-card-info { flex: 1; min-width: 0; }
+.ws-card-name { font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.ws-card-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; line-height: 1.4; }
+.ws-card-check { flex-shrink: 0; width: 24px; display: flex; justify-content: center; }
+.ws-badge-active {
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: var(--primary); border-radius: var(--r-full); padding: 2px 8px;
+}
 .settings-title {
   font-size: 11px; font-weight: 700; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px;
@@ -3767,16 +3785,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 </div>
 
 <!-- C8: 利用スタイル（個人利用 / 家族・チーム利用） -->
-<div id="m-usage-mode" class="modal-backdrop hidden">
+<!-- ===== ワークスペース切り替えモーダル ===== -->
+<div id="m-workspace-switcher" class="modal-backdrop hidden">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title">利用スタイル</div>
-    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-      Familink の使い方を選べます。あとから設定でいつでも切り替えられます。
-    </p>
-    <div id="usage-mode-body" class="modal-form"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="modal-title" style="margin:0;">スペースを切り替え</div>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;border-radius:20px;" onclick="openWorkspaceEdit('')">+ 新規作成</button>
+    </div>
+    <div id="ws-switcher-body"></div>
     <div class="modal-actions" style="margin-top:14px;">
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-usage-mode')">閉じる</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-workspace-switcher')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ワークスペース作成・編集モーダル ===== -->
+<div id="m-workspace-edit" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div id="ws-edit-title" class="modal-title">新しいスペース</div>
+    <input type="hidden" id="ws-edit-id">
+    <div class="modal-form">
+      <label class="form-label">スペース名 <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="ws-edit-name" class="form-input" placeholder="例: 仕事用、習い事など" maxlength="20">
+      <label class="form-label" style="margin-top:12px;">説明（任意）</label>
+      <input type="text" id="ws-edit-desc" class="form-input" placeholder="このスペースの用途など" maxlength="40">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="saveWorkspaceEdit()">保存する</button>
+      <button id="ws-edit-del-btn" class="btn btn-ghost btn-block" style="color:var(--danger);display:none;" onclick="deleteWorkspace(document.getElementById('ws-edit-id').value)">このスペースを削除</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-workspace-edit')">キャンセル</button>
     </div>
   </div>
 </div>
@@ -4931,10 +4970,12 @@ let S = {
   hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
   tabConfig: null,   // タブカスタマイズ: [{id,vis}] | null=デフォルト5タブ
   widgetItems: null, // ウィジェット設定: [{type,label,enabled}] | null=デフォルト
+  workspaces: null,        // ワークスペース一覧 [{id,name,type,description,allowedMemberIds,enabledFeatures,accessMode,createdAt,updatedAt}]
+  currentWorkspaceId: 'ws_shared', // 現在アクティブなワークスペース ID
 };
 
 const APP_VERSION = 'v1.3.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId'];
 
 function saveS() {
   const d = {};
@@ -5818,7 +5859,8 @@ function ob2SaveFirst() {
     time: time,
     color: '#4A90E2',
     member: (S.user && S.user.id) || 'kenya',
-    note: ''
+    note: '',
+    workspaceId: curWsId()
   });
   saveS();
   showToast('最初の予定を登録しました');
@@ -5849,53 +5891,214 @@ function displayName() {
   return (S.user && S.user.name) || 'ゲスト';
 }
 
-/* C8: 利用スタイル（個人利用 / 家族・チーム利用）。
-   S.userProfile.usageMode に保存。未設定は 'family'（家族向けアプリの既定）。
-   既存ユーザーの userProfile に無くても 'family' 扱いで後方互換。 */
+/* ── ワークスペース（利用スタイル）システム ── */
+
+const DEFAULT_WORKSPACES = [
+  {
+    id: 'ws_shared',
+    name: '共有用',
+    type: 'shared',
+    description: '家族みんなで使うスペース',
+    allowedMemberIds: [],
+    enabledFeatures: ['cal','task','budget','health','prep','board','shopping','memo'],
+    accessMode: 'all',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'ws_personal',
+    name: '自分用',
+    type: 'personal',
+    description: '自分だけのプライベートスペース',
+    allowedMemberIds: [],
+    enabledFeatures: ['cal','task','budget','health','prep','memo'],
+    accessMode: 'self',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z'
+  }
+];
+
+function initWorkspaces() {
+  if (!S.workspaces || !Array.isArray(S.workspaces) || S.workspaces.length === 0) {
+    S.workspaces = DEFAULT_WORKSPACES.map(function(w) { return Object.assign({}, w); });
+  }
+  // デフォルトWSが削除されていたら復元
+  DEFAULT_WORKSPACES.forEach(function(def) {
+    if (!S.workspaces.find(function(w) { return w.id === def.id; })) {
+      S.workspaces.unshift(Object.assign({}, def));
+    }
+  });
+  if (!S.currentWorkspaceId) S.currentWorkspaceId = 'ws_shared';
+}
+
+function curWsId() {
+  return S.currentWorkspaceId || 'ws_shared';
+}
+
+function getWorkspaces() {
+  initWorkspaces();
+  return S.workspaces;
+}
+
+function currentWorkspace() {
+  const wsId = curWsId();
+  return getWorkspaces().find(function(w) { return w.id === wsId; }) || DEFAULT_WORKSPACES[0];
+}
+
+// workspaceId未設定のデータは 'ws_shared' 扱いで後方互換
+function wsFilter(arr) {
+  const wsId = curWsId();
+  return (arr || []).filter(function(item) {
+    return (item.workspaceId || 'ws_shared') === wsId;
+  });
+}
+
+function openWorkspaceSwitcher() {
+  initWorkspaces();
+  renderWorkspaceSwitcher();
+  openModal('m-workspace-switcher');
+}
+
+function renderWorkspaceSwitcher() {
+  const body = document.getElementById('ws-switcher-body');
+  if (!body) return;
+  const wsId = curWsId();
+  const workspaces = getWorkspaces();
+  body.innerHTML = workspaces.map(function(ws) {
+    const isSelected = ws.id === wsId;
+    const typeIcon = ws.type === 'shared' ? '👨‍👩‍👧' : ws.type === 'personal' ? '🙋' : '📁';
+    return '<button class="ws-card' + (isSelected ? ' selected' : '') + '" onclick="switchWorkspace(\'' + ws.id + '\')">'
+      + '<div class="ws-card-left">'
+      +   '<span class="ws-card-icon">' + typeIcon + '</span>'
+      +   '<div class="ws-card-info">'
+      +     '<div class="ws-card-name">' + H(ws.name) + (isSelected ? ' <span class="ws-badge-active">使用中</span>' : '') + '</div>'
+      +     '<div class="ws-card-desc">' + H(ws.description || '') + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="ws-card-check">' + (isSelected ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+function switchWorkspace(wsId) {
+  if (S.currentWorkspaceId === wsId) {
+    closeModal('m-workspace-switcher');
+    return;
+  }
+  S.currentWorkspaceId = wsId;
+  saveS();
+  closeModal('m-workspace-switcher');
+  updateWorkspaceUI();
+  renderCurrentScreen();
+  const ws = currentWorkspace();
+  showToast(ws.name + 'に切り替えました');
+}
+
+function updateWorkspaceUI() {
+  const ws = currentWorkspace();
+  const modeLabel = document.getElementById('home-mode-label');
+  if (modeLabel) modeLabel.textContent = ws.name;
+  renderSettings();
+}
+
+function openWorkspaceEdit(wsId) {
+  closeModal('m-workspace-switcher');
+  const ws = wsId ? getWorkspaces().find(function(w) { return w.id === wsId; }) : null;
+  const nameEl = document.getElementById('ws-edit-name');
+  const descEl = document.getElementById('ws-edit-desc');
+  const idEl   = document.getElementById('ws-edit-id');
+  if (!nameEl || !descEl || !idEl) return;
+  idEl.value   = ws ? ws.id : '';
+  nameEl.value = ws ? ws.name : '';
+  descEl.value = ws ? (ws.description || '') : '';
+  const title = document.getElementById('ws-edit-title');
+  if (title) title.textContent = ws ? 'スペースを編集' : '新しいスペース';
+  const delBtn = document.getElementById('ws-edit-del-btn');
+  if (delBtn) delBtn.style.display = (ws && ws.type === 'custom') ? '' : 'none';
+  openModal('m-workspace-edit');
+}
+
+function saveWorkspaceEdit() {
+  const nameEl = document.getElementById('ws-edit-name');
+  const descEl = document.getElementById('ws-edit-desc');
+  const idEl   = document.getElementById('ws-edit-id');
+  if (!nameEl || !descEl || !idEl) return;
+  const name = nameEl.value.trim();
+  const desc = descEl.value.trim();
+  const wsId = idEl.value;
+  if (!name) { showToast('スペース名を入力してください', 'error'); return; }
+  initWorkspaces();
+  const now = new Date().toISOString();
+  if (wsId) {
+    const ws = S.workspaces.find(function(w) { return w.id === wsId; });
+    if (ws) { ws.name = name; ws.description = desc; ws.updatedAt = now; }
+  } else {
+    const newWs = {
+      id: 'ws_' + uid(),
+      name: name,
+      type: 'custom',
+      description: desc,
+      allowedMemberIds: [],
+      enabledFeatures: ['cal','task','budget','health','prep','board','shopping','memo'],
+      accessMode: 'all',
+      createdAt: now,
+      updatedAt: now
+    };
+    S.workspaces.push(newWs);
+    S.currentWorkspaceId = newWs.id;
+  }
+  saveS();
+  closeModal('m-workspace-edit');
+  updateWorkspaceUI();
+  renderCurrentScreen();
+  showToast(wsId ? 'スペースを更新しました' : 'スペースを作成しました');
+}
+
+function deleteWorkspace(wsId) {
+  const ws = (S.workspaces || []).find(function(w) { return w.id === wsId; });
+  if (!ws || ws.type !== 'custom') return;
+  showConfirm(
+    'スペースを削除',
+    '「' + ws.name + '」を削除しますか？\nこのスペースのデータはすべて削除されます。',
+    '削除する',
+    function() {
+      S.workspaces = S.workspaces.filter(function(w) { return w.id !== wsId; });
+      if (S.currentWorkspaceId === wsId) S.currentWorkspaceId = 'ws_shared';
+      // スペースのデータも削除
+      ['events','tasks','txs','health','prep','memos','shoppingItems'].forEach(function(key) {
+        if (Array.isArray(S[key])) {
+          S[key] = S[key].filter(function(item) { return (item.workspaceId || 'ws_shared') !== wsId; });
+        }
+      });
+      saveS();
+      closeModal('m-workspace-edit');
+      updateWorkspaceUI();
+      renderCurrentScreen();
+      showToast('スペースを削除しました');
+    },
+    'danger'
+  );
+}
+
+// 後方互換: 旧 usageMode 関数
 function getUsageMode() {
   return (S.userProfile && S.userProfile.usageMode === 'solo') ? 'solo' : 'family';
 }
 function isSoloMode() { return getUsageMode() === 'solo'; }
-function usageModeLabel() {
-  return isSoloMode() ? '自分用' : '共有用';
-}
-function openUsageModeModal() {
-  renderUsageModeModal();
-  openModal('m-usage-mode');
-}
-function renderUsageModeModal() {
-  const body = document.getElementById('usage-mode-body');
-  if(!body) return;
-  const mode = getUsageMode();
-  const opts = [
-    { k:'family', t:'共有用', sub:'家族・チーム利用',
-      d:'メンバーを招待して、予定・タスク・体調を家族みんなで分担・共有します。' },
-    { k:'solo', t:'自分用', sub:'個人利用',
-      d:'まずは自分用に記録します。あとから家族を招待してチーム利用に切り替えられます。' }
-  ];
-  body.innerHTML = opts.map(o =>
-    '<button class="usage-mode-card' + (mode===o.k?' selected':'') + '" onclick="setUsageMode(\'' + o.k + '\')">'
-    + '<div class="usage-mode-card-head">'
-    +   '<span class="usage-mode-card-title">' + o.t + '</span>'
-    +   (mode===o.k ? '<span class="usage-mode-card-badge">選択中</span>' : '<span class="usage-mode-card-sub">' + o.sub + '</span>')
-    + '</div>'
-    + '<div class="usage-mode-card-desc">' + o.d + '</div>'
-    + '</button>'
-  ).join('');
-}
-function setUsageMode(mode) {
-  if(mode !== 'solo' && mode !== 'family') return;
-  if(!S.userProfile) S.userProfile = {};
-  const changed = S.userProfile.usageMode !== mode;
-  S.userProfile.usageMode = mode;
-  saveS();
-  closeModal('m-usage-mode');
-  renderSettings();
-  const modeLabel = document.getElementById('home-mode-label');
-  if(modeLabel) modeLabel.textContent = mode === 'solo' ? '自分用' : '共有用';
-  if(changed) {
-    showToast(mode==='solo' ? '自分用に切り替えました' : '共有用に切り替えました');
-  }
+function usageModeLabel() { return currentWorkspace().name; }
+function openUsageModeModal() { openWorkspaceSwitcher(); }
+
+function renderCurrentScreen() {
+  const s = S.screen;
+  if (s === 's-home') renderHome();
+  else if (s === 's-cal') renderCal();
+  else if (s === 's-task') renderTaskScreen();
+  else if (s === 's-budget') renderBudget();
+  else if (s === 's-health') renderHealth();
+  else if (s === 's-prep') renderPrep();
+  else if (s === 's-board') renderBoard();
+  else if (s === 's-memo') renderMemo();
+  else if (s === 's-shopping') renderShopping();
 }
 
 /* ── タブカスタマイズ ── */
@@ -6230,7 +6433,7 @@ function renderHome() {
   if(dateMid) dateMid.innerHTML = '';
   // 利用スタイルボタン
   const modeLabel = document.getElementById('home-mode-label');
-  if(modeLabel) modeLabel.textContent = isSoloMode() ? '自分用' : '共有用';
+  if(modeLabel) modeLabel.textContent = currentWorkspace().name;
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
   const badge = document.getElementById('notif-badge');
@@ -6279,8 +6482,8 @@ function renderHome() {
     </div>`;
 
   // ── タスクコンテンツ ──
-  const pending = (S.tasks||[]).filter(t => t.status !== 'done').length;
-  const tasks4  = (S.tasks||[])
+  const pending = wsFilter(S.tasks).filter(t => t.status !== 'done').length;
+  const tasks4  = wsFilter(S.tasks)
     .filter(t => t.status !== 'done')
     .sort((a, b) => {
       const pOrd = {high:0, med:1, low:2, none:3};
@@ -6313,7 +6516,7 @@ function renderHome() {
 
   // ── 今週の予定コンテンツ ──
   const td = todayStr();
-  const upcoming = (S.events||[]).filter(e=>e.date>=td)
+  const upcoming = wsFilter(S.events).filter(e=>e.date>=td)
     .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,4);
   const evHTML = upcoming.length ? upcoming.map(e =>
     `<div class="bc-row">
@@ -6581,7 +6784,7 @@ function renderCalMonth() {
     const hol = _holidayName(ds);
     const holLine = hol ? `<div class="cal-cell-holiday">${H(hol)}</div>` : '';
 
-    const dayEvs = (S.events||[]).filter(e=>e.date===ds)
+    const dayEvs = wsFilter(S.events).filter(e=>e.date===ds)
       .sort((a,b)=>a.time.localeCompare(b.time));
     const MAX = hol ? 3 : 4;
     const pills = dayEvs.slice(0,MAX).map(e=>{
@@ -7849,7 +8052,7 @@ function saveEvent() {
     if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を更新しました');
   } else {
-    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
+    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -8122,7 +8325,7 @@ function renderListView(){
   const el=document.getElementById('tk-main');
   if(!el)return;
   el.style.overflowX='';
-  const tasks=applyTkFilters(S.tasks||[]);
+  const tasks=applyTkFilters(wsFilter(S.tasks));
   if(!tasks.length){
     el.innerHTML=`<div class="docs-empty" style="margin-top:48px;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
@@ -8537,7 +8740,7 @@ function saveTaskEdit(){
   }else{
     S.tasks=S.tasks||[];
     const maxOrder=(S.tasks).reduce((m,t)=>Math.max(m,t.order||0),-1);
-    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now});
+    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now,workspaceId:curWsId()});
     S.tasks.forEach((t,i)=>t.order=i);
   }
   saveS();closeModal('m-task-edit');renderTaskScreen();renderHome();
@@ -8654,7 +8857,7 @@ function renderBudget() {
   }
 
   // その月の取引を抽出
-  const mt = (S.txs||[]).filter(t=>{
+  const mt = wsFilter(S.txs).filter(t=>{
     const d = new Date(t.date+'T00:00:00');
     return d.getFullYear()===y && d.getMonth()===m;
   });
@@ -9548,7 +9751,7 @@ function saveTx() {
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('保存しました');
   } else {
-    (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member});
+    (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member,workspaceId:curWsId()});
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('記録しました');
   }
@@ -10517,7 +10720,7 @@ function renderMemo() {
   if(_memoFolder && !_memoFolderById(_memoFolder)) _memoFolder = '';
   const cur = _memoFolder;
   const subFolders = S.memoFolders.filter(function(f){ return (f.parentId||'') === cur; });
-  const memos = S.memos.filter(function(m){ return (m.folderId||'') === cur; })
+  const memos = wsFilter(S.memos).filter(function(m){ return (m.folderId||'') === cur; })
     .sort(function(a,b){ return (b.updatedAt||'').localeCompare(a.updatedAt||''); });
   let h = '';
   if(cur) {
@@ -10691,7 +10894,7 @@ function saveMemoEdit() {
     const m = S.memos.find(function(x){ return x.id === _memoEditId; });
     if(m) { m.title = title; m.body = bodyv; m.attachments = _memoAttachBuf.slice(); m.folderId = fid; m.updatedAt = now; }
   } else {
-    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:fid, attachments:_memoAttachBuf.slice(), createdAt:now, updatedAt:now });
+    S.memos.unshift({ id:'memo_'+uid(), title:title, body:bodyv, folderId:fid, attachments:_memoAttachBuf.slice(), createdAt:now, updatedAt:now, workspaceId:curWsId() });
   }
   const wasEdit = !!_memoEditId;
   saveS();
@@ -10741,7 +10944,7 @@ function renderHealth() {
   }
 
   const today = todayStr();
-  let recs = (S.health||[]).map(normalizeHealthRec);
+  let recs = wsFilter(S.health).map(normalizeHealthRec);
   if(_healthMemberFilter !== 'all') recs = recs.filter(r => r.memberId === _healthMemberFilter);
   recs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.time||'').localeCompare(a.time||''));
 
@@ -11276,6 +11479,7 @@ function saveHealth() {
         visitedHospital, hospitalName,
         appetite, sleep, stool,
         note,
+        workspaceId: curWsId(),
         createdAt: now, updatedAt: now
       });
     }
@@ -11345,7 +11549,7 @@ function setShopTab(tab) {
 
 /* ── タブ 1：リスト ── */
 function renderShopListHtml() {
-  const items = (S.shoppingItems || []).slice().sort(function(a,b){
+  const items = wsFilter(S.shoppingItems).slice().sort(function(a,b){
     return (b.createdAt||'').localeCompare(a.createdAt||'');
   });
   if(items.length === 0) {
@@ -11566,7 +11770,7 @@ function saveShopAdd() {
       S.shoppingItems.push({
         id: 'shop_'+uid(), name: name, qty: qty, category: cat, memo: '',
         section: section,
-        assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+        assignedTo: '', status: 'active', createdAt: now, updatedAt: now, workspaceId: curWsId()
       });
     }
   }
@@ -12220,7 +12424,7 @@ function renderPrep() {
   _ensurePrepRoutines();
   _ensurePrepVisibleMembers();
   const el = document.getElementById('prep-list');
-  const all = S.prep||[];
+  const all = wsFilter(S.prep);
   const visibleMembers = getPrepVisibleMembers();
   // メンバーフィルタ：item にメンバー指定がない（既存データ含む）は常に表示
   const matchesMember = (p) => {
@@ -12464,6 +12668,7 @@ function savePrepItem() {
     item.member = memberNameById(memberId) || '';
   }
   item.createdAt = new Date().toISOString();
+  item.workspaceId = curWsId();
   S.prep.push(item);
   saveS(); closeModal('m-prep'); renderPrep();
   showToast('追加しました');
@@ -13454,10 +13659,10 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
         <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
       </div>
-      <div class="settings-item" onclick="openUsageModeModal()">
+      <div class="settings-item" onclick="openWorkspaceSwitcher()">
         <div class="settings-item-icon" style="background:#EEF7F0">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#52C47A')}</div>
-        <div class="settings-item-label">利用スタイル</div>
-        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${usageModeLabel()}</div>
+        <div class="settings-item-label">スペース切り替え</div>
+        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${currentWorkspace().name}</div>
       </div>
       <div class="settings-item" onclick="openTabSettings()">
         <div class="settings-item-icon" style="background:#EBF0FF">${si('<rect x="2" y="17" width="20" height="5" rx="2"/><path d="M7 17v-5m5 5V7m5 10V4"/>','#4A65E2')}</div>
@@ -18399,6 +18604,7 @@ function seedDefaultCustomBoards() {
 
 function init() {
   loadS();
+  initWorkspaces();           // ワークスペース初期化（デフォルト2スペースを保証）
   applyMembersFromS();        // Wave 59: 永続化済みメンバーを採用
   migrateTaskData(); // タスクデータ移行
   seedDefaultCustomBoards(); // 既定 6 ボードを担保
