@@ -5381,6 +5381,19 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   // デフォルト（グラデーション＋文字）
   return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
 }
+/* ログインユーザー本人のアバター。メンバーに紐付けば通常描画、紐付かない
+   （デモ用ユーザーやアカウント名が未連携の場合）は氏名イニシャルの色付き円で
+   フォールバックし、空の "－" プレースホルダーを出さない。 */
+function userAvHtml(size=36, fontSize=14, extraStyle='') {
+  const u = S.user;
+  if(u && u.id && getMem(u.id)) return avHtml(u.id, size, fontSize, extraStyle);
+  const sz = typeof size === 'number' ? size+'px' : size;
+  const fs = typeof fontSize === 'number' ? fontSize+'px' : fontSize;
+  const nm = (u && (u.name||'')).trim();
+  const initial = (u && u.av) || (nm ? nm.charAt(0) : '') || '👤';
+  const grad = (u && u.grad) || 'linear-gradient(135deg,#4A90E2,#6FA8DC)';
+  return `<div class="av" style="background:${grad};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(initial)}</div>`;
+}
 const addDays = (s,n) => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return localDateStr(d); };
 /* "HH:MM" 形式に分を加算して返す（24h クランプ） */
 function _addMinutesToTime(timeStr, addMin) {
@@ -6573,7 +6586,7 @@ function renderHome() {
   // ホームのアバターボタン
   const avatarBtn = document.getElementById('home-avatar-btn');
   if(avatarBtn) {
-    avatarBtn.innerHTML = avHtml(m.id, 32, 13);
+    avatarBtn.innerHTML = userAvHtml(32, 13);
     avatarBtn.style.cssText = 'background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;';
   }
 
@@ -13761,7 +13774,7 @@ function renderSettings() {
         </div>
       </div>
       <div class="menu-user-row" onclick="openOfficialAvatarModal('${uid}')" title="アバターを変更">
-        ${avHtml(u.id, 44, 18)}
+        ${userAvHtml(44, 18)}
         <div>
           <div class="menu-user-name">${H(displayName())}さん</div>
         </div>
