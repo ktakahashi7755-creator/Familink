@@ -11898,3 +11898,43 @@ deck.html バグ修正・投資家向け品質最終仕上げ
 - `4ba13f7` デザインシステム全体統一：変数化・グラデーション整理・色体系確立
 - `d68257c` ホームのプレミアム広告バナーを削除
 - `dbcb199` 設定画面：開発用オプションのテンプレートリテラル表示バグ修正
+
+## 2026-05-22 00:00  env: 不明  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+7タスク一括実装（前セッションからの引き継ぎ）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- Task1: ウェルカム/ログイン画面の挨拶を時間帯別に変更（朝:おはようございます/昼:こんにちは/夜:こんばんは）。`id="login-greeting-h1"`追加・`updateLoginGreeting()`追加・`refresh('s-login')`ケース追加
+- Task2: 設定・メニュー画面の「Familink アカウント」文言を削除
+- Task3: メモ新規作成時に前回内容が残るバグ修正（`saveMemoEdit()`後に`memo-title`・`memo-body`・`_memoAttachBuf`・`_memoEditId`を明示的クリア）
+- Task4: タブバーを`TAB_DEFS`配列で動的化。`renderTabBar()`・`getTabConfig()`追加。タブカスタマイズモーダル（表示/非表示トグル・上下並び替え）。設定画面に「タブのカスタマイズ」追加。`S.tabConfig`でLocalStorageに永続化
+- Task5: ホーム画面右上に利用スタイル切替ボタン（`home-mode-btn`）追加。「共有用/自分用」ラベルに変更。モーダルラベルも同様に更新
+- Task6: ファミリーボードアイテムに上下移動ボタン追加（`moveBoardItem()`関数）。`renderPrepItem()`・`renderMemoDetail()`にシェブロンボタン追加
+- Task7: ウィジェット設定UI追加（`S.widgetItems`・`openWidgetSettings()`・`renderWidgetSettingsModal()`・`toggleWidgetItem()`）。設定画面に「ウィジェット設定」追加
+
+### テスト結果
+- 未実施（ブラウザ実機テスト環境なし）
+
+### 未確認事項
+- iPhone Safariでの動的タブバー表示確認
+- タブカスタマイズで5タブ以上visible設定時のレイアウト（overflow対策が必要かも）
+- ボード並び替えボタンがiPhoneのタップ領域44px基準を満たすか確認
+
+### iPhone確認ポイント
+- 利用スタイルボタン（home-mode-btn）がホーム上部に収まるか（ヘッダー幅）
+- タブバー動的化後に初回ロードでタブが正しく表示されるか
+- ボードアイテムの上下ボタンのタップ精度
+
+### 次にやること
+- 実機テストで上記確認ポイントを検証
+- タブが6個以上visibleになった場合のスクロール対応（必要なら）
+- 利用スタイル「カスタム」スタイル追加（ユーザー命名）は将来対応
+
+### コミット
+- ハッシュ: `48fa950`
+- メッセージ: `7タスク実装: 時間帯挨拶・メニュー修正・メモバグ修正・タブカスタマイズ・利用スタイル切替・ボード並び替え・ウィジェット設定準備`
