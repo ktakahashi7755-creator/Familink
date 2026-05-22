@@ -14,7 +14,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260522c';
+  var V='20260522d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -299,6 +299,46 @@ body.modal-open #hoku-fab { opacity: 0; pointer-events: none; transition: opacit
 .tab-btn.active .tab-label {
   color: var(--primary); font-weight: 700;
 }
+/* タブカスタマイズモーダル行 */
+.tab-cfg-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 0; border-bottom: 1px solid var(--border-light);
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-cfg-row:last-child { border-bottom: none; }
+.tab-cfg-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-muted); flex-shrink: 0; transition: background .2s;
+}
+.tab-cfg-row.is-visible .tab-cfg-icon { background: var(--primary-light); }
+.tab-cfg-label {
+  flex: 1; font-size: 14px; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.tab-cfg-fixed-badge {
+  font-size: 10px; color: var(--text-muted); font-weight: 500;
+  background: var(--bg-muted); padding: 2px 7px; border-radius: 20px;
+  border: 1px solid var(--border-light); flex-shrink: 0;
+}
+.tab-cfg-arrows { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; }
+.tab-cfg-arrow-btn {
+  width: 32px; height: 28px; border: none; background: none;
+  cursor: pointer; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: background .12s, color .12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-cfg-arrow-btn:not([disabled]):active { background: var(--bg-muted); color: var(--primary); }
+.tab-cfg-arrow-btn[disabled] { opacity: 0.22; cursor: default; }
+.tab-cfg-toggle-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 3px 2px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-cfg-toggle-btn[disabled] { opacity: 0.35; cursor: default; }
+
 
 /* ============================================================
    BUTTONS
@@ -3740,7 +3780,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="modal-grip"></div>
     <div class="modal-title">タブのカスタマイズ</div>
-    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">表示するタブを選択し、順番を変更できます。</p>
+    <div id="tab-settings-count" style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-muted);border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:12px;"></div>
     <div id="tab-settings-body"></div>
     <div class="modal-actions" style="margin-top:14px;">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-tab-settings')">閉じる</button>
@@ -5861,23 +5901,53 @@ function renderTabSettingsModal() {
   const body = document.getElementById('tab-settings-body');
   if(!body) return;
   const config = getTabConfig();
+  const visCount = config.filter(function(t){ return t.vis; }).length;
+  const MAX_VIS = 5;
+  const atMax = visCount >= MAX_VIS;
+
+  /* count badge */
+  const countEl = document.getElementById('tab-settings-count');
+  if(countEl) {
+    const dots = Array.from({length: MAX_VIS}, function(_, i){
+      return '<span style="width:9px;height:9px;border-radius:50%;background:'+(i < visCount ? 'var(--primary)' : 'var(--border-light)')+';display:inline-block;transition:background .2s;"></span>';
+    }).join('');
+    countEl.innerHTML = '<span style="color:var(--text-sub);">表示中のタブ</span>'
+      + '<span style="display:flex;align-items:center;gap:7px;">'
+      + '<span style="display:flex;gap:4px;align-items:center;">' + dots + '</span>'
+      + '<strong style="font-size:13px;color:'+(atMax?'var(--primary)':'var(--text)')+';">'+ visCount + ' / ' + MAX_VIS +'</strong>'
+      + (atMax ? '<span style="font-size:10px;color:#fff;background:var(--primary);padding:2px 6px;border-radius:20px;font-weight:700;">上限</span>' : '')
+      + '</span>';
+  }
+
   body.innerHTML = config.map(function(item, idx){
     const def = TAB_DEFS.find(function(d){ return d.id===item.id; });
     if(!def) return '';
     const isFixed = def.fixed;
-    const visTgl = item.vis
-      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--primary)" stroke="var(--primary)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="3" fill="var(--primary)"/><circle cx="17" cy="12" r="3.5" fill="#fff"/></svg>'
-      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--border)" stroke="var(--border)" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="3" fill="var(--border)"/><circle cx="7" cy="12" r="3.5" fill="#fff"/></svg>';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-light);">'
-      + '<div style="flex:1;font-size:14px;font-weight:600;color:' + (isFixed?'var(--text-muted)':'var(--text)') + ';">' + H(def.label) + (isFixed?' <span style="font-size:10px;color:var(--text-muted);">固定</span>':'') + '</div>'
-      + (isFixed ? '' :
-          '<div style="display:flex;flex-direction:column;gap:2px;">'
-          + '<button onclick="moveTabItemInConfig('+idx+',-1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px 6px;">'
-          + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg></button>'
-          + '<button onclick="moveTabItemInConfig('+idx+',1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px 6px;">'
-          + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></button>'
+    const prevDef = idx > 0 ? TAB_DEFS.find(function(d){ return d.id===config[idx-1].id; }) : null;
+    const canUp   = !isFixed && idx > 0 && !(prevDef && prevDef.fixed);
+    const canDown = !isFixed && idx < config.length - 1;
+    const iconColor = item.vis ? 'var(--primary)' : 'var(--text-muted)';
+    const toggleSvg = item.vis
+      ? '<svg width="46" height="28" viewBox="0 0 46 28" style="display:block"><rect width="46" height="28" rx="14" fill="var(--primary)"/><circle cx="32" cy="14" r="11" fill="#fff"/></svg>'
+      : '<svg width="46" height="28" viewBox="0 0 46 28" style="display:block"><rect width="46" height="28" rx="14" fill="#CBD5E1"/><circle cx="14" cy="14" r="11" fill="#fff"/></svg>';
+    const disableToggle = atMax && !item.vis;
+    return '<div class="tab-cfg-row' + (item.vis ? ' is-visible' : '') + '">'
+      + '<div class="tab-cfg-icon">'
+      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + def.svgPath + '</svg>'
+      + '</div>'
+      + '<div class="tab-cfg-label">' + H(def.label)
+      + (isFixed ? ' <span class="tab-cfg-fixed-badge">固定</span>' : '')
+      + '</div>'
+      + (isFixed
+        ? '<span style="width:90px;display:inline-block;flex-shrink:0;"></span>'
+        : '<div class="tab-cfg-arrows">'
+          + '<button class="tab-cfg-arrow-btn" onclick="moveTabItemInConfig('+idx+',-1)" aria-label="上へ"'+(canUp?'':' disabled')+'>'
+          + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>'
+          + '<button class="tab-cfg-arrow-btn" onclick="moveTabItemInConfig('+idx+',1)" aria-label="下へ"'+(canDown?'':' disabled')+'>'
+          + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>'
           + '</div>'
-          + '<button onclick="toggleTabItemInConfig(\'' + item.id + '\')" style="background:none;border:none;cursor:pointer;padding:4px;">' + visTgl + '</button>'
+          + '<button class="tab-cfg-toggle-btn" onclick="toggleTabItemInConfig(\''+item.id+'\')" aria-label="'+(item.vis?'非表示にする':'表示にする')+'"'+(disableToggle?' disabled':'')+' style="padding:3px;">'
+          + toggleSvg + '</button>'
         )
       + '</div>';
   }).join('');
@@ -5899,12 +5969,17 @@ function toggleTabItemInConfig(id) {
   if(!def || def.fixed) return;
   let config = getTabConfig();
   const item = config.find(function(t){ return t.id===id; });
-  if(item) item.vis = !item.vis;
+  if(!item) return;
+  if(!item.vis) {
+    const visCount = config.filter(function(t){ return t.vis; }).length;
+    if(visCount >= 5) { showToast('表示タブは最大5つまでです', 'error'); return; }
+  }
+  item.vis = !item.vis;
   S.tabConfig = config;
   saveS();
   renderTabBar();
   renderTabSettingsModal();
-  showToast(item && item.vis ? H(def.label)+'タブを表示' : H(def.label)+'タブを非表示');
+  showToast(item.vis ? H(def.label)+' タブを表示しました' : H(def.label)+' タブを非表示にしました');
 }
 
 /* ── ウィジェット設定 ── */
