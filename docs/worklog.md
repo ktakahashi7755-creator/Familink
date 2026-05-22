@@ -11981,3 +11981,50 @@ QA総点検・バグ修正・世界最高峰品質への引き上げ
 ### コミット
 - ハッシュ: （このエントリ同梱のコミットで記録）
 - メッセージ: `QA修正: メモ削除バグ・タブ設定クラッシュ・ウィジェット設定クラッシュ・ヘッダーCSS・履歴ナビ修正`
+
+---
+
+## 2026-05-22 14:00  env: 不明  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+プロフェッショナル品質引き上げ：全体バグ修正・UX改善（世界最高峰品質対応）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+**CSS修正（2件）**
+- `body.modal-open { overflow: hidden; touch-action: none; }` を追加 → モーダル表示中の背景スクロール完全防止
+- `input, select, textarea` グローバルルールに `font-size: 16px` 追加 → iOS Safari の入力フィールドフォーカス時の自動ズームを防止
+
+**HTML修正（2件）**
+- ログインフォームの `login-email` に `autocomplete="email"` 追加
+- ログインフォームの `login-pass` に `autocomplete="current-password"` 追加
+
+**JS修正（25件）**
+- `innerHTML +=` パターン（openGuide内）を `createElement + appendChild` に変更 → イベントリスナー破壊バグを防止
+- 下記25関数のネイティブ `confirm()` をカスタムモーダル `showConfirm()` に完全置換（UX統一・ブランド品質向上）:
+  - importFamilinkDataFromFile / storageAction（4箇所）/ runTkBulkDelete / deleteRecurringTxFromModal / confirmDeleteRecurringTx / confirmApplyRecurring / _memoFolderOptsDelete / deleteMemo / deleteMemoById / shopDeleteItem / shopFreqDelete / shopFreqToList / shopHistDelete / deleteFolder / archiveDelete / albumDeleteCurrent / addSampleTimetable / confirmDeleteMember / confirmDeleteMemberFromList / confirmClearAllNotifs / resetAvatarToDefault / deleteBoardConfirm
+- docs/index.html: app-sourceと同期・キャッシュバスターv20260522c
+
+### テスト結果
+- Python検証スクリプト: 20項目全✓
+- docs/index.html検証: 9項目全✓
+
+### 未確認事項
+- showConfirm()が全ブラウザ（Safari/Chrome）で正常表示されるか（iPhoneでの実機確認推奨）
+- Hoku音声コマンドのprepルーティン一括登録（confirm 1件残存 / 音声フローで要確認）
+
+### iPhone確認ポイント
+- モーダル表示中に背景がスクロールしないか（overflow: hidden 確認）
+- 入力フィールドタップ時にズームが発生しないか（font-size: 16px 確認）
+- 削除系操作でカスタム確認モーダルが表示されるか（ネイティブalert非表示確認）
+
+### 次にやること
+- iPhone実機QA確認（上記3ポイント）
+- App Store申請準備（Capacitorラッパー / アイコン / スクリーンショット）
+
+### コミット
+- ハッシュ: （このエントリ同梱のコミットで記録）
+- メッセージ: `品質引き上げ: モーダルスクロール防止・iOS入力ズーム防止・confirm全カスタムモーダル化・innerHTML修正`

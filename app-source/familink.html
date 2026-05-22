@@ -129,6 +129,7 @@ body { font-family: var(--font); color: var(--text); font-size: 15px; line-heigh
 button { font-family: var(--font); cursor: pointer; }
 input, select, textarea {
   font-family: var(--font);
+  font-size: 16px;
   max-width: 100%;
 }
 img { max-width: 100%; display: block; }
@@ -236,6 +237,7 @@ body {
   border: none;
 }
 /* Wave 60.6: モーダル表示中はタブバーを隠す（保存ボタン等が隠れないように） */
+body.modal-open { overflow: hidden; touch-action: none; }
 body.modal-open #tabbar { display: none !important; }
 body.modal-open .home-bell,
 body.modal-open .fab,
@@ -2844,11 +2846,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div class="modal-form">
         <div class="field">
           <div class="field-label">メールアドレス</div>
-          <input class="input" id="login-email" type="email" placeholder="example@mail.com">
+          <input class="input" id="login-email" type="email" autocomplete="email" placeholder="example@mail.com">
         </div>
         <div class="field">
           <div class="field-label">パスワード</div>
-          <div class="pw-wrap"><input class="input" id="login-pass" type="password" placeholder="パスワードを入力"><button type="button" class="pw-eye" onclick="togglePw('login-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+          <div class="pw-wrap"><input class="input" id="login-pass" type="password" autocomplete="current-password" placeholder="パスワードを入力"><button type="button" class="pw-eye" onclick="togglePw('login-pass',this)" aria-label="パスワードの表示切替"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         </div>
         <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">ログインする</button>
         <div style="text-align:center;margin-top:10px;">
@@ -5001,31 +5003,23 @@ function importFamilinkDataFromFile(ev) {
         .concat((data.tasks||[]).length ? '・タスク ' + (data.tasks||[]).length + ' 件' : [])
         .concat((data.albumPhotos||[]).length ? '・アルバム ' + (data.albumPhotos||[]).length + ' 枚' : [])
         .join('\n');
-      if(!confirm('以下の内容で現在のデータを上書きします。よろしいですか？\n\n' + summary + '\n\n※ 元には戻せません。事前にバックアップを書き出すことをおすすめします。')) {
-        ev.target.value = '';
-        return;
-      }
-      // PERSIST 列挙キーのみ取り込み
-      let imported = 0;
-      for(const k of PERSIST) {
-        if(typeof data[k] !== 'undefined' && data[k] !== null) {
-          S[k] = data[k];
-          imported++;
+      showConfirm('データを読み込む', '以下の内容でデータを上書きします。この操作は元に戻せません。\n\n' + summary, 'データを上書きして読み込む', () => {
+        let imported = 0;
+        for(const k of PERSIST) {
+          if(typeof data[k] !== 'undefined' && data[k] !== null) {
+            S[k] = data[k];
+            imported++;
+          }
         }
-      }
-      const ok = saveS();
-      if(!ok) {
-        showToast('保存に失敗しました（容量超過の可能性）','error');
-        return;
-      }
-      // メンバー反映
-      if(typeof applyMembersFromS === 'function') applyMembersFromS();
-      closeModal('m-data-share');
-      // 全画面再描画
-      try { renderHome(); } catch(e) {}
-      try { renderSettings(); } catch(e) {}
-      try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
-      showToast(imported + ' 種類のデータを読み込みました','success');
+        const ok = saveS();
+        if(!ok) { showToast('保存に失敗しました（容量超過の可能性）','error'); return; }
+        if(typeof applyMembersFromS === 'function') applyMembersFromS();
+        closeModal('m-data-share');
+        try { renderHome(); } catch(e) {}
+        try { renderSettings(); } catch(e) {}
+        try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
+        showToast(imported + ' 種類のデータを読み込みました','success');
+      }, 'danger');
     } catch(e) {
       showToast('JSON の解析に失敗しました：' + e.message,'error');
     }
@@ -5092,46 +5086,49 @@ function storageAction(id) {
     const arr = (S.albumPhotos||[]).slice().sort((a,b)=>(a.takenAt||'').localeCompare(b.takenAt||''));
     const targets = arr.slice(0, Math.min(10, arr.length));
     if(!targets.length) return;
-    if(!confirm('古いアルバム写真 '+targets.length+' 件を削除します。よろしいですか？\n（タイトルやキャプションは残ります — 写真自体は復元できません）')) return;
-    const targetIds = new Set(targets.map(t=>t.id));
-    S.albumPhotos = (S.albumPhotos||[]).filter(p => !targetIds.has(p.id));
-    saveS();
-    renderStorageModal();
-    if(typeof renderAlbum === 'function') renderAlbum();
-    showToast(targets.length+' 件削除しました','success');
+    showConfirm('古いアルバム写真を削除', '古いアルバム写真 '+targets.length+' 件を削除します。写真自体は復元できません。', '削除する', () => {
+      const targetIds = new Set(targets.map(t=>t.id));
+      S.albumPhotos = (S.albumPhotos||[]).filter(p => !targetIds.has(p.id));
+      saveS();
+      renderStorageModal();
+      if(typeof renderAlbum === 'function') renderAlbum();
+      showToast(targets.length+' 件削除しました','success');
+    }, 'danger');
   } else if(id === 'delete-album-all') {
     const c = (S.albumPhotos||[]).length;
     if(!c) return;
-    if(!confirm('アルバム写真 '+c+' 件すべてを削除します。\nこの操作は元に戻せません。よろしいですか？')) return;
-    S.albumPhotos = [];
-    saveS();
-    renderStorageModal();
-    if(typeof renderAlbum === 'function') renderAlbum();
-    showToast(c+' 件削除しました','success');
+    showConfirm('アルバム写真をすべて削除', 'アルバム写真 '+c+' 件すべてを削除します。この操作は元に戻せません。', '削除する', () => {
+      S.albumPhotos = [];
+      saveS();
+      renderStorageModal();
+      if(typeof renderAlbum === 'function') renderAlbum();
+      showToast(c+' 件削除しました','success');
+    }, 'danger');
   } else if(id === 'delete-docs-photos') {
     const arr = (S.docs||[]).filter(d=>d.photo);
     if(!arr.length) return;
-    if(!confirm('書類保管庫の写真 '+arr.length+' 件を削除します。\n書類自体（タイトル・メモ）は残ります。よろしいですか？')) return;
-    arr.forEach(d => { d.photo = ''; });
-    saveS();
-    renderStorageModal();
-    if(typeof renderArchive === 'function') renderArchive();
-    showToast(arr.length+' 件の写真を削除しました','success');
+    showConfirm('書類の写真を削除', '書類保管庫の写真 '+arr.length+' 件を削除します。書類自体（タイトル・メモ）は残ります。', '削除する', () => {
+      arr.forEach(d => { d.photo = ''; });
+      saveS();
+      renderStorageModal();
+      if(typeof renderArchive === 'function') renderArchive();
+      showToast(arr.length+' 件の写真を削除しました','success');
+    }, 'danger');
   } else if(id === 'delete-avatar-photos') {
     const c = Object.keys(S.userPhotos||{}).length;
     if(!c) return;
-    if(!confirm('メンバーのアバター写真 '+c+' 件すべてを削除します。\nメンバーは残り、アバターはイニシャル+カラーに戻ります。よろしいですか？')) return;
-    S.userPhotos = {};
-    // 写真型のアバタータイプもクリア（公式アバター設定はそのまま）
-    if(S.userAvatarType) {
-      Object.keys(S.userAvatarType).forEach(k => {
-        if(S.userAvatarType[k] === 'customPhoto') delete S.userAvatarType[k];
-      });
-    }
-    saveS();
-    renderStorageModal();
-    if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
-    showToast(c+' 件のアバター写真を削除しました','success');
+    showConfirm('アバター写真をすべて削除', 'メンバーのアバター写真 '+c+' 件すべてを削除します。アバターはイニシャル+カラーに戻ります。', '削除する', () => {
+      S.userPhotos = {};
+      if(S.userAvatarType) {
+        Object.keys(S.userAvatarType).forEach(k => {
+          if(S.userAvatarType[k] === 'customPhoto') delete S.userAvatarType[k];
+        });
+      }
+      saveS();
+      renderStorageModal();
+      if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
+      showToast(c+' 件のアバター写真を削除しました','success');
+    }, 'danger');
   }
 }
 
@@ -8126,13 +8123,14 @@ function clearTkDelSel(){
 function runTkBulkDelete(){
   const n = _tkDelSel.size;
   if(!n) return;
-  if(!confirm(`選択した${n}件のタスクを削除しますか？`)) return;
-  S.tasks = (S.tasks||[]).filter(t=>!_tkDelSel.has(t.id));
-  _tkDelSel.clear();
-  saveS();
-  renderTaskScreen();
-  if(typeof renderHome==='function') renderHome();
-  showToast(`${n}件のタスクを削除しました`);
+  showConfirm('タスクを一括削除', `選択した${n}件のタスクを削除しますか？`, '削除する', () => {
+    S.tasks = (S.tasks||[]).filter(t=>!_tkDelSel.has(t.id));
+    _tkDelSel.clear();
+    saveS();
+    renderTaskScreen();
+    if(typeof renderHome==='function') renderHome();
+    showToast(`${n}件のタスクを削除しました`);
+  }, 'danger');
 }
 
 function toggleTkMemberVisible(id) {
@@ -9076,20 +9074,23 @@ function saveRecurringTx() {
 }
 function deleteRecurringTxFromModal() {
   if(!_rtEditingId) return;
-  if(!confirm('この固定収支を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
-  deleteRecurringTx(_rtEditingId);
-  _rtEditingId = null;
-  closeModal('m-recurring-tx');
-  renderRecurringSection();
-  showToast('削除しました','success');
+  showConfirm('固定収支を削除', 'この固定収支を削除しますか？この操作は元に戻せません。', '削除する', () => {
+    const _rtId = _rtEditingId;
+    _rtEditingId = null;
+    deleteRecurringTx(_rtId);
+    closeModal('m-recurring-tx');
+    renderRecurringSection();
+    showToast('削除しました','success');
+  }, 'danger');
 }
 function confirmDeleteRecurringTx(id) {
   const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
   if(!r) return;
-  if(!confirm('「'+ (r.desc || r.cat) +'」を削除しますか？\nこの操作は元に戻せません（既に反映済みの実績は残ります）。')) return;
-  deleteRecurringTx(id);
-  renderRecurringSection();
-  showToast('削除しました','success');
+  showConfirm('固定収支を削除', '「'+ (r.desc || r.cat) +'」を削除しますか？この操作は元に戻せません。', '削除する', () => {
+    deleteRecurringTx(id);
+    renderRecurringSection();
+    showToast('削除しました','success');
+  }, 'danger');
 }
 function toggleRecurringEnabled(id) {
   const r = (S.recurringTxs || []).find(function(x){ return x.id === id; });
@@ -9192,11 +9193,12 @@ function renderCashflowSection() {
 
 function confirmApplyRecurring(y, m0) {
   const monthLabel = y + '年' + (m0 + 1) + '月';
-  if(!confirm(monthLabel+' の未反映の固定収支を実績（家計）に追加しますか？\n（重複は自動でスキップします）')) return;
-  const added = applyRecurringForMonth(y, m0);
-  showToast(added>0 ? added+' 件を実績に反映しました' : '反映できる新規はありません', added>0?'success':'info');
-  renderCashflowSection();
-  if(typeof renderBudget === 'function') renderBudget();
+  showConfirm('固定収支を反映', monthLabel+' の未反映の固定収支を実績（家計）に追加しますか？', '反映する', () => {
+    const added = applyRecurringForMonth(y, m0);
+    showToast(added>0 ? added+' 件を実績に反映しました' : '反映できる新規はありません', added>0?'success':'info');
+    renderCashflowSection();
+    if(typeof renderBudget === 'function') renderBudget();
+  }, 'info');
 }
 
 /* ============================================================
@@ -10465,14 +10467,15 @@ function _memoFolderOptsDelete() {
   const id = _memoFolderOptsId;
   const f = _memoFolderById(id);
   if(!f) return;
-  if(!confirm('フォルダ「'+f.name+'」を削除しますか？\n中のメモとサブフォルダは上の階層へ移動します。')) return;
-  const parent = f.parentId || '';
-  S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
-  S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
-  S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
-  saveS();
-  renderMemo();
-  showToast('フォルダを削除しました');
+  showConfirm('フォルダを削除', 'フォルダ「'+f.name+'」を削除しますか？中のメモとサブフォルダは上の階層へ移動します。', '削除する', () => {
+    const parent = f.parentId || '';
+    S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
+    S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
+    S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
+    saveS();
+    renderMemo();
+    showToast('フォルダを削除しました');
+  }, 'danger');
 }
 /* ── メモ ── */
 /* メモのフォルダ選択肢（階層をインデント表示） */
@@ -10563,24 +10566,26 @@ function saveMemoEdit() {
 function deleteMemo() {
   if(!_memoEditId) return;
   const id = _memoEditId;
-  if(!confirm('このメモを削除しますか？')) return;
-  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
-  saveS();
-  closeModal('m-memo-edit');
-  const t = document.getElementById('memo-title');
-  const b = document.getElementById('memo-body');
-  if(t) t.value = '';
-  if(b) b.value = '';
-  _memoAttachBuf = [];
-  _memoEditId = null;
-  renderMemo();
-  showToast('メモを削除しました');
+  showConfirm('メモを削除', 'このメモを削除しますか？', '削除する', () => {
+    S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+    saveS();
+    closeModal('m-memo-edit');
+    const t = document.getElementById('memo-title');
+    const b = document.getElementById('memo-body');
+    if(t) t.value = '';
+    if(b) b.value = '';
+    _memoAttachBuf = [];
+    _memoEditId = null;
+    renderMemo();
+    showToast('メモを削除しました');
+  }, 'danger');
 }
 function deleteMemoById(id) {
-  if(!confirm('このメモを削除しますか？')) return;
-  S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
-  saveS();
-  renderMemo();
+  showConfirm('メモを削除', 'このメモを削除しますか？', '削除する', () => {
+    S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
+    saveS();
+    renderMemo();
+  }, 'danger');
 }
 
 function renderHealth() {
@@ -11450,11 +11455,12 @@ function shopMarkPurchased(id) {
 }
 
 function shopDeleteItem(id) {
-  if(!confirm('この買い物項目を削除しますか？')) return;
-  S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
-  renderHome();
+  showConfirm('買い物項目を削除', 'この買い物項目を削除しますか？', '削除する', () => {
+    S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+    renderHome();
+  }, 'danger');
 }
 
 function shopAddToFrequent(id) {
@@ -11475,10 +11481,11 @@ function shopAddToFrequent(id) {
 }
 
 function shopFreqDelete(id) {
-  if(!confirm('「よく購入するもの」から削除しますか？')) return;
-  S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
+  showConfirm('よく買うものから削除', '「よく購入するもの」から削除しますか？', '削除する', () => {
+    S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+  }, 'danger');
 }
 
 function shopFreqToList(id) {
@@ -11487,7 +11494,18 @@ function shopFreqToList(id) {
   if(!f) return;
   const dup = (S.shoppingItems||[]).some(function(it){ return it.name === f.name; });
   if(dup) {
-    if(!confirm('「'+f.name+'」は既にリストにあります。それでも追加しますか？')) return;
+    showConfirm('重複の確認', '「'+f.name+'」は既にリストにあります。それでも追加しますか？', '追加する', () => {
+      const now = new Date().toISOString();
+      S.shoppingItems.push({
+        id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
+        memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+      });
+      saveS();
+      showToast('リストに追加しました','success');
+      renderShopping();
+      renderHome();
+    }, 'warning');
+    return;
   }
   const now = new Date().toISOString();
   S.shoppingItems.push({
@@ -11501,10 +11519,11 @@ function shopFreqToList(id) {
 }
 
 function shopHistDelete(id) {
-  if(!confirm('この履歴を削除しますか？')) return;
-  S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderShopping();
+  showConfirm('履歴を削除', 'この履歴を削除しますか？', '削除する', () => {
+    S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderShopping();
+  }, 'danger');
 }
 
 /* ============================================================
@@ -11643,15 +11662,16 @@ function _folderOptsDelete() { closeModal('m-folder-opts'); deleteFolder(_folder
 function deleteFolder(kind, id) {
   const arr = _folderArr(kind), f = arr.find(x => x.id === id);
   if(!f) return;
-  if(!confirm('フォルダ「' + f.name + '」を削除しますか？\n中のアイテムは削除されず「未分類」に移動します。')) return;
-  const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
-  items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
-  const i = arr.indexOf(f);
-  if(i >= 0) arr.splice(i, 1);
-  _setCurFolder(kind, '');
-  saveS();
-  _folderRerender(kind);
-  showToast('フォルダを削除しました', 'success');
+  showConfirm('フォルダを削除', 'フォルダ「' + f.name + '」を削除しますか？中のアイテムは「未分類」に移動します。', '削除する', () => {
+    const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
+    items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
+    const i = arr.indexOf(f);
+    if(i >= 0) arr.splice(i, 1);
+    _setCurFolder(kind, '');
+    saveS();
+    _folderRerender(kind);
+    showToast('フォルダを削除しました', 'success');
+  }, 'danger');
 }
 
 /* ── Wave 115: 上質な空状態（書類 / アルバム共通） ── */
@@ -11848,10 +11868,11 @@ function saveArchiveAdd() {
   _archivePhotoBuf = null;
 }
 function archiveDelete(id) {
-  if(!confirm('この書類を削除しますか？写真も一緒に削除されます。')) return;
-  S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
-  saveS();
-  renderArchive();
+  showConfirm('書類を削除', 'この書類を削除しますか？写真も一緒に削除されます。', '削除する', () => {
+    S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
+    saveS();
+    renderArchive();
+  }, 'danger');
 }
 
 /* ============================================================
@@ -11963,12 +11984,13 @@ function albumViewMoveFolder() {
 }
 function albumDeleteCurrent() {
   if(!_albumViewId) return;
-  if(!confirm('この写真を削除しますか？')) return;
-  S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
-  saveS();
-  _albumViewId = null;
-  closeModal('m-album-view');
-  renderAlbum();
+  showConfirm('写真を削除', 'この写真を削除しますか？', '削除する', () => {
+    S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
+    saveS();
+    _albumViewId = null;
+    closeModal('m-album-view');
+    renderAlbum();
+  }, 'danger');
 }
 
 /* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
@@ -12557,18 +12579,19 @@ function seedPrepSampleRoutines(memberHint) {
     {dayOfWeek:'wed', title:'音楽の教科書', category:'教科書',       subject:'音楽',  quantity:'1冊'},
     {dayOfWeek:'wed', title:'鍵盤ハーモニカ', category:'教材',       subject:'音楽',  quantity:'1台'}
   ];
-  if(!confirm(memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？\n後から自由に編集・削除できます。')) return;
-  let added = 0;
-  for(const s of samples) {
-    const dup = (S.prepRoutines||[]).some(function(r){
-      return r.memberId === memberId && r.dayOfWeek === s.dayOfWeek && r.title === s.title;
-    });
-    if(dup) continue;
-    addPrepRoutine(Object.assign({ memberId: memberId, showTiming: 'previous_day_and_today', enabled: true, repeat: true }, s));
-    added++;
-  }
-  showToast(added+' 件のサンプルを追加しました','success');
-  renderPrep();
+  showConfirm('サンプルを追加', memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？後から自由に編集・削除できます。', '追加する', () => {
+    let added = 0;
+    for(const s of samples) {
+      const dup = (S.prepRoutines||[]).some(function(r){
+        return r.memberId === memberId && r.dayOfWeek === s.dayOfWeek && r.title === s.title;
+      });
+      if(dup) continue;
+      addPrepRoutine(Object.assign({ memberId: memberId, showTiming: 'previous_day_and_today', enabled: true, repeat: true }, s));
+      added++;
+    }
+    showToast(added+' 件のサンプルを追加しました','success');
+    renderPrep();
+  }, 'info');
 }
 
 function applyTodayRoutines() { applyPrepRoutinesForDate(todayStr()); }
@@ -12810,27 +12833,30 @@ function confirmDeleteMember() {
   const m = MEMBERS.find(function(x){ return x.id===_meEditingId; });
   if(!m) return;
   if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
-  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
-  unlinkMemberFromAllData(_meEditingId);
-  MEMBERS = MEMBERS.filter(function(x){ return x.id !== _meEditingId; });
-  persistMembersToS();
-  saveS();
-  closeModal('m-member-edit');
-  refreshAfterMemberChange();
-  showToast(m.name+' を削除しました','success');
-  _meEditingId = null;
+  showConfirm('メンバーを削除', '「'+m.name+'」を家族から削除しますか？この人への予定・タスクなどは「(指定なし)」になります。', '削除する', () => {
+    const _meid = _meEditingId;
+    _meEditingId = null;
+    unlinkMemberFromAllData(_meid);
+    MEMBERS = MEMBERS.filter(function(x){ return x.id !== _meid; });
+    persistMembersToS();
+    saveS();
+    closeModal('m-member-edit');
+    refreshAfterMemberChange();
+    showToast(m.name+' を削除しました','success');
+  }, 'danger');
 }
 function confirmDeleteMemberFromList(id) {
   const m = MEMBERS.find(function(x){ return x.id===id; });
   if(!m) return;
   if(MEMBERS.length <= 1) { showToast('最後の 1 人は削除できません','error'); return; }
-  if(!confirm('「'+m.name+'」を家族から削除しますか？\nこの人に紐付いている予定・タスク・体調・準備などは「(指定なし)」になります（履歴は残ります）。')) return;
-  unlinkMemberFromAllData(id);
-  MEMBERS = MEMBERS.filter(function(x){ return x.id !== id; });
-  persistMembersToS();
-  saveS();
-  refreshAfterMemberChange();
-  showToast(m.name+' を削除しました','success');
+  showConfirm('メンバーを削除', '「'+m.name+'」を家族から削除しますか？この人への予定・タスクなどは「(指定なし)」になります。', '削除する', () => {
+    unlinkMemberFromAllData(id);
+    MEMBERS = MEMBERS.filter(function(x){ return x.id !== id; });
+    persistMembersToS();
+    saveS();
+    refreshAfterMemberChange();
+    showToast(m.name+' を削除しました','success');
+  }, 'danger');
 }
 
 /* 削除されたメンバーIDを参照しているデータをクリア（履歴は残し、紐付けだけ外す） */
@@ -12985,12 +13011,13 @@ function deleteNotif(id) {
 function confirmClearAllNotifs() {
   const c = (S.notifs||[]).length;
   if(!c) { showToast('削除する通知はありません','info'); return; }
-  if(!confirm('通知 '+c+' 件をすべて削除しますか？\nこの操作は元に戻せません。')) return;
-  S.notifs = [];
-  saveS();
-  renderNotif();
-  _refreshNotifBadges();
-  showToast(c+' 件を削除しました','success');
+  showConfirm('通知をすべて削除', '通知 '+c+' 件をすべて削除しますか？この操作は元に戻せません。', '削除する', () => {
+    S.notifs = [];
+    saveS();
+    renderNotif();
+    _refreshNotifBadges();
+    showToast(c+' 件を削除しました','success');
+  }, 'danger');
 }
 /* 通知バッジ（ホーム右上ベル + 旧 notif-badge）を再描画 */
 function _refreshNotifBadges() {
@@ -13425,7 +13452,8 @@ function openGuide() {
     + sec('sparkle','#C8A35C','#FAF1DC','Hoku に話しかける','「明日15時に歯医者」のように話しかけるだけ。予定・タスク・家計などへ自動でふり分け、確認してから保存します。「明日の歯医者の予定消して」で削除もできます。')
     + sec('bulb','#B8902F','#FFF8DC','便利なヒント','・マイクボタンで音声入力ができます<br>・各項目はタップで編集・削除<br>・設定 →「データの書き出し / 読み込み」で端末間の引き継ぎができます');
   // 末尾：プレミアムの状態と解約導線（ガイド下部の控えめな位置）
-  if(body) body.innerHTML += _guidePremiumSection();
+  const _premSec = _guidePremiumSection();
+  if(body && _premSec) { const _pd = document.createElement('div'); _pd.innerHTML = _premSec; body.appendChild(_pd); }
   openModal('m-guide');
 }
 /* ガイド末尾のプレミアム欄（解約導線）— 有料会員のみ表示、無料会員には非表示 */
@@ -13711,15 +13739,16 @@ function onAvatarPhotoPicked(ev) {
 function resetAvatarToDefault() {
   if(!_avatarSelectTarget) return;
   const m = MEMBERS.find(function(x){ return x.id === _avatarSelectTarget; });
-  if(!confirm((m ? m.name : 'メンバー') + 'のアバターを既定（カラー＋イニシャル）に戻しますか？\n設定済みの写真や公式アバターはクリアされます。')) return;
-  if(S.userPhotos)     delete S.userPhotos[_avatarSelectTarget];
-  if(S.userAvatars)    delete S.userAvatars[_avatarSelectTarget];
-  if(S.userAvatarType) delete S.userAvatarType[_avatarSelectTarget];
-  saveS();
-  closeModal('m-avatar-select');
-  document.getElementById('m-avatar-select')?.classList.add('hidden');
-  refreshAllAvatarsAcrossScreens();
-  showToast('既定に戻しました','success');
+  showConfirm('アバターをリセット', (m ? m.name : 'メンバー') + 'のアバターを既定（カラー＋イニシャル）に戻しますか？', 'リセットする', () => {
+    if(S.userPhotos)     delete S.userPhotos[_avatarSelectTarget];
+    if(S.userAvatars)    delete S.userAvatars[_avatarSelectTarget];
+    if(S.userAvatarType) delete S.userAvatarType[_avatarSelectTarget];
+    saveS();
+    closeModal('m-avatar-select');
+    document.getElementById('m-avatar-select')?.classList.add('hidden');
+    refreshAllAvatarsAcrossScreens();
+    showToast('既定に戻しました','success');
+  }, 'warning');
 }
 
 /* Wave 60.2: アバター変更を全画面に伝播 */
@@ -14313,14 +14342,15 @@ function deleteBoardConfirm() {
   closeModal('m-board-menu');
   const b = (S.customBoards||[]).find(b=>b.id===_activeBoardId);
   if(!b) return;
-  if(!confirm(`「${b.name}」を削除しますか？項目もすべて削除されます。`)) return;
-  S.customBoards = (S.customBoards||[]).filter(b=>b.id!==_activeBoardId);
-  hoRemoveCustomBoard(_activeBoardId);
-  S.boardItems   = (S.boardItems||[]).filter(i=>i.boardId!==_activeBoardId);
-  S.boardSections= (S.boardSections||[]).filter(s=>s.boardId!==_activeBoardId);
-  hoRemoveCustomBoard(_activeBoardId);
-  saveS(); go('s-home'); renderHome();
-  showToast('ボードを削除しました');
+  showConfirm('ボードを削除', `「${b.name}」を削除しますか？項目もすべて削除されます。`, '削除する', () => {
+    S.customBoards = (S.customBoards||[]).filter(b=>b.id!==_activeBoardId);
+    hoRemoveCustomBoard(_activeBoardId);
+    S.boardItems   = (S.boardItems||[]).filter(i=>i.boardId!==_activeBoardId);
+    S.boardSections= (S.boardSections||[]).filter(s=>s.boardId!==_activeBoardId);
+    hoRemoveCustomBoard(_activeBoardId);
+    saveS(); go('s-home'); renderHome();
+    showToast('ボードを削除しました');
+  }, 'danger');
 }
 
 /* ── セクション管理 ── */
