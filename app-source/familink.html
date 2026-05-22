@@ -597,6 +597,7 @@ select.input {
   display: flex; flex-direction: column; gap: 4px;
   background: none; border: none; padding: 6px; border-radius: 10px;
   align-items: center; justify-content: center; cursor: pointer;
+  flex-shrink: 0;
 }
 .home-menu span {
   display: block; width: 20px; height: 2px;
@@ -5405,11 +5406,11 @@ const TAB_DEFS = [
 
 function getTabConfig() {
   const defaultIds = ['home','task','cal','budget','board'];
-  if(!S.tabConfig || !S.tabConfig.length) {
+  if(!S.tabConfig || !Array.isArray(S.tabConfig) || !S.tabConfig.length) {
     return TAB_DEFS.map(function(d){ return {id:d.id, vis:defaultIds.includes(d.id)}; });
   }
   const knownIds = TAB_DEFS.map(function(d){ return d.id; });
-  const result = S.tabConfig.filter(function(t){ return knownIds.includes(t.id); });
+  const result = S.tabConfig.filter(function(t){ return t && typeof t === 'object' && knownIds.includes(t.id); });
   knownIds.forEach(function(id){
     if(!result.find(function(t){ return t.id===id; })) result.push({id:id, vis:false});
   });
@@ -5899,10 +5900,12 @@ const WIDGET_ITEM_DEFAULTS = [
   { type:'budget',  label:'家計メモ',    enabled:false },
 ];
 function getWidgetItems() {
-  if(!S.widgetItems || !S.widgetItems.length) return WIDGET_ITEM_DEFAULTS.map(function(d){ return Object.assign({},d); });
+  if(!S.widgetItems || !Array.isArray(S.widgetItems) || !S.widgetItems.length) {
+    return WIDGET_ITEM_DEFAULTS.map(function(d){ return Object.assign({},d); });
+  }
   return WIDGET_ITEM_DEFAULTS.map(function(d){
-    const saved = S.widgetItems.find(function(w){ return w.type===d.type; });
-    return saved ? saved : d;
+    const saved = S.widgetItems.find(function(w){ return w && w.type===d.type; });
+    return saved ? Object.assign({},saved) : Object.assign({},d);
   });
 }
 function openWidgetSettings() {
@@ -5925,7 +5928,7 @@ function renderWidgetSettingsModal() {
       + '</div>';
   }).join('')
   + '<div style="margin-top:16px;padding:12px 14px;background:var(--bg-muted);border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.7;">'
-  + '📱 iPhoneのホーム画面にウィジェットを追加するとここで選択した情報が表示されます。<br>（ウィジェット機能は近日対応予定）'
+  + 'iPhoneのホーム画面ウィジェットに追加するとここで選択した情報が表示されます。（ウィジェット機能は近日対応予定）'
   + '</div>';
 }
 function toggleWidgetItem(type) {
@@ -10564,6 +10567,12 @@ function deleteMemo() {
   S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
   saveS();
   closeModal('m-memo-edit');
+  const t = document.getElementById('memo-title');
+  const b = document.getElementById('memo-body');
+  if(t) t.value = '';
+  if(b) b.value = '';
+  _memoAttachBuf = [];
+  _memoEditId = null;
   renderMemo();
   showToast('メモを削除しました');
 }
@@ -18435,7 +18444,8 @@ function appNavBack() {
         if(tabBar.indexOf(prev) >= 0) {
           document.getElementById('tabbar')?.classList.remove('hidden');
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          const tid = (typeof TAB_MAP !== 'undefined') ? TAB_MAP[prev] : null;
+          const _tabDef = (typeof TAB_DEFS !== 'undefined') ? TAB_DEFS.find(function(d){ return d.screen===prev; }) : null;
+          const tid = _tabDef ? ('tab-'+_tabDef.id) : ((typeof TAB_MAP !== 'undefined') ? TAB_MAP[prev] : null);
           if(tid) document.getElementById(tid)?.classList.add('active');
         }
         return true;
