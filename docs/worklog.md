@@ -12082,3 +12082,90 @@ QA総点検・バグ修正・世界最高峰品質への引き上げ
 ### コミット
 - ハッシュ: （このエントリ同梱のコミットで記録）
 - メッセージ: `タブカスタマイズ改善: 最大5タブ制限・プロUI再設計（iOSトグル・タップ領域・disabled状態）`
+
+---
+
+## 2026-05-22 18:00  env: 不明  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+ワークスペース（利用スタイル）機能の設計・実装
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+**データモデル**
+- S object に `workspaces: null`、`currentWorkspaceId: 'ws_shared'` を追加
+- PERSIST配列に `'workspaces'`, `'currentWorkspaceId'` を追加
+
+**DEFAULT_WORKSPACESと補助関数**
+- `DEFAULT_WORKSPACES`: 共有用(ws_shared) / 自分用(ws_personal) の2スペース定数
+- `initWorkspaces()`: 起動時にデフォルトスペースを保証（init()から呼び出し）
+- `curWsId()`: 現在のワークスペースID取得
+- `getWorkspaces()`: ワークスペース一覧取得（initWorkspaces保証）
+- `currentWorkspace()`: 現在のワークスペースオブジェクト取得
+- `wsFilter(arr)`: workspaceIdでフィルタ（未設定は'ws_shared'扱いで後方互換）
+
+**ワークスペース管理関数**
+- `openWorkspaceSwitcher()` / `renderWorkspaceSwitcher()`: 切り替えモーダル
+- `switchWorkspace(wsId)`: スペース切り替え + 画面再描画
+- `updateWorkspaceUI()`: ホームヘッダーのラベル更新
+- `openWorkspaceEdit(wsId)` / `saveWorkspaceEdit()`: 作成・編集
+- `deleteWorkspace(wsId)`: カスタムスペース削除（スペースのデータも削除）
+- `renderCurrentScreen()`: 現在画面を再描画するヘルパー
+- 後方互換: `openUsageModeModal()` → `openWorkspaceSwitcher()` に委譲
+
+**Modal HTML**
+- `m-usage-mode` を削除し `m-workspace-switcher` / `m-workspace-edit` に置き換え
+- 新規作成ボタン、スペースカード（アイコン・名前・説明・使用中バッジ）、編集・削除
+
+**CSS**
+- `.ws-card`, `.ws-card-left/icon/info/name/desc/check`, `.ws-badge-active` を追加
+
+**wsFilter適用箇所**
+- renderCalMonth: S.events
+- renderListView: S.tasks
+- renderBudget: S.txs
+- renderHealth: S.health
+- renderPrep: S.prep
+- renderMemo: S.memos
+- renderShopListHtml: S.shoppingItems
+- renderHome: S.events / S.tasks
+
+**workspaceId付与（新規作成時）**
+- タスク保存 (saveTk)
+- 予定保存 (saveEvent / ob2SaveFirst)
+- 家計保存 (saveTx)
+- 体調保存 (saveHealth)
+- メモ保存 (saveMemoEdit)
+- 買い物追加 (saveShopAdd)
+- 準備リスト追加 (savePrepItem)
+
+**その他**
+- ホーム「利用スタイルボタン」: `currentWorkspace().name` を表示
+- 設定画面: 「利用スタイル」→「スペース切り替え」、クリックで切り替えモーダル
+- docs/index.html: キャッシュバスター v20260522f
+
+### テスト結果
+- 未実施（実機確認が必要）
+
+### 未確認事項
+- iOS Safari での ws-card タップ応答
+- スペース切り替え後に各画面データが切り替わることの目視確認
+- カスタムスペース作成→データ追加→スペース削除→データ消去の一連の動作
+
+### iPhone確認ポイント
+- ホーム右上ボタン「共有用」をタップ → スペース切り替えモーダルが開くか
+- スペースカードをタップ → ホームラベルが変わるか
+- 「+ 新規作成」→ 名前入力→保存 → スペースが追加されるか
+- ws_shared と ws_personal を切り替えてタスク・予定が分離されるか
+
+### 次にやること
+- iPhone実機確認（上記iPhone確認ポイント）
+- App Store申請準備
+- Hokuからのデータ作成時にもworkspaceIdを付与（voiceConfirmSave系）
+
+### コミット
+- ハッシュ: `91d0252`
+- メッセージ: `ワークスペース（利用スタイル）機能を実装`
