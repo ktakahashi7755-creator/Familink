@@ -12169,3 +12169,46 @@ QA総点検・バグ修正・世界最高峰品質への引き上げ
 ### コミット
 - ハッシュ: `91d0252`
 - メッセージ: `ワークスペース（利用スタイル）機能を実装`
+
+---
+
+## 2026-05-22 env: 不明  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+ワークスペース機能の全画面展開・品質仕上げ（ws-banner・渡ったWorkspace ID・docs同期）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`
+- `docs/worklog.md`
+
+### 変更内容
+- **renderWsBanner() 完全展開**: 7画面すべてにワークスペース帯 `ws-banner-wrap` divを追加（カレンダー・タスク・家計・体調・準備リスト・メモ・買い物リスト）
+- **各render関数に renderWsBanner() 呼び出しを追加**: renderCal / renderTaskScreen / renderBudget / renderHealth / renderShopping / renderPrep / renderMemo
+- **voiceConfirmSave 全パスに workspaceId 付与**: Hokuから音声でデータ作成する際も curWsId() を正しく付与
+- **executeAction 全パスに workspaceId 付与**: create_budget / create_event / create_task すべて対応
+- **CSS変数補完**: --danger / --danger-light / --green / --green-light / --blue-light を :root に追加
+- **form-label・form-input・modal-actions CSS**: 新規ワークスペース編集モーダルのスタイル定義
+- **toast 改善**: アイコン付き（success/error/info）・フェードアウトアニメーション
+- **docs/index.html 同期**: v20260522g → v20260522h にバンプしてキャッシュ制御
+
+### テスト結果
+- 未実施（実機確認が必要）
+- JS構文エラーはなし（grep-levelのレビューでは問題なし）
+
+### 未確認事項
+- ws-banner が ws_personal に切り替えた時に全画面で表示されるか
+- voiceConfirmSave 経由で作成したデータのworkspaceIdが正しいか
+
+### iPhone確認ポイント
+- ws_personal に切り替え → カレンダー・タスク・家計・体調・準備・メモ・買い物でバナーが表示されるか
+- ws_shared に戻す → バナーが非表示になるか
+- バナーをタップ → ワークスペース切り替えモーダルが開くか
+
+### 次にやること
+- iPhone実機確認（上記iPhone確認ポイント）
+- App Store申請準備
+
+### コミット
+- ハッシュ: （コミット後に更新）
+- メッセージ: `ワークスペース帯を全画面展開・voiceConfirmSave workspaceId付与・docs同期 v20260522h`

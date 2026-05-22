@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260522f';
+  var V='20260522h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -125,6 +125,12 @@ if('serviceWorker' in navigator){
   --grad-amber:       linear-gradient(135deg, #FFE066 0%, #FFB800 100%);
   --grad-progress:    linear-gradient(90deg,  #4A90E2 0%, #7BB3F5 100%);
   --grad-health:      linear-gradient(90deg,  #FF9B4E 0%, #FF6B6B 100%);
+  /* ── Aliases (後方互換) ── */
+  --danger:      #FF4D4F;
+  --danger-light:#FFF1F0;
+  --green:       #52C47A;
+  --green-light: #D9F5E5;
+  --blue-light:  #EBF4FF;
 }
 
 /* ============================================================
@@ -436,7 +442,21 @@ select.input {
   background: var(--border); margin: 0 auto 18px;
 }
 .modal-title { font-size: 17px; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 20px; }
-.modal-form { display: flex; flex-direction: column; gap: 14px; }
+.modal-form { display: flex; flex-direction: column; gap: 6px; }
+.modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.form-label {
+  font-size: 12px; font-weight: 700; color: var(--text-sub);
+  letter-spacing: .3px; display: block;
+}
+.form-input {
+  height: 50px; border-radius: var(--r);
+  background: var(--bg-muted); border: 2px solid transparent;
+  padding: 0 16px; font-size: 16px; color: var(--text);
+  width: 100%; outline: none; transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.form-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(74,144,226,.12); }
+.form-input::placeholder { color: var(--text-muted); }
+select.form-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A9ABE' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 
 /* Center modal (confirm) */
 .modal-center { align-items: center; justify-content: center; padding: 20px; }
@@ -462,9 +482,10 @@ select.input {
   box-shadow: var(--s); animation: toastIn .3s var(--t-spring) both;
 }
 .toast-success { background: #fff; color: var(--secondary-dark); border-left: 4px solid var(--secondary); }
-.toast-error   { background: #fff; color: var(--red);            border-left: 4px solid var(--red); }
-.toast-info    { background: #fff; color: var(--primary);        border-left: 4px solid var(--primary); }
-@keyframes toastIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.toast-error   { background: #fff; color: #c0392b;              border-left: 4px solid var(--red); }
+.toast-info    { background: #fff; color: var(--primary);       border-left: 4px solid var(--primary); }
+.toast-icon { display:flex; align-items:center; flex-shrink:0; }
+@keyframes toastIn { from { transform: translateY(-10px) scale(.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 
 /* ============================================================
    AVATAR
@@ -677,14 +698,16 @@ select.input {
 }
 .home-bell:active { transform:scale(.92); }
 .home-mode-btn {
-  display:flex; align-items:center; gap:4px;
-  background:var(--bg-card); border:1px solid var(--border-light);
-  border-radius:var(--r-full); padding:5px 11px;
-  font-size:11px; font-weight:700; color:var(--text-sub);
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg-card); border:1.5px solid var(--border);
+  border-radius:var(--r-full); padding:6px 12px 6px 10px;
+  font-size:12px; font-weight:700; color:var(--text);
   cursor:pointer; transition:var(--t-spring); flex-shrink:0;
-  box-shadow:var(--s-xs);
+  box-shadow:0 1px 4px rgba(74,144,226,.10);
+  max-width:110px;
 }
-.home-mode-btn:active { background:var(--primary-light); color:var(--primary); transform:scale(.95); }
+.home-mode-btn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.home-mode-btn:active { background:var(--primary-light); color:var(--primary); border-color:var(--primary); transform:scale(.95); }
 .home-bell-badge {
   position:absolute; top:4px; right:4px;
   min-width:16px; height:16px; padding:0 4px; border-radius:var(--r-full);
@@ -1374,26 +1397,50 @@ select.input {
   background: var(--primary); border-radius: var(--r-full); padding: 2px 9px;
 }
 .usage-mode-card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
-/* ワークスペースカード */
-.ws-card {
-  display: flex; align-items: center; justify-content: space-between;
-  width: 100%; text-align: left;
-  border: 1.5px solid var(--border-light); border-radius: 14px;
-  background: #fff; padding: 14px; margin-bottom: 10px;
-  cursor: pointer; transition: var(--t-spring);
+/* ワークスペースコンテキスト帯 */
+.ws-banner-wrap { display: none; background: var(--primary-light); }
+.ws-banner {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  padding: 4px 16px; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.ws-card:active { transform: scale(.98); }
+/* ワークスペースカード */
+.ws-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-align: left;
+  border: 1.5px solid var(--border-light); border-radius: 16px;
+  background: #fff; padding: 14px 12px 14px 14px; margin-bottom: 10px;
+  cursor: pointer; transition: border-color .2s, background .2s, transform .15s;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.ws-card:active { transform: scale(.985); }
 .ws-card.selected { border-color: var(--primary); background: var(--primary-light); }
-.ws-card-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-.ws-card-icon { font-size: 24px; flex-shrink: 0; }
+.ws-card-icon-wrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background .2s, color .2s;
+}
 .ws-card-info { flex: 1; min-width: 0; }
-.ws-card-name { font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
-.ws-card-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; line-height: 1.4; }
-.ws-card-check { flex-shrink: 0; width: 24px; display: flex; justify-content: center; }
+.ws-card-name {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ws-card-count { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+.ws-card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ws-card-check { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.ws-card-dots {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.ws-card-dots:active { background: var(--bg-muted); }
 .ws-badge-active {
   font-size: 10px; font-weight: 700; color: #fff;
-  background: var(--primary); border-radius: var(--r-full); padding: 2px 8px;
+  background: var(--primary); border-radius: var(--r-full);
+  padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
 }
 .settings-title {
   font-size: 11px; font-weight: 700; color: var(--text-muted);
@@ -2874,8 +2921,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 /* ── Toast: Better styling ── */
 .toast {
-  border-radius: var(--r-lg) !important;
-  box-shadow: 0 8px 32px rgba(26,36,64,.18) !important;
+  border-radius: var(--r) !important;
+  box-shadow: 0 4px 24px rgba(26,36,64,.15) !important;
   font-weight: 600 !important;
 }
 
@@ -3023,8 +3070,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <span></span><span></span><span></span>
     </button>
     <span class="home-header-mid" id="home-date-mid" style="display:flex;align-items:center;justify-content:center;"></span>
-    <button class="home-mode-btn" id="home-mode-btn" onclick="openUsageModeModal()" aria-label="利用スタイルを変更">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <button class="home-mode-btn" id="home-mode-btn" onclick="openUsageModeModal()" aria-label="スペースを切り替え">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span id="home-mode-label">共有用</span>
     </button>
     <!-- Wave 57: 通知ベル（常時表示）→ s-notif -->
@@ -3082,6 +3129,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-memo"></div>
   <div class="scroll-area" id="memo-body" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -3270,6 +3319,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="cal-vtab"        id="cvt-list"  onclick="setCalView('list')">リスト</button>
   </div>
 
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-cal"></div>
+
   <!-- 曜日ヘッダー -->
   <div class="cal-dow-bar" id="cal-dow-bar">
     <div class="cal-dow-c dow-sun">日</div>
@@ -3310,6 +3362,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
+
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-task"></div>
 
   <!-- フィルターバー -->
   <div style="display:flex;gap:6px;padding:10px 16px 2px;overflow-x:auto;scrollbar-width:none;">
@@ -3588,6 +3643,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="tk-filter-btn"        data-budget-tab="recurring" onclick="setBudgetTab('recurring')">固定収支</button>
     <button class="tk-filter-btn"        data-budget-tab="cashflow"  onclick="setBudgetTab('cashflow')">資金繰り</button>
   </div>
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-budget"></div>
   <div class="scroll-area" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));">
     <!-- 通常家計（既存） -->
     <div id="budget-section-normal">
@@ -3787,14 +3844,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- C8: 利用スタイル（個人利用 / 家族・チーム利用） -->
 <!-- ===== ワークスペース切り替えモーダル ===== -->
 <div id="m-workspace-switcher" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div class="modal-title" style="margin:0;">スペースを切り替え</div>
-      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;border-radius:20px;" onclick="openWorkspaceEdit('')">+ 新規作成</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="modal-title" style="margin:0;">スペース</div>
+      <button class="btn btn-primary" style="font-size:12px;padding:7px 16px;border-radius:var(--r-full);font-weight:700;" onclick="openWorkspaceEdit('')">
+        <span style="font-size:14px;margin-right:2px;">＋</span> 新規作成
+      </button>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.5;">スペースを切り替えると、表示されるデータが変わります。</p>
     <div id="ws-switcher-body"></div>
-    <div class="modal-actions" style="margin-top:14px;">
+    <div class="modal-actions" style="margin-top:8px;">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-workspace-switcher')">閉じる</button>
     </div>
   </div>
@@ -3802,15 +3862,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 <!-- ===== ワークスペース作成・編集モーダル ===== -->
 <div id="m-workspace-edit" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+  <div class="modal">
     <div class="modal-grip"></div>
     <div id="ws-edit-title" class="modal-title">新しいスペース</div>
     <input type="hidden" id="ws-edit-id">
-    <div class="modal-form">
+    <div class="modal-form" style="gap:4px;">
       <label class="form-label">スペース名 <span style="color:var(--danger)">*</span></label>
-      <input type="text" id="ws-edit-name" class="form-input" placeholder="例: 仕事用、習い事など" maxlength="20">
+      <input type="text" id="ws-edit-name" class="form-input" placeholder="例: 仕事用、習い事メモなど" maxlength="20" autocomplete="off">
       <label class="form-label" style="margin-top:12px;">説明（任意）</label>
-      <input type="text" id="ws-edit-desc" class="form-input" placeholder="このスペースの用途など" maxlength="40">
+      <input type="text" id="ws-edit-desc" class="form-input" placeholder="このスペースの用途など" maxlength="40" autocomplete="off">
+      <p id="ws-edit-note" style="font-size:11px;color:var(--text-muted);margin:8px 0 0;line-height:1.6;display:none;">共有用・自分用スペースは名前と説明のみ変更できます。</p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary btn-block" onclick="saveWorkspaceEdit()">保存する</button>
@@ -3854,6 +3915,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="header-icon-btn" onclick="openHealthModal()" aria-label="体調を記録">＋</button>
   </div>
   <div class="child-tabs" id="health-child-tabs"></div>
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-health"></div>
   <div class="scroll-area" id="health-list" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -3871,6 +3934,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="tk-filter-btn" data-prep-tab="all" onclick="setPrepTab('all')">すべて</button>
     <button class="tk-filter-btn" data-prep-tab="routine" onclick="setPrepTab('routine')">ルーティン・時間割</button>
   </div>
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-prep"></div>
   <div class="scroll-area" id="prep-list" style="padding:14px 0 calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -3890,6 +3955,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="tk-filter-btn"        data-shop-tab="frequent" onclick="setShopTab('frequent')">よく購入するもの</button>
     <button class="tk-filter-btn"        data-shop-tab="history"  onclick="setShopTab('history')">購入履歴</button>
   </div>
+  <!-- ワークスペース帯 -->
+  <div class="ws-banner-wrap" id="ws-banner-shop"></div>
   <div class="scroll-area" id="shop-body" style="flex:1;padding:12px 0 calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -5353,12 +5420,23 @@ function greeting() {
    ============================================================ */
 function showToast(msg, type='success') {
   const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
-  const icons = { success:'', error:'', info:'' };
-  el.innerHTML = `<span>${icons[type]||''}</span><span>${H(msg)}</span>`;
+  el.className = 'toast toast-' + type;
+  const iconSvgs = {
+    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  };
+  el.innerHTML = '<span class="toast-icon">' + (iconSvgs[type] || iconSvgs.info) + '</span><span>' + H(msg) + '</span>';
   const wrap = document.getElementById('toast-wrap');
+  if (!wrap) return;
   wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  const dur = type === 'error' ? 3500 : 2800;
+  setTimeout(function() {
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-8px)';
+    setTimeout(function() { el.remove(); }, 320);
+  }, dur);
 }
 
 /* ============================================================
@@ -5964,19 +6042,43 @@ function renderWorkspaceSwitcher() {
   if (!body) return;
   const wsId = curWsId();
   const workspaces = getWorkspaces();
+
   body.innerHTML = workspaces.map(function(ws) {
     const isSelected = ws.id === wsId;
-    const typeIcon = ws.type === 'shared' ? '👨‍👩‍👧' : ws.type === 'personal' ? '🙋' : '📁';
-    return '<button class="ws-card' + (isSelected ? ' selected' : '') + '" onclick="switchWorkspace(\'' + ws.id + '\')">'
-      + '<div class="ws-card-left">'
-      +   '<span class="ws-card-icon">' + typeIcon + '</span>'
-      +   '<div class="ws-card-info">'
-      +     '<div class="ws-card-name">' + H(ws.name) + (isSelected ? ' <span class="ws-badge-active">使用中</span>' : '') + '</div>'
-      +     '<div class="ws-card-desc">' + H(ws.description || '') + '</div>'
-      +   '</div>'
+    // SVGアイコン（絵文字なし・一貫したデザイン）
+    const svgIcons = {
+      shared:   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      personal: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      custom:   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>'
+    };
+    const icon = svgIcons[ws.type] || svgIcons.custom;
+    const iconBg = isSelected ? 'var(--primary)' : (ws.type === 'shared' ? '#EBF4FF' : ws.type === 'personal' ? '#F0EBFF' : '#EEF2FA');
+    const iconColor = isSelected ? '#fff' : (ws.type === 'shared' ? 'var(--primary)' : ws.type === 'personal' ? 'var(--purple)' : 'var(--text-sub)');
+
+    // データ件数をカウント
+    const taskCount  = (S.tasks || []).filter(function(x){ return (x.workspaceId || 'ws_shared') === ws.id; }).length;
+    const eventCount = (S.events || []).filter(function(x){ return (x.workspaceId || 'ws_shared') === ws.id; }).length;
+    const memoCount  = (S.memos || []).filter(function(x){ return (x.workspaceId || 'ws_shared') === ws.id; }).length;
+    const totalCount = taskCount + eventCount + memoCount;
+    const countLabel = totalCount === 0
+      ? 'まだデータがありません'
+      : [taskCount ? taskCount + '件のタスク' : '', eventCount ? eventCount + '件の予定' : '', memoCount ? memoCount + '件のメモ' : '']
+          .filter(Boolean).join('・');
+
+    const checkSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    const dotsSvg  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
+
+    return '<div class="ws-card' + (isSelected ? ' selected' : '') + '" onclick="switchWorkspace(\'' + ws.id + '\')" role="button" tabindex="0">'
+      + '<div class="ws-card-icon-wrap" style="background:' + iconBg + ';color:' + iconColor + ';">' + icon + '</div>'
+      + '<div class="ws-card-info">'
+      +   '<div class="ws-card-name">' + H(ws.name) + (isSelected ? '&nbsp;<span class="ws-badge-active">使用中</span>' : '') + '</div>'
+      +   '<div class="ws-card-count">' + H(countLabel) + '</div>'
       + '</div>'
-      + '<div class="ws-card-check">' + (isSelected ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</div>'
-      + '</button>';
+      + '<div class="ws-card-actions">'
+      +   (isSelected ? '<div class="ws-card-check">' + checkSvg + '</div>' : '')
+      +   '<div class="ws-card-dots" onclick="event.stopPropagation();openWorkspaceEdit(\'' + ws.id + '\')" aria-label="編集">' + dotsSvg + '</div>'
+      + '</div>'
+      + '</div>';
   }).join('');
 }
 
@@ -5998,15 +6100,23 @@ function updateWorkspaceUI() {
   const ws = currentWorkspace();
   const modeLabel = document.getElementById('home-mode-label');
   if (modeLabel) modeLabel.textContent = ws.name;
-  renderSettings();
+  // Update workspace button icon
+  const modeBtn = document.getElementById('home-mode-btn');
+  if (modeBtn) {
+    const _ic = { shared:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', personal:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', custom:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' };
+    const svgEl = modeBtn.querySelector('svg');
+    if (svgEl) svgEl.innerHTML = _ic[ws.type] || _ic.shared;
+  }
+  if (typeof renderSettings === 'function') renderSettings();
 }
 
 function openWorkspaceEdit(wsId) {
   closeModal('m-workspace-switcher');
   const ws = wsId ? getWorkspaces().find(function(w) { return w.id === wsId; }) : null;
-  const nameEl = document.getElementById('ws-edit-name');
-  const descEl = document.getElementById('ws-edit-desc');
-  const idEl   = document.getElementById('ws-edit-id');
+  const nameEl  = document.getElementById('ws-edit-name');
+  const descEl  = document.getElementById('ws-edit-desc');
+  const idEl    = document.getElementById('ws-edit-id');
+  const noteEl  = document.getElementById('ws-edit-note');
   if (!nameEl || !descEl || !idEl) return;
   idEl.value   = ws ? ws.id : '';
   nameEl.value = ws ? ws.name : '';
@@ -6015,7 +6125,9 @@ function openWorkspaceEdit(wsId) {
   if (title) title.textContent = ws ? 'スペースを編集' : '新しいスペース';
   const delBtn = document.getElementById('ws-edit-del-btn');
   if (delBtn) delBtn.style.display = (ws && ws.type === 'custom') ? '' : 'none';
+  if (noteEl) noteEl.style.display = (ws && ws.type !== 'custom') ? '' : 'none';
   openModal('m-workspace-edit');
+  setTimeout(function() { nameEl.focus(); }, 300);
 }
 
 function saveWorkspaceEdit() {
@@ -6087,6 +6199,18 @@ function getUsageMode() {
 function isSoloMode() { return getUsageMode() === 'solo'; }
 function usageModeLabel() { return currentWorkspace().name; }
 function openUsageModeModal() { openWorkspaceSwitcher(); }
+
+// ヘッダー下のワークスペース帯（ws_shared以外のとき表示）
+function renderWsBanner(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const ws = currentWorkspace();
+  if (ws.id === 'ws_shared') { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = '<div class="ws-banner" onclick="openWorkspaceSwitcher()">'
+    + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>'
+    + H(ws.name) + '</div>';
+}
 
 function renderCurrentScreen() {
   const s = S.screen;
@@ -6431,9 +6555,22 @@ function renderHome() {
   // 日付表示なし（削除済み）
   const dateMid = document.getElementById('home-date-mid');
   if(dateMid) dateMid.innerHTML = '';
-  // 利用スタイルボタン
+  // ワークスペースボタン
   const modeLabel = document.getElementById('home-mode-label');
   if(modeLabel) modeLabel.textContent = currentWorkspace().name;
+  // ワークスペースタイプに応じてアイコンを切り替え
+  const modeBtn = document.getElementById('home-mode-btn');
+  if(modeBtn) {
+    const ws = currentWorkspace();
+    const _wsIcons = {
+      shared:   '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      personal: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      custom:   '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'
+    };
+    const icoPath = _wsIcons[ws.type] || _wsIcons.shared;
+    const svgEl = modeBtn.querySelector('svg');
+    if(svgEl) svgEl.innerHTML = icoPath;
+  }
   // Notif badge
   const unread = (S.notifs||[]).filter(n=>!n.read).length;
   const badge = document.getElementById('notif-badge');
@@ -6734,6 +6871,7 @@ const JP_HOLIDAYS = {
 function _holidayName(ds) { return JP_HOLIDAYS[ds] || ''; }
 
 function renderCal() {
+  renderWsBanner('ws-banner-cal');
   const view = S.calView || 'month';
   document.getElementById('cal-month-title').textContent = `${S.calY}年${S.calM+1}月`;
   ['month','week','list'].forEach(v => {
@@ -6823,7 +6961,7 @@ function renderCalDetail(ds) {
   // cal-det-panel-inner: renderCalMonth で毎回生成される
   const panel = document.getElementById('cal-det-panel-inner');
   if(!panel) return;
-  const evs = (S.events||[]).filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  const evs = wsFilter(S.events).filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
   const lbl = jpDate(ds);
 
   const addBtn = `<button class="cal-det-add-btn" onclick="S.calSel='${ds}';openEventModal()" aria-label="この日に予定を追加">
@@ -6917,7 +7055,7 @@ function renderCalWeek() {
       const date = new Date(weekStart);
       date.setDate(weekStart.getDate()+d);
       const ds = localDateStr(date);
-      const dayEvs = (S.events||[]).filter(e=>e.date===ds && e.time)
+      const dayEvs = wsFilter(S.events).filter(e=>e.date===ds && e.time)
         .sort((a,b)=>a.time.localeCompare(b.time));
 
       const slots = HOURS.map(h=>`<div class="cal-week-slot"></div>`).join('');
@@ -7859,7 +7997,7 @@ function renderCalList() {
   if(ma) { ma.style.overflow = ''; ma.style.display = ''; ma.style.flexDirection = ''; ma.style.paddingBottom = ''; }
   const td = todayStr();
   // 今日から60日分の予定を表示
-  const futureEvs = (S.events||[])
+  const futureEvs = wsFilter(S.events)
     .filter(e=>e.date>=td)
     .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
 
@@ -8340,6 +8478,7 @@ function renderListView(){
 }
 
 function renderTaskScreen(){
+  renderWsBanner('ws-banner-task');
   renderTkMemberFilter();
   renderListView();
   renderTkDelBar();
@@ -8843,6 +8982,7 @@ function setBudgetMember(id) {
 }
 
 function renderBudget() {
+  renderWsBanner('ws-banner-budget');
   const now = new Date();
   if(S.budgetY === null) S.budgetY = now.getFullYear();
   if(S.budgetM === null) S.budgetM = now.getMonth();
@@ -10714,6 +10854,7 @@ function _memoCardPreview() {
   }).join('');
 }
 function renderMemo() {
+  renderWsBanner('ws-banner-memo');
   _ensureMemo();
   const body = document.getElementById('memo-body');
   if(!body) return;
@@ -10932,6 +11073,7 @@ function deleteMemoById(id) {
 }
 
 function renderHealth() {
+  renderWsBanner('ws-banner-health');
   // メンバータブ：家族全員 + 全 MEMBERS
   const tabEl = document.getElementById('health-child-tabs');
   if(tabEl) {
@@ -11525,6 +11667,7 @@ function shopArrays() {
 }
 
 function renderShopping() {
+  renderWsBanner('ws-banner-shop');
   shopArrays();
   const tab = S.shoppingTab || 'list';
   document.querySelectorAll('#shop-tabs [data-shop-tab]').forEach(function(b){
@@ -12421,6 +12564,7 @@ function _prepDateMatchesTab(date) {
 }
 
 function renderPrep() {
+  renderWsBanner('ws-banner-prep');
   _ensurePrepRoutines();
   _ensurePrepVisibleMembers();
   const el = document.getElementById('prep-list');
@@ -15503,7 +15647,7 @@ function executeAction(action) {
     case 'create_budget': {
       const p = action.params;
       S.txs = S.txs||[];
-      S.txs.push({id:uid(), type:'expense', amount:p.amount, cat:p.cat, desc:p.title, date:p.date||todayStr()});
+      S.txs.push({id:uid(), type:'expense', amount:p.amount, cat:p.cat, desc:p.title, date:p.date||todayStr(), workspaceId:curWsId()});
       saveS(); refresh('s-budget');
       const now=new Date();
       const monthExp=(S.txs||[]).filter(t=>{const d=new Date(t.date+'T00:00:00');return t.type==='expense'&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();}).reduce((s,t)=>s+t.amount,0);
@@ -15514,7 +15658,7 @@ function executeAction(action) {
       const p = action.params;
       const mem = p.member ? MEMBERS.find(m=>m.name===p.member) : null;
       const colM = (mem?.grad||'#4A90E2').match(/#[0-9A-Fa-f]{6}/);
-      S.events.push({id:uid(), title:p.title, date:p.date, time:p.time||'09:00', color:colM?colM[0]:'#4A90E2', member:mem?.id||S.user?.id||'kenya', note:''});
+      S.events.push({id:uid(), title:p.title, date:p.date, time:p.time||'09:00', color:colM?colM[0]:'#4A90E2', member:mem?.id||S.user?.id||'kenya', note:'', workspaceId:curWsId()});
       saveS(); refresh('s-cal');
       const timeStr = p.time ? p.time+' の' : '';
       const memberStr = p.member ? `（${p.member}）` : '';
@@ -15525,7 +15669,7 @@ function executeAction(action) {
       const p = action.params;
       const mem = p.assignee ? MEMBERS.find(m=>m.name===p.assignee) : null;
       S.tasks = S.tasks||[];
-      S.tasks.push({id:uid(), title:p.title, status:'todo', assignedTo:mem?.id||'', priority:'med', dueDate:p.dueDate||'', memo:'', category:'', createdAt:todayStr(), updatedAt:todayStr()});
+      S.tasks.push({id:uid(), title:p.title, status:'todo', assignedTo:mem?.id||'', priority:'med', dueDate:p.dueDate||'', memo:'', category:'', createdAt:todayStr(), updatedAt:todayStr(), workspaceId:curWsId()});
       saveS(); refresh('s-task');
       const assigneeStr = p.assignee ? `${NL}・担当：${p.assignee}` : '';
       const dueStr = p.dueDate ? `${NL}・期限：${p.dueDateLabel || p.dueDate}` : '';
@@ -17673,7 +17817,7 @@ function voiceConfirmSave() {
   let saved = false;
   try {
     if(cat === 'calendar') {
-      S.events.push({ id:uid(), title, date, time, color:'#4A90E2', member: member||'kenya', note });
+      S.events.push({ id:uid(), title, date, time, color:'#4A90E2', member: member||'kenya', note, workspaceId:curWsId() });
       saved = true;
     } else if(cat === 'task') {
       S.tasks.push({
@@ -17681,7 +17825,7 @@ function voiceConfirmSave() {
         dueDate: date && date !== todayStr() ? date : '',
         status:'todo', priority:'none', category:'',
         order:(S.tasks||[]).length,
-        completedAt:'', createdAt:todayStr(), updatedAt:todayStr()
+        completedAt:'', createdAt:todayStr(), updatedAt:todayStr(), workspaceId:curWsId()
       });
       saved = true;
     } else if(cat === 'prep') {
@@ -17713,6 +17857,7 @@ function voiceConfirmSave() {
         if(member) { prepItem.memberId = member; prepItem.member = _mName; }
         prepItem.createdAt = _now;
         prepItem.updatedAt = _now;
+        prepItem.workspaceId = curWsId();
         S.prep.push(prepItem);
       }
       saved = true;
@@ -17720,7 +17865,7 @@ function voiceConfirmSave() {
       if(!isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
       const _bCat  = (_voiceParsed && _voiceParsed.budgetCat) ? _voiceParsed.budgetCat : '食費';
       const _bType = (_voiceParsed && _voiceParsed.txType === 'income') ? 'income' : 'expense';
-      S.txs.push({ id:uid(), type:_bType, amount:amount, cat:_bCat, desc: title || note || '音声入力', date, member: member||'kenya' });
+      S.txs.push({ id:uid(), type:_bType, amount:amount, cat:_bCat, desc: title || note || '音声入力', date, member: member||'kenya', workspaceId:curWsId() });
       saved = true;
     } else if(cat === 'health') {
       // 体温は任意（薬の記録だけのケースも許容）
@@ -17747,6 +17892,7 @@ function voiceConfirmSave() {
         visitedHospital: false, hospitalName: '',
         appetite: '', sleep: '', stool: '',
         note: note || '',
+        workspaceId: curWsId(),
         createdAt: isoNow, updatedAt: isoNow
       });
       saved = true;
@@ -19526,7 +19672,7 @@ document.addEventListener('touchcancel', () => {
       </div>
       <div class="field">
         <div class="field-label">予定ファイルを選択</div>
-        <input type="file" id="ics-file-input" accept=".ics,text/calendar" onchange="onIcsFileSelected(event)" style="font-size:13px;">
+        <input type="file" id="ics-file-input" accept=".ics,text/calendar" onchange="onIcsFileSelected(event)">
         <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">.ics 形式（Google / iPhone / Yahoo / Outlook 等）</div>
       </div>
       <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
