@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260522h';
+  var V='20260523a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3131,7 +3131,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
   <!-- ワークスペース帯 -->
   <div class="ws-banner-wrap" id="ws-banner-memo"></div>
-  <div class="scroll-area" id="memo-body" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
+  <div class="scroll-area" id="memo-list" style="flex:1;padding:14px 16px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
 <!-- メモ：追加方法シート -->
@@ -10856,7 +10856,7 @@ function _memoCardPreview() {
 function renderMemo() {
   renderWsBanner('ws-banner-memo');
   _ensureMemo();
-  const body = document.getElementById('memo-body');
+  const body = document.getElementById('memo-list');
   if(!body) return;
   if(_memoFolder && !_memoFolderById(_memoFolder)) _memoFolder = '';
   const cur = _memoFolder;
@@ -17729,7 +17729,7 @@ function hokuHandleVoiceText(text) {
 function voiceConfirmRender() {
   const p = _voiceParsed; if(!p) return;
   // Wave 61: モーダルタイトルをカテゴリ別の短文へ動的更新
-  const titleEl = document.getElementById('vc-title');
+  const titleEl = document.getElementById('vc-heading');
   if(titleEl && typeof getHokuConfirmTitle === 'function') {
     titleEl.textContent = getHokuConfirmTitle(p.category || 'default');
   }
@@ -19804,7 +19804,7 @@ document.addEventListener('touchcancel', () => {
 <div id="m-voice-confirm" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title" id="vc-title">これで保存する？</div>
+    <div class="modal-title" id="vc-heading">これで保存する？</div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">聞き取った内容</div>
     <div id="vc-recognized" style="background:rgba(74,144,226,.06);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);line-height:1.5;"></div>
     <div id="vc-corrected" style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;"></div>
