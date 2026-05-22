@@ -15952,9 +15952,9 @@ function renderHokuMsgs() {
       <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
       <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
       <div class="hoku-empty-chips">
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">📅 今日の予定</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">✅ タスク確認</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">💰 家計確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">${ICON('calendar',16)} 今日の予定</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">${ICON('check',16)} タスク確認</button>
+        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">${ICON('wallet',16)} 家計確認</button>
       </div>
       <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
