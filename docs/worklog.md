@@ -12212,3 +12212,36 @@ QA総点検・バグ修正・世界最高峰品質への引き上げ
 ### コミット
 - ハッシュ: `0d1c5d2`
 - メッセージ: `ワークスペース帯を全画面展開・voiceConfirmSave workspaceId付与・docs同期 v20260522h`
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+開発エージェントチーム運用基盤の整備 ＋ Git 環境の復旧（OneDrive 外へ再クローン）
+
+### 変更ファイル
+- `CLAUDE.md`
+- `docs/worklog.md`
+
+### 変更内容
+- **Git 環境復旧**: 作業フォルダ（OneDrive 上の部分コピー）から `.git` が失われていたため、GitHub `ktakahashi7755-creator/Familink` を再クローンし `C:\Users\ktaka\Familink`（OneDrive 外）へ配置。OneDrive と `.git` の相性問題で再喪失するリスクを回避するため、Git 管理フォルダは OneDrive 外に置く方針に変更。
+- **照合結果**: OneDrive 側部分コピーと GitHub HEAD（`00ac364`）を改行正規化して比較したところ、`familink.html`・`docs/index.html`・`worklog.md` は内容完全一致（差は LF/CRLF のみ）。作業損失なしを確認。OneDrive 側は `deck.html`/`pitch.html`/`README.md`/`src`/`hoku-api`/`.github` 等を欠く部分コピーだった。
+- **CLAUDE.md §12「技術的不変条件」追記**: 単一HTML/Vanilla縛り・`familink_v3`/PERSIST 保護・app-source⇄docs 同期義務・安全な実装姿勢を明文化。役割定義/自律範囲/承認境界/プロトコル/テスト基準は §1・§2・§6・§7・§10 に既存のため重複追記せず、技術前提のみ補完。
+
+### テスト結果
+- 未実施（ドキュメントのみの変更。HTML/JS 本体は未変更で動作影響なし）
+
+### 未確認事項
+- 今後 PC 作業は `C:\Users\ktaka\Familink` に一本化する。OneDrive 上の旧フォルダ `【Familink】test_20260522` は使わない（混在で再分岐させないこと）。
+- iPhone / web（claude.ai/code）側は GitHub 直結のため本変更の影響なし。
+
+### iPhone確認ポイント
+- なし（本体未変更）
+
+### 次にやること
+- 既存バグ洗い出しを優先度 S から着手（押せないボタン/保存されないフォーム/家計反映/戻るループ/重複メンバー 等）
+
+### コミット
+- ハッシュ: `（後続の worklog ハッシュ更新コミットで記載）`
+- メッセージ: `運用基盤整備: CLAUDE.md に技術的不変条件(§12)を追加 / Git 環境を OneDrive 外へ復旧`
