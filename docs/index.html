@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260523d';
+  var V='20260523e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -16515,6 +16515,23 @@ function parseVoiceIntent(rawText) {
   const time   = voiceResolveTime(text);
   const amount = voiceResolveAmount(text);
   const temp   = voiceResolveTemp(text);
+
+  // === 救済ルール（短い自然発話の取りこぼし防止）===
+  // classifyHokuInput が score>=3 を要求するため、スコアが届かない発話は category=null となり
+  // 確認モーダルで毎回手動選択が必要になっていた。下記は category=null の場合のみ発動し、
+  // 既存で分類成功しているケースの挙動は変えない（非破壊）。
+  // 1) 金額が読み取れたら原則 budget。「牛乳450円」「コーヒー250円」だけで家計登録できる。
+  if(!cls.category && amount != null) {
+    cls.category = 'budget';
+    cls.score = Math.max(cls.score || 0, 2);
+  }
+  // 2) 明確な家事/連絡/手続き系の動詞があれば task。
+  //    「牛乳買って」「洗濯干す」「保育園迎え」「銀行に振込」など日常発話を拾う。
+  const _TASK_VERB_RESCUE = /買って|買わ|買いに|買おう|洗濯|洗って|洗わ|干す|干して|畳む|畳んで|拭いて|拭か|捨て|片付け|片付けて|掃除|並べ|預け|迎え|送り迎え|引き取|取りに行|電話して|電話する|連絡して|連絡する|予約して|予約する|申し込|手続き|振込|振り込み/;
+  if(!cls.category && _TASK_VERB_RESCUE.test(text)) {
+    cls.category = 'task';
+    cls.score = Math.max(cls.score || 0, 2);
+  }
 
   // タイトルはトリガー句を除いてから抽出（バグ修正：「を予定追加」等が残らないように）
   const titleSrc = stripTriggerPhrases(text);
