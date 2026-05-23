@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260523c';
+  var V='20260523d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -16054,6 +16054,8 @@ let _hokuRec = null;
 let _hokuRecListening = false;
 let _hokuRecSupportChecked = false;
 let _hokuRecStartTimer = null;
+let _hokuVoiceInterim = '';   // 認識中のライブ文字起こし（interim）保持
+let _hokuVoiceSpoke = false;  // この聞き取りセッションで onspeechstart が来たか
 
 function hokuVoiceSupport() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -16107,49 +16109,70 @@ function hokuVoiceToggle() {
     _hokuVoiceFocusInput();
     return;
   }
+  // セキュアコンテキスト未満（http:/// file:// 等）は権限が降りずブラウザによっては無音で失敗するため事前案内
+  // ブラウザの window.isSecureContext は localhost / https / file の扱いがエンジン毎に異なるが、
+  // 「明示的に false」のときのみ警告（true / undefined は通す）。
+  if(window.isSecureContext === false) {
+    hokuMicSetState('idle');
+    hokuVoiceShowStatus('音声入力には HTTPS 接続が必要です。ライブ版（https://…/Familink/）で開いてください。','warn');
+    showToast('音声入力には HTTPS が必要です。ライブ版を開いてください。','error');
+    _hokuVoiceFocusInput();
+    return;
+  }
   // 既に聞き取り中なら停止
   if(_hokuRecListening && _hokuRec) {
     try { _hokuRec.stop(); } catch(e) {}
     return;
   }
   let started = false;
+  _hokuVoiceInterim = '';
+  _hokuVoiceSpoke = false;
   try {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     _hokuRec = new SR();
     _hokuRec.lang = 'ja-JP';
-    _hokuRec.interimResults = false;
-    _hokuRec.continuous = false;
-    _hokuRec.maxAlternatives = 1;
+    _hokuRec.interimResults = true;   // 認識中の文字起こしをライブで返す（UX：話している内容が見える）
+    _hokuRec.continuous = false;       // iOS Safari互換のため単発モードを維持
+    _hokuRec.maxAlternatives = 3;      // 誤認識時に候補が取れるよう確保
 
     _hokuRec.onstart = function() {
       started = true;
       _hokuRecListening = true;
       hokuMicSetState('listening');
+      try { navigator.vibrate && navigator.vibrate(40); } catch(e) {}  // 触覚フィードバック（対応端末のみ）
       if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
     };
+    _hokuRec.onspeechstart = function() {
+      _hokuVoiceSpoke = true;
+      hokuVoiceShowStatus('聞いています…','listening');
+    };
     _hokuRec.onresult = function(ev) {
-      let text = '';
+      let interim = '', finalText = '';
       try {
-        for(let i=0; i<ev.results.length; i++) {
-          text += ev.results[i][0].transcript;
+        for(let i = ev.resultIndex; i < ev.results.length; i++) {
+          const res = ev.results[i];
+          const top = (res && res[0] && res[0].transcript) || '';
+          if(res.isFinal) finalText += top;
+          else interim += top;
         }
-      } catch(e) { text = ''; }
-      if(text) {
-        // Wave 26：認識テキストを Familink 文脈で解析し、保存前確認モーダルへ
-        try { hokuHandleVoiceText(text); }
+      } catch(e) { /* ignore parsing errors */ }
+      if(interim) {
+        _hokuVoiceInterim = interim;
+        // 認識中ライブ表示：ユーザーが「ちゃんと聞かれている」と分かる
+        hokuVoiceShowStatus('聞き取り中：「' + interim + '」','listening');
+      }
+      if(finalText) {
+        // 最終候補（top）を採用。maxAlternatives=3 は誤認識時のフォールバック候補として今後活用可能。
+        try { hokuHandleVoiceText(finalText); }
         catch(e) {
           console.error('hokuHandleVoiceText failed', e);
-          // フォールバック：従来どおり Hoku 入力欄へ挿入
           const inp = document.getElementById('hoku-input');
           if(inp) {
-            inp.value = (inp.value ? inp.value + ' ' : '') + text;
+            inp.value = (inp.value ? inp.value + ' ' : '') + finalText;
             try { inp.focus(); } catch(_e) {}
           }
-          showToast('聞き取りました：「' + (text.length>30?text.substring(0,30)+'…':text) + '」', 'success');
+          showToast('聞き取りました：「' + (finalText.length>30?finalText.substring(0,30)+'…':finalText) + '」', 'success');
         }
-      } else {
-        showToast('音声を聞き取れませんでした。もう一度お試しください。','error');
-        hokuVoiceSetPhase('error');
       }
     };
     _hokuRec.onerror = function(ev) {
@@ -16157,24 +16180,34 @@ function hokuVoiceToggle() {
       hokuMicSetState('idle');
       if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
       const code = ev && ev.error;
+      if(code === 'aborted') return; // ユーザー停止 → 通知不要
       let msg = '音声入力でエラーが発生しました。テキストで相談してください。';
+      let kind = 'error';
       if(code === 'not-allowed' || code === 'service-not-allowed') {
-        msg = 'マイクの使用が許可されていません。ブラウザ設定からマイクを許可してください（iPhone Safari の場合：設定 > Safari > マイク）。';
+        msg = 'マイクの使用が許可されていません。ブラウザ設定からマイクを許可してください（iPhone Safari：設定 > Safari > マイク）。';
       } else if(code === 'no-speech') {
-        msg = '音声を聞き取れませんでした。もう一度お試しください。';
+        // 無音タイムアウト：トーストでなくインラインで穏やかに再促し（自動再起動は iOS のジェスチャー制約で不可）
+        msg = _hokuVoiceSpoke
+          ? '少し聞き取れませんでした。マイクをもう一度タップしてください。'
+          : '声が聞こえませんでした。マイクのそばで、もう一度タップして話してください。';
+        hokuVoiceShowStatus(msg, 'warn');
+        _hokuVoiceFocusInput();
+        return;
       } else if(code === 'audio-capture') {
         msg = 'マイクが見つかりません。端末のマイクを確認してください。';
       } else if(code === 'network') {
         msg = '通信エラーで音声認識ができませんでした。電波状況をご確認ください。';
-      } else if(code === 'aborted') {
-        return; // ユーザー停止 → 通知不要
+      } else if(code === 'language-not-supported') {
+        msg = 'この端末では日本語の音声認識に対応していません。テキストで相談してください。';
       }
-      showToast(msg,'error');
+      showToast(msg, kind);
+      hokuVoiceShowStatus(msg, 'warn');
       _hokuVoiceFocusInput();
     };
     _hokuRec.onend = function() {
       _hokuRecListening = false;
       hokuMicSetState('idle');
+      _hokuVoiceInterim = '';
       if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
     };
 
@@ -16188,6 +16221,7 @@ function hokuVoiceToggle() {
         hokuMicSetState('idle');
         try { _hokuRec && _hokuRec.abort && _hokuRec.abort(); } catch(e) {}
         showToast('音声入力を開始できませんでした。テキストで相談してください。','error');
+        hokuVoiceShowStatus('音声入力を開始できませんでした。マイク許可とHTTPS接続を確認してください。','warn');
         _hokuVoiceFocusInput();
       }
     }, 3000);
