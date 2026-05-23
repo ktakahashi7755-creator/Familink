@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260523h';
+  var V='20260523i';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -19563,30 +19563,35 @@ document.addEventListener('touchcancel', () => {
     <div class="modal-grip"></div>
     <div class="modal-title">お支払い情報の登録</div>
     <div class="modal-form">
+      <!-- β 明示バナー（公開前 P0：現状は実決済なし・入力補完抑止） -->
+      <div style="background:#FFF4E5;border:1.5px solid #FFB84D;border-radius:12px;padding:12px 14px;margin-bottom:10px;color:#8A4B00;font-size:12px;line-height:1.7;">
+        <div style="font-weight:800;font-size:13px;margin-bottom:4px;">🚧 ベータ機能のお知らせ</div>
+        現在は <b>機能体験用の試用モード</b>です。<b>実際の決済は行われません</b>。お持ちのお支払い情報を入力しないでください（任意の数字でかまいません）。正式版では App Store / Google Play の課金を通じた安全な決済に切り替わります。
+      </div>
       <!-- 選択中プラン -->
       <div id="pc-plan-summary" style="background:var(--premium-light);border-radius:12px;padding:14px 16px;margin-bottom:4px;border:1px solid #FFE082;"></div>
       <div class="field">
-        <div class="field-label">カード番号</div>
-        <input class="input" id="pc-number" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19">
+        <div class="field-label">テスト用 番号入力（実情報は入力しないでください）</div>
+        <input class="input" id="pc-number" inputmode="numeric" autocomplete="off" placeholder="任意の番号でOK（例: 1111 2222 3333 4444）" maxlength="19">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field">
           <div class="field-label">有効期限 (MM/YY)</div>
-          <input class="input" id="pc-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="08/29" maxlength="5">
+          <input class="input" id="pc-exp" inputmode="numeric" autocomplete="off" placeholder="08/29" maxlength="5">
         </div>
         <div class="field">
-          <div class="field-label">セキュリティコード</div>
-          <input class="input" id="pc-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4">
+          <div class="field-label">確認コード</div>
+          <input class="input" id="pc-cvc" inputmode="numeric" autocomplete="off" placeholder="任意の3桁" maxlength="4">
         </div>
       </div>
       <div class="field">
-        <div class="field-label">カード名義</div>
-        <input class="input" id="pc-name" autocomplete="cc-name" placeholder="TARO YAMADA" maxlength="40">
+        <div class="field-label">お名前</div>
+        <input class="input" id="pc-name" autocomplete="off" placeholder="TARO YAMADA" maxlength="40">
       </div>
       <div style="font-size:11px;line-height:1.65;color:var(--text-muted);background:var(--bg-muted);border-radius:10px;padding:10px 12px;">
-        ・お支払いは毎月（または毎年）自動更新されます。解約はいつでも設定から行えます。<br>
-        ・カード情報は安全に取り扱われ、端末内には保存されません。<br>
-        ・現在はトライアル運用中です。実際の決済は正式リリース時に安全な決済事業者を通じて行います。
+        ・現在は<b>機能体験用の試用モード</b>で、入力された内容は端末外には送信されません。<br>
+        ・正式リリース時は App Store / Google Play の課金を通じた安全な決済に切り替わります。<br>
+        ・解約はいつでも設定から行えます。
       </div>
       <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:8px 0;">
         <input type="checkbox" id="pc-agree" onchange="pcToggleAgree()" style="width:18px;height:18px;flex:none;margin-top:1px;">
