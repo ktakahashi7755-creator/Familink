@@ -12608,3 +12608,59 @@ Hoku音声分類のカバレッジ拡張（28ケーススイープ → 27/28 OK 
 
 ### コミット
 - ハッシュ: `9956ea1`
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+セキュリティ・リスク・品質 All S+ 仕上げ（CSP/RP・体調緊急時・家計助言免責・メンバー保護者・バックアップ/復元・textarea maxlength・監査レポート更新）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`（同期＋v20260523j→v20260523l）
+- `docs/security-audit.md`（実装済み反映）
+- `docs/worklog.md`
+
+### 変更内容（2コミット）
+**c3677be: セキュリティ強化と画面常設の免責**
+- セキュリティメタ: Referrer-Policy "no-referrer" / Content-Security-Policy
+  （default-src 'self' / inline scripts許可 / fonts.gstatic 許可 / connect-src 'self' /
+   object-src 'none' / base-uri 'self' / form-action 'self'）
+- 体調画面ヘッダー下に緊急時案内（119/#7119/かかりつけ医）常設
+- 家計画面ヘッダー下に「金融助言ではない」旨を常設
+- メンバー追加モーダルに保護者責任表記
+- 削除パス棚卸し: S = [] / splice / localStorage.clear すべて confirm 保護済を確認
+
+**8516af7: バックアップ/復元機能 + textarea maxlength網羅**
+- exportFamilinkData() / importFamilinkDataFromFile(ev) を追加
+  ・LocalStorage 内 familink_v3 を JSON で書き出し / 読み込み
+  ・スキーマ検証（events/tasks/user キーで判定）
+  ・showConfirm で復元前確認
+  ・設定画面に「📤 バックアップを書き出す / 📥 ファイルから復元」2ボタン
+- 端末変更前のデータ退避が可能に → 「ブラウザ削除で全部消える」最大不安の解消
+- textarea 7箇所に maxlength付与: memo-body 8000 / aa-memo 500 / te-memo 1000
+  / post-body 2000 / ev-note 500 / hm-note 800 / bi-body 500
+
+### テスト結果
+- JS構文0エラー / 重複idゼロ / app-source⇄docs差分はSWブロックのみ
+- 全画面 sweep: 22画面+56モーダル pageerror なし、CSP違反なし
+- バックアップ実機: 関数存在・Blob生成OK(7597bytes)・スキーマ検証OK・設定UI 2ボタン描画OK
+
+### 未確認事項
+- iPhone Safari 実機でのバックアップ書き出し/復元のフロー（ファイル保存・選択UX）
+
+### iPhone確認ポイント
+- 設定画面の「データの保存について」黄色帯と新規2ボタン表示
+- 「📤 バックアップを書き出す」タップでJSONダウンロードが動くか
+- 体調画面ヘッダー下に赤系緊急時案内が常設表示されているか
+- 家計画面ヘッダー下に金融助言免責の薄色注記があるか
+- メンバー追加モーダルに保護者責任表記があるか
+
+### 次にやること
+- アクセシビリティ強化（aria-label 網羅・focus visible）
+- App Store メタデータ準備（指示待ち）
+- 実決済切替（指示待ち）
+
+### コミット
+- c3677be / 8516af7
