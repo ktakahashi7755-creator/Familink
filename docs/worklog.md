@@ -12366,3 +12366,36 @@ Hoku 空状態クイックアクションチップの絵文字→SVG 統一
 ### コミット
 - ハッシュ: `ebd92d8`
 - メッセージ: `fix(UX): Hoku空状態の3チップ絵文字をSVGアイコンに統一`
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+直接モーダル保存の網羅検証（6エンティティ：タスク/家計/体調/準備/買い物/ボード）
+
+### 変更ファイル
+- `docs/worklog.md`（コード変更なし、検証ログのみ）
+
+### 変更内容
+- puppeteer-core ハーネスで各 add モーダル opener を呼んで必須欄を設定し、各 save 関数（saveTaskEdit/saveTx/saveHealth/savePrepItem/saveShopAdd/savePost）を直接実行 → 全6件で対象配列が +1、データ内容も期待値一致、saveS→localStorage→JSON.parse の読み戻しでも全配列が永続化されていることを確認。
+- pageerror ゼロ。console.error は file:// 限定の manifest.json CORS のみ（GitHub Pages https では発生しない無害分）。
+- これで Hoku 経由保存（カレンダー/タスク/家計をvoiceConfirmSave で検証済み）と合わせて、主要全エンティティの作成→保存→永続化フローを実機検証で確証。
+
+### テスト結果
+- 6/6 OK：task delta+1 / budget delta+1(¥1234) / health delta+1(36.7℃) / prep delta+1 / shopping delta+1 / board delta+1
+
+### 未確認事項
+- 編集モーダル（既存項目のedit）と削除フローの直接検証は未実施（リスク低）
+- iPhone 実機での最終目視
+
+### iPhone確認ポイント
+- なし（既存）
+
+### 次にやること
+- App Store公開準備（メタデータ・スクショ）— ユーザー指示待ち
+- ライブの SW/キャッシュ制御の構成変更（提案保留中）— ユーザー指示待ち
+
+### コミット
+- ハッシュ: 本worklogのみ（コード変更なし）
+- メッセージ: `worklog: 直接モーダル保存の網羅検証（6/6 OK）`
