@@ -3142,7 +3142,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-title" id="memo-edit-title">メモ</div>
     <div class="modal-form" style="flex:1;display:flex;flex-direction:column;min-height:0;">
       <input class="input" id="memo-title" placeholder="タイトル" maxlength="80">
-      <textarea class="input" id="memo-body" placeholder="メモを入力…" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
+      <textarea class="input" id="memo-body" placeholder="メモを入力…" maxlength="8000" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
       <input type="file" id="memo-photo-file" accept="image/*" multiple style="display:none;" onchange="memoOnPhotoPicked(event)">
       <div id="memo-attach-area" style="margin-top:10px;"></div>
       <div class="field" style="margin-top:12px;">
@@ -3262,7 +3262,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="field">
         <div class="field-label">メモ</div>
-        <textarea class="input" id="aa-memo" rows="3" placeholder="例：5/15 までに提出"></textarea>
+        <textarea class="input" id="aa-memo" rows="3" placeholder="例：5/15 までに提出" maxlength="500"></textarea>
       </div>
       <div class="field">
         <div class="field-label">写真（任意）</div>
@@ -3447,7 +3447,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="field">
         <div class="field-label">メモ</div>
-        <textarea class="input" id="te-memo" rows="2" placeholder="詳細・補足など" style="resize:none;line-height:1.6;"></textarea>
+        <textarea class="input" id="te-memo" rows="2" placeholder="詳細・補足など" maxlength="1000" style="resize:none;line-height:1.6;"></textarea>
       </div>
       <div class="field" id="te-status-field" style="display:none;">
         <div class="field-label">ステータス</div>
@@ -3576,7 +3576,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="field">
         <div class="field-label">内容</div>
-        <textarea class="input" id="post-body" rows="4" placeholder="内容を入力…" style="resize:none;line-height:1.6;"></textarea>
+        <textarea class="input" id="post-body" rows="4" placeholder="内容を入力…" maxlength="2000" style="resize:none;line-height:1.6;"></textarea>
       </div>
       <div class="field">
         <div class="field-label">期限</div>
@@ -4422,7 +4422,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="field">
         <div class="field-label">メモ（任意）</div>
-        <textarea class="input" id="ev-note" rows="2" placeholder="自由記述…"></textarea>
+        <textarea class="input" id="ev-note" rows="2" placeholder="自由記述…" maxlength="500"></textarea>
       </div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-primary" style="flex:1;" onclick="saveEvent()">保存する</button>
@@ -4564,7 +4564,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="field">
         <div class="field-label">メモ</div>
-        <textarea class="input" id="hm-note" rows="2" placeholder="様子など自由記述（例：水分は取れている / 夕方から熱が上がった）"></textarea>
+        <textarea class="input" id="hm-note" rows="2" placeholder="様子など自由記述（例：水分は取れている / 夕方から熱が上がった）" maxlength="800"></textarea>
       </div>
       <div style="font-size:10px;color:var(--text-muted);margin:6px 0 10px;line-height:1.55;background:var(--bg-muted);padding:8px 10px;border-radius:8px;">
         ※ Familink の体調管理は家族内の記録・共有を目的とした機能です。診断や医療判断を行うものではありません。症状が強い場合や不安がある場合は、医療機関へご相談ください。
@@ -5210,6 +5210,67 @@ function openStorageModal() {
   renderStorageModal();
   openModal('m-storage');
 }
+/* ============================================================
+   バックアップ / 復元（データ消失リスクの根本対策）
+   - 端末内 LocalStorage を JSON ファイルとして書き出し / 読み込み
+   - 外部送信なし、すべて端末内で完結
+   ============================================================ */
+function exportFamilinkData() {
+  try {
+    const data = localStorage.getItem('familink_v3');
+    if(!data) { showToast('保存データが見つかりません','error'); return; }
+    const fname = 'familink-backup-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.json';
+    const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{ document.body.removeChild(a); URL.revokeObjectURL(url); }catch(_){} }, 200);
+    showToast('バックアップを書き出しました：'+fname,'success');
+  } catch(e) {
+    console.error('exportFamilinkData failed', e);
+    showToast('バックアップ書き出しに失敗しました','error');
+  }
+}
+function importFamilinkDataFromFile(ev) {
+  const file = ev && ev.target && ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch(_) {
+      showToast('正しいバックアップファイルではありません（JSON形式エラー）','error');
+      ev.target.value = ''; return;
+    }
+    // 最低限のスキーマ検証（誤ったファイルの誤適用を防止）
+    if(!parsed || typeof parsed !== 'object' || (!('events' in parsed) && !('tasks' in parsed) && !('user' in parsed))) {
+      showToast('Familink のバックアップファイルではないようです','error');
+      ev.target.value = ''; return;
+    }
+    showConfirm(
+      'データを復元しますか？',
+      'バックアップから復元すると、現在この端末に保存されているデータは置き換えられます。続行しますか？',
+      '復元する',
+      function(){
+        try {
+          localStorage.setItem('familink_v3', text);
+          showToast('復元しました。再読み込みします…','success');
+          setTimeout(function(){ location.reload(); }, 600);
+        } catch(err) {
+          console.error('restore failed', err);
+          showToast('復元に失敗しました（容量上限の可能性）','error');
+        }
+      },
+      'warning'
+    );
+    ev.target.value = '';
+  };
+  reader.onerror = function(){ showToast('ファイル読み込みに失敗しました','error'); ev.target.value = ''; };
+  reader.readAsText(file);
+}
+
 function renderStorageModal() {
   const s = getStorageStats();
   const body = document.getElementById('storage-body');
@@ -13814,6 +13875,17 @@ function renderSettings() {
         Familink のデータ（家族情報・予定・体調・家計・写真・書類など）は、お使いの端末のブラウザ内にのみ保存されます。外部サーバーへは送信されません。
         <div style="font-weight:700;color:var(--text);margin-top:10px;margin-bottom:4px;">⚠ データが消える場合があります</div>
         ブラウザの履歴・サイトデータ削除、端末の初期化や変更、ブラウザの容量上限超過、シークレットモードでの利用などによって、保存データが失われる可能性があります。大切な写真や書類は、端末本体の写真アプリやファイルアプリにも保管されることをおすすめします。
+        <div style="font-weight:700;color:var(--text);margin-top:10px;margin-bottom:6px;">💾 バックアップと復元</div>
+        端末変更前や、ご家族で共有したい場合は、データをファイルに書き出してバックアップしておくと安心です。
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-outline" onclick="exportFamilinkData()" style="flex:1;font-size:12px;padding:10px 8px;">
+          📤 バックアップを書き出す
+        </button>
+        <button class="btn btn-outline" onclick="document.getElementById('familink-restore-file').click()" style="flex:1;font-size:12px;padding:10px 8px;">
+          📥 ファイルから復元
+        </button>
+        <input type="file" id="familink-restore-file" accept="application/json,.json" style="display:none;" onchange="importFamilinkDataFromFile(event)">
       </div>
     </div>
 
@@ -20036,7 +20108,7 @@ document.addEventListener('touchcancel', () => {
       </div>
       <div class="field" id="bi-body-field">
         <div class="field-label">詳細（任意）</div>
-        <textarea class="input" id="bi-body" rows="2" placeholder="補足など"></textarea>
+        <textarea class="input" id="bi-body" rows="2" placeholder="補足など" maxlength="500"></textarea>
       </div>
       <div class="field" id="bi-child-field" style="display:none;">
         <div class="field-label">対象メンバー（任意）</div>
