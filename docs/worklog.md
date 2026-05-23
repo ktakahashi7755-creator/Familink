@@ -12399,3 +12399,52 @@ Hoku 空状態クイックアクションチップの絵文字→SVG 統一
 ### コミット
 - ハッシュ: 本worklogのみ（コード変更なし）
 - メッセージ: `worklog: 直接モーダル保存の網羅検証（6/6 OK）`
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Hoku 音声認識を世界水準へ改善（ライブ文字起こし表示・HTTPS判定・触覚・候補3・no-speech UX）
+
+### 変更ファイル
+- `app-source/familink.html`（hokuVoiceToggle 全面改善＋state変数追加）
+- `docs/index.html`（同期＋v20260523c→v20260523d）
+- `docs/worklog.md`
+
+### 変更内容
+- interimResults=true + onresult で interim をライブ表示（「聞き取り中：「…」」）。最大の体験改善＝ユーザーが話している内容が即座に画面に出る。
+- onspeechstart で「聞いています…」状態（無音待ち vs 発話中を区別）。
+- maxAlternatives=3 で候補確保（最尤採用、将来フォールバック可能）。
+- no-speech は穏やかなインライン再促し（iOSジェスチャー制約により自動再起動は不採用）。
+- window.isSecureContext===false を事前検知し HTTPS必須を即案内。
+- navigator.vibrate(40) で起動時の触覚フィードバック。
+- language-not-supported を追加ハンドリング。
+- 既存の continuous=false（iOS互換）・3秒onstartセーフティ・既存エラー文言は保持。
+
+### テスト結果
+- JS構文0エラー / 重複idゼロ / app-source⇄docs差分はSWブロックのみ
+- puppeteer 実機検証（SpeechRecognition モック）:
+  - interim 2フレームがそれぞれ「聞き取り中：「明日」」/「「明日15時に」」にライブ反映 ✅
+  - 最終結果で確認モーダルが開き vc-title input に「歯医者の予約」反映 ✅
+  - pageerror なし ✅
+
+### 未確認事項
+- iPhone Safari 実機での体験確認（特に interim 表示・no-speech 後の再タップ案内）
+- 公式 SpeechRecognition は OS/ブラウザ依存があり、Android Chrome ・ iOS Safari の両方で確認推奨
+
+### iPhone確認ポイント
+- マイクをタップ → 触覚（バイブ）が反応するか
+- 話し始めると「聞き取り中：「…」」がリアルタイム更新されるか
+- 話し終わると確認モーダルが開き、解析タイトルが入っているか
+- 無音時に「声が聞こえませんでした…」が表示されるか
+- file:// で開いた場合「HTTPSが必要」と即案内されるか
+
+### 次にやること
+- iPhone 実機での最終確認
+- 直接モーダル保存（編集/削除フロー）の追加検証（残タスク）
+- App Store 公開準備（指示待ち）
+
+### コミット
+- ハッシュ: `e60a395`
+- メッセージ: `fix(Hoku音声): 文字起こしを世界水準へ改善`
