@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260523i';
+  var V='20260523j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3512,6 +3512,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <span>・健太 37.8度 咳あり</span>
       <span>・スーパー 食費 3200円</span>
     </div>
+    <div style="font-size:10.5px;color:var(--text-muted);margin-top:8px;line-height:1.6;border-top:1px solid var(--border-light);padding-top:6px;">
+      ※ Hoku は AI による家族運営の提案役です。回答はあくまで参考情報で、最終判断はご家族でお願いします。体調・服薬・お金・お子さまの安全に関わることは、必要に応じて医療機関や専門家にご相談ください。
+    </div>
   </div>
 
   <!-- 入力バー -->
@@ -3852,7 +3855,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <span style="font-size:14px;margin-right:2px;">＋</span> 新規作成
       </button>
     </div>
-    <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.5;">スペースを切り替えると、表示されるデータが変わります。</p>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;line-height:1.5;">スペースを切り替えると、表示されるデータが変わります。</p>
+    <p style="font-size:11px;color:var(--text-muted);background:rgba(74,144,226,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;margin:0 0 14px;line-height:1.6;">
+      ※ スペースはこの端末内で表示を切り替えるモードです。他の端末・他のご家族とは自動同期されません。
+    </p>
     <div id="ws-switcher-body"></div>
     <div class="modal-actions" style="margin-top:8px;">
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-workspace-switcher')">閉じる</button>
@@ -4182,7 +4188,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div style="font-size:13px;line-height:1.8;color:var(--text-sub);">
         ご質問・ご要望・不具合のご報告は、以下からお寄せください。<br>できる限り早くご対応します。
       </div>
-      <button class="btn btn-primary btn-block" onclick="window.open('https://github.com/ktakahashi7755-creator/Familink/issues','_blank')" style="margin-top:14px;">
+      <button class="btn btn-primary btn-block" onclick="window.open('https://github.com/ktakahashi7755-creator/Familink/issues','_blank','noopener,noreferrer')" style="margin-top:14px;">
         お問い合わせフォームを開く
       </button>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7;">
@@ -8313,7 +8319,7 @@ function exportEventToIcs() {
     if(isIOS) {
       // iOS：data URL で別タブを開く → Safari が「カレンダーで開く」を提示
       const dataUrl = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
-      const w = window.open(dataUrl, '_blank');
+      const w = window.open(dataUrl, '_blank', 'noopener,noreferrer');
       if(!w) {
         // ポップアップブロック時はフォールバックで location 遷移
         try { window.location.href = dataUrl; } catch(e2) {}
@@ -13800,6 +13806,17 @@ function renderSettings() {
 
     <!-- Premium -->
     <div class="menu-premium-card">${premiumHtml}</div>
+
+    <!-- データ保存に関する大切なお知らせ（端末内保存・消失リスクの常設案内） -->
+    <div class="settings-section">
+      <div class="settings-title">データの保存について</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:#FFF8E5;border:1px solid #FFE082;border-radius:10px;padding:12px 14px;">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px;">📱 すべて端末内に保存されます</div>
+        Familink のデータ（家族情報・予定・体調・家計・写真・書類など）は、お使いの端末のブラウザ内にのみ保存されます。外部サーバーへは送信されません。
+        <div style="font-weight:700;color:var(--text);margin-top:10px;margin-bottom:4px;">⚠ データが消える場合があります</div>
+        ブラウザの履歴・サイトデータ削除、端末の初期化や変更、ブラウザの容量上限超過、シークレットモードでの利用などによって、保存データが失われる可能性があります。大切な写真や書類は、端末本体の写真アプリやファイルアプリにも保管されることをおすすめします。
+      </div>
+    </div>
 
     <!-- Account -->
     <div class="settings-section">
