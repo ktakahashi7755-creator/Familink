@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260523m';
+  var V='20260523n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -16167,13 +16167,21 @@ function hokuVoiceToggle() {
       hokuVoiceShowStatus('聞いています…','listening');
     };
     _hokuRec.onresult = function(ev) {
-      let interim = '', finalText = '';
+      let interim = '', finalText = '', finalAlts = [];
       try {
         for(let i = ev.resultIndex; i < ev.results.length; i++) {
           const res = ev.results[i];
           const top = (res && res[0] && res[0].transcript) || '';
-          if(res.isFinal) finalText += top;
-          else interim += top;
+          if(res.isFinal) {
+            finalText += top;
+            // maxAlternatives=3 で得られた候補を収集（誤認識救済用）
+            if(res.length > 1) {
+              for(let a = 0; a < res.length; a++) {
+                const t = (res[a] && res[a].transcript) || '';
+                if(t && finalAlts.indexOf(t) < 0) finalAlts.push(t);
+              }
+            }
+          } else interim += top;
         }
       } catch(e) { /* ignore parsing errors */ }
       if(interim) {
@@ -16182,10 +16190,11 @@ function hokuVoiceToggle() {
         hokuVoiceShowStatus('聞き取り中：「' + interim + '」','listening');
       }
       if(finalText) {
-        // 最終候補（top）を採用。maxAlternatives=3 は誤認識時のフォールバック候補として今後活用可能。
-        try { hokuHandleVoiceText(finalText); }
+        // 候補配列を smart ハンドラへ：第1候補が弱い時に第2/第3を試して最良を採用
+        const cands = finalAlts.length ? finalAlts : [finalText];
+        try { hokuHandleVoiceCandidates(cands); }
         catch(e) {
-          console.error('hokuHandleVoiceText failed', e);
+          console.error('hokuHandleVoiceCandidates failed', e);
           const inp = document.getElementById('hoku-input');
           if(inp) {
             inp.value = (inp.value ? inp.value + ' ' : '') + finalText;
@@ -16304,7 +16313,39 @@ const VOICE_TERM_NORMALIZE = [
   [/しょくひ/g, '食費'],
   [/こうつうひ/g, '交通費'],
   [/にちようひん/g, '日用品'],
-  [/ほいくりょう|ほいく料/g, '保育料']
+  [/ほいくりょう|ほいく料/g, '保育料'],
+  // === 拡張：学校・園系 ===
+  [/たんにん/g, '担任'],
+  [/ぷーる/g, 'プール'],
+  [/たいいくかん/g, '体育館'],
+  [/おゆうぎ/g, 'お遊戯'],
+  [/がくしゅう/g, '学習'],
+  [/にゅうえん/g, '入園'],
+  [/そつえん/g, '卒園'],
+  [/にゅうがく/g, '入学'],
+  // === 拡張：食材・買い物 ===
+  [/ぎゅうにゅう/g, '牛乳'],
+  [/たまご(?!やき)/g, '卵'],
+  [/やさい(?!ジュース)/g, '野菜'],
+  [/くだもの/g, '果物'],
+  [/べんとう/g, '弁当'],
+  [/すーぱー(?!マーケット)/g, 'スーパー'],
+  [/こんびに/g, 'コンビニ'],
+  // === 拡張：体調・症状（補強）===
+  [/げり/g, '下痢'],
+  [/おうと/g, '嘔吐'],
+  [/いんふる(?!エンザ)/g, 'インフル'],
+  [/よぼうせっしゅ/g, '予防接種'],
+  [/わくちん/g, 'ワクチン'],
+  // === 拡張：店名・サービス ===
+  [/あまぞん/g, 'Amazon'],
+  [/らくてん(?!市場)/g, '楽天'],
+  [/ぐーぐる/g, 'Google'],
+  [/ねとふり/g, 'Netflix'],
+  // === 拡張：依頼系の助詞ゆれ ===
+  [/おねがい(?!します)/g, 'お願い'],
+  [/やっといて/g, 'やっておいて'],
+  [/たのむ(?:ね|よ)?/g, '頼む']
 ];
 
 /* 入力テキストに辞書を適用して正規化 */
@@ -16545,9 +16586,9 @@ function parseVoiceIntent(rawText) {
     cls.category = 'budget';
     cls.score = Math.max(cls.score || 0, 2);
   }
-  // 2) 明確な家事/連絡/手続き系の動詞があれば task。
-  //    「牛乳買って」「洗濯干す」「保育園迎え」「銀行に振込」など日常発話を拾う。
-  const _TASK_VERB_RESCUE = /買って|買わ|買いに|買おう|洗濯|洗って|洗わ|干す|干して|畳む|畳んで|拭いて|拭か|捨て|片付け|片付けて|掃除|並べ|預け|迎え|送り迎え|引き取|取りに行|電話して|電話する|連絡して|連絡する|予約して|予約する|申し込|手続き|振込|振り込み/;
+  // 2) 明確な家事/連絡/手続き/依頼系の動詞があれば task。
+  //    「牛乳買って」「洗濯干す」「保育園迎え」「銀行に振込」「お願い」など日常発話を拾う。
+  const _TASK_VERB_RESCUE = /買って|買わ|買いに|買おう|洗濯|洗って|洗わ|干す|干して|畳む|畳んで|拭いて|拭か|捨て|片付け|片付けて|掃除|並べ|預け|迎え|送り迎え|引き取|取りに行|電話して|電話する|連絡して|連絡する|予約して|予約する|申し込|手続き|振込|振り込み|お願い|頼む|頼ん|やっておいて|やっといて|やってお|メモして|記録して|残しておいて|忘れずに|忘れない/;
   if(!cls.category && _TASK_VERB_RESCUE.test(text)) {
     cls.category = 'task';
     cls.score = Math.max(cls.score || 0, 2);
@@ -17804,6 +17845,39 @@ function hokuHandleVoiceText(text) {
   }
   hokuVoiceSetPhase('thinking');
   _voiceParsed = parseVoiceIntent(text);
+  hokuVoiceSetPhase('confirming');
+  voiceConfirmRender();
+  openModal('m-voice-confirm');
+}
+
+/* 認識候補（maxAlternatives=3）から最良の解析結果を選ぶ。
+   第1候補で分類できなかった、または分類スコアが弱い場合に第2/第3候補も試し、
+   カテゴリ確定の中で最もスコアが高い結果を採用する（誤認識への耐性向上）。 */
+function hokuHandleVoiceCandidates(candidates) {
+  candidates = (candidates||[]).map(t => String(t||'').trim()).filter(Boolean);
+  if(!candidates.length) { hokuVoiceSetPhase('error'); return; }
+  hokuVoiceSetPhase('thinking');
+  // 各候補を parse
+  const parses = [];
+  for(const t of candidates) {
+    try { parses.push({ text:t, v:parseVoiceIntent(t) }); }
+    catch(e) { /* skip */ }
+  }
+  if(!parses.length) { hokuVoiceSetPhase('error'); return; }
+  // 第1候補がカテゴリ確定（score>=3）ならそれを尊重して即採用
+  let best = parses[0].v;
+  const firstOK = best && best.category && (best.score||0) >= 3;
+  if(!firstOK) {
+    // 他候補で改善するか探索
+    for(let i = 1; i < parses.length; i++) {
+      const v = parses[i].v;
+      if(!v) continue;
+      // 第1がnullなら、カテゴリが付く候補を優先
+      // どちらもカテゴリ付きならスコアが高い方
+      if(v.category && (!best.category || (v.score||0) > (best.score||0))) best = v;
+    }
+  }
+  _voiceParsed = best;
   hokuVoiceSetPhase('confirming');
   voiceConfirmRender();
   openModal('m-voice-confirm');
