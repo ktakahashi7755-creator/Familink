@@ -12527,3 +12527,41 @@ Hoku音声分類のカバレッジ拡張（28ケーススイープ → 27/28 OK 
 
 ### コミット
 - ハッシュ: `e8bab68`
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+公開前 品質・利用者保護 監査と低リスク改善（プレミアム加入モーダルのβ明示・autocomplete抑止）
+
+### 変更ファイル
+- `app-source/familink.html`（m-premium-checkout モーダル）
+- `docs/index.html`（同期＋v20260523h→v20260523i）
+- `docs/pre-release-audit.md`（新規）
+- `docs/worklog.md`
+
+### 変更内容
+- 公開前監査を実施し、確認済み項目（規約/PP/問合せ/医療免責/容量超過通知/端末内保存明記/月額予定文言）と低リスク改善対象を整理。docs/pre-release-audit.md にまとめた。
+- 唯一のP0として、プレミアム加入モーダル（m-premium-checkout）の入力欄4つに autocomplete="cc-*" が付いていた点を改善。autocomplete="off" に変更し、モーダル冒頭にβ明示バナーを追加、ラベル/末尾注意書きも試用モードと明確に分かる文面に更新。
+- JS ロジックは非変更（HTML属性＋文言のみ）で既存機能は完全保持。
+
+### テスト結果
+- JS構文0エラー / 重複idゼロ / app-source⇄docs差分はSWブロックのみ
+- puppeteer 実機: モーダル表示OK / 4欄すべて autocomplete=off / βバナー表示OK / pageerrorなし
+
+### 未確認事項
+- iPhone Safari 実機でのモーダル表示・βバナー視認
+- 次回検討候補（pre-release-audit.md 参照）
+
+### iPhone確認ポイント
+- 設定 → プレミアム → 「プレミアムプランを選ぶ」→ モーダルでβ明示バナーが表示されること
+- 入力欄をタップしても保存済み情報の自動入力提案が出ないこと
+
+### 次にやること
+- iPhone 実機確認
+- Hoku 一般 AI 注意の常設・WS の端末内ローカル明示・「保存」表現の調整（指示待ち）
+- App Store 提出メタデータ準備（指示待ち）
+
+### コミット
+- ハッシュ: `1992972`
