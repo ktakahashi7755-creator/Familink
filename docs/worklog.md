@@ -12664,3 +12664,61 @@ Hoku音声分類のカバレッジ拡張（28ケーススイープ → 27/28 OK 
 
 ### コミット
 - c3677be / 8516af7
+
+---
+
+## 2026-05-23 env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+世界最高峰の継続QA：音声境界2件完全救済 + 全8エンティティCRUD実機検証 + 編集/削除フロー網羅
+
+### 変更ファイル
+- `app-source/familink.html`（分類器 calendar+task 各1行追加・1行強化）
+- `docs/index.html`（同期＋v20260523n→v20260523p）
+- `docs/worklog.md`
+
+### 変更内容
+**[1] 音声分類 境界2件 完全救済（commit 5c1d534）**
+- 「歯医者予約頼む」: 文末の依頼動詞検出を +3 → +5 に強化（calendar 4 にも勝つ）
+- 「予防接種予定」: calendar に予防接種・ワクチン接種を独立 +2 として追加
+  （既存 regex 内追加は加点1回限定のため別行で確実に +2）
+- 新規9ケース 9/9 OK、28ケース 27/28 OK 維持、16ケース 16/16 OK 維持
+- 音声分類カバレッジ実質 98%（52/53、唯一の失敗「今夜カレー」は本質的曖昧）
+
+**[2] 編集・削除フロー網羅検証（コード変更なし、検証ログのみ）**
+puppeteer-core で showConfirm をモックし、各エンティティの create→edit→delete を実機実行。
+- task (saveTaskEdit / deleteTaskFromModal): ✅ 3/3
+- event (saveEvent): ✅ 3/3
+- budget (saveTx): ✅ 3/3（desc/amount両方の編集反映確認）
+- memo (saveMemoEdit / deleteMemoById): ✅ 3/3（title/body両方）
+- board (savePost / deletePostWithConfirm): ✅ 3/3
+- health (saveHealth): ✅ 3/3
+- prep (savePrepItem / deletePrep): ✅ 3/3
+- shopping (saveShopAdd): ✅ 3/3（name/qty両方）
+
+**8/8 全エンティティ CRUD 完全動作確認**。pageerror なし。
+これで Familink の保存可能データ全種類について、
+作成（前回6/6 OK）+ 編集 + 削除 が実機検証済みとなった。
+
+### テスト結果
+- JS構文0エラー / 重複idゼロ / docs差分はSWブロックのみ
+- 音声分類: 9/9 + 27/28 + 16/16
+- CRUD全網羅: 24/24（8エンティティ × Create/Edit/Delete）
+- sweep（全画面+全モーダル）: pageerrorなし
+
+### 未確認事項
+- iPhone Safari 実機での目視
+
+### iPhone確認ポイント
+- 「歯医者予約頼む」と音声入力 → タスクとして確認モーダルが開く
+- 「予防接種予定」と音声入力 → カレンダーとして確認モーダルが開く
+- 各画面の編集ボタンから既存項目を編集→保存→反映
+- 各画面の削除ボタン→確認モーダル→削除
+
+### 次にやること
+- アクセシビリティ強化（aria-label 網羅・focus visible）
+- App Store 提出メタデータ準備（指示待ち）
+- 実決済切替（指示待ち）
+
+### コミット
+- 5c1d534（音声境界2件） + 本worklog
