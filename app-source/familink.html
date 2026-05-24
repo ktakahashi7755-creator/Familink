@@ -5919,6 +5919,23 @@ function closeModal(id) {
   });
 })();
 
+/* Wave 203: ESC キーで最前面のモーダルを閉じる（A11y / キーボード操作）
+   - 開いている .modal-backdrop.open のうち DOM 上で最後（≒最前面）のものを閉じる
+   - input/textarea/IME 入力中などはネイティブの挙動を優先するため、modifier 付きや
+     入力中の Esc 解除は妨げない（preventDefault しない）
+   - 既存の backdrop クリック / grip スワイプダウン と並ぶ第 3 の閉じ方 */
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape' && e.keyCode !== 27) return;
+  // IME 変換中は無視
+  if(e.isComposing) return;
+  const open = document.querySelectorAll('.modal-backdrop.open');
+  if(!open.length) return;
+  const top = open[open.length - 1];
+  if(top && top.id) {
+    try { closeModal(top.id); } catch(_){}
+  }
+});
+
 let _confirmCb = null;
 function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;

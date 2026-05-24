@@ -12865,3 +12865,65 @@ Wave 202 — Supabase 接続レイヤー導入（第一段階：接続 + Auth、
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 202: supabase first-stage — connection layer + 3-button entry + auth modal + cloud section (login optional)`
+---
+
+## 2026-05-24 18:00  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 203 — 自走サイクル：QA 総点検 + ESC キーで最前面モーダルを閉じる A11y 強化 + supabase-backend-plan の状態反映
+
+### 変更ファイル
+- `app-source/familink.html`（ESC キーハンドラ追加 / 約 17 行）
+- `docs/index.html`（同期、キャッシュバスター `20260524b` → `20260524c`）
+- `docs/supabase-backend-plan.md`（Wave 202 進捗反映 / Phase 4-2・4-3 を ☑ に）
+- `docs/worklog.md`
+
+### 変更内容
+**自走方針**：CLAUDE.md §7 / §10.2 に従い、人間確認が必要な範囲（Supabase 同期本実装・テーブル/RLS 反映）は手を付けず、提案・状態反映に留める。安全な小修正のみを実行。
+
+**1. QA 総点検**
+- `familink-qa/sweep.js` で全 22 画面 / 全 60 モーダル sweep を実行
+- 結果：pageerror 0、エラー検出 0（manifest CORS の無害分を除く）
+- 機能検査：パスワード目玉トグル 3/3 OK、メモ往復 OK
+- 既知の `voiceConfirm` の title 未反映は Wave 201/202 と無関係（既存挙動）。引継ぎ事項に記録のみ
+
+**2. ESC キー A11y（Wave 203）**
+- 既存の閉じ方（backdrop クリック / grip スワイプダウン）に加え、ESC キーで最前面のモーダルを閉じる挙動を追加
+- 60 モーダル全てに恩恵があり、既存パターン（`.modal-backdrop.open`）を活用する変更なので副作用が小さい
+- IME 変換中（`isComposing`）は無視し、preventDefault しないため input/textarea のネイティブ挙動を妨げない
+- スタック中（複数モーダル open）は DOM 上で最後の（≒最前面の）モーダルだけを 1 回の ESC で閉じる
+
+**3. supabase-backend-plan.md の状態反映**
+- Phase 4-2「ログイン / サインアップ / 招待コード画面 UI」を ☑（Wave 202）
+- Phase 4-3「supabase-js 連携・認証フロー」を ☑（Wave 202）
+- Phase 4-1「Supabase プロジェクト作成 + SQL 実行」は ◐（公開キー受領済 / SQL 反映は未確認・要オーナー）
+- 次の段階（同期本実装）は引き続き ☐ Phase 4-1 の SQL 反映待ち
+
+### テスト結果
+- JS 構文 `node --check`：app-source 1 ブロック / docs 3 ブロックとも 0 エラー
+- md5 一致：本体 `70d4129676f79b2e6f68292e97cbfa5e` で完全一致
+- 全画面 sweep（22 + 60）：pageerror 0、機能検査 OK
+- ESC キーテスト（puppeteer / esc-key-test.js）：
+  1) 単一モーダル open → ESC → close：OK
+  2) 2 つ重ねた状態：1 回目 ESC で最前面（demo）が閉じる、2 回目 ESC で残り（share）が閉じる：OK
+  3) Wave 202 の m-supa-auth でも ESC で閉じる：OK
+  4) モーダルなし時の ESC：エラーなし
+- `pageErrors: 0`
+
+### 未確認事項
+- iPhone Safari 実機での ESC キー…iPhone には物理 ESC はないため影響なし（HW キーボード接続時のみ）
+- `voiceConfirmRender` の `vc-title` への title 反映：別途調査要（自走範囲外として手を入れず、引継ぎに残す）
+
+### iPhone確認ポイント
+- 既存機能の回帰なし（22 画面 / 60 モーダル sweep で確認済）
+
+### 次にやること
+- **オーナー作業**：Supabase SQL（`docs/supabase-backend-plan.md` §4）の実行。完了後に Phase 4-4 同期実装へ
+- iPhone 実機での Wave 201 / 202 の目視確認
+- アクセシビリティ：見出しレベルの整備（`.modal-title` を h2/h3 化）は 60 モーダル一括変更になるため、オーナー確認後に着手
+- App Store メタデータ整備（指示待ち）
+- voiceConfirm の title 反映調査
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 203: a11y - ESC key closes top modal + supabase plan status update + QA sweep`
