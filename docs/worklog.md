@@ -13042,3 +13042,130 @@ puppeteer から `_sbClient.auth.signUp / signInWithPassword / resend` を実呼
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 204: supabase auth UX overhaul - persistent sent state + resend + reset + typo warnings`
+---
+
+## 2026-05-24 20:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 205 — OTP（6 桁コード）ログインを既定パスに導入 + 重大バグ修正 + 接続診断モーダル
+
+### ユーザー報告
+「Wave 204 後もまだログイン・新規登録試しているがうまくいきません」。
+
+### 追加で判明した根本原因
+1. **Wave 202 で `detectSessionInUrl: false` に設定してしまっていた**（重大バグ）。これにより、確認メールのリンクをクリックして戻ってきても supabase-js が URL からセッションを取り出せなかった。
+2. **メール確認リンク方式自体が壊れやすい**：Supabase の Site URL 設定 / iPhone のメール → ブラウザ遷移 / 無料枠の SMTP 制限（時間 2 通）など、複数のハードルが重なる。
+3. Wave 204 でパスワード認証 UX は磨いたが、根本的に「パスワード + 確認リンク」モデル自体がモバイル + 開発環境で破綻しやすい。
+
+### 解決方針
+**OTP（One-Time Password / 6 桁コード）ログインを既定パスに**：
+- ユーザーがメアドを入力 → Supabase が 6 桁の数字コードをメール送信
+- ユーザーは届いたコードをアプリ内に直接入力
+- URL リダイレクト不要 → file:// でも、どんなホストでも動く
+- パスワード設定不要 → 既存アカウントも同じメアドで OTP 可能
+- 確認リンクのクリック不要 → モバイル遷移問題と無縁
+
+### 変更ファイル
+- `app-source/familink.html`（OTP モード追加 + 診断モーダル + detectSessionInUrl 修正、約 400 行追加）
+- `docs/index.html`（同期、キャッシュバスター `20260524e` → `20260524f`）
+- `docs/worklog.md`
+
+### 変更内容
+
+**1. detectSessionInUrl: false → true（重大バグ修正）**
+Wave 202 で誤って無効化していた。確認メールのリンクや Magic Link を踏んで戻ってきたときに、URL から `access_token` / `code` を拾ってセッションを確立する必要がある。
+- `flowType: 'pkce'` も併せて有効化（推奨のセキュアなフロー）
+
+**2. OTP モード（既定）の追加**
+- `signInWithOtp({ email, options:{ shouldCreateUser:true } })` → 6 桁コードをメール送信
+- `verifyOtp({ email, token, type:'email' })` → セッション確立
+- 既存 / 新規どちらでも同じパス。type は 'email' で統一
+
+**3. モーダルを 7 mode 化**
+- `otp` ✨ メアド入力 → 「ログインコードを送る」（**既定**）
+- `otp-code` ✨ 6 桁コード入力 → 「ログインする」
+- `signin` / `signup` 既存のパスワード認証（補助パスに格下げ）
+- `reset` パスワード再設定リクエスト
+- `sent` パスワード新規登録後の確認メール送信済み
+- `reset-sent` パスワード再設定メール送信済み
+
+**4. OTP UX 磨き込み**
+- 6 桁コード入力欄：`inputmode="numeric"` + `autocomplete="one-time-code"` + `pattern="[0-9]*"` + `maxlength="6"`（モバイルキーボード最適化）
+- 数字以外の文字を自動除去（`12-34_56AB` → `123456`）
+- 6 桁揃ったら自動で verifyOtp 実行（手動ボタン不要）
+- Enter キー送信、自動フォーカス（メアド→コード）、通信中ボタン disabled
+- typo / TLD 警告（gmail.con → gmail.com 案内、.test 等の予約 TLD 警告）
+- 「コードを再送する」「メアドを変更」「閉じる」
+
+**5. signin / signup フォームに「← メールでコードを受け取る方法に戻る」リンク追加**
+
+**6. 接続診断モーダル（m-supa-diag）新設**
+モーダル下部の「🔍 ログインできない場合はこちら（接続診断）」リンクで開く：
+- 接続状態（SUPA_OK）
+- Supabase URL
+- 現在のページ URL（owner が Site URL に設定すべき URL の参考）
+- プロトコル（file: / http: / https:）
+- セッション状態（ログイン中ならメアド、未ログインなら ⛔）
+- LocalStorage の sb-* キー一覧
+- 直近の認証エラー（`_trackSupaErr` で 4 関数すべてから追跡）
+- 「よくある原因と対処」5 項目（メール届かない / リンクが効かない / テストドメイン / パスワード派 / ネットワーク）
+
+**7. エントリ箇所の既定モード変更**
+- 入口画面「ログインして使う」→ OTP モードで開く
+- 設定画面「メールでログイン」→ OTP モードで開く + 説明文を「6 桁コードを受け取って入力するだけ。パスワード不要」に更新
+
+### テスト結果
+- 実 Supabase API 観測：
+  - `signInWithOtp` 実呼出 → **ok:true / error:null**（OTP は正常動作）
+  - `verifyOtp` 不正コード → `Token has expired or is invalid`（期待通り）
+- UI 動作 12 検証：
+  1. ✓ OTP 既定オープン（title「メールでログイン」）
+  2. ✓ otp → signin 切替
+  3. ✓ signin に OTP 戻りリンク存在
+  4. ✓ signin → otp 戻り
+  5. ✓ 空メアドは otp モード維持
+  6. ✓ @gmail.con typo 警告
+  7. ✓ 実 API sendOtp 成功
+  8. ✓ verifyOtp 不正コード → AuthApiError 適切
+  9. ✓ otp-code モード（numeric inputmode / maxLength 6 / resend / verify ボタン揃う）
+  10. ✓ コード自動クリーン + 6 桁時自動検証トリガー
+  11. ✓ 診断モーダル：URL / status / errors すべて表示
+  12. ✓ ESC で閉じる
+- `pageerror: 0`
+- JS 構文 `node --check`：app-source 1 ブロック / docs 3 ブロックとも 0 エラー
+- md5 一致：本体 `22191ff32d32fc0c0b625c5197c09950`
+
+### 既存破壊なし
+- `S` / `PERSIST` / `familink_v3` / ローカル認証（`S.account` / `openSignup` / `doLogin`） すべて無変更
+- Wave 204 で追加した password / reset / sent モードも残存（補助パスとして利用可能）
+- ESC キー閉じ（Wave 203）と互換、デモプロファイル（Wave 201）等にも影響なし
+
+### iPhone 実機で試していただきたい（推奨フロー）
+1. 「ログインして使う」をタップ → **「メールでログイン」モーダルが開く**（パスワード入力欄なし）
+2. メールアドレスを入力 → 「ログインコードを送る」をタップ
+3. 受信トレイ（または迷惑メール）に届く **6 桁の数字**を確認
+4. アプリに戻り、表示中のモーダルに 6 桁を入力
+5. 自動でログイン完了（6 桁揃ったら自動検証）
+
+これで「確認リンクのクリック」「URL リダイレクト」「Site URL 設定」「パスワードの記憶」のすべてのハードルが消えます。
+
+### 未確認事項
+- 実在メアドでの OTP 受領 → ログイン完走（実機通信。API は確認済）
+- 既存パスワードアカウントを OTP に切替（同じメアドで OTP 送信、verifyOtp でログインできるはず）
+
+### iPhone確認ポイント
+- 入口「ログインして使う」→ メアド入力 → ボタン → メールに 6 桁が届く → 入力 → ログイン完了
+- 「🔍 ログインできない場合はこちら（接続診断）」で接続状態が見えること
+- 既存アカウントでも同じ OTP メアドでログインできること
+- 「パスワードでログイン / 新規登録」リンクで従来 UI に戻れること
+- typo 警告（gmail.con 等）が黄色で出ること
+
+### 次にやること
+- iPhone 実機で OTP 完全フロー検証
+- Supabase Phase 4-4 同期実装（オーナーが SQL 反映後）
+- 招待コード本実装
+- App Store メタデータ整備
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 205: OTP login as default + detectSessionInUrl fix + diag panel`

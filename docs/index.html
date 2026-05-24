@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260524e';
+  var V='20260524f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3900,14 +3900,66 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- Wave 202/204: Supabase Auth — mode により表示が切替（signin / signup / sent / reset / reset-sent） -->
+<!-- Wave 202/204/205: Supabase Auth — mode により表示が切替
+     既定 mode は 'otp'（メールで 6 桁コードを受け取って入力するだけ。リンククリック不要・file:// でも動く） -->
 <div id="m-supa-auth" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div id="supa-auth-title" class="modal-title">メールアドレスでログイン</div>
+    <div id="supa-auth-title" class="modal-title">メールでログイン</div>
+
+    <!-- otp モード（既定）：メアドだけ入力して送信ボタンを押す -->
+    <div id="supa-auth-otp-wrap">
+      <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
+        メールアドレスを入力すると、<b>6 桁のログインコード</b>をお送りします。<br>
+        パスワード設定は不要です（既存アカウントもこの方法でログインできます）。
+      </p>
+      <div class="modal-form" style="gap:4px;">
+        <label class="form-label" for="supa-otp-email">メールアドレス</label>
+        <input type="email" id="supa-otp-email" class="form-input" placeholder="example@mail.com" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="send">
+        <p id="supa-otp-email-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;"></p>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(74,144,226,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
+          コードは数分で届きます。届かない場合は <strong>迷惑メールフォルダ</strong>もご確認ください。
+        </p>
+      </div>
+      <div class="modal-actions" style="gap:6px;">
+        <button id="supa-otp-send" class="btn btn-primary btn-block" onclick="doSupaSendOtp()">ログインコードを送る</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('signin')">パスワードでログイン / 新規登録</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+      </div>
+    </div>
+
+    <!-- otp-code モード：送信後、6 桁コード入力 -->
+    <div id="supa-auth-otp-code-wrap" style="display:none;">
+      <div style="text-align:center;padding:10px 8px 4px;">
+        <div style="font-size:40px;line-height:1;margin-bottom:6px;">📧</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">コードを送信しました</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
+          <span id="supa-otp-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span>
+        </div>
+      </div>
+      <div class="modal-form" style="gap:4px;">
+        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">受信メールに記載の 6 桁コード</label>
+        <input type="text" id="supa-otp-code" class="form-input"
+               placeholder="000000"
+               inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]*" maxlength="6"
+               enterkeyhint="go"
+               style="font-size:22px;letter-spacing:8px;text-align:center;font-variant-numeric:tabular-nums;">
+        <p id="supa-otp-code-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;"></p>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;">
+          コードの有効期限は <strong>約 1 時間</strong>です。届かない場合は迷惑メールフォルダをご確認ください。
+        </p>
+      </div>
+      <div class="modal-actions" style="gap:6px;">
+        <button id="supa-otp-verify" class="btn btn-primary btn-block" onclick="doSupaVerifyOtp()">ログインする</button>
+        <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コードを再送する</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メアドを変更</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+      </div>
+    </div>
 
     <!-- form モード（signin / signup / reset 共通） -->
-    <div id="supa-auth-form-wrap">
+    <div id="supa-auth-form-wrap" style="display:none;">
       <p id="supa-auth-desc" style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">登録済みのメールアドレスとパスワードでログインします。</p>
       <div class="modal-form" style="gap:4px;">
         <label class="form-label" for="supa-auth-email">メールアドレス</label>
@@ -3943,6 +3995,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;color:var(--primary);" onclick="setSupaAuthMode('otp')">← メールでコードを受け取る方法に戻る</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -3998,6 +4051,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="returnToSigninFromSent()">ログインへ戻る</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
+    </div>
+
+    <!-- Wave 205: 接続診断リンク（全モードで常時表示） -->
+    <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:1px dashed var(--border-light);">
+      <span style="color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;" onclick="openSupaDiag()">🔍 ログインできない場合はこちら（接続診断）</span>
+    </div>
+  </div>
+</div>
+
+<!-- Wave 205: Supabase 接続診断モーダル（うまく動かないときの自己診断ヒント用） -->
+<div id="m-supa-diag" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">接続診断</div>
+    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 12px;">
+      ログインに失敗する場合の参考情報です。表示内容は端末内に留まり、外部には送られません。
+    </p>
+    <div id="supa-diag-body" class="modal-form" style="gap:6px;font-size:12px;line-height:1.7;">
+      <!-- renderSupaDiag() で動的に生成 -->
+    </div>
+    <div class="modal-actions" style="margin-top:10px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-diag')">閉じる</button>
     </div>
   </div>
 </div>
@@ -4974,7 +5049,8 @@ function initSupabase() {
       auth: {
         persistSession: true,         // セッションは sb-... LocalStorage キーに自動保存（familink_v3 とは独立）
         autoRefreshToken: true,
-        detectSessionInUrl: false     // OAuth リダイレクト等は今回未使用
+        detectSessionInUrl: true,     // Wave 205: メール確認リンク / Magic Link のコールバックで URL からセッションを取り出す（重要）
+        flowType: 'pkce'              // Wave 205: 推奨の OAuth フロー
       }
     });
     SUPA_OK = true;
@@ -5056,7 +5132,7 @@ async function supaSignUp(email, password) {
   if(!sb) { showToast('クラウドに接続できません。しばらくしてから再度お試しください','error'); return { ok:false }; }
   try {
     const { data, error } = await sb.auth.signUp({ email, password });
-    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(error) { _trackSupaErr('signUp', error); showToast(_supaErr(error),'error'); return { ok:false }; }
     if(data && data.user) {
       // 確認メール必須プロジェクトでは user は返るが session は null になる
       if(data.session) {
@@ -5080,6 +5156,7 @@ async function supaSignIn(email, password) {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error) {
+      _trackSupaErr('signIn', error);
       // Wave 204: "Invalid login credentials" は確認待ち / 誤パス / 未登録の区別なし。
       // モーダル側で再送 / リセットの補助導線を出す合図にする。
       const msg = String((error && error.message) || '');
@@ -5147,7 +5224,7 @@ async function syncFromSupabase() {
 function supaEntryClickLogin() {
   S.supaEntryChoice = 'supa';
   saveS();
-  openSupaAuthModal('signin');
+  openSupaAuthModal('otp');   // Wave 205: OTP（メールでコード）を既定の入口に
 }
 function supaEntryClickGuest() {
   S.supaEntryChoice = 'guest';
@@ -5178,38 +5255,47 @@ function openSupaAuthModal(mode) {
     showToast('クラウドに接続できません。しばらくしてから再度お試しください、または「ログインせずに体験する」をお選びください','error');
     return;
   }
-  ['supa-auth-email','supa-auth-pass'].forEach(id => {
+  ['supa-auth-email','supa-auth-pass','supa-otp-email','supa-otp-code'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   _supaLastErrorWasInvalidLogin = false;
   _hideSupaErrorHelp();
   _hideSupaEmailHint();
-  setSupaAuthMode((mode === 'signup' || mode === 'reset' || mode === 'sent' || mode === 'reset-sent') ? mode : 'signin');
+  const allowed = ['otp','otp-code','signin','signup','reset','sent','reset-sent'];
+  const m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'otp'; // Wave 205: 既定は OTP
+  setSupaAuthMode(m);
   openModal('m-supa-auth');
-  // 自動フォーカス（モバイルでも開いたら入力可能に）
+  // 自動フォーカス
   setTimeout(() => {
-    const f = (_supaAuthMode === 'sent' || _supaAuthMode === 'reset-sent')
-      ? null
-      : document.getElementById('supa-auth-email');
+    let f = null;
+    if(_supaAuthMode === 'otp')        f = document.getElementById('supa-otp-email');
+    else if(_supaAuthMode === 'otp-code') f = document.getElementById('supa-otp-code');
+    else if(_supaAuthMode !== 'sent' && _supaAuthMode !== 'reset-sent') f = document.getElementById('supa-auth-email');
     if(f) try { f.focus(); } catch(_){}
   }, 80);
 }
 
 function setSupaAuthMode(mode) {
-  _supaAuthMode = mode || 'signin';
+  _supaAuthMode = mode || 'otp';
   // セクション切替
+  const otpWrap       = document.getElementById('supa-auth-otp-wrap');
+  const otpCodeWrap   = document.getElementById('supa-auth-otp-code-wrap');
   const formWrap      = document.getElementById('supa-auth-form-wrap');
   const sentWrap      = document.getElementById('supa-auth-sent-wrap');
   const resetSentWrap = document.getElementById('supa-auth-reset-sent-wrap');
-  const showForm = (_supaAuthMode === 'signin' || _supaAuthMode === 'signup' || _supaAuthMode === 'reset');
+  const showForm     = (_supaAuthMode === 'signin' || _supaAuthMode === 'signup' || _supaAuthMode === 'reset');
+  if(otpWrap)       otpWrap.style.display       = (_supaAuthMode === 'otp') ? '' : 'none';
+  if(otpCodeWrap)   otpCodeWrap.style.display   = (_supaAuthMode === 'otp-code') ? '' : 'none';
   if(formWrap)      formWrap.style.display      = showForm ? '' : 'none';
   if(sentWrap)      sentWrap.style.display      = (_supaAuthMode === 'sent') ? '' : 'none';
   if(resetSentWrap) resetSentWrap.style.display = (_supaAuthMode === 'reset-sent') ? '' : 'none';
 
-  // モーダル上部タイトルは全モードで更新する（sent / reset-sent でも統一感）
+  // モーダル上部タイトル
   const t = document.getElementById('supa-auth-title');
   if(t) {
     t.textContent =
+      (_supaAuthMode === 'otp')         ? 'メールでログイン' :
+      (_supaAuthMode === 'otp-code')    ? 'ログインコードを入力' :
       (_supaAuthMode === 'sent')        ? '確認メール送信済み' :
       (_supaAuthMode === 'reset-sent')  ? '再設定メール送信済み' :
       (_supaAuthMode === 'reset')       ? 'パスワードを再設定' :
@@ -5443,10 +5529,224 @@ async function supaResetPassword(email) {
   if(!sb) { showToast('クラウドに接続できません','error'); return { ok:false }; }
   try {
     const { error } = await sb.auth.resetPasswordForEmail(email);
-    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(error) { _trackSupaErr('resetPassword', error); showToast(_supaErr(error),'error'); return { ok:false }; }
     return { ok:true };
-  } catch(e) { showToast(_supaErr(e),'error'); return { ok:false }; }
+  } catch(e) { _trackSupaErr('resetPassword', e); showToast(_supaErr(e),'error'); return { ok:false }; }
 }
+
+/* ============================================================
+   Wave 205 — OTP（6 桁コード）ログイン
+
+   - signInWithOtp({ email, options:{ shouldCreateUser:true } })
+     既存 / 新規どちらでも 6 桁コードがメールで届く
+   - verifyOtp({ email, token, type:'email' }) でセッション確立
+   - URL リダイレクト不要なので file:// やどんなホストでも動く
+   ============================================================ */
+async function supaSendOtp(email) {
+  const sb = getSupabase();
+  if(!sb) { showToast('クラウドに接続できません','error'); return { ok:false }; }
+  try {
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        // emailRedirectTo: 指定しない（OTP のため、メール内のリンクではなくアプリ内でコード入力する）
+      }
+    });
+    if(error) { _trackSupaErr('sendOtp', error); showToast(_supaErr(error),'error'); return { ok:false }; }
+    return { ok:true };
+  } catch(e) {
+    _trackSupaErr('sendOtp', e);
+    showToast(_supaErr(e),'error'); return { ok:false };
+  }
+}
+async function supaVerifyOtp(email, token) {
+  const sb = getSupabase();
+  if(!sb) { showToast('クラウドに接続できません','error'); return { ok:false }; }
+  try {
+    // type は 'email'（新規・既存どちらも同じ）
+    const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+    if(error) { _trackSupaErr('verifyOtp', error); showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(data && data.user) {
+      S.supaSession = { id: data.user.id, email: data.user.email || '' };
+      saveS();
+      return { ok:true };
+    }
+    return { ok:false };
+  } catch(e) {
+    showToast(_supaErr(e),'error'); return { ok:false };
+  }
+}
+
+/* OTP 送信ボタン（otp mode）*/
+async function doSupaSendOtp() {
+  const email = (document.getElementById('supa-otp-email').value || '').trim();
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('メールアドレスの形式が正しくありません','error');
+    const e = document.getElementById('supa-otp-email'); if(e) try { e.focus(); } catch(_){}
+    return;
+  }
+  _supaLastEmail = email;
+  const btn = document.getElementById('supa-otp-send');
+  if(btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    const r = await supaSendOtp(email);
+    if(!r || !r.ok) return;
+    // メール送信成功 → コード入力モードへ
+    const sentEl = document.getElementById('supa-otp-sent-email');
+    if(sentEl) sentEl.textContent = email;
+    setSupaAuthMode('otp-code');
+    // コード入力欄に自動フォーカス
+    setTimeout(() => {
+      const codeInp = document.getElementById('supa-otp-code');
+      if(codeInp) { codeInp.value = ''; try { codeInp.focus(); } catch(_){} }
+    }, 100);
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = 'ログインコードを送る'; }
+  }
+}
+
+/* OTP コード検証（otp-code mode）*/
+async function doSupaVerifyOtp() {
+  const email = _supaLastEmail
+    || (document.getElementById('supa-otp-sent-email')||{}).textContent
+    || '';
+  const codeRaw = (document.getElementById('supa-otp-code').value || '').trim();
+  const code = codeRaw.replace(/\D/g, ''); // 数字以外を除く
+  if(!email) { showToast('送信先メールアドレスが不明です','error'); return; }
+  if(code.length !== 6) {
+    showToast('6 桁の数字コードを入力してください','error');
+    const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
+    return;
+  }
+  const btn = document.getElementById('supa-otp-verify');
+  if(btn) { btn.disabled = true; btn.textContent = '確認中...'; }
+  try {
+    const r = await supaVerifyOtp(email, code);
+    if(!r || !r.ok) return;
+    closeModal('m-supa-auth');
+    showToast('クラウドにログインしました','success');
+    _enterApp(true);
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = 'ログインする'; }
+  }
+}
+
+/* OTP 再送 */
+async function resendSupaOtp() {
+  const email = _supaLastEmail
+    || (document.getElementById('supa-otp-sent-email')||{}).textContent
+    || '';
+  if(!email) { showToast('再送先のメアドが不明です','error'); return; }
+  const btn = document.getElementById('supa-otp-resend');
+  if(btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    const r = await supaSendOtp(email);
+    if(r && r.ok) showToast('ログインコードを再送しました','success');
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = 'コードを再送する'; }
+  }
+}
+
+/* ============================================================
+   Wave 205 — 接続診断モーダル
+   ============================================================ */
+let _supaLastDiagError = null;   // { at, op, code, message }
+function _trackSupaErr(op, error) {
+  try {
+    _supaLastDiagError = {
+      at: new Date().toISOString(),
+      op: op,
+      code: error && (error.code || error.status) || '',
+      message: (error && error.message) || String(error || ''),
+    };
+  } catch(_){}
+}
+function openSupaDiag() {
+  renderSupaDiag();
+  openModal('m-supa-diag');
+}
+function renderSupaDiag() {
+  const body = document.getElementById('supa-diag-body');
+  if(!body) return;
+  const sbLocalKeys = (function(){
+    try { return Object.keys(localStorage).filter(k => k.startsWith('sb-')); }
+    catch(_){ return []; }
+  })();
+  const sess = S.supaSession;
+  const tlsOk = (location && location.protocol === 'https:') ? true : (location.protocol === 'file:');
+  const rows = [
+    ['接続状態',     SUPA_OK ? '✅ 接続済み' : (window._supaLoadFailed ? '❌ CDN 読み込み失敗' : '⏳ 未接続')],
+    ['Supabase URL', '<code style="background:var(--bg-muted);padding:2px 6px;border-radius:4px;font-size:11px;">' + H(SUPABASE_URL) + '</code>'],
+    ['現在のページ', '<code style="background:var(--bg-muted);padding:2px 6px;border-radius:4px;font-size:11px;word-break:break-all;">' + H(location.href.slice(0, 200)) + '</code>'],
+    ['プロトコル',   location.protocol + (tlsOk ? '' : ' ⚠️ HTTPS/file 以外は一部機能が制限されます')],
+    ['セッション',   sess ? ('✅ ログイン中：<b>' + H(sess.email||'') + '</b>') : '⛔ 未ログイン'],
+    ['LocalStorage の Supabase キー', sbLocalKeys.length ? ('<code style="font-size:11px;">' + sbLocalKeys.map(H).join(', ') + '</code>') : 'なし'],
+    ['直近の認証エラー', _supaLastDiagError
+      ? ('<span style="color:#7F1D1D;">' + H(_supaLastDiagError.op) + ' → ' + H(_supaLastDiagError.message) + '</span>'
+         + '<br><span style="font-size:10px;color:var(--text-muted);">' + H(_supaLastDiagError.at) + '</span>')
+      : '（なし）'],
+  ];
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;line-height:1.6;">';
+  rows.forEach(([k,v]) => {
+    html += '<tr><td style="padding:8px 6px;border-bottom:1px solid var(--border-light);width:35%;color:var(--text-muted);vertical-align:top;">' + H(k) + '</td>'
+         +  '<td style="padding:8px 6px;border-bottom:1px solid var(--border-light);">' + v + '</td></tr>';
+  });
+  html += '</table>';
+
+  // よくある原因の説明
+  html += '<div style="margin-top:14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;">'
+       +  '<p style="font-size:12px;font-weight:700;color:#92400E;margin:0 0 6px;">よくある原因と対処</p>'
+       +  '<ul style="font-size:11px;color:#92400E;line-height:1.7;margin:0;padding-left:18px;">'
+       +    '<li><b>メールが届かない</b>：迷惑メールフォルダを確認 / メアド誤りなら入力し直し / Supabase 無料枠は時間 2 通までの制限あり</li>'
+       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6 桁）」</b>方式が確実です。次回はメールで届くコードを直接入力してください</li>'
+       +    '<li><b>テスト用ドメイン（@gmail.test 等）</b>は受け付けられません。実在するメールアドレスをお使いください</li>'
+       +    '<li><b>パスワードでログインできない</b>：パスワードでログインを使わず「メールでコードを受け取る」をお試しください（既存アカウントでも使えます）</li>'
+       +    '<li><b>ネットワーク不安定</b>：CDN（cdn.jsdelivr.net）と Supabase API への通信が必要です</li>'
+       +  '</ul>'
+       +  '</div>';
+  body.innerHTML = html;
+}
+
+/* OTP コード入力：6 桁揃ったら自動で検証する（任意の便利機能） */
+document.addEventListener('input', function(e){
+  if(!e.target || !e.target.id) return;
+  if(e.target.id === 'supa-otp-email') {
+    // typo / TLD 警告を otp フォームでも表示
+    const v = (e.target.value||'').trim().toLowerCase();
+    const hint = document.getElementById('supa-otp-email-hint');
+    if(!hint) return;
+    if(!v || v.indexOf('@') < 0) { hint.style.display = 'none'; return; }
+    const dom = v.split('@')[1] || '';
+    for(const [bad, good] of _SUPA_DOMAIN_FIXES) {
+      if(dom === bad) { hint.innerHTML = '⚠️ もしかして <b>@' + H(good) + '</b> ですか？'; hint.style.display = ''; return; }
+    }
+    if(/\.(test|local|example|invalid|localhost)$/i.test(dom)) {
+      hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。';
+      hint.style.display = '';
+      return;
+    }
+    hint.style.display = 'none';
+  } else if(e.target.id === 'supa-otp-code') {
+    // 数字以外を除いて表示も整える
+    const cleaned = (e.target.value||'').replace(/\D/g, '').slice(0, 6);
+    if(cleaned !== e.target.value) e.target.value = cleaned;
+    // 6 桁揃ったら自動検証
+    if(cleaned.length === 6 && typeof doSupaVerifyOtp === 'function') {
+      // 二重実行を避けるためフラグ
+      if(!e.target._verifying) {
+        e.target._verifying = true;
+        setTimeout(() => { e.target._verifying = false; doSupaVerifyOtp(); }, 150);
+      }
+    }
+  }
+});
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  const t = e.target; if(!t || !t.id) return;
+  if(t.id === 'supa-otp-email') { e.preventDefault(); doSupaSendOtp(); }
+  else if(t.id === 'supa-otp-code') { e.preventDefault(); doSupaVerifyOtp(); }
+});
 
 /* 入力イベント：typo 警告 + Enter 送信 */
 document.addEventListener('input', function(e){
@@ -15138,10 +15438,10 @@ function renderSettings() {
             <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
             <div class="settings-item-label" style="color:var(--red)">クラウドからログアウト</div>
           </div>`
-        : `<div class="settings-item" onclick="openSupaAuthModal('signin')">
+        : `<div class="settings-item" onclick="openSupaAuthModal('otp')">
             <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>','#4A90E2')}</div>
             <div class="settings-item-label">メールでログイン
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${SUPA_OK ? '家族とのデータ共有・端末間バックアップに使えます' : 'クラウドに接続できません。ネットワークをご確認ください'}</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${SUPA_OK ? '6 桁のコードを受け取って入力するだけ。パスワード不要' : 'クラウドに接続できません。ネットワークをご確認ください'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
           <div class="settings-item" onclick="openSupaInviteModal()">
