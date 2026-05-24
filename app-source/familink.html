@@ -6831,8 +6831,15 @@ document.querySelectorAll('.modal-backdrop').forEach(bd => {
    SCREEN NAVIGATION
    ============================================================ */
 function showScreen(id) {
+  // Wave 207: 不正IDで全画面非表示の空白事故を防ぐ。存在しないIDは s-home にフォールバック。
+  let targetEl = document.getElementById(id);
+  if(!targetEl || !targetEl.classList.contains('screen')) {
+    try { console.warn('showScreen: invalid id, fallback to s-home:', id); } catch(_) {}
+    id = 's-home';
+    targetEl = document.getElementById('s-home');
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(id)?.classList.remove('hidden');
+  targetEl?.classList.remove('hidden');
   S.screen = id;
 }
 
@@ -18394,6 +18401,11 @@ function _hokuCleanTitle(text) {
     const _cs = t.replace(/(?:の|を|に|へ)?\s*(?:予定|スケジュール|カレンダー|タスク|やること|買い物リスト|買い物メモ|買い物|準備リスト|準備|家計簿|家計|体調メモ|体調|家族ボード)\s*$/, '');
     if(_cs.replace(/[\s　]/g,'').length >= 2) t = _cs;
   }
+  // 末尾の家計動作動詞（「スーパーで使った」→「スーパー」）— 2文字以上残るときのみ
+  {
+    const _bv = t.replace(/(?:で|に|を|から)?\s*(?:使った|使う|買った|買う|払った|払う|かかった|引き落とし|引き落とされた|支払った|支払い|出費した|出費)\s*$/, '');
+    if(_bv.replace(/[\s　]/g,'').length >= 2) t = _bv;
+  }
   // 残った先頭・末尾の助詞 / 区切り
   t = t.replace(/^[\s　、,，のがをにへはでと・]+/, '').replace(/[\s　、,，のがをにへはでと・]+$/, '');
   return t.replace(/\s{2,}/g, ' ').trim();
@@ -18420,7 +18432,7 @@ function parseVoiceIntent(rawText) {
   }
   // 2) 明確な家事/連絡/手続き/依頼系の動詞があれば task。
   //    「牛乳買って」「洗濯干す」「保育園迎え」「銀行に振込」「お願い」など日常発話を拾う。
-  const _TASK_VERB_RESCUE = /買って|買わ|買いに|買おう|洗濯|洗って|洗わ|干す|干して|畳む|畳んで|拭いて|拭か|捨て|片付け|片付けて|掃除|並べ|預け|迎え|送り迎え|引き取|取りに行|電話して|電話する|連絡して|連絡する|予約して|予約する|申し込|手続き|振込|振り込み|お願い|頼む|頼ん|やっておいて|やっといて|やってお|メモして|記録して|残しておいて|忘れずに|忘れない/;
+  const _TASK_VERB_RESCUE = /買う|買って|買わ|買いに|買おう|買い物|買っとい|買っとく|買い足|洗濯|洗って|洗わ|干す|干して|畳む|畳んで|拭いて|拭か|捨て|片付け|片付けて|掃除|並べ|預け|迎え|送り迎え|引き取|取りに行|電話して|電話する|連絡して|連絡する|予約して|予約する|申し込|手続き|振込|振り込み|お願い|頼む|頼ん|やっておいて|やっといて|やってお|メモして|記録して|残しておいて|忘れずに|忘れない/;
   if(!cls.category && _TASK_VERB_RESCUE.test(text)) {
     cls.category = 'task';
     cls.score = Math.max(cls.score || 0, 2);
@@ -19980,8 +19992,9 @@ function classifyHokuInput(q) {
   // Wave 90 (S+): 明確な依頼動詞が文末/区切り付近にあれば task 強化（calendar 4 にも勝てる +5）
   //   「歯医者予約頼む」「アンケート出すのお願い」「ゴミ出しやっておいて」等
   if(q.match(/(頼む|頼ん|頼んだ|お願いね?|お願いします|お願い$|やっておいて|やっといて|お任せ)([。、！？!?\s]|$)/)) scores.task += 5;
-  // Wave 63: 連絡帳に書く / サインする / 押印 は task 寄り（prep の連絡帳「持参」と区別）
-  if(q.match(/連絡帳.*書|サイン|押印|捺印|スタンプ.*押/)) scores.task += 2;
+  // Wave 63 / Wave 207: 連絡帳に書く / サインする / 押印 は task 寄り（prep の連絡帳「持参」と区別）。
+  // 単独でも分類が確定するよう +3 に強化。
+  if(q.match(/連絡帳.*書|サイン|押印|捺印|スタンプ.*押|記入/)) scores.task += 3;
   // Wave 58: 「電話」「連絡」など短い動詞単体も task 寄り（電話は calendar の発表会等と区別したい）
   if(q.match(/(?:^|[\s、,])(電話|連絡|送付|送金|振込|振り込み|キャンセル)(?:[\s、,]|$|して|する|を|に)/)) scores.task += 2;
   // 「○○までに〜動詞」は明確な期限付きタスク

@@ -13260,3 +13260,82 @@ Wave 206 — 永続バナー / 試行ログ / レート制限カウントダウ�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 206: persistent banners + attempt log + rate limit countdown + owner-side diag guide`
+---
+
+## 2026-05-25 09:00  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 207 — 体系的 QA スイープ＋発見バグの最小修正（Hoku 音声 intent / 不正画面遷移 / タイトル整形）
+
+### 背景
+ユーザー指示「体系的にテスト → 出せるまで品質を磨き切る」。
+QA ハーネス（`C:\Users\ktaka\familink-qa`）に新テストを 6 本追加し、全画面 22 / 全モーダル 61 / 主要機能ボタン / Hoku 音声 40 パターン / iPhone SE レイアウト / モーダル ESC / XSS / エッジケース / 保存往復までを一気に検証。
+
+### 検出 → 修正（3 件、すべて最小差分）
+
+**Bug 1（S）: Hoku 音声「明日 牛乳を買う」がカテゴリ未検出 → 確認画面で毎回手動分類**
+- 原因：`_TASK_VERB_RESCUE` 正規表現に「買う」(終止形)・「買い物」・「買っとく」が欠落
+- 修正：`買う|買って|買わ|買いに|買おう|買い物|買っとい|買っとく|買い足|...` に拡張
+
+**Bug 2（A）: 「スーパーで3500円使った」のタイトルが「スーパーで使った」と汚い**
+- 原因：`_hokuCleanTitle` が末尾の家計動作動詞（使った/買った/払った/かかった/支払い 等）を除去していなかった
+- 修正：カテゴリ語末尾削除の直後に、家計動作動詞末尾削除ブロックを追加（2 文字以上残るときのみ）
+
+**Bug 3（A）: `go('invalid-id')` で全画面が hidden 化し空白ページに**
+- 原因：`showScreen()` が `document.getElementById(id)?.classList.remove` の no-op で気づかず通過
+- 修正：ID が存在しない / `.screen` でない場合は `s-home` にフォールバック＋ console.warn
+
+**Bonus（A）: 「連絡帳にサイン」が score=2 でカテゴリ未確定**
+- `連絡帳.*書|サイン|押印|...` に「記入」を追加し、スコアを +2 → +3 に強化（単独でも task 確定）
+
+### 変更ファイル
+- `app-source/familink.html`（4 箇所、約 +20 行）
+- `docs/index.html`（同じ 4 箇所を同期、キャッシュバスター `20260524g` → `20260525a`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\hoku-real-flow-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\mega-intent-test.js`（新規・40 パターン）
+- `C:\Users\ktaka\familink-qa\save-roundtrip-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\se-layout-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\real-ui-click-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\edge-case-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\modal-esc-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\docs-verify.js`（新規）
+- `C:\Users\ktaka\familink-qa\se-screenshots.js`（新規）
+- `C:\Users\ktaka\familink-qa\find-nan.js`（新規）
+
+### テスト結果（修正後）
+- `sweep.js`：22 画面 / 61 モーダル 全 OK、JS エラー 0
+- `mega-intent-test.js`：**40/40 PASS**（calendar 10 / task 10 / budget 8 / health 3 / prep 4 / その他 5）
+- `hoku-real-flow-test.js`：calendar / task / budget の音声→保存ラウンドトリップ全 OK
+- `save-roundtrip-test.js`：events / tasks / txs / memos の追加→ localStorage→ reload→ 復帰 全 OK
+- `se-layout-test.js`：22 画面で `horizOverflow:false`、検出 3 件はすべて意図的横スクロール chip 列（スクショで目視確認）
+- `real-ui-click-test.js`：主要 7 画面で **死にボタン 0**（4〜26 ボタン/画面、すべて handler 付き）
+- `modal-esc-test.js`：**61/61 モーダル全部 ESC で閉じる**
+- `edge-case-test.js`：XSS（event / task / board の 3 系統）すべて防御、空タイトル保存拒否、巨大金額・過去日付・200 件タスクで破綻なし、LocalStorage 24KB
+- `docs-verify.js`：docs/index.html（GitHub Pages 公開版）でも全修正が動作
+
+### 既存破壊なし
+- `S` / `PERSIST` / `familink_v3` / `MEMBERS` / Supabase 認証 / Wave 206 のバナー / レート制限 / 診断パネル すべて無変更
+- ESC キー閉じ（Wave 203）/ デモプロファイル（Wave 201）/ OTP モード（Wave 205）に影響なし
+- app-source ⇄ docs の md5 差分 433 bytes は SW 登録＋キャッシュバスター分のみ
+
+### 未確認事項
+- iPhone 実機での 4 修正動作（PC ヘッドレスでは全件 OK）
+- Wave 206 で残っている Supabase 実機 OTP メール受領（オーナー側 Confirm email OFF 待ち）
+
+### iPhone確認ポイント
+- Hoku に「明日 牛乳を買う」と話す → 確認画面で「タスク」が自動選択され、タイトルが「牛乳」になっている
+- Hoku に「連絡帳にサイン」と話す → タスクとして即時保存できる
+- Hoku に「スーパーで3500円使った」と話す → 家計カテゴリ、タイトルが「スーパー」のみ、金額 3500
+- 通常操作で空白画面に遷移しないこと（Wave 207 の防御は invalid id だけが対象なので影響なしのはず）
+
+### 次にやること
+- iPhone 実機 OTP フロー検証（Wave 206 申し送り）
+- Supabase Phase 4-4（家族間データ同期）実装
+- 招待コード本実装
+- App Store メタデータ整備
+- 必要なら Hoku の音声認識パターンをさらに 40→80 パターンに拡張して回帰追加
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 207: systematic QA - fix voice intent (買う/サイン), title cleanup, invalid-nav fallback`
