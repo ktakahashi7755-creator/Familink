@@ -12792,3 +12792,76 @@ Wave 201 — デモデータ管理機能の追加（家庭向け / 仮想家族 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 201: add demo profile manager — multi-pattern sample data switching (home/virtual/proposal/blank) with auto-backup & restore`
+---
+
+## 2026-05-24 17:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 202 — Supabase 接続レイヤー導入（第一段階：接続 + Auth、入口 3 ボタン、設定にクラウドセクション）
+
+### 変更ファイル
+- `app-source/familink.html`（CSP 拡張 / CDN script / 接続レイヤー / Auth 関数 / sync スタブ / 入口 3 ボタン / 認証モーダル / 招待モーダル / 設定セクション）
+- `docs/index.html`（同期、キャッシュバスター `20260524a` → `20260524b`）
+- `docs/worklog.md`
+
+### 変更内容
+**方針：ログイン必須にしない。Supabase は段階導入。CDN 失敗時もアプリは壊れない。**
+
+- 公開可能キー（`sb_publishable_...`）のみフロントに保持。`service_role` 等の秘密鍵は一切置かない（RLS 前提のコメントを設計箇所に明記）
+- CSP を拡張：
+  - `script-src` に `https://cdn.jsdelivr.net` を追加（Supabase UMD 配信元）
+  - `connect-src` に `https://jrmzzizjlkrogrbtzyuz.supabase.co` と `wss://...` を追加（API + Realtime）
+- `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="window._supaLoadFailed=true">` で UMD 読み込み（失敗時フラグで安全フォールバック）
+- `initSupabase()` を DOMContentLoaded 後に呼び出し、最大 5 回まで 500ms 間隔で再試行。`SUPA_OK` フラグで全 Auth 関数をガード
+- セッション本体は supabase-js が `sb-<project>-auth-token` キーに自動保存。既存 `familink_v3` とは独立
+- S に追加：`supaSession ({id,email}) / supaEntryChoice ('supa'|'guest'|'invite'|null)`（2 つとも PERSIST 配列に追加）
+- Auth 関数：`supaSignUp / supaSignIn / supaSignOut`（エラーは `_supaErr` で日本語化）+ `onAuthStateChange` でセッション同期
+- 同期スタブ：`syncToSupabase / syncFromSupabase`（未ログイン時は info トースト、ログイン時は "準備中" トースト。後段の本実装で容易に拡張可能な骨格）
+- 入口画面 `s-ob` の CTA を 2 ボタン → 3 ボタンに刷新：
+  - 「ログインして使う」→ `openSupaAuthModal('signin')`（メール+パス）
+  - 「ログインせずに体験する」→ `_enterApp(true)`（既存 LocalStorage モードのまま）
+  - 「招待コードで参加する」→ `openSupaInviteModal()`（スタブ）
+  - 既存のローカルアカウント導線は「既存のローカルアカウントでログイン →」リンクで保持
+- モーダル新設：
+  - `m-supa-auth`：メール + パスワード、ログイン / 新規登録のトグル、`autocomplete` 適切、6 文字以上バリデーション、通信中は disabled
+  - `m-supa-invite`：招待コード入力 + 「準備中」案内（バリデーションのみで future-ready）
+- 設定画面に「クラウド連携（ベータ）」セクション新設：
+  - 未ログイン：`メールでログイン` / `招待コードで参加` の 2 項目。CDN 失敗時はサブテキストで通知
+  - ログイン中：`ログイン中（メール）` 表示 + `クラウドへ送信` / `クラウドから取得`（スタブ）+ `クラウドからログアウト`（確認ダイアログ付き、ローカルデータには影響しない旨を明示）
+- `refreshSupaUI()` を Auth 状態変化フックから呼び、設定画面表示中は再描画
+- 既存 `S.account`（ローカル認証）/ `seedDemo` / `familink_v3` は無変更。既存の `_enterApp` / `startOnboarding` / `doLogout` も無変更
+
+### テスト結果
+- JS 構文 `node --check`：app-source 1 ブロック 0 エラー / docs 3 ブロック 0 エラー
+- md5 一致確認：本体（SW ラッパー以降）`7e018cf4cc3eaef06223eddd464f789d` で完全一致
+- 行末コード：docs 全 21150 行が LF（CRLF/CR 0）。app-source も LF 専用維持
+- puppeteer 動作（supa-entry-test.js、normal + CDN ブロック両パス）：
+  - 正常パス：`SUPA_OK=true, hasClient=true`、3 ボタン全表示、ログインモーダル開閉 OK、新規登録/ログインのトグル OK、招待モーダル OK、ゲスト体験で `loggedIn=true / s-onboard` へ、設定にクラウド連携セクション表示、`pageerror=0`
+  - CDN ブロックパス：`SUPA_OK=false, supaLoadFailed=true`、3 ボタン全表示、ログインボタン押下は接続不可トーストで安全に拒否、招待/ゲストは通常動作、設定セクションも正常描画、`pageerror=0`
+- iPhone SE 375×667：`docW=winW=375`（横スクロールなし）
+- 視覚確認：s-ob 3 ボタン / 認証モーダル / 設定画面のクラウド連携セクション、いずれも違和感なし
+
+### 未確認事項
+- 実際のメールアドレスでの Supabase signUp / signIn 実機通信（無効メールでのエラー文言表示はコード上で日本語化済み）
+- iPhone Safari 実機での確認（特にモーダル表示・キーボード挙動）
+- Supabase 側テーブル定義 + RLS ポリシーの整備（同期実装の前提条件）
+
+### iPhone確認ポイント
+- ウェルカム画面に 3 ボタン（ログインして使う / ログインせずに体験する / 招待コードで参加する）が表示されること
+- 「ログインせずに体験する」で既存フロー（オンボーディング または ホーム）へ進めること
+- 「ログインして使う」で認証モーダルが開き、登録/ログイン トグル、6 文字未満エラー等が日本語で出ること
+- 「招待コードで参加する」で入力モーダルが開き、「準備中」案内が出ること
+- 設定 → クラウド連携（ベータ）セクションが表示されること
+- 機内モード等でクラウド未接続時もアプリが起動・体験で進めること（CDN フォールバック）
+- iPhone SE 幅で横スクロールしないこと
+
+### 次にやること
+- Supabase 側テーブル設計 + RLS ポリシーの整備
+- `syncToSupabase / syncFromSupabase` の本実装（profile → events → tasks → txs の順で段階的に）
+- 家族招待（招待コード発行・受け入れ）の実装
+- iPhone 実機での確認
+- アクセシビリティ強化 / App Store メタデータ準備（前回からの引継ぎ）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 202: supabase first-stage — connection layer + 3-button entry + auth modal + cloud section (login optional)`

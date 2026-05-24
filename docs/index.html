@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260524a';
+  var V='20260524b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -25,9 +25,15 @@ if('serviceWorker' in navigator){
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<!-- セキュリティメタ：リファラ漏洩防止 + CSP（XSS耐性／外部送信制限／フレーミング禁止） -->
+<!-- セキュリティメタ：リファラ漏洩防止 + CSP（XSS耐性／外部送信制限／フレーミング禁止）
+     Wave 202: script-src に cdn.jsdelivr.net、connect-src に Supabase API/Realtime を追加 -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://jrmzzizjlkrogrbtzyuz.supabase.co wss://jrmzzizjlkrogrbtzyuz.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self';">
+<!-- Wave 202: Supabase 接続レイヤー（クラウド同期の第一段階）
+     - 公開可能キー (publishable / anon) のみ。service_role 等の秘密鍵は絶対に置かない
+     - RLS（Row Level Security）前提：サーバ側のテーブルで auth.uid() = user_id を必須にする設計
+     - CDN 失敗時もアプリが起動するよう onerror で _supaLoadFailed フラグを立てる -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="window._supaLoadFailed=true"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Familink">
@@ -2955,14 +2961,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="ob-catch">家族をチームに。<br>予定も、やることも、ひとつに。</div>
     <div class="ob-desc">Familinkは、家族やパートナーと予定・やること・家計などを共有できるアプリです。忙しい毎日でも、大切な人とのつながりを支えます。</div>
 
+    <!-- Wave 202: 入口を 3 つに（クラウドログイン / 体験 / 招待コード）。ローカルログインも下に小さく残す -->
     <div class="ob-cta">
-      <button class="ob-btn-start" onclick="go('s-login')">
-        <span>はじめる</span>
+      <button class="ob-btn-start" onclick="supaEntryClickLogin()" aria-label="メールアドレスでログインまたは新規登録">
+        <span>ログインして使う</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
-      <button class="ob-btn-login" onclick="go('s-login')">すでにアカウントをお持ちの方</button>
+      <button class="ob-btn-login" onclick="supaEntryClickGuest()">ログインせずに体験する</button>
+      <button class="ob-btn-login" onclick="supaEntryClickInvite()" style="margin-top:6px;">招待コードで参加する</button>
     </div>
-    <div class="ob-note">無料ではじめられます</div>
+    <div class="ob-note">ログイン時のみクラウド同期。ログインなしでも全機能ご利用いただけます。</div>
+    <div style="margin-top:14px;text-align:center;">
+      <span style="color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;" onclick="go('s-login')">既存のローカルアカウントでログイン →</span>
+    </div>
   </div>
 </div>
 
@@ -3889,6 +3900,52 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- Wave 202: Supabase Auth（メール + パスワードで新規登録 / ログイン） -->
+<div id="m-supa-auth" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div id="supa-auth-title" class="modal-title">メールアドレスでログイン</div>
+    <p id="supa-auth-desc" style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">登録済みのメールアドレスとパスワードでログインします。</p>
+    <div class="modal-form" style="gap:4px;">
+      <label class="form-label">メールアドレス</label>
+      <input type="email" id="supa-auth-email" class="form-input" placeholder="example@mail.com" autocomplete="email" inputmode="email" maxlength="120">
+      <label class="form-label" style="margin-top:12px;">パスワード（6 文字以上）</label>
+      <input type="password" id="supa-auth-pass" class="form-input" placeholder="パスワード" autocomplete="current-password" maxlength="120">
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(74,144,226,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
+        ログインすると、家族とのデータ共有（クラウド同期）が将来ご利用いただけます。<br>
+        ログインせずに体験する場合はこのまま閉じて「ログインせずに体験する」を選んでください。
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
+      <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wave 202: 招待コードで参加（家族招待の受け入れ用、第一段階はスタブ） -->
+<div id="m-supa-invite" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">招待コードで参加</div>
+    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
+      ご家族から共有された招待コードを入力してください。承諾するとそのご家族のスペースに参加できます。
+    </p>
+    <div class="modal-form" style="gap:4px;">
+      <label class="form-label">招待コード</label>
+      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX" autocomplete="off" maxlength="64" style="letter-spacing:1px;">
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:#FFF7ED;border:1px solid #FCD9B0;border-radius:8px;padding:10px 12px;color:#92400E;">
+        この機能はまもなくリリース予定です。現時点では入力のみ受け付けます。
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="doSupaInviteSubmit()">次へ</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-invite')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- C8: 利用スタイル（個人利用 / 家族・チーム利用） -->
 <!-- ===== ワークスペース切り替えモーダル ===== -->
 <div id="m-workspace-switcher" class="modal-backdrop hidden">
@@ -4805,6 +4862,299 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
    ============================================================ */
 const SK = 'familink_v3';
 
+/* ============================================================
+   Wave 202 — Supabase 接続レイヤー（公開キーのみ）
+
+   重要な前提：
+   - SUPABASE_PUBLISHABLE_KEY は「公開可能キー」。フロントに置いて OK
+   - service_role / secret / 秘密鍵は絶対にここに置かない
+   - サーバ側テーブルは RLS（Row Level Security）必須。
+     例：`policy: auth.uid() = user_id` で行を本人だけに見せる
+   - CDN 読み込みに失敗してもアプリ全体は壊れない（_supaLoadFailed フラグでガード）
+   - 同期は段階導入：今回は接続 + Auth まで。データ実同期は後段
+   ============================================================ */
+const SUPABASE_URL = 'https://jrmzzizjlkrogrbtzyuz.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_jz3KFVHZH7_9Ioz8JWp-Fw_Rc9iovm9';
+let _sbClient = null;     // 初期化済み Supabase client（失敗時は null のまま）
+let SUPA_OK   = false;    // クライアントが利用可能なら true
+let _sbAuthSub = null;    // onAuthStateChange 解除用
+
+/* CDN 読み込みを待ってから createClient。
+   defer 付き script は DOMContentLoaded 前に評価されるが、念のため遅延も許容する */
+function initSupabase() {
+  if(SUPA_OK) return true;
+  if(typeof window === 'undefined') return false;
+  if(window._supaLoadFailed) {
+    console.warn('[Supabase] CDN load failed — running in LocalStorage-only mode');
+    return false;
+  }
+  if(!window.supabase || typeof window.supabase.createClient !== 'function') {
+    return false; // まだロードされていない（後で再試行）
+  }
+  try {
+    _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: true,         // セッションは sb-... LocalStorage キーに自動保存（familink_v3 とは独立）
+        autoRefreshToken: true,
+        detectSessionInUrl: false     // OAuth リダイレクト等は今回未使用
+      }
+    });
+    SUPA_OK = true;
+    // 既存セッションの取り出し & 状態同期
+    _sbClient.auth.getSession().then(({ data }) => {
+      const sess = data && data.session;
+      if(sess && sess.user) {
+        S.supaSession = { id: sess.user.id, email: sess.user.email || '' };
+        try { saveS(); } catch(_) {}
+      }
+      try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
+    }).catch(()=>{});
+    // 認証状態の変化を監視（ログイン / ログアウト / トークン更新）
+    try {
+      const r = _sbClient.auth.onAuthStateChange((_event, session) => {
+        if(session && session.user) {
+          S.supaSession = { id: session.user.id, email: session.user.email || '' };
+        } else {
+          S.supaSession = null;
+        }
+        try { saveS(); } catch(_) {}
+        try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
+      });
+      _sbAuthSub = r && r.data && r.data.subscription;
+    } catch(_){}
+    console.info('[Supabase] connected');
+    return true;
+  } catch(e) {
+    console.warn('[Supabase] createClient failed:', e && e.message);
+    SUPA_OK = false;
+    _sbClient = null;
+    return false;
+  }
+}
+
+/* DOMContentLoaded 後に初期化を試みる。CDN script に defer があれば
+   この時点で window.supabase が用意されている。万一遅延しても 500ms
+   おきに 5 回まで再試行する。すべて失敗してもアプリ本体には影響しない。 */
+function _supaBootstrap() {
+  if(initSupabase()) return;
+  let tries = 0;
+  const tm = setInterval(() => {
+    tries++;
+    if(initSupabase() || tries >= 5 || window._supaLoadFailed) clearInterval(tm);
+  }, 500);
+}
+if(document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _supaBootstrap, { once: true });
+} else {
+  _supaBootstrap();
+}
+
+/* クライアントを使う側の共通アクセサ。null チェック必須 */
+function getSupabase() { return SUPA_OK ? _sbClient : null; }
+function isSupaLoggedIn() { return !!(S.supaSession && S.supaSession.id); }
+function supaEmail() { return (S.supaSession && S.supaSession.email) || ''; }
+
+/* Supabase Auth エラーメッセージを日本語に整える */
+function _supaErr(e) {
+  const msg = String((e && e.message) || e || '');
+  if(/Invalid login/i.test(msg)) return 'メールアドレスまたはパスワードが正しくありません。';
+  if(/Email not confirmed/i.test(msg)) return 'メール認証が未完了です。受信メールのリンクから確認してください。';
+  if(/User already registered/i.test(msg)) return 'このメールアドレスは既に登録されています。ログインをお試しください。';
+  if(/Password should be at least/i.test(msg)) return 'パスワードが短すぎます（6文字以上推奨）。';
+  if(/rate limit|too many/i.test(msg)) return 'リクエストが多すぎます。しばらくしてから再度お試しください。';
+  if(/Failed to fetch|NetworkError|ENOTFOUND/i.test(msg)) return 'ネットワークに接続できませんでした。通信状況をご確認ください。';
+  return msg || '不明なエラーが発生しました。';
+}
+
+/* ── サインアップ（メール + パスワード） ── */
+async function supaSignUp(email, password) {
+  const sb = getSupabase();
+  if(!sb) { showToast('クラウドに接続できません。しばらくしてから再度お試しください','error'); return { ok:false }; }
+  try {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(data && data.user) {
+      // 確認メール必須プロジェクトでは user は返るが session は null になる
+      if(data.session) {
+        S.supaSession = { id: data.user.id, email: data.user.email || '' };
+        saveS();
+        return { ok:true, needsConfirm:false };
+      }
+      return { ok:true, needsConfirm:true };
+    }
+    return { ok:false };
+  } catch(e) {
+    showToast(_supaErr(e),'error');
+    return { ok:false };
+  }
+}
+
+/* ── サインイン（メール + パスワード） ── */
+async function supaSignIn(email, password) {
+  const sb = getSupabase();
+  if(!sb) { showToast('クラウドに接続できません。しばらくしてから再度お試しください','error'); return { ok:false }; }
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(data && data.user) {
+      S.supaSession = { id: data.user.id, email: data.user.email || '' };
+      saveS();
+      return { ok:true };
+    }
+    return { ok:false };
+  } catch(e) {
+    showToast(_supaErr(e),'error');
+    return { ok:false };
+  }
+}
+
+/* ── サインアウト（クラウド側のみ。ローカルの S.account / familink_v3 は触らない） ── */
+async function supaSignOut() {
+  const sb = getSupabase();
+  if(!sb) {
+    S.supaSession = null;
+    saveS();
+    try { refreshSupaUI(); } catch(_){}
+    return;
+  }
+  try { await sb.auth.signOut(); } catch(_){}
+  S.supaSession = null;
+  saveS();
+  try { refreshSupaUI(); } catch(_){}
+}
+
+/* ============================================================
+   Wave 202 — クラウド同期スタブ（将来の段階拡張用の骨格のみ）
+
+   方針：
+   - 今回は no-op（呼んでも例外を出さない）。テーブル設計とポリシーが整ってから本実装
+   - 必須 RLS：各テーブルに `user_id uuid references auth.users(id)` を持たせ、
+     `policy: (auth.uid() = user_id)` を select/insert/update/delete すべてに適用する
+   - 同期粒度の暫定案：profile / events / tasks / txs / posts / announces を最初の対象、
+     conflict 解決は updated_at の新しい方優先。送信は upsert、受信は merge-by-id
+   ============================================================ */
+async function syncToSupabase() {
+  if(!isSupaLoggedIn()) { showToast('クラウドへの送信にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
+  // 第一段階はスタブ。後段でテーブル設計に従って実装する
+  showToast('クラウド同期は準備中です（接続のみ確認できています）','info');
+  return { ok:true, stub:true };
+}
+async function syncFromSupabase() {
+  if(!isSupaLoggedIn()) { showToast('クラウドからの取得にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
+  showToast('クラウド同期は準備中です（接続のみ確認できています）','info');
+  return { ok:true, stub:true };
+}
+
+/* ============================================================
+   Wave 202 — 入口画面（s-ob）3 ボタンのハンドラ
+   - ログインして使う：m-supa-auth を開く
+   - ログインせずに体験する：既存の _enterApp（ローカル動作のまま）へ
+   - 招待コードで参加する：m-supa-invite（スタブ）を開く
+   ============================================================ */
+function supaEntryClickLogin() {
+  S.supaEntryChoice = 'supa';
+  saveS();
+  openSupaAuthModal('signin');
+}
+function supaEntryClickGuest() {
+  S.supaEntryChoice = 'guest';
+  saveS();
+  // 既存のローカル動作で入る：seedDemo は行われない（一度始めたら再投入されない）
+  _enterApp(true);
+}
+function supaEntryClickInvite() {
+  S.supaEntryChoice = 'invite';
+  saveS();
+  openSupaInviteModal();
+}
+
+/* ── Supabase Auth モーダル ── */
+let _supaAuthMode = 'signin'; // 'signin' | 'signup'
+function openSupaAuthModal(mode) {
+  if(!SUPA_OK && !initSupabase()) {
+    showToast('クラウドに接続できません。しばらくしてから再度お試しください、または「ログインせずに体験する」をお選びください','error');
+    return;
+  }
+  _supaAuthMode = (mode === 'signup') ? 'signup' : 'signin';
+  _renderSupaAuthMode();
+  ['supa-auth-email','supa-auth-pass'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  openModal('m-supa-auth');
+}
+function _renderSupaAuthMode() {
+  const isUp = (_supaAuthMode === 'signup');
+  const t = document.getElementById('supa-auth-title');
+  if(t) t.textContent = isUp ? 'メールアドレスで新規登録' : 'メールアドレスでログイン';
+  const desc = document.getElementById('supa-auth-desc');
+  if(desc) desc.textContent = isUp
+    ? '新しいアカウントを作ります。登録メール宛に確認リンクが届く場合があります。'
+    : '登録済みのメールアドレスとパスワードでログインします。';
+  const submit = document.getElementById('supa-auth-submit');
+  if(submit) submit.textContent = isUp ? '登録する' : 'ログインする';
+  const toggle = document.getElementById('supa-auth-toggle');
+  if(toggle) toggle.textContent = isUp
+    ? '登録済みの方はこちら（ログイン）'
+    : 'まだアカウントをお持ちでない方はこちら（新規登録）';
+}
+function toggleSupaAuthMode() {
+  _supaAuthMode = (_supaAuthMode === 'signup') ? 'signin' : 'signup';
+  _renderSupaAuthMode();
+}
+async function doSupaAuthSubmit() {
+  const email = (document.getElementById('supa-auth-email').value || '').trim();
+  const pass  = document.getElementById('supa-auth-pass').value || '';
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('メールアドレスの形式が正しくありません','error'); return;
+  }
+  if(pass.length < 6) {
+    showToast('パスワードは 6 文字以上にしてください','error'); return;
+  }
+  const btn = document.getElementById('supa-auth-submit');
+  if(btn) { btn.disabled = true; btn.textContent = '通信中...'; }
+  try {
+    const r = (_supaAuthMode === 'signup')
+      ? await supaSignUp(email, pass)
+      : await supaSignIn(email, pass);
+    if(!r || !r.ok) return; // エラーは supaSignIn/Up 内でトースト済み
+    closeModal('m-supa-auth');
+    if(r.needsConfirm) {
+      showToast('確認メールを送りました。受信メールのリンクからご確認ください。','info');
+      return;
+    }
+    showToast('クラウドにログインしました','success');
+    _enterApp(true);
+  } finally {
+    if(btn) { btn.disabled = false; _renderSupaAuthMode(); }
+  }
+}
+
+/* ── 招待コードで参加（スタブ：今後の家族招待・共有受け入れ用） ── */
+function openSupaInviteModal() {
+  const inp = document.getElementById('supa-invite-code');
+  if(inp) inp.value = '';
+  openModal('m-supa-invite');
+}
+function doSupaInviteSubmit() {
+  const code = (document.getElementById('supa-invite-code').value || '').trim();
+  if(!code) { showToast('招待コードを入力してください','error'); return; }
+  if(code.length < 6 || code.length > 64) { showToast('招待コードの長さが正しくありません','error'); return; }
+  // 第一段階ではコードの存在チェックは行わず、案内のみ
+  closeModal('m-supa-invite');
+  showToast('招待コード機能は準備中です。リリースをお待ちください。','info');
+}
+
+/* ── 設定画面 / 入口画面の Supabase 関連 UI を再描画 ── */
+function refreshSupaUI() {
+  // 設定画面が開いていれば再描画（クラウドセクションの状態を反映）
+  try {
+    if(document.getElementById('s-settings') && !document.getElementById('s-settings').classList.contains('hidden')) {
+      if(typeof renderSettings === 'function') renderSettings();
+    }
+  } catch(_){}
+}
+
+
 /* Wave 59: メンバーを動的化（追加・削除可能）
    - DEFAULT_MEMBERS は初期値（変更不可）
    - MEMBERS は実行時の現在値（let）
@@ -5103,10 +5453,13 @@ let S = {
   demoModeEnabled: false,        // true 中は設定画面に「デモモード」バッジ + 解除ボタン
   demoBackupBeforeApply: null,   // 適用直前の本番データ自動バックアップ（DEMO_PROFILE_FIELDS のみ）
   demoProfilesSeeded: false,     // createDefaultDemoProfiles 実行済みフラグ
+  // Wave 202: Supabase 接続（接続+ Auth 第一段階）
+  supaSession: null,             // クラウドログイン中なら { id, email }、未ログインは null。本体セッションは sb-* キーに自動保存
+  supaEntryChoice: null,         // ウェルカム画面で選択した入口: 'supa' | 'guest' | 'invite' | null（未選択）
 };
 
 const APP_VERSION = 'v1.3.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice'];
 
 function saveS() {
   const d = {};
@@ -14401,6 +14754,46 @@ function renderSettings() {
         <div class="settings-item-label">ウィジェット設定</div><div class="settings-arrow">›</div>
       </div>
       ${accountSecHtml}
+    </div>
+
+    <!-- Wave 202: クラウド（Supabase）— 接続 + Auth 第一段階 -->
+    <div class="settings-section">
+      <div class="settings-title">クラウド連携（ベータ）${isSupaLoggedIn() ? ' <span style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">ログイン中</span>' : (SUPA_OK ? '' : ' <span style="display:inline-block;background:#F3F4F6;color:#6B7280;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">未接続</span>')}</div>
+      ${isSupaLoggedIn()
+        ? `<div class="settings-item" style="cursor:default;">
+            <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 6L9 17l-5-5"/>','#10B981')}</div>
+            <div class="settings-item-label">ログイン中
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${H(supaEmail())}</div>
+            </div>
+          </div>
+          <div class="settings-item" onclick="syncToSupabase()">
+            <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M12 2v20M5 15l7 7 7-7"/>','#10B981')}</div>
+            <div class="settings-item-label">クラウドへ送信
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">準備中（接続のみ確認）</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" onclick="syncFromSupabase()">
+            <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M12 22V2M5 9l7-7 7 7"/>','#4A90E2')}</div>
+            <div class="settings-item-label">クラウドから取得
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">準備中（接続のみ確認）</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" onclick="showConfirm('クラウドからログアウト','クラウドからログアウトします。端末内のデータ（ローカル保存）は削除されません。','ログアウトする', () => { supaSignOut().then(()=>showToast('クラウドからログアウトしました')); }, 'warning')">
+            <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
+            <div class="settings-item-label" style="color:var(--red)">クラウドからログアウト</div>
+          </div>`
+        : `<div class="settings-item" onclick="openSupaAuthModal('signin')">
+            <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>','#4A90E2')}</div>
+            <div class="settings-item-label">メールでログイン
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${SUPA_OK ? '家族とのデータ共有・端末間バックアップに使えます' : 'クラウドに接続できません。ネットワークをご確認ください'}</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" onclick="openSupaInviteModal()">
+            <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#F59E0B')}</div>
+            <div class="settings-item-label">招待コードで参加
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">家族から受け取ったコードで参加（準備中）</div>
+            </div><div class="settings-arrow">›</div>
+          </div>`}
     </div>
 
     <!-- Wave 57: 過去機能の復活 -->
