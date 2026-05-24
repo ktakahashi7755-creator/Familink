@@ -3836,6 +3836,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- Wave 201: デモデータ管理（営業/提案/紹介用に複数サンプルを切替） -->
+<div id="m-demo-manager" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">デモ・提案用データの管理</div>
+    <div id="demo-manager-body" class="modal-form" style="gap:0;">
+      <!-- renderDemoManagerModal() で動的生成 -->
+    </div>
+    <div class="modal-actions" style="margin-top:8px;">
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-demo-manager')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wave 201: デモプロファイル編集（name / desc / memo） -->
+<div id="m-demo-edit" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">デモプロファイルを編集</div>
+    <input type="hidden" id="demo-edit-id">
+    <div class="modal-form" style="gap:4px;">
+      <label class="form-label">名前 <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="demo-edit-name" class="form-input" placeholder="例: 提案用_田中家" maxlength="40" autocomplete="off">
+      <label class="form-label" style="margin-top:12px;">説明（任意）</label>
+      <input type="text" id="demo-edit-desc" class="form-input" placeholder="どんなパターンのデータか" maxlength="200" autocomplete="off">
+      <label class="form-label" style="margin-top:12px;">メモ（任意）</label>
+      <textarea id="demo-edit-memo" class="form-input" rows="3" placeholder="営業先・更新理由など" maxlength="500" style="resize:vertical;"></textarea>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:10px 0 0;">
+        ※ ここでは表示名と説明のみ編集できます。中身の予定や家計などはデモを適用してから各画面で編集し、「現在を上書き」で保存してください。
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="saveDemoEdit()">保存する</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-demo-edit')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- C8: 利用スタイル（個人利用 / 家族・チーム利用） -->
 <!-- ===== ワークスペース切り替えモーダル ===== -->
 <div id="m-workspace-switcher" class="modal-backdrop hidden">
@@ -5044,10 +5082,16 @@ let S = {
   widgetItems: null, // ウィジェット設定: [{type,label,enabled}] | null=デフォルト
   workspaces: null,        // ワークスペース一覧 [{id,name,type,description,allowedMemberIds,enabledFeatures,accessMode,createdAt,updatedAt}]
   currentWorkspaceId: 'ws_shared', // 現在アクティブなワークスペース ID
+  // Wave 201: デモデータ管理（営業/提案/紹介用に複数のサンプルを切替）
+  demoProfiles: [],              // [{id,name,desc,memo,isDefault,createdAt,updatedAt,data:{...subset of S...}}]
+  activeDemoProfileId: null,     // 現在適用中のデモプロファイル ID
+  demoModeEnabled: false,        // true 中は設定画面に「デモモード」バッジ + 解除ボタン
+  demoBackupBeforeApply: null,   // 適用直前の本番データ自動バックアップ（DEMO_PROFILE_FIELDS のみ）
+  demoProfilesSeeded: false,     // createDefaultDemoProfiles 実行済みフラグ
 };
 
 const APP_VERSION = 'v1.3.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded'];
 
 function saveS() {
   const d = {};
@@ -6552,6 +6596,513 @@ function seedDemo(force) {
   // 描画で使う新スキーマ (title/assignedTo/status/...) に正規化する
   migrateTaskData();
   S.demoSeeded = true;
+}
+
+/* ============================================================
+   Wave 201 — DEMO PROFILE MANAGER（営業/提案/紹介用に複数の
+   サンプルデータセットを保存・切替できる管理機能）
+
+   設計方針：
+   - 既存の seedDemo / exportFamilinkData / importFamilinkDataFromFile は触らない
+   - 既存 S / PERSIST / 'familink_v3' キーは破壊しない（追加のみ）
+   - スナップショット対象は DEMO_PROFILE_FIELDS のサブセット（写真/書類など重い
+     データやアカウント情報は含めない）
+   - 適用前に showConfirm で必ず確認、直前データを demoBackupBeforeApply に
+     自動退避してデモモード解除時に戻せる
+   - 削除も showConfirm で確認
+   ============================================================ */
+
+/* デモプロファイルでスナップショット対象とする S のキー一覧。
+   - 家族/予定/タスク/家計/体調/準備/買い物/家族ボード/通知/カスタムボード等
+   - albumPhotos, docs, userPhotos（写真系）は容量肥大化を避けるため除外
+   - account/isPremiumUser/onboardCompleted/hokuApiUrl 等の本人/端末固有設定は除外
+   - demoProfiles 自身、デモメタ系も含めない */
+const DEMO_PROFILE_FIELDS = [
+  'members','userProfile',
+  'events','tasks','txs','announces','posts','health','prep','prepRoutines','notifs',
+  'shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab',
+  'customBoards','boardItems','boardSections','boardCustomTabs','defaultCustomBoardsSeeded',
+  'recurringTxs','cashflowSettings','budgetVisibleMembers','tkVisibleMembers',
+  'homeOrder','memos','memoFolders','tabConfig','widgetItems',
+  'budgetY','budgetM','budgetTab','shoppingMigrated'
+];
+
+/* 現在の S から DEMO_PROFILE_FIELDS のみ取り出して JSON 経由のディープコピーで返す。
+   失敗時は {} を返す（呼び元で空セット扱いされる）。 */
+function _snapshotDemoFields() {
+  const snap = {};
+  for(const k of DEMO_PROFILE_FIELDS) {
+    if(typeof S[k] === 'undefined') continue;
+    try { snap[k] = JSON.parse(JSON.stringify(S[k])); }
+    catch(e) { /* シリアライズ不能なものはスキップ */ }
+  }
+  return snap;
+}
+
+/* デモプロファイルの data を S に流し込む（DEMO_PROFILE_FIELDS のキーのみ上書き）。
+   data に含まれていないキーは触らない（部分プロファイルにも備える）。 */
+function _restoreDemoFields(data) {
+  if(!data || typeof data !== 'object') return 0;
+  let applied = 0;
+  for(const k of DEMO_PROFILE_FIELDS) {
+    if(typeof data[k] !== 'undefined') {
+      try { S[k] = JSON.parse(JSON.stringify(data[k])); applied++; }
+      catch(e) {}
+    }
+  }
+  // メンバー定義が変わった場合は MEMBERS 配列にも反映
+  if(typeof applyMembersFromS === 'function') {
+    try { applyMembersFromS(); } catch(e) {}
+  }
+  return applied;
+}
+
+/* 共通：日付ヘルパ（既存 todayStr / addDays を利用） */
+
+/* ① 家庭向けリアルデモ — 既存 seedDemo を厚めにしたパターン */
+function _buildHomeDemoData() {
+  const t = todayStr();
+  return {
+    members: [
+      { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'var(--grad-primary)' },
+      { id:'seiai',   name:'ママ',  role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+      { id:'seito',   name:'長男',  role:'child',  av:'長', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
+      { id:'seio',    name:'次男',  role:'child',  av:'次', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
+      { id:'seitaro', name:'三男',  role:'child',  av:'三', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
+    ],
+    events: [
+      {id:uid(),title:'長男 小学校 持ち物確認',date:t,time:'07:00',color:'#4A90E2',member:'seiai',note:'体操服・絵の具セット'},
+      {id:uid(),title:'次男 保育園 お迎え',date:t,time:'17:30',color:'#52C47A',member:'kenya',note:'連絡帳を確認'},
+      {id:uid(),title:'三男 ピアノ教室',date:addDays(t,1),time:'16:00',color:'#9B7EDE',member:'seitaro',note:'発表会の譜面を持参'},
+      {id:uid(),title:'家族 小児科 予防接種',date:addDays(t,2),time:'10:00',color:'#FF6B6B',member:'seiai',note:'保険証・母子手帳'},
+      {id:uid(),title:'運動会 練習日',date:addDays(t,4),time:'09:00',color:'#FF9B4E',member:'seito',note:'帽子・水筒'},
+      {id:uid(),title:'家族で外食（誕生日）',date:addDays(t,6),time:'18:00',color:'#F07CB3',member:'kenya',note:'予約済み'},
+    ],
+    tasks: [
+      {id:uid(),text:'長男の体操服を洗濯',member:'seiai',done:false,at:t},
+      {id:uid(),text:'保育園の連絡帳記入',member:'kenya',done:false,at:t},
+      {id:uid(),text:'家計簿の入力（先週分）',member:'seiai',done:true,at:addDays(t,-1)},
+      {id:uid(),text:'ピアノ発表会の衣装確認',member:'seiai',done:false,at:addDays(t,2)},
+    ],
+    txs: [
+      {id:uid(),type:'income', amount:420000,cat:'給与',desc:'月給（パパ）',date:addDays(t,-7),member:'kenya'},
+      {id:uid(),type:'income', amount:280000,cat:'給与',desc:'月給（ママ・時短）',date:addDays(t,-7),member:'seiai'},
+      {id:uid(),type:'expense',amount:118000, cat:'住居費',desc:'家賃',date:addDays(t,-5),member:'kenya'},
+      {id:uid(),type:'expense',amount:62000,  cat:'食費',desc:'食費（月計）',date:addDays(t,-3),member:'seiai'},
+      {id:uid(),type:'expense',amount:14800,  cat:'通信費',desc:'スマホ・ネット',date:addDays(t,-3),member:'kenya'},
+      {id:uid(),type:'expense',amount:38000,  cat:'保育園',desc:'保育園 月額',date:addDays(t,-2),member:'seiai'},
+      {id:uid(),type:'expense',amount:22000,  cat:'教育費',desc:'三男 ピアノ月謝',date:addDays(t,-1),member:'seitaro'},
+      {id:uid(),type:'expense',amount:6800,   cat:'医療費',desc:'次男 小児科',date:t,member:'seio'},
+    ],
+    health: [
+      {id:uid(),child:'seio',date:t,temp:36.7,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'seio',date:addDays(t,-1),temp:37.2,cond:'微熱',note:'夜中に1回起きた',meds:''},
+      {id:uid(),child:'seito',date:t,temp:36.5,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'seitaro',date:t,temp:36.8,cond:'普通',note:'',meds:''},
+    ],
+    prep: [
+      {id:uid(),text:'体操服（洗濯済）',cat:'学校',done:false,date:addDays(t,1)},
+      {id:uid(),text:'絵の具セット',cat:'学校',done:false,date:addDays(t,1)},
+      {id:uid(),text:'連絡帳',cat:'保育園',done:true,date:t},
+      {id:uid(),text:'お弁当箱',cat:'保育園',done:false,date:addDays(t,1)},
+      {id:uid(),text:'ピアノ譜面・教本',cat:'習い事',done:false,date:addDays(t,1)},
+      {id:uid(),text:'保険証・母子手帳',cat:'病院',done:false,date:addDays(t,2)},
+    ],
+    shoppingItems: [
+      {id:uid(),name:'牛乳',qty:'2本',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'食パン',qty:'1袋',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'おむつ（M）',qty:'1パック',cat:'日用品',done:false,at:t},
+      {id:uid(),name:'洗剤',qty:'1個',cat:'日用品',done:true,at:addDays(t,-1)},
+    ],
+    announces: [
+      {id:uid(), title:'今週末の予定',
+        body:'土曜は次男の小児科、日曜は家族で公園に行きます。お弁当はママ担当です。',
+        author:'seiai', cat:'家族', isPinned:true, targets:'all', expiresAt:'',
+        reads:['seiai'], reactions:{}, reactMap:{kenya:'confirmed'},
+        comments:[], createdAt:t, updatedAt:t},
+      {id:uid(), title:'三男のピアノ発表会',
+        body:'来週土曜の14:00から。衣装は黒のフォーマルで揃えます。',
+        author:'kenya', cat:'重要', isPinned:false, targets:'all', expiresAt:'',
+        reads:['kenya'], reactions:{}, reactMap:{seiai:'thanks'},
+        comments:[], createdAt:addDays(t,-1), updatedAt:addDays(t,-1)},
+    ],
+    budgetY: new Date().getFullYear(),
+    budgetM: new Date().getMonth(),
+  };
+}
+
+/* ② 仮想家族デモ — 個人情報を含まない完全架空データ */
+function _buildVirtualFamilyDemoData() {
+  const t = todayStr();
+  return {
+    members: [
+      { id:'demo_papa', name:'たろうパパ', role:'parent', av:'タ', grad:'var(--grad-primary)' },
+      { id:'demo_mama', name:'はなママ',   role:'parent', av:'ハ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+      { id:'demo_yu',   name:'ゆうくん',   role:'child',  av:'ゆ', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
+      { id:'demo_mio',  name:'みおちゃん', role:'child',  av:'み', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
+    ],
+    events: [
+      {id:uid(),title:'運動会',date:addDays(t,3),time:'09:00',color:'#FF9B4E',member:'demo_yu',note:'お弁当・水筒'},
+      {id:uid(),title:'予防接種（みお）',date:addDays(t,5),time:'10:30',color:'#FF6B6B',member:'demo_mio',note:'母子手帳'},
+      {id:uid(),title:'スイミング（ゆう）',date:addDays(t,1),time:'16:00',color:'#4A90E2',member:'demo_yu',note:'ゴーグル'},
+      {id:uid(),title:'家族で買い物',date:addDays(t,2),time:'14:00',color:'#52C47A',member:'demo_papa',note:''},
+    ],
+    tasks: [
+      {id:uid(),text:'運動会のお弁当の下準備',member:'demo_mama',done:false,at:t},
+      {id:uid(),text:'スイミングバッグの確認',member:'demo_papa',done:true,at:t},
+      {id:uid(),text:'みおの予防接種の予約確認',member:'demo_mama',done:false,at:t},
+    ],
+    txs: [
+      {id:uid(),type:'income', amount:350000,cat:'給与',desc:'月給',date:addDays(t,-7),member:'demo_papa'},
+      {id:uid(),type:'expense',amount:95000, cat:'住居費',desc:'家賃',date:addDays(t,-5),member:'demo_papa'},
+      {id:uid(),type:'expense',amount:48000, cat:'食費',desc:'食費（月計）',date:addDays(t,-3),member:'demo_mama'},
+      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'スイミング月謝',date:addDays(t,-2),member:'demo_yu'},
+    ],
+    health: [
+      {id:uid(),child:'demo_mio',date:t,temp:36.6,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'demo_yu',date:t,temp:36.8,cond:'普通',note:'',meds:''},
+    ],
+    prep: [
+      {id:uid(),text:'運動会の帽子・水筒',cat:'学校',done:false,date:addDays(t,3)},
+      {id:uid(),text:'スイミングの水着・ゴーグル',cat:'習い事',done:true,date:addDays(t,1)},
+      {id:uid(),text:'母子手帳',cat:'病院',done:false,date:addDays(t,5)},
+    ],
+    shoppingItems: [
+      {id:uid(),name:'牛乳',qty:'1本',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'卵',qty:'1パック',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'ティッシュ',qty:'1箱',cat:'日用品',done:false,at:t},
+    ],
+    announces: [
+      {id:uid(), title:'運動会のお知らせ',
+        body:'今週末の運動会、お弁当はママ、応援はパパ担当です！',
+        author:'demo_mama', cat:'家族', isPinned:true, targets:'all', expiresAt:'',
+        reads:[], reactions:{}, reactMap:{},
+        comments:[], createdAt:t, updatedAt:t},
+    ],
+    budgetY: new Date().getFullYear(),
+    budgetM: new Date().getMonth(),
+  };
+}
+
+/* ③ 提案用_家族データ — 提案先の家庭構成に合わせて編集するためのテンプレ */
+function _buildProposalTemplateDemoData() {
+  const t = todayStr();
+  return {
+    members: [
+      { id:'tpl_papa', name:'パパ',     role:'parent', av:'パ', grad:'var(--grad-primary)' },
+      { id:'tpl_mama', name:'ママ',     role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+      { id:'tpl_c1',   name:'お子さま1', role:'child',  av:'1', grad:'linear-gradient(135deg,#FF9B4E,#FFB800)' },
+      { id:'tpl_c2',   name:'お子さま2', role:'child',  av:'2', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
+    ],
+    events: [
+      {id:uid(),title:'（テンプレ）平日の予定例',date:addDays(t,1),time:'17:00',color:'#4A90E2',member:'tpl_papa',note:'実際の予定に差し替えてください'},
+      {id:uid(),title:'（テンプレ）週末の家族予定',date:addDays(t,3),time:'10:00',color:'#52C47A',member:'tpl_mama',note:''},
+    ],
+    tasks: [
+      {id:uid(),text:'（テンプレ）家族で共有したいやることを書く',member:'tpl_mama',done:false,at:t},
+    ],
+    txs: [
+      {id:uid(),type:'income', amount:300000,cat:'給与',desc:'（テンプレ）月収を入力',date:addDays(t,-5),member:'tpl_papa'},
+      {id:uid(),type:'expense',amount:80000, cat:'住居費',desc:'（テンプレ）家賃 / ローン',date:addDays(t,-4),member:'tpl_papa'},
+      {id:uid(),type:'expense',amount:40000, cat:'食費',desc:'（テンプレ）食費',date:addDays(t,-3),member:'tpl_mama'},
+    ],
+    health: [
+      {id:uid(),child:'tpl_c1',date:t,temp:36.5,cond:'普通',note:'（テンプレ）',meds:''},
+    ],
+    prep: [
+      {id:uid(),text:'（テンプレ）持ち物を書く',cat:'学校',done:false,date:addDays(t,1)},
+    ],
+    shoppingItems: [
+      {id:uid(),name:'（テンプレ）買い物を追加',qty:'1',cat:'食料品',done:false,at:t},
+    ],
+    announces: [
+      {id:uid(), title:'（テンプレ）家族で共有したいお知らせ',
+        body:'実際の家族のお知らせに差し替えてご利用ください。',
+        author:'tpl_mama', cat:'家族', isPinned:false, targets:'all', expiresAt:'',
+        reads:[], reactions:{}, reactMap:{},
+        comments:[], createdAt:t, updatedAt:t},
+    ],
+    budgetY: new Date().getFullYear(),
+    budgetM: new Date().getMonth(),
+  };
+}
+
+/* ④ 新規デモデータ — 空に近い状態（最小メンバーのみ） */
+function _buildBlankDemoData() {
+  return {
+    members: [
+      { id:'new_papa', name:'パパ', role:'parent', av:'パ', grad:'var(--grad-primary)' },
+      { id:'new_mama', name:'ママ', role:'parent', av:'マ', grad:'linear-gradient(135deg,#F07CB3,#FDA4AF)' },
+    ],
+    events: [], tasks: [], txs: [], health: [], prep: [], shoppingItems: [], announces: [], posts: [],
+    budgetY: new Date().getFullYear(),
+    budgetM: new Date().getMonth(),
+  };
+}
+
+/* デモプロファイル 1 件を組み立てる */
+function _makeDemoProfile(name, desc, data, isDefault) {
+  const now = new Date().toISOString();
+  return {
+    id: 'demo_' + uid(),
+    name: name || '無題のデモ',
+    desc: desc || '',
+    memo: '',
+    isDefault: !!isDefault,
+    createdAt: now,
+    updatedAt: now,
+    data: data || {}
+  };
+}
+
+/* 初期 4 種類のデモプロファイルを 1 回だけ投入。
+   既存プロファイルは触らず、demoProfilesSeeded が立っていれば何もしない。 */
+function createDefaultDemoProfiles(force) {
+  if(!force && S.demoProfilesSeeded) return;
+  if(!Array.isArray(S.demoProfiles)) S.demoProfiles = [];
+  // 既存の同名 isDefault プロファイルがあればスキップ（再投入で重複を増やさない）
+  const hasName = (nm) => S.demoProfiles.some(p => p && p.isDefault && p.name === nm);
+  if(!hasName('家庭向けリアルデモ')) {
+    S.demoProfiles.push(_makeDemoProfile(
+      '家庭向けリアルデモ',
+      '実際の子育て家庭に近いデータ。予定・家計・体調・買い物・準備リストが入っており、利用イメージが湧きやすい。',
+      _buildHomeDemoData(), true));
+  }
+  if(!hasName('仮想家族デモ')) {
+    S.demoProfiles.push(_makeDemoProfile(
+      '仮想家族デモ',
+      '営業・SNS・紹介用に使える完全な架空データ。個人情報を含まない安全なデモ。',
+      _buildVirtualFamilyDemoData(), true));
+  }
+  if(!hasName('提案用_家族データ')) {
+    S.demoProfiles.push(_makeDemoProfile(
+      '提案用_家族データ',
+      '提案先の家庭構成に合わせて編集するためのテンプレート。名前や予定を入れ替えて使える。',
+      _buildProposalTemplateDemoData(), true));
+  }
+  if(!hasName('新規デモデータ')) {
+    S.demoProfiles.push(_makeDemoProfile(
+      '新規デモデータ',
+      '空に近い状態から自由に作るためのデータ。最低限の家族メンバーのみ。',
+      _buildBlankDemoData(), true));
+  }
+  S.demoProfilesSeeded = true;
+  saveS();
+}
+
+/* プロファイルを適用：直前データを demoBackupBeforeApply に退避してから上書き */
+function applyDemoProfile(profileId) {
+  const p = (S.demoProfiles||[]).find(x => x && x.id === profileId);
+  if(!p) { showToast('プロファイルが見つかりません','error'); return; }
+  const isReapply = (S.activeDemoProfileId === profileId);
+  const msg = '「' + (p.name||'無題') + '」を適用すると、現在のデータが上書きされます。\n\n'
+    + '・直前データは自動バックアップされます（解除時に復元可能）\n'
+    + '・写真・書類・アカウント情報は影響しません\n'
+    + (isReapply ? '\n※ すでに適用中のプロファイルです。再適用しますか？' : '');
+  showConfirm('デモプロファイルを適用', msg, 'デモを適用する', () => {
+    // 既にデモモード中（=バックアップ済み）の場合は再退避しない（元データを守る）
+    if(!S.demoModeEnabled || !S.demoBackupBeforeApply) {
+      S.demoBackupBeforeApply = _snapshotDemoFields();
+    }
+    const n = _restoreDemoFields(p.data);
+    S.activeDemoProfileId = p.id;
+    S.demoModeEnabled = true;
+    const ok = saveS();
+    if(!ok) { showToast('保存に失敗しました（容量超過の可能性）','error'); return; }
+    closeModal('m-demo-manager');
+    try { renderHome(); } catch(e) {}
+    try { renderSettings(); } catch(e) {}
+    try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
+    showToast('デモを適用しました（' + n + ' 種類）','success');
+  }, 'warning');
+}
+
+/* 現在の S（DEMO_PROFILE_FIELDS のみ）を新規プロファイルとして保存。
+   既存プロファイル ID が渡されれば上書き（プロファイル名・説明は維持）。 */
+function saveCurrentAsDemoProfile(targetProfileId) {
+  const data = _snapshotDemoFields();
+  if(targetProfileId) {
+    const p = (S.demoProfiles||[]).find(x => x && x.id === targetProfileId);
+    if(!p) { showToast('プロファイルが見つかりません','error'); return; }
+    showConfirm('現在の状態で上書き保存', '「' + (p.name||'無題') + '」を現在のデータで上書きします。元のプロファイルの中身は失われます。', '上書きする', () => {
+      p.data = data;
+      p.updatedAt = new Date().toISOString();
+      saveS();
+      renderDemoManagerModal();
+      showToast('現在の状態を保存しました','success');
+    }, 'warning');
+  } else {
+    const now = new Date();
+    const name = '現在のデータ ' + now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate()
+      + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const np = _makeDemoProfile(name, '現在のデータから保存したスナップショット', data, false);
+    if(!Array.isArray(S.demoProfiles)) S.demoProfiles = [];
+    S.demoProfiles.push(np);
+    saveS();
+    renderDemoManagerModal();
+    showToast('現在の状態を新規プロファイルとして保存しました','success');
+  }
+}
+
+/* 複製：name + ' のコピー' で新しい ID を発行 */
+function duplicateDemoProfile(profileId) {
+  const p = (S.demoProfiles||[]).find(x => x && x.id === profileId);
+  if(!p) return;
+  const copy = _makeDemoProfile(
+    (p.name||'無題') + ' のコピー',
+    p.desc || '',
+    JSON.parse(JSON.stringify(p.data||{})),
+    false
+  );
+  copy.memo = p.memo || '';
+  S.demoProfiles.push(copy);
+  saveS();
+  renderDemoManagerModal();
+  showToast('複製しました','success');
+}
+
+/* 削除：showConfirm 経由のみ。適用中だった場合は activeDemoProfileId をクリア */
+function deleteDemoProfile(profileId) {
+  const p = (S.demoProfiles||[]).find(x => x && x.id === profileId);
+  if(!p) return;
+  showConfirm('デモプロファイルを削除', '「' + (p.name||'無題') + '」を削除します。この操作は元に戻せません。\n（現在のアプリのデータには影響しません）', '削除する', () => {
+    S.demoProfiles = (S.demoProfiles||[]).filter(x => x.id !== profileId);
+    if(S.activeDemoProfileId === profileId) S.activeDemoProfileId = null;
+    saveS();
+    renderDemoManagerModal();
+    showToast('削除しました','success');
+  }, 'danger');
+}
+
+/* 編集：name / desc / memo のみ。data は別ボタン（現在状態で上書き）で更新する。 */
+function openDemoEditModal(profileId) {
+  const p = (S.demoProfiles||[]).find(x => x && x.id === profileId);
+  if(!p) return;
+  document.getElementById('demo-edit-id').value = p.id;
+  document.getElementById('demo-edit-name').value = p.name || '';
+  document.getElementById('demo-edit-desc').value = p.desc || '';
+  document.getElementById('demo-edit-memo').value = p.memo || '';
+  openModal('m-demo-edit');
+}
+function saveDemoEdit() {
+  const id = document.getElementById('demo-edit-id').value;
+  const p = (S.demoProfiles||[]).find(x => x && x.id === id);
+  if(!p) { closeModal('m-demo-edit'); return; }
+  const nm  = (document.getElementById('demo-edit-name').value||'').trim();
+  const ds  = (document.getElementById('demo-edit-desc').value||'').trim();
+  const mm  = (document.getElementById('demo-edit-memo').value||'').trim();
+  if(!nm) { showToast('名前を入力してください','error'); return; }
+  p.name = nm.slice(0,40);
+  p.desc = ds.slice(0,200);
+  p.memo = mm.slice(0,500);
+  p.updatedAt = new Date().toISOString();
+  saveS();
+  closeModal('m-demo-edit');
+  renderDemoManagerModal();
+  showToast('保存しました','success');
+}
+
+/* デモモード解除：バックアップが残っていれば復元、なければモード解除のみ */
+function restoreBeforeDemoApply() {
+  if(!S.demoBackupBeforeApply) {
+    showConfirm('デモモードを解除', 'バックアップが見つからないため、現在のデータはそのままで「デモモード」表示だけを解除します。', 'デモモードを解除する', () => {
+      S.demoModeEnabled = false;
+      S.activeDemoProfileId = null;
+      saveS();
+      try { renderSettings(); } catch(e) {}
+      showToast('デモモードを解除しました','success');
+    }, 'warning');
+    return;
+  }
+  showConfirm('元のデータに戻す', 'デモ適用直前の状態に戻します。デモプロファイル自体は削除されません。', '元に戻す', () => {
+    _restoreDemoFields(S.demoBackupBeforeApply);
+    S.demoBackupBeforeApply = null;
+    S.demoModeEnabled = false;
+    S.activeDemoProfileId = null;
+    const ok = saveS();
+    if(!ok) { showToast('保存に失敗しました（容量超過の可能性）','error'); return; }
+    try { renderHome(); } catch(e) {}
+    try { renderSettings(); } catch(e) {}
+    try { if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens(); } catch(e) {}
+    showToast('元のデータに戻しました','success');
+  }, 'warning');
+}
+
+/* デモ管理モーダル：開く + 描画 */
+function openDemoManagerModal() {
+  // 初回オープン時に既定 4 種を投入
+  createDefaultDemoProfiles(false);
+  renderDemoManagerModal();
+  openModal('m-demo-manager');
+}
+function renderDemoManagerModal() {
+  const body = document.getElementById('demo-manager-body');
+  if(!body) return;
+  const list = (S.demoProfiles||[]).slice();
+  // 並び：初期プロファイル（古い順＝投入順で家庭→仮想→提案→新規）→ ユーザー作成（新しい順）
+  list.sort((a,b) => {
+    if(a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+    if(a.isDefault && b.isDefault) return (a.createdAt||'').localeCompare(b.createdAt||'');
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+  const banner = S.demoModeEnabled
+    ? '<div style="background:#FFF7ED;border:1px solid #FCD9B0;color:#92400E;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;">'
+      + '<strong style="font-weight:700;">デモモード中</strong>'
+      + (S.activeDemoProfileId ? '：' + H(((S.demoProfiles||[]).find(p=>p.id===S.activeDemoProfileId)||{}).name||'') : '')
+      + '<button class="btn btn-ghost" style="margin-left:auto;padding:4px 10px;font-size:11px;float:right;" onclick="restoreBeforeDemoApply()">解除</button>'
+      + '</div>'
+    : '';
+  const intro = '<p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 10px;">'
+    + '営業・提案・SNS 紹介などで複数のサンプルを切替表示できます。<br>'
+    + '適用前に現在の状態を自動バックアップし、「解除」で元のデータに戻せます。'
+    + '</p>';
+  let cards = '';
+  list.forEach(p => {
+    const active = (S.activeDemoProfileId === p.id);
+    const badge = active
+      ? '<span style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">使用中</span>'
+      : (p.isDefault ? '<span style="display:inline-block;background:#F3F4F6;color:#6B7280;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">初期</span>' : '');
+    const summary = _demoProfileSummary(p);
+    cards += '<div style="background:#fff;border:1px solid var(--border-light);border-radius:14px;padding:13px 14px;margin-bottom:10px;'
+      + (active ? 'box-shadow:0 0 0 2px #4A90E2 inset;' : '') + '">'
+      + '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">' + H(p.name||'無題') + badge + '</div>'
+      + '<div style="font-size:11px;color:var(--text-sub);line-height:1.5;margin-bottom:6px;">' + H(p.desc||'') + '</div>'
+      + '<div style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">' + summary + '</div>'
+      + (p.memo ? '<div style="font-size:11px;color:var(--text-sub);line-height:1.5;background:var(--bg-muted);border-radius:8px;padding:8px 10px;margin-bottom:10px;">' + H(p.memo) + '</div>' : '')
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+      +   '<button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="applyDemoProfile(\'' + p.id + '\')">適用する</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="openDemoEditModal(\'' + p.id + '\')">編集</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="duplicateDemoProfile(\'' + p.id + '\')">複製</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="saveCurrentAsDemoProfile(\'' + p.id + '\')">現在を上書き</button>'
+      +   (p.isDefault ? '' : '<button class="btn btn-ghost" style="font-size:12px;padding:7px 12px;color:var(--danger);" onclick="deleteDemoProfile(\'' + p.id + '\')">削除</button>')
+      + '</div>'
+      + '</div>';
+  });
+  if(!cards) cards = '<div style="font-size:12px;color:var(--text-muted);padding:14px;">デモプロファイルがありません。「現在の状態を保存」または下のボタンから作成してください。</div>';
+  const addRow = '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">'
+    + '<button class="btn btn-outline btn-block" onclick="saveCurrentAsDemoProfile(\'\')">＋ 現在の状態を新規デモとして保存</button>'
+    + '<button class="btn btn-ghost btn-block" onclick="reseedDefaultDemoProfiles()">初期 4 種のデモを再作成</button>'
+    + '</div>';
+  body.innerHTML = banner + intro + cards + addRow;
+}
+
+/* 1 行サマリ：件数を集計して表示 */
+function _demoProfileSummary(p) {
+  const d = (p && p.data) || {};
+  const c = (k) => Array.isArray(d[k]) ? d[k].length : 0;
+  return '家族 ' + c('members') + ' / 予定 ' + c('events') + ' / タスク ' + c('tasks')
+    + ' / 家計 ' + c('txs') + ' / 体調 ' + c('health')
+    + ' / 準備 ' + c('prep') + ' / 買物 ' + c('shoppingItems');
+}
+
+/* 初期 4 種の再作成（既存と同名のものがあればスキップする実装なので、
+   不足分のみ補完される） */
+function reseedDefaultDemoProfiles() {
+  showConfirm('初期サンプルを再作成', '不足している初期 4 種（家庭向け / 仮想家族 / 提案用 / 新規）を補完します。既存のプロファイル（名前が同じもの）は変更されません。', '再作成する', () => {
+    createDefaultDemoProfiles(true);
+    renderDemoManagerModal();
+    showToast('初期サンプルを再作成しました','success');
+  }, 'info');
 }
 
 /* ============================================================
@@ -13858,6 +14409,22 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>','#10B981')}</div>
         <div class="settings-item-label">データのバックアップ</div><div class="settings-arrow">›</div>
       </div>
+    </div>
+
+    <!-- Wave 201: デモ・提案用データの管理（複数サンプルの切替） -->
+    <div class="settings-section">
+      <div class="settings-title">デモ・提案用データ${S.demoModeEnabled ? ' <span style="display:inline-block;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">デモモード中</span>' : ''}</div>
+      <div class="settings-item" onclick="openDemoManagerModal()">
+        <div class="settings-item-icon" style="background:#FFF7ED">${si('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M8 14h3"/>','#F59E0B')}</div>
+        <div class="settings-item-label">デモデータ管理
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">複数のサンプルを切替（家庭向け / 仮想家族 / 提案用 / 新規）</div>
+        </div><div class="settings-arrow">›</div>
+      </div>
+      ${S.demoModeEnabled ? `
+      <div class="settings-item" onclick="restoreBeforeDemoApply()">
+        <div class="settings-item-icon" style="background:#FEF2F2">${si('<path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 4 3 12 11 12"/>','#DC2626')}</div>
+        <div class="settings-item-label" style="color:var(--danger)">デモモードを解除（元データに戻す）</div><div class="settings-arrow">›</div>
+      </div>` : ''}
     </div>
 
     <!-- Wave 77: Hoku 連携（実験的）— 外部 Hoku API の URL 設定 -->

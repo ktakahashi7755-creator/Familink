@@ -12722,3 +12722,73 @@ puppeteer-core で showConfirm をモックし、各エンティティの create
 
 ### コミット
 - 5c1d534（音声境界2件） + 本worklog
+
+---
+
+## 2026-05-24 16:57  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 201 — デモデータ管理機能の追加（家庭向け / 仮想家族 / 提案用 / 新規の 4 種を保存・切替）
+
+### 変更ファイル
+- `app-source/familink.html`（S / PERSIST / DEMO_PROFILE_FIELDS / 関数群 / モーダル 2 つ / 設定画面導線）
+- `docs/index.html`（同期 + キャッシュバスター 20260523p → 20260524a）
+- `docs/worklog.md`
+
+### 変更内容
+- 既存 LocalStorage キー `familink_v3` / 既存 PERSIST / 既存 seedDemo / 既存 export/import を一切壊さず、追加のみで実装
+- S に追加: `demoProfiles[] / activeDemoProfileId / demoModeEnabled / demoBackupBeforeApply / demoProfilesSeeded`（5 つすべて PERSIST 配列にも追加）
+- スナップショット対象は新設定数 `DEMO_PROFILE_FIELDS`（33 キー）— members/userProfile/events/tasks/txs/announces/posts/health/prep/prepRoutines/notifs/shoppingItems/shoppingFrequent/shoppingHistory/shoppingTab/customBoards/boardItems/boardSections/boardCustomTabs/defaultCustomBoardsSeeded/recurringTxs/cashflowSettings/budgetVisibleMembers/tkVisibleMembers/homeOrder/memos/memoFolders/tabConfig/widgetItems/budgetY/budgetM/budgetTab/shoppingMigrated
+- 重い / 個別性が強いキー（albumPhotos / docs / userPhotos / account / isPremiumUser / hokuApiUrl 等）は意図的に除外
+- 初期 4 プロファイルを `createDefaultDemoProfiles()` で 1 回だけ自動投入：
+  1. 家庭向けリアルデモ — パパ/ママ/長男/次男/三男 + 予定 6 / タスク 4 / 家計 8 / 体調 4 / 準備 6 / 買物 4
+  2. 仮想家族デモ — たろうパパ/はなママ/ゆうくん/みおちゃん（完全架空・個人情報なし）
+  3. 提案用_家族データ — パパ/ママ/お子さま1/お子さま2（テンプレ値中心、編集前提）
+  4. 新規デモデータ — パパ/ママのみ + 空配列中心
+- 関数群: `applyDemoProfile / saveCurrentAsDemoProfile / duplicateDemoProfile / deleteDemoProfile / renameDemoProfile=openDemoEditModal+saveDemoEdit / restoreBeforeDemoApply / reseedDefaultDemoProfiles / openDemoManagerModal / renderDemoManagerModal`
+- 安全策：
+  - 適用前に `showConfirm` で「現在のデータが上書きされます」と確認
+  - 適用直前に `demoBackupBeforeApply` へ自動退避 → 解除ボタンで元データに戻せる（既にデモモード中は再退避しない＝元データを守る）
+  - 削除も `showConfirm` で確認 / 初期プロファイル（isDefault）は削除ボタン非表示
+  - 保存失敗時は既存 `saveS()` の容量超過トーストでユーザーに通知
+- UI 導線：設定画面の「家族の保管」直下に「デモ・提案用データ」セクションを新設。デモモード中はセクション見出しに「デモモード中」バッジ + 「デモモードを解除（元データに戻す）」項目を追加表示
+- 一覧モーダル `m-demo-manager`：各カードに `使用中 / 初期` バッジ、件数サマリ、適用 / 編集 / 複製 / 現在を上書き / 削除（非初期のみ）ボタン
+- 編集モーダル `m-demo-edit`：名前（必須 40 字）/ 説明（200 字）/ メモ（500 字）。中身の編集はデモ適用後に各画面で行い「現在を上書き」で反映する設計
+- 並び順：初期プロファイルは投入順（家庭→仮想→提案→新規）で先頭固定、ユーザー作成は新しい順
+- 単一 HTML / Vanilla JS / 外部依存なし
+
+### テスト結果
+- JS 構文 `node --check`: app-source 1 ブロック 0 エラー / docs 3 ブロック 0 エラー
+- 行末コード検査: app-source LF=20741・CRLF=0 / docs LF=20756・CRLF=0（SW ラッパー 19 行分の差で整合）
+- puppeteer 実機動作（demo-profile-test.js）：
+  - 5 PERSIST 新キー / 7 関数 / 2 モーダルすべて存在確認
+  - `openDemoManagerModal()` 初回呼出で 4 プロファイル自動投入（isDefault=4）
+  - 仮想家族デモ適用 → members 切替（たろうパパ/はなママ/ゆうくん/みおちゃん）/ events=4 / tasks=3 / txs=4 / shoppingItems=3 / persistedDemoMode=true
+  - `restoreBeforeDemoApply()` で元データへ完全復元（events=6 tasks=4 txs=7 / hasBackup=false / demoModeEnabled=false）
+  - 複製: before=4 → after=5 OK / 現在保存: before=5 → after=6 OK
+  - pageerror=0（console 警告 2 件は file:// 配下の manifest.json CORS で本機能と無関係）
+- レイアウト（demo-layout-test.js）：iPhone SE 375x667 / PC 1280x800 とも横スクロールなし。設定 → デモ管理 → 編集モーダルの 3 画面スクショ目視確認 OK
+
+### 未確認事項
+- iPhone Safari 実機での適用・解除フローの目視確認
+- 大量プロファイル（10 件以上）作成時の LocalStorage 容量挙動
+- 「現在を上書き」で写真を含まないとはいえ、テキスト系データの総量がストレージ上限に近づくケース
+
+### iPhone確認ポイント
+- 設定 → デモ・提案用データ → デモデータ管理 で 4 種の初期プロファイルが見えること
+- 「仮想家族デモ」を適用 → ホーム / カレンダー / タスク / 家計 / 体調 / 準備 / 買い物 / 家族ボード が切り替わること
+- 適用後にセクション見出しに「デモモード中」バッジが出ること
+- 「デモモードを解除」で元データに戻ること
+- 編集モーダルで名前 / 説明 / メモを保存して反映されること
+- 削除ボタンに confirm が出ること（初期 4 種は削除ボタンが非表示であること）
+- iPhone SE で横スクロールしないこと
+
+### 次にやること
+- iPhone 実機での適用・解除フロー目視
+- 必要に応じて家庭向けリアルデモのデータをさらに厚く（カスタムボード / 通知 / メモ等を追加）
+- アクセシビリティ強化（前回からの引継ぎ案件・指示待ち）
+- App Store メタデータ準備（前回からの引継ぎ案件・指示待ち）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 201: add demo profile manager — multi-pattern sample data switching (home/virtual/proposal/blank) with auto-backup & restore`
