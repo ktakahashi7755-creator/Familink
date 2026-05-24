@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260524f';
+  var V='20260524g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3907,6 +3907,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-grip"></div>
     <div id="supa-auth-title" class="modal-title">メールでログイン</div>
 
+    <!-- Wave 206: 永続バナー（直近の Supabase 応答を消えずに表示） -->
+    <div id="supa-auth-banner" style="display:none;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:12px;line-height:1.6;position:relative;"></div>
+
     <!-- otp モード（既定）：メアドだけ入力して送信ボタンを押す -->
     <div id="supa-auth-otp-wrap">
       <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
@@ -5261,6 +5264,7 @@ function openSupaAuthModal(mode) {
   _supaLastErrorWasInvalidLogin = false;
   _hideSupaErrorHelp();
   _hideSupaEmailHint();
+  _clearSupaBanner();  // Wave 206: 開くたびにバナーをクリア
   const allowed = ['otp','otp-code','signin','signup','reset','sent','reset-sent'];
   const m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'otp'; // Wave 205: 既定は OTP
   setSupaAuthMode(m);
@@ -5445,10 +5449,17 @@ async function doSupaAuthSubmit() {
       return;
     }
     if(_supaAuthMode === 'signup') {
+      _recordSupaAttempt('signUp', email, { ok:true });
       if(r.needsConfirm) {
         const eSent = document.getElementById('supa-auth-sent-email');
         if(eSent) eSent.textContent = email;
         setSupaAuthMode('sent');
+        _setSupaBanner('success',
+          'アカウントを作成しました',
+          '<b>' + H(email) + '</b> 宛に確認メールを送信しました。<br>'
+          + '受信メール内のリンクをクリックして登録を完了させてください。<br>'
+          + '<b>👉 確認リンクが届かない / 効かない場合は、より確実な「メールでコード」方式をお試しください。</b>',
+          [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
         return;
       }
       // 確認不要プロジェクト：そのままログイン状態へ
@@ -5458,6 +5469,7 @@ async function doSupaAuthSubmit() {
       return;
     }
     // signin 成功
+    _recordSupaAttempt('signIn', email, { ok:true });
     closeModal('m-supa-auth');
     showToast('クラウドにログインしました','success');
     _enterApp(true);
@@ -5582,20 +5594,34 @@ async function supaVerifyOtp(email, token) {
 async function doSupaSendOtp() {
   const email = (document.getElementById('supa-otp-email').value || '').trim();
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('メールアドレスの形式が正しくありません','error');
+    _setSupaBanner('error','メールアドレスの形式が正しくありません','正しい形式（例: name@example.com）でお願いします。');
     const e = document.getElementById('supa-otp-email'); if(e) try { e.focus(); } catch(_){}
     return;
   }
+  if(_isSupaRateLimited()) {
+    _setSupaBanner('warn',
+      'メール送信のレート制限中です',
+      'Supabase 無料 SMTP は 1 時間 2 通までです。<br><b>次の送信まで：</b><span id="supa-rate-cd">…</span>',
+      []);
+    _supaStartCountdown();
+    return;
+  }
+  _clearSupaBanner();
   _supaLastEmail = email;
   const btn = document.getElementById('supa-otp-send');
   if(btn) { btn.disabled = true; btn.textContent = '送信中...'; }
   try {
     const r = await supaSendOtp(email);
     if(!r || !r.ok) return;
+    _recordSupaAttempt('sendOtp', email, { ok:true });
     // メール送信成功 → コード入力モードへ
     const sentEl = document.getElementById('supa-otp-sent-email');
     if(sentEl) sentEl.textContent = email;
     setSupaAuthMode('otp-code');
+    _setSupaBanner('success',
+      'ログインコードを送信しました',
+      '<b>' + H(email) + '</b> 宛に 6 桁の数字コードをお送りしました。<br>'
+      + '数分以内に届かない場合は、<b>迷惑メールフォルダ</b>もご確認ください。');
     // コード入力欄に自動フォーカス
     setTimeout(() => {
       const codeInp = document.getElementById('supa-otp-code');
@@ -5619,11 +5645,13 @@ async function doSupaVerifyOtp() {
     const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
     return;
   }
+  _clearSupaBanner();
   const btn = document.getElementById('supa-otp-verify');
   if(btn) { btn.disabled = true; btn.textContent = '確認中...'; }
   try {
     const r = await supaVerifyOtp(email, code);
     if(!r || !r.ok) return;
+    _recordSupaAttempt('verifyOtp', email, { ok:true });
     closeModal('m-supa-auth');
     showToast('クラウドにログインしました','success');
     _enterApp(true);
@@ -5660,7 +5688,168 @@ function _trackSupaErr(op, error) {
       code: error && (error.code || error.status) || '',
       message: (error && error.message) || String(error || ''),
     };
+    _recordSupaAttempt(op, '', { ok:false, code: _supaLastDiagError.code, message: _supaLastDiagError.message });
+    _setSupaBannerFromError(op, error);
   } catch(_){}
+}
+
+/* ============================================================
+   Wave 206 — 永続インラインバナー / 試行ログ / レート制限検知
+
+   方針：Toast は 2.8 秒で消えてユーザーが何が起きたか確認できない。
+   モーダル上部にバナーを残し、Supabase の生応答を表示する。
+   ============================================================ */
+const _SUPA_ATTEMPTS_KEY = 'familink_supa_attempts';
+let _supaRateLimitUntil  = 0;     // epoch ms（この時刻まで OTP/サインアップを抑制）
+let _supaCountdownTimer  = null;
+
+function _setSupaBanner(type, title, body, actions) {
+  const el = document.getElementById('supa-auth-banner');
+  if(!el) return;
+  const styles = {
+    error:   { bg:'#FEF2F2', border:'#FCA5A5', color:'#7F1D1D', icon:'❌' },
+    warn:    { bg:'#FFFBEB', border:'#FDE68A', color:'#92400E', icon:'⚠️' },
+    success: { bg:'#ECFDF5', border:'#A7F3D0', color:'#065F46', icon:'✅' },
+    info:    { bg:'#EFF6FF', border:'#BFDBFE', color:'#1E3A8A', icon:'ℹ️' },
+  };
+  const s = styles[type] || styles.info;
+  el.style.background = s.bg;
+  el.style.border = '1px solid ' + s.border;
+  el.style.color = s.color;
+  el.style.display = '';
+  const btns = (actions||[]).map(a =>
+    '<button type="button" class="btn btn-outline" style="font-size:11px;padding:5px 10px;margin-top:8px;margin-right:6px;color:' + s.color + ';border-color:' + s.border + ';" onclick="' + a.onclick + '">' + H(a.label) + '</button>'
+  ).join('');
+  el.innerHTML =
+    '<button type="button" aria-label="閉じる" onclick="_clearSupaBanner()" style="position:absolute;top:6px;right:8px;background:transparent;border:none;color:' + s.color + ';font-size:14px;cursor:pointer;line-height:1;padding:2px 6px;opacity:.7;">×</button>'
+    + '<div style="font-weight:700;padding-right:18px;">' + s.icon + ' ' + H(title) + '</div>'
+    + (body ? '<div style="margin-top:4px;font-size:11px;line-height:1.6;">' + body + '</div>' : '')
+    + (btns ? '<div style="margin-top:6px;">' + btns + '</div>' : '');
+}
+function _clearSupaBanner() {
+  const el = document.getElementById('supa-auth-banner');
+  if(el) { el.style.display = 'none'; el.innerHTML = ''; }
+}
+
+/* エラー応答からバナー文言 + 推奨アクションを決定 */
+function _setSupaBannerFromError(op, error) {
+  const msg = String((error && error.message) || error || '');
+  const code = (error && (error.code || error.status)) || '';
+
+  // 1) レート制限
+  if(/rate limit|too many|over.*limit/i.test(msg)) {
+    // Supabase 無料 SMTP は時間 2 通制限が一般的 → 念のため 65 分待たせる
+    _supaRateLimitUntil = Date.now() + 65 * 60 * 1000;
+    _supaStartCountdown();
+    _setSupaBanner('warn',
+      'メール送信のレート制限に到達しました',
+      'Supabase の無料 SMTP は <b>1 時間あたり 2 通まで</b>の制限があります。<br>'
+      + '<b>次の送信まで：</b><span id="supa-rate-cd">約 60 分</span><br>'
+      + 'メールが届いた可能性もあるので、迷惑メールフォルダもご確認ください。',
+      []);
+    return;
+  }
+  // 2) 既登録
+  if(/User already registered/i.test(msg)) {
+    _setSupaBanner('info',
+      'このメールアドレスは既に登録されています',
+      'パスワードを覚えていなくても、<b>「メールでコードを受け取る」方式</b>で同じメアドにログインできます。',
+      [{ label:'メールでコードでログイン →', onclick:"setSupaAuthMode('otp')" }]);
+    return;
+  }
+  // 3) メアド不正
+  if(/email.*(invalid|not valid|address.*invalid)/i.test(msg)) {
+    _setSupaBanner('error',
+      'このメールアドレスは受け付けられません',
+      '<code>@gmail.test</code> 等のテストドメインは Supabase 側で拒否されます。<br>実在するメールアドレスをお使いください。',
+      []);
+    return;
+  }
+  // 4) パスワード短い
+  if(/password.*at least/i.test(msg)) {
+    _setSupaBanner('error', 'パスワードが短すぎます', 'パスワードは <b>6 文字以上</b>にしてください。', []);
+    return;
+  }
+  // 5) Invalid login
+  if(/Invalid login/i.test(msg)) {
+    _setSupaBanner('error',
+      'ログインできませんでした',
+      'メールアドレス・パスワードをご確認ください。<br>登録直後の方は<b>メール内のリンクをまだクリックしていない</b>可能性があります。<br><b>👉 「メールでコードを受け取る」方式が確実です。</b>',
+      [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
+    return;
+  }
+  // 6) Email not confirmed
+  if(/Email not confirmed/i.test(msg)) {
+    _setSupaBanner('warn',
+      'メール認証がまだ完了していません',
+      '受信メール内のリンクをクリックして登録を完了させてください。<br>または <b>「メールでコードを受け取る」方式</b>でログインできます（その場合はリンククリック不要）。',
+      [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
+    return;
+  }
+  // 7) Token expired
+  if(/Token has expired|otp.*expired/i.test(msg)) {
+    _setSupaBanner('warn', 'コードの有効期限が切れています', '「コードを再送する」を押して新しいコードを受け取ってください。', []);
+    return;
+  }
+  // 8) ネットワーク
+  if(/Failed to fetch|NetworkError|ENOTFOUND|net::|connection/i.test(msg)) {
+    _setSupaBanner('error', '通信エラー', 'ネットワーク接続をご確認のうえ、再度お試しください。', []);
+    return;
+  }
+  // 9) その他（生応答を表示）
+  _setSupaBanner('error',
+    'エラーが発生しました',
+    '<b>' + H(op) + ':</b> ' + H(msg) + (code ? '<br><span style="opacity:.7;">code: ' + H(String(code)) + '</span>' : ''),
+    [{ label:'接続を診断する', onclick:'openSupaDiag()' }]);
+}
+
+/* レート制限のカウントダウン表示 */
+function _supaStartCountdown() {
+  if(_supaCountdownTimer) clearInterval(_supaCountdownTimer);
+  _supaCountdownTimer = setInterval(() => {
+    const el = document.getElementById('supa-rate-cd');
+    const remain = _supaRateLimitUntil - Date.now();
+    if(!el) return;
+    if(remain <= 0) {
+      el.textContent = '送信できます（再試行してください）';
+      clearInterval(_supaCountdownTimer);
+      _supaCountdownTimer = null;
+      return;
+    }
+    const m = Math.floor(remain / 60000);
+    const s = Math.floor((remain % 60000) / 1000);
+    el.textContent = `約 ${m} 分 ${String(s).padStart(2,'0')} 秒`;
+  }, 1000);
+}
+function _isSupaRateLimited() { return Date.now() < _supaRateLimitUntil; }
+
+/* 試行ログ（最新が先頭、最大 10 件、localStorage に永続化） */
+function _recordSupaAttempt(op, email, result) {
+  try {
+    const arr = _getSupaAttempts();
+    arr.unshift({
+      at: new Date().toISOString(),
+      op: op,
+      email: email || _supaLastEmail || '',
+      ok: !!(result && result.ok),
+      code: (result && result.code) || '',
+      message: (result && result.message) || (result && result.ok ? '成功' : '失敗'),
+    });
+    while(arr.length > 10) arr.pop();
+    localStorage.setItem(_SUPA_ATTEMPTS_KEY, JSON.stringify(arr));
+  } catch(_){}
+}
+function _getSupaAttempts() {
+  try {
+    const v = localStorage.getItem(_SUPA_ATTEMPTS_KEY);
+    return v ? (JSON.parse(v) || []) : [];
+  } catch(_){ return []; }
+}
+function _clearSupaAttempts() {
+  try { localStorage.removeItem(_SUPA_ATTEMPTS_KEY); } catch(_){}
+  if(document.getElementById('m-supa-diag') && document.getElementById('m-supa-diag').classList.contains('open')) {
+    renderSupaDiag();
+  }
 }
 function openSupaDiag() {
   renderSupaDiag();
@@ -5694,17 +5883,59 @@ function renderSupaDiag() {
   });
   html += '</table>';
 
+  // 直近の認証試行（最新 10 件、Wave 206）
+  const attempts = _getSupaAttempts();
+  html += '<div style="margin-top:14px;">'
+       +    '<div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 6px;">'
+       +      '<p style="font-size:12px;font-weight:700;color:var(--text);margin:0;">直近の認証試行（最新 ' + attempts.length + ' 件）</p>'
+       +      (attempts.length ? '<button type="button" class="btn btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="_clearSupaAttempts()">履歴クリア</button>' : '')
+       +    '</div>';
+  if(!attempts.length) {
+    html += '<p style="font-size:11px;color:var(--text-muted);margin:0;">（まだ試行履歴がありません）</p>';
+  } else {
+    html += '<div style="border:1px solid var(--border-light);border-radius:8px;overflow:hidden;font-size:11px;line-height:1.5;">';
+    attempts.forEach((a, i) => {
+      const at = (a.at||'').replace('T',' ').replace(/\.\d+Z$/,'').slice(5, 16);
+      const color = a.ok ? '#059669' : '#DC2626';
+      const icon = a.ok ? '✓' : '✗';
+      html += '<div style="padding:6px 10px;' + (i ? 'border-top:1px solid var(--border-light);' : '') + 'background:' + (i%2 ? 'var(--bg-muted)' : '#fff') + ';">'
+            +   '<span style="color:' + color + ';font-weight:700;">' + icon + '</span>'
+            +   ' <code style="font-size:10px;color:var(--text-muted);">' + H(at) + '</code>'
+            +   ' <b style="color:var(--text);">' + H(a.op||'') + '</b>'
+            +   (a.email ? ' <span style="color:var(--text-sub);">' + H((a.email||'').slice(0,40)) + '</span>' : '')
+            +   '<br><span style="font-size:10px;color:' + color + ';margin-left:18px;">' + H((a.message||'').slice(0,200)) + '</span>'
+            + '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
   // よくある原因の説明
   html += '<div style="margin-top:14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;">'
        +  '<p style="font-size:12px;font-weight:700;color:#92400E;margin:0 0 6px;">よくある原因と対処</p>'
        +  '<ul style="font-size:11px;color:#92400E;line-height:1.7;margin:0;padding-left:18px;">'
-       +    '<li><b>メールが届かない</b>：迷惑メールフォルダを確認 / メアド誤りなら入力し直し / Supabase 無料枠は時間 2 通までの制限あり</li>'
-       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6 桁）」</b>方式が確実です。次回はメールで届くコードを直接入力してください</li>'
+       +    '<li><b>メールが届かない</b>：迷惑メールフォルダを確認 / メアド誤りなら入力し直し / Supabase 無料 SMTP は <b>1 時間 2 通 / 1 日 4 通</b>までの制限あり</li>'
+       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6 桁）」</b>方式が確実です。メールで届く 6 桁の数字を直接入力してください</li>'
        +    '<li><b>テスト用ドメイン（@gmail.test 等）</b>は受け付けられません。実在するメールアドレスをお使いください</li>'
-       +    '<li><b>パスワードでログインできない</b>：パスワードでログインを使わず「メールでコードを受け取る」をお試しください（既存アカウントでも使えます）</li>'
+       +    '<li><b>パスワードでログインできない</b>：「メールでコードを受け取る」をお試しください（既存アカウントでも使えます。パスワード不要）</li>'
        +    '<li><b>ネットワーク不安定</b>：CDN（cdn.jsdelivr.net）と Supabase API への通信が必要です</li>'
        +  '</ul>'
        +  '</div>';
+
+  // オーナー向け対処ガイド（Wave 206）
+  html += '<div style="margin-top:14px;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:10px;padding:12px 14px;">'
+       +  '<p style="font-size:12px;font-weight:700;color:#1F2937;margin:0 0 6px;">🔧 オーナー向け：本番運用前に確認すること</p>'
+       +  '<p style="font-size:11px;color:#374151;line-height:1.7;margin:0 0 6px;">Supabase ダッシュボードで以下を確認してください：</p>'
+       +  '<ul style="font-size:11px;color:#374151;line-height:1.7;margin:0;padding-left:18px;">'
+       +    '<li><b>Authentication → Providers → Email：</b>「Enable Email provider」が ON / 「Confirm email」を OFF にすれば確認リンク不要に</li>'
+       +    '<li><b>Authentication → Email Templates：</b>送信元（Sender）を独自ドメインに / メール本文を Familink らしく</li>'
+       +    '<li><b>Authentication → Rate Limits：</b>1 時間 2 通の制限を緩めるには有料プランか custom SMTP（Resend / SendGrid 等）が必要</li>'
+       +    '<li><b>Custom SMTP：</b>Project Settings → Auth → SMTP Settings で外部 SMTP を設定すると Gmail のスパム判定も改善</li>'
+       +    '<li><b>URL Configuration：</b>Site URL に <code style="font-size:10px;">' + H(location.origin || location.href.split('?')[0]) + '</code> を設定</li>'
+       +    '<li><b>テスト環境では：</b>Authentication → Settings → Email Auth で「Confirm email」を OFF にすれば、新規登録直後にログイン可能（推奨：本番化時に再 ON）</li>'
+       +  '</ul>'
+       +  '</div>';
+
   body.innerHTML = html;
 }
 

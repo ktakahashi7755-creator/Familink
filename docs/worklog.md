@@ -13169,3 +13169,94 @@ Wave 202 で誤って無効化していた。確認メールのリンクや Magi
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 205: OTP login as default + detectSessionInUrl fix + diag panel`
+---
+
+## 2026-05-24 21:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 206 — 永続バナー / 試行ログ / レート制限カウントダウン / オーナー向け診断ガイド
+
+### ユーザー報告（ログイン継続不能）
+スクショ：パスワード認証画面に切替済 + iOS Keychain が生成パスを自動入力済の状態でログイン失敗 + 「メールも届かない / 新規アカウント作成ができません」。
+
+### 追加で判明した実情と原因
+- Wave 205 で OTP は API 受付確認したが、**ユーザー宛にメールが届いていない**
+- 最有力：**Supabase 無料 SMTP のレート制限**（1 時間 2 通 / 1 日 4 通）に到達
+- 次点：Gmail 側のスパム判定 / Supabase デフォルト送信元のレピュテーション
+- 加えて：Toast は 2.8 秒で消えるためユーザーは <b>API が何を返したか確認できない</b>
+- 加えて：本問題は最終的に <b>Supabase ダッシュボード側の設定</b>でしか根絶できないが、それが画面上で誘導されていない
+
+### 変更ファイル
+- `app-source/familink.html`（+約 280 行：バナー / 試行ログ / レート制限 / オーナーガイド）
+- `docs/index.html`（同期、キャッシュバスター `20260524f` → `20260524g`）
+- `docs/worklog.md`
+
+### 変更内容
+
+**1. 永続インラインバナー（モーダル上部、Toast 廃止）**
+- 4 種別：`error` / `warn` / `success` / `info`（色分け + アイコン + 右上 × 閉じる）
+- アクションボタンを bannar 内に埋め込み可能（例：「メールでコードに切替 →」）
+- `_setSupaBannerFromError(op, error)` で Supabase 応答を判別して 9 パターンに振り分け：
+  - レート制限 → カウントダウン付き
+  - 既登録 → OTP 切替を提案
+  - メアド不正 → 実在アドレス案内
+  - 短パス
+  - Invalid login → OTP 切替を提案
+  - メール未確認 → OTP 切替を提案
+  - トークン期限切れ
+  - ネットワーク
+  - その他は生応答を表示 + 「接続を診断する」ボタン
+
+**2. 直近認証試行ログ（最新 10 件、localStorage に永続化）**
+- `_recordSupaAttempt(op, email, result)` を全 Auth 関数（signIn / signUp / sendOtp / verifyOtp / resetPassword）から自動記録
+- 診断モーダルに表で表示：時刻 / 操作 / メアド / 結果 / 応答メッセージ
+- 「履歴クリア」ボタン付き
+
+**3. レート制限カウントダウン**
+- "rate limit" を検出すると `_supaRateLimitUntil = Date.now() + 65min` を設定
+- バナー内に「次の送信まで：約 N 分 SS 秒」をリアルタイム更新
+- `_isSupaRateLimited()` で `doSupaSendOtp` 等を自動抑制
+
+**4. 診断パネルにオーナー向けガイド追加**
+ダッシュボードで何を確認すればよいかを具体的に列挙：
+- Authentication → Providers → Email：「Enable Email provider」/「Confirm email」OFF で確認リンク不要に
+- Authentication → Email Templates：送信元 / 本文
+- Authentication → Rate Limits：1 時間 2 通の制限と緩和方法
+- Custom SMTP：Resend / SendGrid 等
+- URL Configuration → Site URL に現在の URL を設定
+- **テスト環境では「Confirm email」OFF が推奨**（新規登録直後にログイン可能）
+
+**5. 成功時の永続表示**
+- OTP 送信成功 → 緑バナー「ログインコードを送信しました」+ メアド + 迷惑メール案内
+- 新規登録成功（確認待ち） → 緑バナー「アカウントを作成しました」+ OTP 切替提案
+
+### テスト結果（supa-banner-test.js）
+- バナー表示 / 閉じる ✓
+- Invalid login → OTP 切替提案バナー ✓
+- 既登録 → OTP 切替提案 ✓
+- rate limit → カウントダウン動作（実測：約 64 分 58 秒 → リアルタイム減算）✓
+- 試行ログ 3 件記録 / 履歴クリア ✓
+- 診断モーダル：試行履歴セクション / オーナーガイド / SMTP / Site URL / Rate Limits ヒント全表示 ✓
+- ESC で閉じる、pageerror 0、JS 構文 0 エラー、md5 一致 `6e74b55fb4f431f83d52fad920d2d29d`
+
+### 未確認事項
+- 実機 iPhone でのバナー表示
+- 実際にレート制限が解除された後の挙動（時間経過待ち）
+
+### iPhone確認ポイント
+- 「ログインして使う」→ OTP モードでメアド入力 → ボタン押下
+- もしメールが来ない場合：バナーが残っているのでスクショして共有
+- **「🔍 ログインできない場合はこちら（接続診断）」**を開いて：
+  - 直近の試行履歴が一覧で見える
+  - 「オーナー向け：本番運用前に確認すること」を確認
+  - 特に **Authentication → Settings → Email Auth → Confirm email を OFF** にすると即時ログイン可能（テスト中の推奨設定）
+
+### 次にやること（オーナー側 + 自走範囲）
+1. **オーナー：Supabase ダッシュボードで Confirm email を OFF にする**（テスト中の最速解決）
+2. 本番化前に Custom SMTP（Resend or SendGrid）を設定
+3. iPhone 実機で OTP フロー検証
+4. Phase 4-4 同期実装
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 206: persistent banners + attempt log + rate limit countdown + owner-side diag guide`
