@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260524c';
+  var V='20260524e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3900,26 +3900,104 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- Wave 202: Supabase Auth（メール + パスワードで新規登録 / ログイン） -->
+<!-- Wave 202/204: Supabase Auth — mode により表示が切替（signin / signup / sent / reset / reset-sent） -->
 <div id="m-supa-auth" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
     <div id="supa-auth-title" class="modal-title">メールアドレスでログイン</div>
-    <p id="supa-auth-desc" style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">登録済みのメールアドレスとパスワードでログインします。</p>
-    <div class="modal-form" style="gap:4px;">
-      <label class="form-label">メールアドレス</label>
-      <input type="email" id="supa-auth-email" class="form-input" placeholder="example@mail.com" autocomplete="email" inputmode="email" maxlength="120">
-      <label class="form-label" style="margin-top:12px;">パスワード（6 文字以上）</label>
-      <input type="password" id="supa-auth-pass" class="form-input" placeholder="パスワード" autocomplete="current-password" maxlength="120">
-      <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(74,144,226,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
-        ログインすると、家族とのデータ共有（クラウド同期）が将来ご利用いただけます。<br>
-        ログインせずに体験する場合はこのまま閉じて「ログインせずに体験する」を選んでください。
-      </p>
+
+    <!-- form モード（signin / signup / reset 共通） -->
+    <div id="supa-auth-form-wrap">
+      <p id="supa-auth-desc" style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">登録済みのメールアドレスとパスワードでログインします。</p>
+      <div class="modal-form" style="gap:4px;">
+        <label class="form-label" for="supa-auth-email">メールアドレス</label>
+        <input type="email" id="supa-auth-email" class="form-input" placeholder="example@mail.com" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="next">
+        <p id="supa-auth-email-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;">
+          <!-- 動的：ドメイン typo 警告 -->
+        </p>
+        <label class="form-label" for="supa-auth-pass" id="supa-auth-pass-label" style="margin-top:12px;">パスワード（6 文字以上）</label>
+        <div id="supa-auth-pass-wrap" class="pw-wrap" style="position:relative;">
+          <input type="password" id="supa-auth-pass" class="form-input" placeholder="パスワード" autocomplete="current-password" maxlength="120" enterkeyhint="go">
+          <button type="button" class="pw-eye" aria-label="パスワードを表示/非表示" onclick="togglePw('supa-auth-pass', this)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p id="supa-auth-info" style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(74,144,226,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
+          ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。
+        </p>
+        <!-- ログイン失敗時の補助導線（最後のエラー後だけ表示） -->
+        <div id="supa-auth-error-help" style="display:none;margin-top:10px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 12px;">
+          <p style="font-size:12px;color:#7F1D1D;line-height:1.6;margin:0 0 8px;font-weight:600;">うまくログインできない場合：</p>
+          <ul style="font-size:11px;color:#7F1D1D;line-height:1.6;margin:0 0 8px;padding-left:18px;">
+            <li>登録直後の方は<strong>確認メール内のリンク</strong>をクリックされましたか？</li>
+            <li>パスワードを忘れた場合は再設定できます</li>
+          </ul>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline" style="font-size:12px;padding:6px 12px;" onclick="resendSupaConfirmFromHelp()">確認メールを再送する</button>
+            <button type="button" class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="setSupaAuthMode('reset')">パスワードをリセット</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
+        <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
+        <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
+        <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
-      <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+
+    <!-- 「確認メール送信済み」永続表示（signup 成功後） -->
+    <div id="supa-auth-sent-wrap" style="display:none;">
+      <div style="text-align:center;padding:14px 8px 6px;">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;">📧</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">確認メールを送信しました</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
+          以下のアドレスにメールを送りました。<br>
+          <span id="supa-auth-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span>
+        </div>
+      </div>
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin:14px 0 10px;">
+        <p style="font-size:12px;color:#1E3A8A;line-height:1.7;margin:0;font-weight:600;">受信メール内のリンクをクリック</p>
+        <p style="font-size:11px;color:#1E40AF;line-height:1.7;margin:4px 0 0;">
+          ボタンをクリックして本登録を完了させてください。完了後にこの画面に戻り「ログインする」をお試しください。
+        </p>
+      </div>
+      <div style="background:var(--bg-muted);border-radius:10px;padding:11px 14px;margin:0 0 14px;">
+        <p style="font-size:11px;color:var(--text-sub);line-height:1.7;margin:0;">
+          メールが届かない場合：<br>
+          ① 迷惑メールフォルダをご確認ください<br>
+          ② アドレスに誤りがある場合は「メアドを変更」してやり直してください
+        </p>
+      </div>
+      <div class="modal-actions" style="gap:6px;">
+        <button id="supa-auth-resend" class="btn btn-outline btn-block" onclick="resendSupaConfirm()">確認メールを再送する</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="returnToSigninFromSent()">確認できたらログインへ</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('signup')">メアドを変更してやり直す</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 「パスワード再設定メール送信済み」 -->
+    <div id="supa-auth-reset-sent-wrap" style="display:none;">
+      <div style="text-align:center;padding:14px 8px 6px;">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔑</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">再設定メールを送信しました</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
+          以下のアドレスにメールを送りました。<br>
+          <span id="supa-auth-reset-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span>
+        </div>
+      </div>
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;margin:14px 0 10px;">
+        <p style="font-size:12px;color:#92400E;line-height:1.7;margin:0;">
+          受信メール内のリンクをクリックして、新しいパスワードを設定してください。<br>
+          完了後にログインからお試しください。
+        </p>
+      </div>
+      <div class="modal-actions" style="gap:6px;">
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="returnToSigninFromSent()">ログインへ戻る</button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4954,15 +5032,21 @@ function getSupabase() { return SUPA_OK ? _sbClient : null; }
 function isSupaLoggedIn() { return !!(S.supaSession && S.supaSession.id); }
 function supaEmail() { return (S.supaSession && S.supaSession.email) || ''; }
 
-/* Supabase Auth エラーメッセージを日本語に整える */
+/* Supabase Auth エラーメッセージを日本語に整える
+   Wave 204: "Invalid login credentials" は Supabase 側で
+   未確認 / 誤パス / 未登録 を区別せず返す（メール列挙対策）。
+   メッセージは「ログインできなかった」止まりにし、画面側で
+   「確認メール再送 / パスワード再設定」の補助導線を出す。 */
 function _supaErr(e) {
   const msg = String((e && e.message) || e || '');
-  if(/Invalid login/i.test(msg)) return 'メールアドレスまたはパスワードが正しくありません。';
+  if(/Invalid login/i.test(msg)) return 'ログインできませんでした。メールアドレス・パスワードをご確認ください（新規登録直後は確認メールのリンクをクリック済みかご確認ください）。';
   if(/Email not confirmed/i.test(msg)) return 'メール認証が未完了です。受信メールのリンクから確認してください。';
   if(/User already registered/i.test(msg)) return 'このメールアドレスは既に登録されています。ログインをお試しください。';
+  if(/email.*(invalid|not valid)/i.test(msg)) return 'このメールアドレスは受け付けられません。実在するメールアドレスをお使いください。';
   if(/Password should be at least/i.test(msg)) return 'パスワードが短すぎます（6文字以上推奨）。';
-  if(/rate limit|too many/i.test(msg)) return 'リクエストが多すぎます。しばらくしてから再度お試しください。';
-  if(/Failed to fetch|NetworkError|ENOTFOUND/i.test(msg)) return 'ネットワークに接続できませんでした。通信状況をご確認ください。';
+  if(/(rate limit|too many|over.*limit)/i.test(msg)) return 'リクエストが多すぎます。1〜2分おいて再度お試しください。';
+  if(/(Failed to fetch|NetworkError|ENOTFOUND|net::|connection)/i.test(msg)) return 'ネットワークに接続できませんでした。通信状況をご確認ください。';
+  if(/(disabled|not allowed)/i.test(msg)) return 'この操作は現在許可されていません。';
   return msg || '不明なエラーが発生しました。';
 }
 
@@ -4989,16 +5073,25 @@ async function supaSignUp(email, password) {
   }
 }
 
-/* ── サインイン（メール + パスワード） ── */
+/* ── サインイン（メール + パスワード）── */
 async function supaSignIn(email, password) {
   const sb = getSupabase();
   if(!sb) { showToast('クラウドに接続できません。しばらくしてから再度お試しください','error'); return { ok:false }; }
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    if(error) {
+      // Wave 204: "Invalid login credentials" は確認待ち / 誤パス / 未登録の区別なし。
+      // モーダル側で再送 / リセットの補助導線を出す合図にする。
+      const msg = String((error && error.message) || '');
+      _supaLastErrorWasInvalidLogin = /Invalid login/i.test(msg) || /Email not confirmed/i.test(msg);
+      _supaLastEmail = email;
+      showToast(_supaErr(error),'error');
+      return { ok:false };
+    }
     if(data && data.user) {
       S.supaSession = { id: data.user.id, email: data.user.email || '' };
       saveS();
+      _supaLastErrorWasInvalidLogin = false;
       return { ok:true };
     }
     return { ok:false };
@@ -5068,66 +5161,312 @@ function supaEntryClickInvite() {
   openSupaInviteModal();
 }
 
-/* ── Supabase Auth モーダル ── */
-let _supaAuthMode = 'signin'; // 'signin' | 'signup'
+/* ── Supabase Auth モーダル（Wave 204 で大幅強化） ──
+   mode:
+     'signin'     ログインフォーム
+     'signup'     新規登録フォーム
+     'reset'      パスワード再設定リクエストフォーム
+     'sent'       確認メール送信済み（永続表示）
+     'reset-sent' 再設定メール送信済み（永続表示）
+*/
+let _supaAuthMode = 'signin';
+let _supaLastEmail = '';           // 直近に試行したメール（再送に使う）
+let _supaLastErrorWasInvalidLogin = false; // 直近 signIn が "Invalid login" だったか
+
 function openSupaAuthModal(mode) {
   if(!SUPA_OK && !initSupabase()) {
     showToast('クラウドに接続できません。しばらくしてから再度お試しください、または「ログインせずに体験する」をお選びください','error');
     return;
   }
-  _supaAuthMode = (mode === 'signup') ? 'signup' : 'signin';
-  _renderSupaAuthMode();
   ['supa-auth-email','supa-auth-pass'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  _supaLastErrorWasInvalidLogin = false;
+  _hideSupaErrorHelp();
+  _hideSupaEmailHint();
+  setSupaAuthMode((mode === 'signup' || mode === 'reset' || mode === 'sent' || mode === 'reset-sent') ? mode : 'signin');
   openModal('m-supa-auth');
+  // 自動フォーカス（モバイルでも開いたら入力可能に）
+  setTimeout(() => {
+    const f = (_supaAuthMode === 'sent' || _supaAuthMode === 'reset-sent')
+      ? null
+      : document.getElementById('supa-auth-email');
+    if(f) try { f.focus(); } catch(_){}
+  }, 80);
 }
-function _renderSupaAuthMode() {
-  const isUp = (_supaAuthMode === 'signup');
+
+function setSupaAuthMode(mode) {
+  _supaAuthMode = mode || 'signin';
+  // セクション切替
+  const formWrap      = document.getElementById('supa-auth-form-wrap');
+  const sentWrap      = document.getElementById('supa-auth-sent-wrap');
+  const resetSentWrap = document.getElementById('supa-auth-reset-sent-wrap');
+  const showForm = (_supaAuthMode === 'signin' || _supaAuthMode === 'signup' || _supaAuthMode === 'reset');
+  if(formWrap)      formWrap.style.display      = showForm ? '' : 'none';
+  if(sentWrap)      sentWrap.style.display      = (_supaAuthMode === 'sent') ? '' : 'none';
+  if(resetSentWrap) resetSentWrap.style.display = (_supaAuthMode === 'reset-sent') ? '' : 'none';
+
+  // モーダル上部タイトルは全モードで更新する（sent / reset-sent でも統一感）
   const t = document.getElementById('supa-auth-title');
-  if(t) t.textContent = isUp ? 'メールアドレスで新規登録' : 'メールアドレスでログイン';
+  if(t) {
+    t.textContent =
+      (_supaAuthMode === 'sent')        ? '確認メール送信済み' :
+      (_supaAuthMode === 'reset-sent')  ? '再設定メール送信済み' :
+      (_supaAuthMode === 'reset')       ? 'パスワードを再設定' :
+      (_supaAuthMode === 'signup')      ? 'メールアドレスで新規登録' :
+                                          'メールアドレスでログイン';
+  }
+  if(!showForm) return;
+
+  const isUp    = (_supaAuthMode === 'signup');
+  const isReset = (_supaAuthMode === 'reset');
+
+  // タイトルは上の共通処理で更新済み
+
   const desc = document.getElementById('supa-auth-desc');
-  if(desc) desc.textContent = isUp
-    ? '新しいアカウントを作ります。登録メール宛に確認リンクが届く場合があります。'
-    : '登録済みのメールアドレスとパスワードでログインします。';
+  if(desc) desc.textContent = isReset
+    ? '登録済みのメールアドレスを入力すると、再設定リンクをお送りします。'
+    : (isUp
+        ? '新しいアカウントを作ります。登録後に確認メールのリンクをクリックしてログインを完了させてください。'
+        : '登録済みのメールアドレスとパスワードでログインします。');
+
+  // パスワード欄は signin / signup のみ
+  const passLabel = document.getElementById('supa-auth-pass-label');
+  const passWrap  = document.getElementById('supa-auth-pass-wrap');
+  const showPass = !isReset;
+  if(passLabel) passLabel.style.display = showPass ? '' : 'none';
+  if(passWrap)  passWrap.style.display  = showPass ? '' : 'none';
+  if(passLabel) passLabel.textContent = isUp ? 'パスワード（6 文字以上）' : 'パスワード';
+
+  // 入力 autocomplete を文脈に合わせる
+  const passInp = document.getElementById('supa-auth-pass');
+  if(passInp) passInp.setAttribute('autocomplete', isUp ? 'new-password' : 'current-password');
+
+  // submit ラベル
   const submit = document.getElementById('supa-auth-submit');
-  if(submit) submit.textContent = isUp ? '登録する' : 'ログインする';
+  if(submit) {
+    submit.disabled = false;
+    submit.textContent = isReset ? '再設定メールを送る' : (isUp ? '登録する' : 'ログインする');
+  }
+  // 補助ボタン制御
   const toggle = document.getElementById('supa-auth-toggle');
+  const forgot = document.getElementById('supa-auth-forgot');
+  const back   = document.getElementById('supa-auth-back');
+  if(toggle) toggle.style.display = isReset ? 'none' : '';
+  if(forgot) forgot.style.display = (_supaAuthMode === 'signin') ? '' : 'none';
+  if(back)   back.style.display   = isReset ? '' : 'none';
   if(toggle) toggle.textContent = isUp
     ? '登録済みの方はこちら（ログイン）'
     : 'まだアカウントをお持ちでない方はこちら（新規登録）';
+
+  // 情報バナーの文言
+  const info = document.getElementById('supa-auth-info');
+  if(info) info.innerHTML = isReset
+    ? 'パスワードを忘れた場合のみご利用ください。<br>そのままログインできる場合は「← ログインに戻る」へ。'
+    : 'ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。';
+
+  // エラーヘルプはモード切替時に閉じる（signin 復帰時は残す）
+  if(isUp || isReset) _hideSupaErrorHelp();
 }
+
 function toggleSupaAuthMode() {
-  _supaAuthMode = (_supaAuthMode === 'signup') ? 'signin' : 'signup';
-  _renderSupaAuthMode();
+  setSupaAuthMode((_supaAuthMode === 'signup') ? 'signin' : 'signup');
 }
+
+/* メールドメイン typo 警告（gmail.con / gmial.com など） */
+const _SUPA_DOMAIN_FIXES = [
+  ['gmail.con',     'gmail.com'],
+  ['gmial.com',     'gmail.com'],
+  ['gnail.com',     'gmail.com'],
+  ['gmai.com',      'gmail.com'],
+  ['yahoo.con',     'yahoo.co.jp'],
+  ['yhaoo.co.jp',   'yahoo.co.jp'],
+  ['outlook.con',   'outlook.com'],
+  ['hotmial.com',   'hotmail.com'],
+  ['icould.com',    'icloud.com'],
+  ['iclould.com',   'icloud.com'],
+];
+function _checkSupaEmailHint() {
+  const inp = document.getElementById('supa-auth-email');
+  const hint = document.getElementById('supa-auth-email-hint');
+  if(!inp || !hint) return;
+  const v = (inp.value||'').trim().toLowerCase();
+  if(!v || v.indexOf('@') < 0) { _hideSupaEmailHint(); return; }
+  const dom = v.split('@')[1] || '';
+  // 既知 typo 一覧と照合
+  for(const [bad, good] of _SUPA_DOMAIN_FIXES) {
+    if(dom === bad) {
+      hint.innerHTML = '⚠️ もしかして <b>@' + H(good) + '</b> ですか？お確かめください。';
+      hint.style.display = '';
+      return;
+    }
+  }
+  // .test / .local / .example 等の RFC 予約 TLD は Supabase が受け付けない
+  if(/\.(test|local|example|invalid|localhost)$/i.test(dom)) {
+    hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。実在するメールアドレスをお使いください。';
+    hint.style.display = '';
+    return;
+  }
+  _hideSupaEmailHint();
+}
+function _hideSupaEmailHint() {
+  const hint = document.getElementById('supa-auth-email-hint');
+  if(hint) { hint.style.display = 'none'; hint.innerHTML = ''; }
+}
+function _showSupaErrorHelp() {
+  const el = document.getElementById('supa-auth-error-help');
+  if(el) el.style.display = '';
+}
+function _hideSupaErrorHelp() {
+  const el = document.getElementById('supa-auth-error-help');
+  if(el) el.style.display = 'none';
+  _supaLastErrorWasInvalidLogin = false;
+}
+
 async function doSupaAuthSubmit() {
   const email = (document.getElementById('supa-auth-email').value || '').trim();
-  const pass  = document.getElementById('supa-auth-pass').value || '';
+  const pass  = (document.getElementById('supa-auth-pass') && document.getElementById('supa-auth-pass').value) || '';
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('メールアドレスの形式が正しくありません','error'); return;
+    showToast('メールアドレスの形式が正しくありません','error');
+    const e = document.getElementById('supa-auth-email'); if(e) try { e.focus(); } catch(_){}
+    return;
   }
-  if(pass.length < 6) {
-    showToast('パスワードは 6 文字以上にしてください','error'); return;
+  if(_supaAuthMode !== 'reset' && pass.length < 6) {
+    showToast('パスワードは 6 文字以上にしてください','error');
+    const p = document.getElementById('supa-auth-pass'); if(p) try { p.focus(); } catch(_){}
+    return;
   }
+  _supaLastEmail = email;
   const btn = document.getElementById('supa-auth-submit');
   if(btn) { btn.disabled = true; btn.textContent = '通信中...'; }
   try {
+    if(_supaAuthMode === 'reset') {
+      const r = await supaResetPassword(email);
+      if(!r || !r.ok) return;
+      const eSent = document.getElementById('supa-auth-reset-sent-email');
+      if(eSent) eSent.textContent = email;
+      setSupaAuthMode('reset-sent');
+      return;
+    }
     const r = (_supaAuthMode === 'signup')
       ? await supaSignUp(email, pass)
       : await supaSignIn(email, pass);
-    if(!r || !r.ok) return; // エラーは supaSignIn/Up 内でトースト済み
-    closeModal('m-supa-auth');
-    if(r.needsConfirm) {
-      showToast('確認メールを送りました。受信メールのリンクからご確認ください。','info');
+    if(!r || !r.ok) {
+      // signIn 失敗時、Invalid login だった場合はインライン補助を出す
+      if(_supaAuthMode === 'signin' && _supaLastErrorWasInvalidLogin) {
+        _showSupaErrorHelp();
+      }
       return;
     }
+    if(_supaAuthMode === 'signup') {
+      if(r.needsConfirm) {
+        const eSent = document.getElementById('supa-auth-sent-email');
+        if(eSent) eSent.textContent = email;
+        setSupaAuthMode('sent');
+        return;
+      }
+      // 確認不要プロジェクト：そのままログイン状態へ
+      closeModal('m-supa-auth');
+      showToast('アカウントを作成しました','success');
+      _enterApp(true);
+      return;
+    }
+    // signin 成功
+    closeModal('m-supa-auth');
     showToast('クラウドにログインしました','success');
     _enterApp(true);
   } finally {
-    if(btn) { btn.disabled = false; _renderSupaAuthMode(); }
+    if(btn) {
+      btn.disabled = false;
+      // テキストは setSupaAuthMode で再描画される（sent モードへ遷移した場合は不要）
+      if(_supaAuthMode === 'signin' || _supaAuthMode === 'signup' || _supaAuthMode === 'reset') {
+        btn.textContent = (_supaAuthMode === 'reset') ? '再設定メールを送る' : ((_supaAuthMode === 'signup') ? '登録する' : 'ログインする');
+      }
+    }
   }
 }
+
+/* 「確認メール送信済み」状態から再送 */
+async function resendSupaConfirm() {
+  const email = _supaLastEmail
+    || ((document.getElementById('supa-auth-sent-email')||{}).textContent || '').trim();
+  if(!email) { showToast('再送先のメールアドレスが不明です','error'); return; }
+  const btn = document.getElementById('supa-auth-resend');
+  if(btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    const sb = getSupabase();
+    if(!sb) { showToast('クラウドに接続できません','error'); return; }
+    const { error } = await sb.auth.resend({ type: 'signup', email });
+    if(error) { showToast(_supaErr(error),'error'); return; }
+    showToast('確認メールを再送しました。受信メールをご確認ください','success');
+  } catch(e) {
+    showToast(_supaErr(e),'error');
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = '確認メールを再送する'; }
+  }
+}
+
+/* signin エラー時のヘルプブロックから再送（メアドは現在の入力欄から取る） */
+async function resendSupaConfirmFromHelp() {
+  const email = (document.getElementById('supa-auth-email').value || '').trim();
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('メールアドレスを入力してから再送してください','error');
+    return;
+  }
+  _supaLastEmail = email;
+  try {
+    const sb = getSupabase();
+    if(!sb) { showToast('クラウドに接続できません','error'); return; }
+    const { error } = await sb.auth.resend({ type: 'signup', email });
+    if(error) { showToast(_supaErr(error),'error'); return; }
+    showToast('確認メールを再送しました。受信メールをご確認ください','success');
+  } catch(e) {
+    showToast(_supaErr(e),'error');
+  }
+}
+
+/* sent / reset-sent から signin に戻るとき、メアドを自動で復元する */
+function returnToSigninFromSent() {
+  setSupaAuthMode('signin');
+  const eInp = document.getElementById('supa-auth-email');
+  if(eInp && _supaLastEmail) eInp.value = _supaLastEmail;
+  // パスワード欄に自動でフォーカス
+  setTimeout(() => {
+    const p = document.getElementById('supa-auth-pass');
+    if(p) try { p.focus(); } catch(_){}
+  }, 80);
+}
+
+/* パスワード再設定メール送信 */
+async function supaResetPassword(email) {
+  const sb = getSupabase();
+  if(!sb) { showToast('クラウドに接続できません','error'); return { ok:false }; }
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if(error) { showToast(_supaErr(error),'error'); return { ok:false }; }
+    return { ok:true };
+  } catch(e) { showToast(_supaErr(e),'error'); return { ok:false }; }
+}
+
+/* 入力イベント：typo 警告 + Enter 送信 */
+document.addEventListener('input', function(e){
+  if(!e.target || !e.target.id) return;
+  if(e.target.id === 'supa-auth-email') _checkSupaEmailHint();
+});
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  const t = e.target; if(!t || !t.id) return;
+  // 認証モーダル内の input でだけ Enter を submit に振る
+  if(t.id === 'supa-auth-email' || t.id === 'supa-auth-pass') {
+    // signin/signup で email にいてパスワードが空ならパスワード欄へ
+    if(t.id === 'supa-auth-email' && _supaAuthMode !== 'reset') {
+      const p = document.getElementById('supa-auth-pass');
+      if(p && !p.value) { e.preventDefault(); try { p.focus(); } catch(_){}; return; }
+    }
+    e.preventDefault();
+    if(typeof doSupaAuthSubmit === 'function') doSupaAuthSubmit();
+  }
+});
 
 /* ── 招待コードで参加（スタブ：今後の家族招待・共有受け入れ用） ── */
 function openSupaInviteModal() {

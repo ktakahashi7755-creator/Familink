@@ -12927,3 +12927,118 @@ Wave 203 — 自走サイクル：QA 総点検 + ESC キーで最前面モーダ
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 203: a11y - ESC key closes top modal + supabase plan status update + QA sweep`
+---
+
+## 2026-05-24 19:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 204 — Supabase Auth UX 全面改修（「ログインできない」問題の根本解決）
+
+### 問題（ユーザー報告）
+Wave 202 の認証フローで「新規でアドレス・パスワードを作成して進めたが、うまくログインができない」。
+
+### 根本原因（実 API 観測で特定）
+puppeteer から `_sbClient.auth.signUp / signInWithPassword / resend` を実呼出して応答を観測：
+
+1. **signUp 成功時に `data.session` が null** で返る（Supabase 側で「メール確認必須」が ON）
+2. **既存トースト「確認メールを送りました」は 2.8 秒で消える**ため、次に何をすべきか UI に残らない
+3. **signIn 失敗時、Supabase は `Invalid login credentials` のみ返す**（メール列挙対策で「未確認」「誤パス」「未登録」を区別しない）→ ユーザーは「アカウントは作ったのにログインできない！」と混乱
+4. `.test` / `.local` 等の予約 TLD は Supabase 側で `"email is invalid"` で拒否されるが、フロントでは事前検知していなかった
+5. ドメインの typo（`gmail.con` 等）も検知できない
+
+### 変更ファイル
+- `app-source/familink.html`（モーダル HTML 全面改修 + JS 約 280 行追加/書換）
+- `docs/index.html`（同期、キャッシュバスター `20260524d` → `20260524e`）
+- `docs/worklog.md`
+
+### 変更内容
+
+**1. モーダルに「永続表示状態」を追加（mode 拡張）**
+従来の 2 モード（signin / signup）から 5 モードへ：
+- `signin` ログインフォーム
+- `signup` 新規登録フォーム
+- `reset` パスワード再設定リクエスト
+- `sent` ✨ 確認メール送信済み（永続表示・Toast 廃止）
+- `reset-sent` 再設定メール送信済み（永続表示）
+
+**2. 「確認メール送信済み」永続パネル（sent mode）**
+- 📧 アイコン + 大きな見出し + メアド表示
+- 青ボックス：「受信メール内のリンクをクリック」
+- グレーボックス：「迷惑メールフォルダを確認」「メアド誤りなら変更」
+- ボタン：[確認メールを再送する] [確認できたらログインへ] [メアドを変更してやり直す] [閉じる]
+
+**3. signin で「Invalid login」時のインライン補助導線**
+赤ボックスを form 内に表示：
+> うまくログインできない場合：
+> ・登録直後の方は確認メール内のリンクをクリックされましたか？
+> ・パスワードを忘れた場合は再設定できます
+>
+> [確認メールを再送する]（その場で resend API）
+> [パスワードをリセット]（reset mode へ）
+
+**4. パスワード再設定（Supabase resetPasswordForEmail）**
+- forgot リンク → reset mode → 再設定メール送信 → reset-sent モード（永続表示）
+- 「← ログインに戻る」で signin へ復帰、メアド自動補完
+
+**5. クライアント側 typo / TLD 警告**
+- `gmail.con / gmial.com / yahoo.con / outlook.con / hotmial.com / icould.com` 等の既知 typo
+- `.test / .local / .example / .invalid / .localhost` 等の RFC 予約 TLD（Supabase が拒否する）
+- メアド入力中（input イベント）にリアルタイムで黄色警告
+
+**6. UX 磨き込み**
+- Enter キーで signin/signup を submit（email → pass にフォーカス移動 → submit）
+- モーダル open 時に email へ自動フォーカス
+- 通信中は submit ボタン disabled & 「通信中...」
+- パスワード欄に既存 `togglePw` の目玉アイコン追加（ローカルログインと体験統一）
+- `autocomplete` を signup="new-password" / signin="current-password" で切替
+- `enterkeyhint="next" / "go"` でモバイルキーボードを最適化
+- sent → signin 戻り時にメアド自動補完 + パスワード欄に自動フォーカス
+- モード切替時にモーダル上部タイトルを常に更新（「確認メール送信済み」「再設定メール送信済み」など）
+
+**7. エラー文言の改善**
+- "Invalid login credentials" → 「ログインできませんでした。メールアドレス・パスワードをご確認ください（新規登録直後は確認メールのリンクをクリック済みかご確認ください）。」
+- "email is invalid" → 「このメールアドレスは受け付けられません。実在するメールアドレスをお使いください。」
+- 既知エラーパターンを 9 種類に拡充
+
+**8. 既存破壊なし**
+- `S` / `PERSIST` / `familink_v3` / 既存ローカル認証（`S.account` / `openSignup` / `doLogin`）すべて無変更
+- 既存の `m-supa-auth` 周辺関数は同じシグネチャを維持（追加のみ）
+- ESC キー閉じ（Wave 203）と互換
+
+### テスト結果
+- 実 Supabase API 観測（supa-auth-diag.js）：signUp/signIn/resend の生応答を取得、エラーパターンを 6 通り検証
+- フロー網羅（supa-auth-flow-test.js）：
+  1. signin → signup → reset モード切替 OK（title / submit / 表示要素すべて期待通り）
+  2. gmail.con typo 警告：「もしかして @gmail.com ですか？」表示 OK
+  3. .test TLD 警告：「テスト用ドメイン...」表示 OK / 解消で hint hide OK
+  4. signIn 失敗 → ヘルプブロック自動表示 OK
+  5. sent モード：永続表示 + email 反映 + 再送ボタン OK / title 「確認メール送信済み」
+  6. reset-sent モード：永続表示 + email 反映 OK
+  7. ESC で閉じる OK
+  8. pageerror 0
+- JS 構文 `node --check`：app-source 1 ブロック / docs 3 ブロックとも 0 エラー
+- md5 一致：本体 `7a0b068df1078c00cec5cb0fb624dc13`
+- 全画面 sweep（22 + 60）：pageerror 0、機能検査 OK
+
+### 未確認事項
+- 実在メアドでの signUp → 確認メール受領 → signIn 完走（実機通信。Wave 204 の UI 修正で導線は確保）
+- iPhone Safari 実機での目視確認（特に sent モード / 入力体験 / Enter 送信 / IME 中の挙動）
+
+### iPhone確認ポイント
+- 「ログインして使う」→ 「まだアカウントをお持ちでない方はこちら（新規登録）」→ メアド & パス入力 → 「登録する」
+- 登録成功後、モーダルが**閉じずに**「確認メール送信済み」パネルに切り替わること
+- 受信メール内のリンクをクリック後、「確認できたらログインへ」を押すとメアド自動補完されること
+- 確認前にログインを試みると赤い「うまくログインできない場合：」ブロックが出ること
+- そのブロックから「確認メールを再送する」/「パスワードをリセット」が押せること
+- `gmail.con` 等の typo メアドを入力すると黄色警告が出ること
+- 「パスワードをお忘れですか？」→ reset 画面→ 再設定メール送信が動くこと
+
+### 次にやること
+- iPhone 実機での完全フロー確認
+- Supabase Phase 4-4 同期実装（オーナーが SQL 反映後）
+- 招待コード本実装
+- App Store メタデータ整備（指示待ち）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 204: supabase auth UX overhaul - persistent sent state + resend + reset + typo warnings`
