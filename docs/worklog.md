@@ -13339,3 +13339,60 @@ QA ハーネス（`C:\Users\ktaka\familink-qa`）に新テストを 6 本追加�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 207: systematic QA - fix voice intent (買う/サイン), title cleanup, invalid-nav fallback`
+
+---
+
+## 2026-05-25 09:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 207-b — オンボーディング完走確認 / 音声 intent 85 パターン 100% / カレンダー月遷移堅牢性検証
+
+### 追加検証（コード変更を伴う部分のみ抜粋）
+- オンボーディング 4 ステップ完走を空 localStorage から実機シミュレーション → 完全成功（ゲスト開始 → プロフィール入力 → 初予定登録 → s-home 到達 + ユーザープロファイル / first event 永続）
+- 音声 intent 40 → 85 パターンに拡張、初回 81/85 (95%) → 3 ヶ所拡張で **85/85 (100%)**
+- カレンダー：12 ヶ月先 / 24 ヶ月前 / うるう年 (2024-02-29) / 12→1 月跨ぎ / 1→12 月跨ぎ いずれも正常
+
+### 変更ファイル
+- `app-source/familink.html`（音声 intent 3 箇所、すべて既存 regex への追記のみ）
+- `docs/index.html`（同期、キャッシュバスター `20260525a` → `20260525b`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\onboarding-test.js` / `onboarding-walkthrough.js` / `onboarding-full.js`（新規）
+- `C:\Users\ktaka\familink-qa\mega-intent-80.js`（新規・85 ケース）
+- `C:\Users\ktaka\familink-qa\calendar-nav-test.js` / `calendar-nav-test2.js`（新規）
+
+### 検出 → 修正（intent 拡張のみ・最小差分）
+1. `健康診断` を calendar 病院系列に追加（「5月20日 健康診断」が null だった）
+2. `出欠 / 保護者会 / PTA` を サイン/押印グループに追加し +3（「保護者会の出欠出す」が null だった）
+3. `吐き気` を 嘔吐/下痢グループに追加（「吐き気あり」が null だった。`吐い` は終止形のみで `吐き` を拾わなかった）
+
+### テスト結果
+- `mega-intent-80.js`：**85/85 PASS (100%)**
+- `hoku-real-flow-test.js`：calendar / task / budget 全 OK
+- `sweep.js`：22 画面 / 61 モーダル / 全 OK、JS エラー 0
+- `modal-esc-test.js`：61/61 モーダル ESC で閉じる
+- `onboarding-full.js`：4 ステップ + Done で s-home へ、profile/event 保存確認、tabbar 復帰確認
+- `calendar-nav-test2.js`：+12 月 / -24 月 / today 復帰 / 1月31日→2月28日(平年) / 1月31日→2月29日(うるう年) / 12月→1月跨ぎ / 1月→12月跨ぎ 全 OK
+- `docs-verify.js`：docs/index.html（Pages 公開版）で intent 修正反映確認
+
+### 既存破壊なし
+- 既存の 17 Skills / S / PERSIST / MEMBERS / Supabase / Wave 206 バナー一切無変更
+- regex は追記のみで既存パターンの動作は変えない
+
+### 未確認事項
+- iPhone 実機での Hoku 音声入力で「健康診断 / 保護者会の出欠 / 吐き気」の自動分類
+- Wave 206 で残っている Supabase OTP メール受領
+
+### iPhone確認ポイント
+- Hoku に「5月20日 健康診断」→ カレンダーとして即時登録できる
+- Hoku に「保護者会の出欠出す」→ タスクとして即時登録できる
+- Hoku に「吐き気あり」→ 体調として即時登録できる
+
+### 次にやること
+- 設定画面の export / import / バックアップ動作確認
+- 通知バッジ計算ロジック検証
+- Hoku の応答品質（複合表現・誤認識 fallback）追加 30 ケース
+- iPhone 実機検証ラウンド（Wave 206 + 207 + 207-b 含む）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 207b: voice intent 85/85 + onboarding/calendar nav full verification`
