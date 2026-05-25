@@ -13737,3 +13737,84 @@ Wave 209 — 「新規登録ができない」根本原因の特定と修正（�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 209: fix signup dead-end - example.com hint, identities-empty silent duplicate, local-fallback escape on all stuck screens`
+
+---
+
+## 2026-05-26 13:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 210 — 「メール認証なしで今すぐ作成」一級ボタン追加（Supabaseメール経路を完全に外せる）
+
+### 背景
+Wave 209 修正後も「新規登録ができない」とユーザー報告。Wave 209 が未 push（ahead 6）であった可能性が高い + 根本問題（Supabase 無料 SMTP のメール到達不能）が継続。Wave 209 は sent 画面の escape を追加したが、ユーザーがそこまで辿り着く前に「フォーム上から完結」させるべき。
+
+### 変更内容（app-source / docs 同期済）
+
+**1. 新関数 `doSupaLocalSignup()` 追加**
+- email / password を検証（_validEmail / >=6 文字）
+- `S.account = { email, passHash, recoveryCode, createdAt }` を生成
+- `S.supaEntryChoice = 'guest'` + `saveS` + modal close + `_enterApp(true)`
+- 失敗時は toast でエラー表示、モーダル維持
+
+**2. signup フォームに緑の一級ボタン追加**
+```html
+<button id="supa-auth-local-signup" class="btn btn-primary btn-block"
+  style="background:#10B981;border-color:#10B981;"
+  onclick="doSupaLocalSignup()">📱 メール認証なしで今すぐ作成（推奨）</button>
+<p id="supa-auth-local-signup-note">入力したメアド＋パスワードで端末内にアカウントを作成。クラウド同期は後から有効化できます。</p>
+```
+
+**3. `setSupaAuthMode` で signup モード時のみ表示**
+```js
+if(localBtn)  localBtn.style.display  = isUp ? '' : 'none';
+if(localNote) localNote.style.display = isUp ? '' : 'none';
+```
+
+**4. `useLocalAndCloseSupa()` 拡張**
+- signup / sent モードから呼ばれた場合、入力済 email+pass を `S.account` に保存
+- これで「ローカルで先に始める」を押した後でも、同じ資格情報で s-login → doLogin できる
+
+### テスト結果（wave210-test.js: 7/7 PASS）
+| # | ケース | 結果 |
+|---|---|---|
+| 1 | visibilityPerMode：signup でのみ btn 表示、signin/reset/otp/sent では非表示 | ✅ |
+| 2 | localSignupOK：valid email + pass → modal 閉じ、loggedIn、account 保存 | ✅ |
+| 3 | invalidEmailRejected：'not-an-email' → toast、modal 維持、account 未作成 | ✅ |
+| 4 | shortPassRejected：'abc' → toast「6 文字以上」、modal 維持 | ✅ |
+| 5 | localLoginRoundtrip：ローカル作成 → ログアウト → s-login + doLogin で再ログイン成功 | ✅ |
+| 6 | escapeSavesAccount：signup 入力中に「ログインせずに使い始める」→ S.account 保存 + 入室 | ✅ |
+| 7 | seSignupLayout：iPhone SE 375x667 で横スクロール 0、新ボタン可視 | ✅ |
+
+### 回帰
+- `sweep.js`：22 画面 / 61 モーダル / JS エラー 0
+- 既存 doSupaAuthSubmit / setSupaAuthMode 動作維持
+
+### 変更ファイル
+- `app-source/familink.html`（+ 約 80 行：新関数 2 + UI ボタン + setSupaAuthMode 制御）
+- `docs/index.html`（同期、キャッシュバスター `20260526a` → `20260526b`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\wave210-test.js`（新規・7 ケース）
+- `C:\Users\ktaka\familink-qa\shots-210\`（PNG 3 枚）
+
+### 既存破壊なし
+- 既存の cloud signup（`doSupaAuthSubmit`）は完全維持
+- `S.account` 構造は doSignup と同一（後方互換）
+- `useLocalAndCloseSupa` の拡張は付加機能のみで既存呼び出しを破壊しない
+
+### ユーザー側の選択肢（signup フォームで）
+1. 「登録する」（青）→ 従来通り Supabase cloud signup（メール認証あり）
+2. **「📱 メール認証なしで今すぐ作成（推奨）」（緑）→ Wave 210 新規。即時ローカル作成 + ホーム到達**
+3. 「ログインせずに使い始める（ローカルのみ）」→ メアド入力なしでもゲスト入場可能
+4. 「閉じる」
+
+### push 必須
+ahead 7（Wave 206〜210）。iPhone 実機検証のため push をご許可ください。
+
+### 次にやること
+- ユーザー OK で `git push origin claude/merge-and-push-main-u44Ty`
+- iPhone 実機で「📱 メール認証なしで今すぐ作成」が見えて押せることを確認
+- 必要なら GitHub Pages のキャッシュクリア（自動キャッシュバスター で対応可）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 210: add primary-color local signup button on signup form (skip Supabase email entirely)`

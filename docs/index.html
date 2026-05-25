@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260526a';
+  var V='20260526b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3999,6 +3999,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="modal-actions">
         <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
+        <!-- Wave 210: signup モード時のみ表示する「メール認証なしで即時作成」一級ボタン -->
+        <button id="supa-auth-local-signup" class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:#10B981;border-color:#10B981;display:none;" onclick="doSupaLocalSignup()">📱 メール認証なしで今すぐ作成（推奨）</button>
+        <p id="supa-auth-local-signup-note" style="font-size:10px;color:var(--text-muted);line-height:1.5;margin:4px 2px 0;text-align:center;display:none;">入力したメアド＋パスワードで端末内にアカウントを作成。クラウド同期は後から有効化できます。</p>
         <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
@@ -5262,13 +5265,66 @@ function supaEntryClickInvite() {
 /* Wave 209: メール認証で詰まった人の最終エスケープ。
    モーダルを閉じ、ローカル限定で即時アプリ内に入る（後でクラウドに切替可能）。
    - サインアップ確認待ち / リセット待ち / OTP コード待ち などで「もう待てない」時に押せる
-   - S.supaSession は触らない（残っていれば後で再ログイン可能） */
+   - S.supaSession は触らない（残っていれば後で再ログイン可能）
+
+   Wave 210: signup / sent モードで呼ばれた時、入力済 email+pass を S.account に保存する。
+   これで「ローカルだけで作成」したユーザーが、後で同じメアド/パスでローカルログインできる。 */
 function useLocalAndCloseSupa() {
+  try {
+    // signup / sent 文脈で email+pass が揃っていればローカルアカウント化
+    const e = (document.getElementById('supa-auth-email')?.value || '').trim();
+    const p = (document.getElementById('supa-auth-pass')?.value || '');
+    if(_validEmail(e) && p.length >= 6 && typeof _hashStr === 'function' && typeof _genRecoveryCode === 'function') {
+      S.account = {
+        email: _normEmail(e),
+        passHash: _hashStr(p),
+        recoveryCode: _genRecoveryCode(),
+        createdAt: (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10),
+      };
+    }
+  } catch(_){}
   try { closeModal('m-supa-auth'); } catch(_){}
   try { closeModal('m-supa-invite'); } catch(_){}
   S.supaEntryChoice = 'guest';
   saveS();
-  showToast('ローカルアカウントで開始しました。設定からいつでもクラウドに切り替えられます。','success');
+  const msg = (S.account && S.account.email)
+    ? 'ローカルアカウントを作成しました（' + S.account.email + '）。設定からいつでもクラウドに切り替えられます。'
+    : 'ローカルで開始しました。設定からいつでもクラウドに切り替えられます。';
+  showToast(msg, 'success');
+  _enterApp(true);
+}
+
+/* Wave 210: signup フォームから「Supabase を経由せず即時ローカル作成」する専用フロー。
+   - email + パスワード必須（バリデーション通れば S.account に保存）
+   - 失敗時は toast でフィードバック（モーダルは閉じない） */
+function doSupaLocalSignup() {
+  const email = (document.getElementById('supa-auth-email')?.value || '').trim();
+  const pass  = (document.getElementById('supa-auth-pass')?.value || '');
+  if(!_validEmail(email)) {
+    showToast('メールアドレスの形式が正しくありません','error');
+    try { document.getElementById('supa-auth-email')?.focus(); } catch(_){}
+    return;
+  }
+  if(pass.length < 6) {
+    showToast('パスワードは 6 文字以上にしてください','error');
+    try { document.getElementById('supa-auth-pass')?.focus(); } catch(_){}
+    return;
+  }
+  try {
+    S.account = {
+      email: _normEmail(email),
+      passHash: _hashStr(pass),
+      recoveryCode: _genRecoveryCode(),
+      createdAt: (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10),
+    };
+  } catch(e) {
+    showToast('ローカル作成に失敗しました：' + e.message, 'error');
+    return;
+  }
+  S.supaEntryChoice = 'guest';
+  saveS();
+  try { closeModal('m-supa-auth'); } catch(_){}
+  showToast('ローカルアカウントを作成しました。すぐに使い始められます。','success');
   _enterApp(true);
 }
 
@@ -5373,6 +5429,11 @@ function setSupaAuthMode(mode) {
   const toggle = document.getElementById('supa-auth-toggle');
   const forgot = document.getElementById('supa-auth-forgot');
   const back   = document.getElementById('supa-auth-back');
+  // Wave 210: ローカル即時作成ボタンは signup モードのみ表示
+  const localBtn  = document.getElementById('supa-auth-local-signup');
+  const localNote = document.getElementById('supa-auth-local-signup-note');
+  if(localBtn)  localBtn.style.display  = isUp ? '' : 'none';
+  if(localNote) localNote.style.display = isUp ? '' : 'none';
   if(toggle) toggle.style.display = isReset ? 'none' : '';
   if(forgot) forgot.style.display = (_supaAuthMode === 'signin') ? '' : 'none';
   if(back)   back.style.display   = isReset ? '' : 'none';
