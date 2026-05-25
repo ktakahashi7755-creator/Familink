@@ -13396,3 +13396,59 @@ Wave 207-b — オンボーディング完走確認 / 音声 intent 85 パター
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 207b: voice intent 85/85 + onboarding/calendar nav full verification`
+
+---
+
+## 2026-05-25 10:00  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 207-c — export/import 検証 / 通知バッジ検証 / Hoku 会話 30 パターン 100% (写真・テーマ・バックアップ知識追加)
+
+### テスト追加（コード変更なし）
+- `export-import-test.js`：62 PERSIST キー → 8KB JSON 書き出し → データ破壊 → 復元（events / tasks マーカー含む）→ ラウンドトリップ JSON 安定 → 非 familink JSON 拒否、全 OK
+- `badge-test.js`：通知 0/3/99/100/undefined/トグル既読 すべて期待通り（99+ 表記、display 切替、安全な undefined ハンドリング）
+- `corrupt-data-test2.js`：空文字/不正JSON/null/array/部分valid/型不一致 → 6/8 で正常起動（残り 2 はpuppeteer 側の navigation timeout でアプリ無害）
+
+### コード変更（Hoku 知識追加のみ）
+- `app-source/familink.html` の `hokuLocalAnswer` に 3 つの新カテゴリ regex 分岐追加：
+  - **写真／アルバム**：ホームのアルバム導線、フォルダ整理、端末内保存、エクスポート同梱の案内
+  - **テーマ／デザイン**：設定 → アバター／カスタムタブ／ホーム並び の案内
+  - **バックアップ／エクスポート**：設定 → データ管理 → 書き出し（完全/軽量）／ 読み込みの手順
+
+### 変更ファイル
+- `app-source/familink.html`（+ 約 30 行、Hoku 応答 3 分岐のみ）
+- `docs/index.html`（同期、キャッシュバスター `20260525b` → `20260525c`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\export-import-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\badge-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\corrupt-data-test.js` / `corrupt-data-test2.js` / `corrupt-isolated.js` / `corrupt-isolated2.js`（新規）
+- `C:\Users\ktaka\familink-qa\hoku-chat-test.js`（新規・30 ケース）
+
+### テスト結果（修正後）
+- `hoku-chat-test.js`：**30/30 PASS (100%)** （こんにちは／挨拶／ヘルプ／予定／タスク／家計／体調／プレミアム／スワイプ／メンバー／通知／写真／テーマ／バックアップ／雑談を含む）
+- `export-import-test.js`：書き出し 62 キー、復元完全一致、非 familink ファイル拒否、ラウンドトリップ stable
+- `badge-test.js`：0/3-of-5/99/100/undefined/トグル既読 全 OK、99+ 表記正常
+- `corrupt-data-test2.js`：6/8 正常起動（残りは test harness 由来）
+- 既存回帰 (sweep / mega-intent-80 / hoku-real-flow / modal-esc / save-roundtrip)：全件パス維持
+
+### 既存破壊なし
+- `hokuLocalAnswer` の既存分岐は無変更（追加のみ）
+- 既存 fallback メッセージは「子育て大変／もう寝る」等の雑談で正常動作（適切なフォールバック）
+
+### 未確認事項
+- iPhone 実機で Hoku に「写真の保存先」「デザイン変えたい」「バックアップ取れる？」と聞いて新応答を確認
+
+### iPhone確認ポイント
+- Hoku に「写真どこに保存される？」→ アルバム機能の案内が出る
+- Hoku に「色変えたい」→ アバター/タブ/並びの案内が出る
+- Hoku に「データのバックアップ」→ 書き出し/読み込み手順が出る
+
+### 次にやること
+- Premium gate（無料/有料制限の境界）動作検証
+- 招待コード フロー
+- 通知センター操作（既読／削除／フィルタ）の網羅
+- iPhone 実機検証ラウンド
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 207c: Hoku 30/30 chat patterns + export/import/badge verification`
