@@ -2948,14 +2948,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
     <!-- Wave 202: 入口を 3 つに（クラウドログイン / 体験 / 招待コード）。ローカルログインも下に小さく残す -->
     <div class="ob-cta">
-      <button class="ob-btn-start" onclick="supaEntryClickLogin()" aria-label="メールアドレスでログインまたは新規登録">
-        <span>ログインして使う</span>
+      <!-- Wave 211: メール認証不要の即時アカウント作成を一級導線に。緑色でクラウド版より目立たせる -->
+      <button class="ob-btn-start" onclick="supaEntryClickSignup()" aria-label="メール認証不要でアカウントを作成"
+              style="background:linear-gradient(135deg,#10B981,#059669);border:none;">
+        <span>新規アカウントを作る（メール認証不要）</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="ob-btn-start" onclick="supaEntryClickLogin()" aria-label="メールアドレスでログイン" style="margin-top:8px;">
+        <span>ログインする</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
       <button class="ob-btn-login" onclick="supaEntryClickGuest()">ログインせずに体験する</button>
       <button class="ob-btn-login" onclick="supaEntryClickInvite()" style="margin-top:6px;">招待コードで参加する</button>
     </div>
-    <div class="ob-note">ログイン時のみクラウド同期。ログインなしでも全機能ご利用いただけます。</div>
+    <div class="ob-note">「新規アカウントを作る」は端末内に即時保存。メール認証不要ですぐ使えます。クラウド同期は後から有効化可能。</div>
     <div style="margin-top:14px;text-align:center;">
       <span style="color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;" onclick="go('s-login')">既存のローカルアカウントでログイン →</span>
     </div>
@@ -3983,10 +3989,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         </div>
       </div>
       <div class="modal-actions">
+        <!-- Wave 210+211: signup モード時の主推奨。緑色 + 大きめでクラウド版より目立たせる -->
+        <button id="supa-auth-local-signup" class="btn btn-primary btn-block" style="font-size:15px;padding:14px 16px;background:linear-gradient(135deg,#10B981,#059669);border:none;display:none;font-weight:700;" onclick="doSupaLocalSignup()">📱 今すぐ作成（メール認証なし）</button>
+        <p id="supa-auth-local-signup-note" style="font-size:11px;color:#065F46;line-height:1.5;margin:6px 2px 8px;text-align:center;display:none;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;padding:6px 10px;">✓ 入力したメアド＋パスワードで端末内にアカウント作成<br>✓ メールが届かなくても即時利用可能<br>✓ 後から設定でクラウド同期に切り替え可能</p>
         <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
-        <!-- Wave 210: signup モード時のみ表示する「メール認証なしで即時作成」一級ボタン -->
-        <button id="supa-auth-local-signup" class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:#10B981;border-color:#10B981;display:none;" onclick="doSupaLocalSignup()">📱 メール認証なしで今すぐ作成（推奨）</button>
-        <p id="supa-auth-local-signup-note" style="font-size:10px;color:var(--text-muted);line-height:1.5;margin:4px 2px 0;text-align:center;display:none;">入力したメアド＋パスワードで端末内にアカウントを作成。クラウド同期は後から有効化できます。</p>
         <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
@@ -5235,6 +5241,12 @@ function supaEntryClickLogin() {
   saveS();
   openSupaAuthModal('otp');   // Wave 205: OTP（メールでコード）を既定の入口に
 }
+/* Wave 211: signup モード直行（welcome → ワンクリックで「メール認証不要で作成」緑ボタンに到達） */
+function supaEntryClickSignup() {
+  S.supaEntryChoice = 'supa';
+  saveS();
+  openSupaAuthModal('signup');
+}
 function supaEntryClickGuest() {
   S.supaEntryChoice = 'guest';
   saveS();
@@ -5389,7 +5401,7 @@ function setSupaAuthMode(mode) {
   if(desc) desc.textContent = isReset
     ? '登録済みのメールアドレスを入力すると、再設定リンクをお送りします。'
     : (isUp
-        ? '新しいアカウントを作ります。登録後に確認メールのリンクをクリックしてログインを完了させてください。'
+        ? '新規アカウントを作成します。メール認証なしで今すぐ使い始められます。'
         : '登録済みのメールアドレスとパスワードでログインします。');
 
   // パスワード欄は signin / signup のみ
@@ -5404,11 +5416,23 @@ function setSupaAuthMode(mode) {
   const passInp = document.getElementById('supa-auth-pass');
   if(passInp) passInp.setAttribute('autocomplete', isUp ? 'new-password' : 'current-password');
 
-  // submit ラベル
+  // submit ラベル（Wave 211: signup 時はクラウド版を明示）
   const submit = document.getElementById('supa-auth-submit');
   if(submit) {
     submit.disabled = false;
-    submit.textContent = isReset ? '再設定メールを送る' : (isUp ? '登録する' : 'ログインする');
+    submit.textContent = isReset ? '再設定メールを送る' : (isUp ? 'クラウドにも登録（メール認証あり）' : 'ログインする');
+    // signup モードでは submit ボタンをセカンダリ扱いに（緑が主役）
+    if(isUp) {
+      submit.classList.remove('btn-primary');
+      submit.classList.add('btn-outline');
+      submit.style.fontSize = '13px';
+      submit.style.marginTop = '8px';
+    } else {
+      submit.classList.add('btn-primary');
+      submit.classList.remove('btn-outline');
+      submit.style.fontSize = '';
+      submit.style.marginTop = '';
+    }
   }
   // 補助ボタン制御
   const toggle = document.getElementById('supa-auth-toggle');

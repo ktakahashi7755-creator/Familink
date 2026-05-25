@@ -6,7 +6,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#4A90E2">
-<meta http-equiv="refresh" content="0; url=app-source/familink.html">
+<!-- Wave 211: 強制キャッシュ無効化（iOS Safari 対策） -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>
+  // 強制キャッシュバスター：常に最新の app-source/familink.html を取得
+  // iOS Safari は meta refresh だけだとアプリ本体のキャッシュを使い回すため、
+  // 毎回ユニークな URL クエリで取りに行かせる。
+  (function(){
+    var V = '20260526c';
+    var ts = Date.now();
+    var dest = 'app-source/familink.html?v=' + V + '&t=' + ts + (location.search || '') + (location.hash || '');
+    location.replace(dest);
+  })();
+</script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=app-source/familink.html?v=20260526c">
+</noscript>
 <link rel="canonical" href="app-source/familink.html">
 <title>Familink</title>
 <style>
@@ -19,6 +36,6 @@
 <body>
 <h1 style="font-size:22px;margin-bottom:12px;">Familink</h1>
 <p>Familink を読み込んでいます…</p>
-<p>自動で進まない場合は <a href="app-source/familink.html">こちら</a> をタップしてください。</p>
+<p>自動で進まない場合は <a href="app-source/familink.html?v=20260526c">こちら</a> をタップしてください。</p>
 </body>
 </html>
