@@ -13532,3 +13532,80 @@ Wave 207-d — Premium gate / メンバー管理 / 通知センター / 最終�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 207d: premium gate / member mgmt / notif center / final regression all green`
+
+---
+
+## 2026-05-25 11:00  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 208 — ログイン画面 + Supabase Auth 接続 E2E 検証（実装は Wave 202-206 で完備、本ラウンドは網羅検証のみ）
+
+### 状況把握
+Phase 1 確認で、ユーザーゴール（新規登録 / ログイン / ログアウト / セッション保持 / ゲスト / Supabase 接続 / エラー処理 / iPhone SE / PC / JS エラー 0）はすべて Wave 202-206 で実装済と判明。本フェーズはコード変更なしの **網羅 E2E 検証**。
+
+### 検証スクリプト
+- `C:\Users\ktaka\familink-qa\auth-e2e.js`（新規）— 10 ケースを 6 ブラウザコンテキストで並列／隔離実行
+- `C:\Users\ktaka\familink-qa\session-debug.js`（新規）— セッション復元の単独デバッグ
+
+### 検証結果 — **10/10 PASS**
+| # | ケース | 結果 |
+|---|---|---|
+| 1 | 空 localStorage 起動 → s-ob、3 CTA + 既存ローカルリンク表示 | ✅ |
+| 2 | "ログインして使う" → m-supa-auth OTP モードで開く、email入力/送信/診断リンク全揃い | ✅ |
+| 3 | "ログインせずに体験する" → s-onboard へ遷移 | ✅ |
+| 4 | signin/signup/reset/otp/signin の 5 モード切替、submit ラベル動的更新 | ✅ |
+| 5 | 6 文字未満パスワード → "6 文字以上にしてください" toast | ✅ |
+| 6 | 不正メール形式 → "メールアドレスの形式が正しくありません" toast | ✅ |
+| 7 | パスワード目玉アイコンで type=password ⇄ text トグル | ✅ |
+| 8 | localStorage に既存 supaSession / events を仕込み → reload → S 復元、s-home 直行 | ✅ |
+| 9 | iPhone SE (375x667) でモーダル横スクロール 0 | ✅ |
+| 10 | PC (1280x800) でレイアウト破綻 0、JS エラー 0 | ✅ |
+
+### 既存 Supabase Auth インフラ確認
+- `persistSession: true` / `autoRefreshToken: true` / `detectSessionInUrl: true` / `flowType: 'pkce'` 全設定済
+- `initSupabase()` → `getSession()` で既存セッション復元、`onAuthStateChange` で動的同期
+- CDN ロード失敗時は `_supaLoadFailed` フラグで LocalStorage-only モードへフェイルセーフ、5x retry
+- `supaSignUp` / `supaSignIn` / `supaSignOut` / `supaResetPassword` / `supaSendOtp` / `supaVerifyOtp` 全実装
+- 9 パターンのエラー分岐（rate limit / invalid email / 既登録 / 短パス / Invalid login / メール未確認 / トークン期限切れ / ネットワーク / その他）
+- 永続インラインバナー、直近 10 件試行ログ、レート制限カウントダウン、オーナー向け診断ガイド完備
+
+### 既存 UI 動線確認
+- s-ob: ログインして使う / ログインせずに体験する / 招待コードで参加する + 既存ローカルログインリンク
+- s-login: 旧来のローカルアカウントログイン（パスワード + リカバリーコード方式）も維持
+- m-supa-auth モーダル: signin / signup / reset / reset-sent / otp / otp-code / sent モード切替
+- 設定画面: 「クラウドからログアウト」(`supaSignOut`)、「ログアウト」(`doLogout` 完全ローカル) 2 系統
+
+### sweep 回帰
+- 22 画面 / 61 モーダル / passwordToggle 3 件 / memoRoundTrip OK / JS エラー 0
+- voiceConfirm の sweep 検出は前回同様の test harness 由来（実害なし）
+
+### 変更ファイル
+- `docs/worklog.md`（このエントリのみ）
+- `C:\Users\ktaka\familink-qa\auth-e2e.js`（新規）
+- `C:\Users\ktaka\familink-qa\session-debug.js`（新規）
+- `C:\Users\ktaka\familink-qa\shots-auth\` に 6 PNG（welcome / supa-modal / guest-onboard / modes / SE-modal / PC-modal / session-restore）
+
+**app-source / docs/index.html はコード変更なし**（既存実装で完成度十分）
+
+### 既存破壊なし
+コード変更なしのため自明
+
+### 未確認事項
+- iPhone 実機での Supabase OTP メール実受領（オーナーが Supabase ダッシュボードで Confirm email を OFF にするまで未確認）
+- 招待コード本実装（現在は UI スケルトンのみ）
+
+### iPhone確認ポイント
+- ウェルカム画面の 3 CTA が押せる、レイアウトが画面内に収まる
+- 「ログインして使う」→ メールでログインモーダルが OTP モードで開く、診断リンクが見える
+- 「ログインせずに体験する」→ オンボーディング 4 ステップに入れる
+- 設定 → 「ログアウト」「クラウドからログアウト」が押せる
+
+### 次にやること
+1. iPhone 実機での Auth フロー検証（特に OTP 実受領）
+2. 招待コード本実装（Supabase RPC 経由で家族グループ参加）
+3. Phase 4-4：Supabase 経由の家族間データ同期実装
+4. App Store 申請メタデータ整備
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 208: auth E2E verification 10/10 PASS (login/signup/reset/otp/guest/session/SE/PC)`
