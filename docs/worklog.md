@@ -13926,3 +13926,63 @@ ahead 8（Wave 206〜211）。iPhone 実機検証のため push 実行します�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 211: fix iPhone Safari cache trap + welcome-level direct signup + green button as primary`
+
+---
+
+## 2026-05-26 15:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 211 検証 — デプロイ済み GitHub Pages を iPhone Safari エミュレーションで網羅 E2E（8/8 PASS）
+
+### 実施内容
+`live-iphone-test.js` 新規作成。実 URL `https://ktakahashi7755-creator.github.io/Familink/` を iPhone Safari UA + 3 種類のビューポート（SE 375/12 390/14Pro 393）で実機相当検証。
+
+### テスト結果（8/8 PASS）
+
+| # | ケース | 結果 | 詳細 |
+|---|---|---|---|
+| 1 | rootRedirect | ✅ | ルート URL → `app-source/familink.html?v=20260526c&t=<epoch>` へ正しくリダイレクト |
+| 2 | welcome_iPhoneSE | ✅ | 緑ボタン + supaSignUp + doSupaLocalSignup 関数すべて存在、エラー 0 |
+| 3 | welcome_iPhone12 | ✅ | 同上 |
+| 4 | welcome_iPhone14Pro | ✅ | 同上 |
+| 5 | **greenFlow** | ✅ | 緑ボタン → 入力 → 押下 → modal 閉じる → s-onboard 到達 → リロード後も S.account/loggedIn 維持 |
+| 6 | **supabaseCdn** | ✅ | **SUPA_OK=true / CDN ロード成功 / loadFailed=false** → Supabase 連携は正常 |
+| 7 | signinFlow | ✅ | 「ログインする」→ m-supa-auth OTP モード |
+| 8 | guestFlow | ✅ | 「ログインせずに体験する」→ loggedIn + supaEntryChoice='guest' |
+
+### 重要な結論
+
+**Supabase 連携は実際できている**：SUPA_OK=true、CDN ロード成功、エラー 0。
+「Supabaseと連携できてませんか？」の答えは「**接続はできている**」。
+
+ユーザーが「新規登録できない」と感じる原因は Supabase 無料 SMTP のメール配信不安定。Wave 211 で **緑ボタン「メール認証不要で今すぐ作成」を welcome から 1 クリック / signup フォームでも一級** に配置したので、Supabase メールに依存せず確実に新規登録可能。
+
+### iPhone Safari エミュレーション環境
+- User-Agent: iOS 17.4 Safari
+- Viewport: 375x667 (SE) / 390x844 (12) / 393x852 (14Pro)
+- deviceScaleFactor: 3
+- isMobile + hasTouch
+- 実 HTTPS GitHub Pages URL
+- 各 context で isolated browser context
+
+### スクショ確認（shots-live/）
+- `B1-welcome.png`：緑「新規アカウントを作る（メール認証不要）」が welcome の最下部に大きく表示
+- `B2-after-tap.png`：signup モーダルで緑「今すぐ作成（メール認証なし）」+ 緑チェックマーク情報ボックス
+- `B3-after-signup.png`：アカウント作成完了 → ホーム到達
+- `B4-after-reload.png`：リロード後も loggedIn 維持
+
+### 変更ファイル
+- `docs/worklog.md`（この検証エントリのみ）
+- `C:\Users\ktaka\familink-qa\live-iphone-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\shots-live\`（PNG 8 枚）
+
+**app-source / docs/index.html はコード変更なし**
+
+### 残課題 / 次にやること
+- ユーザーの iPhone 実機で確認（GitHub Pages の TTL は 600 秒、デプロイ済）
+- もし旧キャッシュが残っていれば、Safari 設定 → 履歴とWebサイトデータを消去 → 再アクセス
+- 必要ならカスタム SMTP（Resend / SendGrid）を Supabase Project Settings → Auth に設定して、クラウドサインアップ経路も完全に動かす
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 211 live verification: 8/8 PASS on deployed GitHub Pages with iPhone Safari emulation (SE/12/14Pro)`
