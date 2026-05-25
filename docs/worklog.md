@@ -13986,3 +13986,123 @@ Wave 211 検証 — デプロイ済み GitHub Pages を iPhone Safari エミュ�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 211 live verification: 8/8 PASS on deployed GitHub Pages with iPhone Safari emulation (SE/12/14Pro)`
+
+---
+
+## 2026-05-26 16:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 212 — OTPの真実：Supabaseは Magic Link しか送らない（コード未含）→ link+code 両対応UIへ抜本改善
+
+### ユーザー報告 + スクショから判明した決定的事実
+- アプリは「6 桁のログインコードを送信しました」と表示
+- 実際に届いたメール（Gmail）は **「Your sign-in link」+「Sign in」ボタン**（6 桁コードなし）
+- 「Sign in」をタップすると **「ページが存在しません」エラー**
+
+### 根本原因（2 つ）
+**1. Supabase の Email Template が Magic Link のみ（デフォルト状態）**
+- `signInWithOtp` でメール送信時、Supabase は Email Template に基づいて内容を決定
+- デフォルトテンプレートは `{{ .ConfirmationURL }}` のみで `{{ .Token }}`（6 桁）を含まない
+- → 「6 桁コード」を期待していた UI が実情と不一致
+
+**2. Magic Link の redirect_to が Site URL 設定と不一致**
+- `signInWithOtp` 呼出時に `emailRedirectTo` を指定していなかった
+- Supabase は Site URL（プロジェクト設定）を redirect 先として埋め込む
+- Site URL が未設定 / 別 URL の場合、リンクタップ後「ページ存在せず」エラー
+
+### 変更内容（app-source / docs 同期済）
+
+**A. emailRedirectTo を明示設定（最重要）**
+```js
+function _supaRedirectUrl() {
+  // GitHub Pages を最優先で固定。それ以外は現 origin。
+  if(/ktakahashi7755-creator\.github\.io$/i.test(location.hostname)) {
+    return 'https://ktakahashi7755-creator.github.io/Familink/';
+  }
+  if(location.protocol === 'https:' || location.protocol === 'http:') {
+    return location.origin + location.pathname.replace(/\/app-source\/.*$/, '/');
+  }
+  return 'https://ktakahashi7755-creator.github.io/Familink/';
+}
+
+await sb.auth.signInWithOtp({
+  email,
+  options: {
+    shouldCreateUser: true,
+    emailRedirectTo: _supaRedirectUrl(),  // Wave 212 追加
+  }
+});
+```
+
+**B. Magic Link URL 貼り付け対応**
+- 新関数 `_parseSupaMagicLink(raw)`：URL から `token` / `token_hash` / `type` を抽出
+- `doSupaVerifyOtp` を 2 経路対応：
+  - URL貼付 → `verifyOtp({ token_hash, type:'magiclink' })`
+  - 6 桁数字 → `verifyOtp({ email, token, type:'email' })`
+- input 欄も両対応：`type=text`, `maxlength=2000`, URL なら自動 verify
+
+**C. OTP モード UI を「リンク or コード」両対応に文言修正**
+- 送信前画面：「メール内の『Sign in』リンクをタップ、または 6 桁コードを入力」
+- 送信後画面：青色の説明ボックスで「メールの中身は次のいずれか」を 3 パターン明示
+- 入力欄ラベル：「6 桁コード または リンクの URL を貼り付け」
+- placeholder：「000000 もしくはリンク URL」
+- success バナー：「ログイン用メールを送信しました」+ 🔗 リンク / 🔢 コード両方の案内
+
+**D. SIGNED_IN イベントで自動アプリ入室**
+- `onAuthStateChange` で `event === 'SIGNED_IN'` を検出
+- まだ S.loggedIn でなければ自動的に `_enterApp(true)` を呼ぶ
+- Magic Link タップで別タブで開かれた Familink でも自動入室
+
+**E. OTP コード画面に緑エスケープを格上げ（primary 化）**
+- 旧：outline ghost ボタン「ログインせずに使い始める（ローカルのみ）」
+- 新：primary 緑グラデーション「📱 メールが届かない場合：ローカルだけで先に始める」+ サブ文「後から設定でクラウド連携できます」
+
+**F. キャッシュバスター更新**
+- ルート `index.html`：`20260526c` → `20260526d`
+- `docs/index.html` も `20260526d`
+
+### テスト結果（wave212-test.js: 7/7 PASS）
+
+| # | ケース | 結果 |
+|---|---|---|
+| 1 | otpModeDesc：otp モード初期画面に「Sign in」「リンク」「6 桁」キーワード | ✅ |
+| 2 | otpCodeUI：青説明ボックス + 緑エスケープ + URL対応 placeholder + maxlength=2000 + 「URL貼り付け」label | ✅ |
+| 3 | parseLink：magiclink/email_type/6digit/empty/non_supabase/malformed URL 全 6 ケース正解 | ✅ |
+| 4 | magicLinkPaste：URL ペースト → `verifyOtp({ token_hash, type:'magiclink' })` 呼出 → ログイン成功 | ✅ |
+| 5 | sixDigitFlow：6 桁入力 → 従来通り `verifyOtp({ email, token, type:'email' })` 動作 | ✅ |
+| 6 | emailRedirectTo：`https://ktakahashi7755-creator.github.io/Familink/` が options に渡される | ✅ |
+| 7 | signedInHandler：onAuthStateChange ハンドラ内に SIGNED_IN ブランチ存在 | ✅ |
+
+### 回帰
+- `sweep.js`：22 画面 / 61 モーダル / JS エラー 0
+- 既存 supaSignUp / supaSignIn / doSupaLocalSignup（Wave 210）/ s-ob 緑ボタン（Wave 211）すべて維持
+
+### 変更ファイル
+- `index.html`（root、キャッシュバスターのみ）
+- `app-source/familink.html`（+ 約 90 行）
+- `docs/index.html`（同期、キャッシュバスター `20260526c` → `20260526d`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\wave212-test.js`（新規・7 ケース）
+- `C:\Users\ktaka\familink-qa\shots-212\`（PNG 4 枚）
+
+### Supabase オーナー設定（強く推奨）
+本番運用で「Sign in」リンクが「ページ存在せず」にならないように：
+
+1. **Authentication → URL Configuration → Site URL** を `https://ktakahashi7755-creator.github.io/Familink/` に設定
+2. **Additional Redirect URLs** にも同じ URL を追加
+3. （任意）**Email Templates → Magic Link** に `{{ .Token }}` を追加すれば 6 桁コードも併送される
+
+### iPhone 確認手順
+1. Safari → 設定 → Safari → 「履歴とWebサイトデータを消去」
+2. `https://ktakahashi7755-creator.github.io/Familink/` を開く
+3. **手段 A（推奨）**：welcome の緑「新規アカウントを作る（メール認証不要）」→ 即時利用
+4. **手段 B（クラウド）**：「ログインする」→ メアド入力 → 送信
+5. メールが届いたら：
+   - 「Sign in」リンクが見える場合：**そのままタップ** → 自動ログイン（別タブで開いても OK）
+   - 6 桁コードがある場合：アプリに戻って入力
+   - リンクの URL をコピーしてアプリの入力欄に貼り付けでも OK（Wave 212 新機能）
+6. **手段 C（保険）**：メール届かない場合は「📱 メールが届かない場合：ローカルだけで先に始める」緑ボタン
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 212: OTP truth - Supabase sends magic-link only, support link+code+paste, emailRedirectTo set, SIGNED_IN auto-enter`

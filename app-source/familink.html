@@ -3904,8 +3904,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <!-- otp モード（既定）：メアドだけ入力して送信ボタンを押す -->
     <div id="supa-auth-otp-wrap">
       <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-        メールアドレスを入力すると、<b>6 桁のログインコード</b>をお送りします。<br>
-        パスワード設定は不要です（既存アカウントもこの方法でログインできます）。
+        メールアドレスを入力すると、<b>ログイン用メール</b>をお送りします。<br>
+        メール内の<b>「Sign in」リンク</b>をタップ、または<b>6 桁コード</b>を入力するとログイン完了。パスワード不要です。
       </p>
       <div class="modal-form" style="gap:4px;">
         <label class="form-label" for="supa-otp-email">メールアドレス</label>
@@ -3924,34 +3924,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
     </div>
 
-    <!-- otp-code モード：送信後、6 桁コード入力 -->
+    <!-- otp-code モード：送信後、6 桁コード入力 OR Magic Link 貼り付け -->
     <div id="supa-auth-otp-code-wrap" style="display:none;">
       <div style="text-align:center;padding:10px 8px 4px;">
         <div style="font-size:40px;line-height:1;margin-bottom:6px;">📧</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">コードを送信しました</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">メールを送信しました</div>
         <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
           <span id="supa-otp-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span>
         </div>
       </div>
+      <!-- Wave 212: メール内容は Supabase 設定により異なる。両対応を明示 -->
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin:14px 0 12px;">
+        <p style="font-size:13px;color:#1E3A8A;line-height:1.7;margin:0 0 6px;font-weight:700;">📩 メールの中身は次のいずれか</p>
+        <ol style="font-size:12px;color:#1E40AF;line-height:1.7;margin:0;padding-left:20px;">
+          <li><b>「Sign in」リンク</b>がある場合 → リンクをタップでログイン</li>
+          <li><b>6 桁の数字コード</b>がある場合 → 下の枠に入力</li>
+          <li><b>リンクと URL の両方</b>がある場合 → どちらでも OK</li>
+        </ol>
+      </div>
       <div class="modal-form" style="gap:4px;">
-        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">受信メールに記載の 6 桁コード</label>
+        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">6 桁コード または リンクの URL を貼り付け</label>
         <input type="text" id="supa-otp-code" class="form-input"
-               placeholder="000000"
-               inputmode="numeric" autocomplete="one-time-code"
-               pattern="[0-9]*" maxlength="6"
+               placeholder="000000 もしくはリンク URL"
+               inputmode="text" autocomplete="one-time-code"
+               maxlength="2000"
                enterkeyhint="go"
-               style="font-size:22px;letter-spacing:8px;text-align:center;font-variant-numeric:tabular-nums;">
+               style="font-size:18px;letter-spacing:4px;text-align:center;font-variant-numeric:tabular-nums;">
         <p id="supa-otp-code-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;"></p>
         <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;">
-          コードの有効期限は <strong>約 1 時間</strong>です。届かない場合は迷惑メールフォルダをご確認ください。
+          コード / リンクの有効期限は <strong>約 1 時間</strong>。届かない場合は迷惑メールフォルダもご確認ください。
         </p>
       </div>
       <div class="modal-actions" style="gap:6px;">
         <button id="supa-otp-verify" class="btn btn-primary btn-block" onclick="doSupaVerifyOtp()">ログインする</button>
-        <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コードを再送する</button>
+        <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コード/リンクを再送する</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メアドを変更</button>
-        <!-- Wave 209: コードが届かない人の最終エスケープ -->
-        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
+        <!-- Wave 209+212: 何もメール届かない人の最終エスケープ。signupと同様 primary に格上げ -->
+        <button class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:linear-gradient(135deg,#10B981,#059669);border:none;font-weight:700;" onclick="useLocalAndCloseSupa()">📱 メールが届かない場合：ローカルだけで先に始める</button>
+        <p style="font-size:10px;color:#065F46;line-height:1.5;margin:4px 2px 0;text-align:center;">後から設定でクラウド連携できます</p>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -5073,13 +5083,29 @@ function initSupabase() {
     }).catch(()=>{});
     // 認証状態の変化を監視（ログイン / ログアウト / トークン更新）
     try {
-      const r = _sbClient.auth.onAuthStateChange((_event, session) => {
+      const r = _sbClient.auth.onAuthStateChange((event, session) => {
         if(session && session.user) {
+          const wasLoggedIn = !!(S.supaSession && S.supaSession.id);
           S.supaSession = { id: session.user.id, email: session.user.email || '' };
+          try { saveS(); } catch(_) {}
+          // Wave 212: Magic Link 経由ログイン（SIGNED_IN イベント）でアプリ内に自動入室
+          if(event === 'SIGNED_IN' && !wasLoggedIn) {
+            try {
+              // モーダル開いていれば閉じる
+              try { closeModal('m-supa-auth'); } catch(_){}
+              // すでにアプリ内なら何もしない、ウェルカム画面なら _enterApp
+              if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
+                showToast('Magic Link でログインしました', 'success');
+                _enterApp(true);
+              } else {
+                showToast('クラウドにログインしました', 'success');
+              }
+            } catch(e) { console.warn('SIGNED_IN handler failed:', e); }
+          }
         } else {
           S.supaSession = null;
+          try { saveS(); } catch(_) {}
         }
-        try { saveS(); } catch(_) {}
         try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
       });
       _sbAuthSub = r && r.data && r.data.subscription;
@@ -5676,6 +5702,24 @@ async function supaResetPassword(email) {
    - verifyOtp({ email, token, type:'email' }) でセッション確立
    - URL リダイレクト不要なので file:// やどんなホストでも動く
    ============================================================ */
+/* Wave 212: Supabase デフォルト Email Template は Magic Link しか送らないことが判明。
+   emailRedirectTo を明示設定して、リンクタップでも正しくアプリに戻る経路を確保する。
+   ユーザー（オーナー）が Supabase ダッシュボード Authentication → URL Configuration に
+   この URL を設定（Site URL または Additional Redirect URLs）すれば link 経由も動く。 */
+function _supaRedirectUrl() {
+  try {
+    // GitHub Pages を優先。ローカル開発時は現 origin を返す
+    const host = (location && location.hostname) || '';
+    if(/ktakahashi7755-creator\.github\.io$/i.test(host)) {
+      return 'https://ktakahashi7755-creator.github.io/Familink/';
+    }
+    if(location.protocol === 'https:' || location.protocol === 'http:') {
+      return location.origin + location.pathname.replace(/\/app-source\/.*$/, '/');
+    }
+  } catch(_){}
+  return 'https://ktakahashi7755-creator.github.io/Familink/';
+}
+
 async function supaSendOtp(email) {
   const sb = getSupabase();
   if(!sb) { showToast('クラウドに接続できません','error'); return { ok:false }; }
@@ -5684,7 +5728,8 @@ async function supaSendOtp(email) {
       email,
       options: {
         shouldCreateUser: true,
-        // emailRedirectTo: 指定しない（OTP のため、メール内のリンクではなくアプリ内でコード入力する）
+        // Wave 212: Magic Link redirect URL を明示。Supabase デフォルトテンプレは link しか送らないため必須。
+        emailRedirectTo: _supaRedirectUrl(),
       }
     });
     if(error) { _trackSupaErr('sendOtp', error); showToast(_supaErr(error),'error'); return { ok:false }; }
@@ -5741,8 +5786,10 @@ async function doSupaSendOtp() {
     if(sentEl) sentEl.textContent = email;
     setSupaAuthMode('otp-code');
     _setSupaBanner('success',
-      'ログインコードを送信しました',
-      '<b>' + H(email) + '</b> 宛に 6 桁の数字コードをお送りしました。<br>'
+      'ログインメールを送信しました',
+      '<b>' + H(email) + '</b> 宛にログイン用メールを送信しました。<br>'
+      + '🔗 メール内の <b>「Sign in」リンク</b>をタップ、または<br>'
+      + '🔢 <b>6 桁コード</b>がある場合は次画面の枠に入力。<br>'
       + '数分以内に届かない場合は、<b>迷惑メールフォルダ</b>もご確認ください。');
     // コード入力欄に自動フォーカス
     setTimeout(() => {
@@ -5754,16 +5801,34 @@ async function doSupaSendOtp() {
   }
 }
 
-/* OTP コード検証（otp-code mode）*/
+/* Wave 212: Magic Link URL から token と type を抽出
+   例：https://xxx.supabase.co/auth/v1/verify?token=pkce_xxx&type=magiclink&redirect_to=yyy
+   → { token: 'pkce_xxx', type: 'magiclink' }
+   返り値が null なら URL ではないと判定 */
+function _parseSupaMagicLink(raw) {
+  if(!raw || typeof raw !== 'string') return null;
+  const s = raw.trim();
+  if(!/^https?:\/\//i.test(s)) return null;
+  try {
+    const u = new URL(s);
+    // Supabase の verify endpoint かチェック（誤入力で別 URL を貼られた時の防御）
+    if(!/\.supabase\.(co|in)$/i.test(u.hostname)) return null;
+    const token = u.searchParams.get('token') || u.searchParams.get('token_hash') || '';
+    const type  = u.searchParams.get('type') || 'magiclink';
+    if(!token) return null;
+    return { token, type };
+  } catch(_) { return null; }
+}
+
+/* OTP コード検証（otp-code mode）— Wave 212: Magic Link URL の貼り付けにも対応 */
 async function doSupaVerifyOtp() {
   const email = _supaLastEmail
     || (document.getElementById('supa-otp-sent-email')||{}).textContent
     || '';
-  const codeRaw = (document.getElementById('supa-otp-code').value || '').trim();
-  const code = codeRaw.replace(/\D/g, ''); // 数字以外を除く
+  const raw = (document.getElementById('supa-otp-code').value || '').trim();
   if(!email) { showToast('送信先メールアドレスが不明です','error'); return; }
-  if(code.length !== 6) {
-    showToast('6 桁の数字コードを入力してください','error');
+  if(!raw) {
+    showToast('6 桁コードまたはリンク URL を入力してください','error');
     const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
     return;
   }
@@ -5771,6 +5836,39 @@ async function doSupaVerifyOtp() {
   const btn = document.getElementById('supa-otp-verify');
   if(btn) { btn.disabled = true; btn.textContent = '確認中...'; }
   try {
+    // 1) Magic Link URL を貼られたケースを優先判定
+    const linkInfo = _parseSupaMagicLink(raw);
+    if(linkInfo) {
+      const sb = getSupabase();
+      if(!sb) { showToast('クラウドに接続できません','error'); return; }
+      const { data, error } = await sb.auth.verifyOtp({
+        token_hash: linkInfo.token,
+        type: linkInfo.type === 'magiclink' ? 'magiclink' : 'email',
+      });
+      if(error) {
+        _trackSupaErr('verifyOtp', error);
+        showToast(_supaErr(error), 'error');
+        return;
+      }
+      if(data && data.user) {
+        S.supaSession = { id: data.user.id, email: data.user.email || '' };
+        saveS();
+        _recordSupaAttempt('verifyOtp', email, { ok:true, via:'magiclink-paste' });
+        closeModal('m-supa-auth');
+        showToast('クラウドにログインしました','success');
+        _enterApp(true);
+        return;
+      }
+      showToast('ログインに失敗しました','error');
+      return;
+    }
+    // 2) 6 桁コード
+    const code = raw.replace(/\D/g, '');
+    if(code.length !== 6) {
+      showToast('6 桁の数字コードを入力するか、メール内のリンク URL を貼り付けてください','error');
+      const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
+      return;
+    }
     const r = await supaVerifyOtp(email, code);
     if(!r || !r.ok) return;
     _recordSupaAttempt('verifyOtp', email, { ok:true });
@@ -6087,12 +6185,20 @@ document.addEventListener('input', function(e){
     }
     hint.style.display = 'none';
   } else if(e.target.id === 'supa-otp-code') {
-    // 数字以外を除いて表示も整える
-    const cleaned = (e.target.value||'').replace(/\D/g, '').slice(0, 6);
+    // Wave 212: URL（http で始まる）なら触らない、それ以外は数字のみに整形
+    const v = (e.target.value||'').trim();
+    if(/^https?:\/\//i.test(v)) {
+      // Magic Link URL を貼られた → そのまま受け入れ、自動 verify
+      if(typeof doSupaVerifyOtp === 'function' && !e.target._verifying) {
+        e.target._verifying = true;
+        setTimeout(() => { e.target._verifying = false; doSupaVerifyOtp(); }, 200);
+      }
+      return;
+    }
+    const cleaned = v.replace(/\D/g, '').slice(0, 6);
     if(cleaned !== e.target.value) e.target.value = cleaned;
     // 6 桁揃ったら自動検証
     if(cleaned.length === 6 && typeof doSupaVerifyOtp === 'function') {
-      // 二重実行を避けるためフラグ
       if(!e.target._verifying) {
         e.target._verifying = true;
         setTimeout(() => { e.target._verifying = false; doSupaVerifyOtp(); }, 150);
