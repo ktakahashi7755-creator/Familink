@@ -3912,6 +3912,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div class="modal-actions" style="gap:6px;">
         <button id="supa-otp-send" class="btn btn-primary btn-block" onclick="doSupaSendOtp()">ログインコードを送る</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('signin')">パスワードでログイン / 新規登録</button>
+        <!-- Wave 209: メール認証で詰まる人の最終エスケープ -->
+        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -3942,6 +3944,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-otp-verify" class="btn btn-primary btn-block" onclick="doSupaVerifyOtp()">ログインする</button>
         <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コードを再送する</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メアドを変更</button>
+        <!-- Wave 209: コードが届かない人の最終エスケープ -->
+        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -3984,6 +3988,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;color:var(--primary);" onclick="setSupaAuthMode('otp')">← メールでコードを受け取る方法に戻る</button>
+        <!-- Wave 209: メール詰まりの最終エスケープ -->
+        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -4015,6 +4021,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-auth-resend" class="btn btn-outline btn-block" onclick="resendSupaConfirm()">確認メールを再送する</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="returnToSigninFromSent()">確認できたらログインへ</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('signup')">メアドを変更してやり直す</button>
+        <!-- Wave 209: メールが届かない人の最終エスケープ（最も目立たせる） -->
+        <button class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;" onclick="useLocalAndCloseSupa()">📱 メールが届かない場合：ローカルだけで先に始める</button>
+        <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin:4px 2px 0;text-align:center;">後から設定画面でクラウドアカウントに紐付けできます</p>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -4037,6 +4046,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <div class="modal-actions" style="gap:6px;">
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="returnToSigninFromSent()">ログインへ戻る</button>
+        <!-- Wave 209: 再設定メールも届かない人の最終エスケープ -->
+        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -5128,6 +5139,13 @@ async function supaSignUp(email, password) {
         saveS();
         return { ok:true, needsConfirm:false };
       }
+      // Wave 209: identities が空配列 = 既にメール確認済みアカウントが存在する silent duplicate。
+      // Supabase は「User already registered」を返す代わりに success + empty identities を返す仕様（プライバシー保護）。
+      // ユーザーは「確認メール送ったよ」を見て待ち続けるが永遠に来ない → 罠。
+      // ここで検出して signin への切り替えを促す。
+      if(Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return { ok:true, alreadyRegistered:true };
+      }
       return { ok:true, needsConfirm:true };
     }
     return { ok:false };
@@ -5224,6 +5242,19 @@ function supaEntryClickInvite() {
   S.supaEntryChoice = 'invite';
   saveS();
   openSupaInviteModal();
+}
+
+/* Wave 209: メール認証で詰まった人の最終エスケープ。
+   モーダルを閉じ、ローカル限定で即時アプリ内に入る（後でクラウドに切替可能）。
+   - サインアップ確認待ち / リセット待ち / OTP コード待ち などで「もう待てない」時に押せる
+   - S.supaSession は触らない（残っていれば後で再ログイン可能） */
+function useLocalAndCloseSupa() {
+  try { closeModal('m-supa-auth'); } catch(_){}
+  try { closeModal('m-supa-invite'); } catch(_){}
+  S.supaEntryChoice = 'guest';
+  saveS();
+  showToast('ローカルアカウントで開始しました。設定からいつでもクラウドに切り替えられます。','success');
+  _enterApp(true);
 }
 
 /* ── Supabase Auth モーダル（Wave 204 で大幅強化） ──
@@ -5382,6 +5413,12 @@ function _checkSupaEmailHint() {
     hint.style.display = '';
     return;
   }
+  // Wave 209: RFC2606 予約ドメイン（example.com / example.org / example.net）も拒否される
+  if(/^example\.(com|org|net)$|^localhost$/i.test(dom)) {
+    hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。実在するメールアドレスをお使いください。';
+    hint.style.display = '';
+    return;
+  }
   _hideSupaEmailHint();
 }
 function _hideSupaEmailHint() {
@@ -5434,7 +5471,22 @@ async function doSupaAuthSubmit() {
       return;
     }
     if(_supaAuthMode === 'signup') {
-      _recordSupaAttempt('signUp', email, { ok:true });
+      _recordSupaAttempt('signUp', email, { ok:true, alreadyRegistered: !!r.alreadyRegistered });
+      // Wave 209: identities 空配列の silent duplicate を最優先で処理
+      if(r.alreadyRegistered) {
+        setSupaAuthMode('signin');
+        const eIn = document.getElementById('supa-auth-email');
+        if(eIn) eIn.value = email;
+        _setSupaBanner('info',
+          'このメールアドレスは既に登録されています',
+          '<b>' + H(email) + '</b> は登録済みです。<br>'
+          + 'パスワードでログインするか、パスワードを忘れた場合は<b>「メールでコードを受け取る」方式</b>でログインできます。',
+          [
+            { label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" },
+            { label:'パスワードを再設定する', onclick:"setSupaAuthMode('reset')" },
+          ]);
+        return;
+      }
       if(r.needsConfirm) {
         const eSent = document.getElementById('supa-auth-sent-email');
         if(eSent) eSent.textContent = email;
@@ -5939,6 +5991,12 @@ document.addEventListener('input', function(e){
     }
     if(/\.(test|local|example|invalid|localhost)$/i.test(dom)) {
       hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。';
+      hint.style.display = '';
+      return;
+    }
+    // Wave 209: RFC2606 予約ドメインも拒否される
+    if(/^example\.(com|org|net)$|^localhost$/i.test(dom)) {
+      hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。';
       hint.style.display = '';
       return;
     }

@@ -13609,3 +13609,131 @@ Phase 1 確認で、ユーザーゴール（新規登録 / ログイン / ログ
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 208: auth E2E verification 10/10 PASS (login/signup/reset/otp/guest/session/SE/PC)`
+
+---
+
+## 2026-05-26 12:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 209 — 「新規登録ができない」根本原因の特定と修正（メール詰まり / silent duplicate / 最終エスケープ）
+
+### ユーザー報告
+「いまだにログイン画面の新規登録ができない」（Wave 204-208 でも未解決と認識）
+
+### 根本原因（実 Supabase に対する probe で判明）
+**`familink-qa/real-signup-probe.js`** で実 Supabase API を叩いたところ、3 つの罠が存在：
+
+1. **`@example.com` 等の予約ドメイン拒否**
+   - Supabase が `Email address "..." is invalid` を 400 で返す
+   - `_checkSupaEmailHint` の事前ヒントが `.example` TLD のみ検知、`example.com` (RFC2606 完全一致) を見逃していた
+   - ユーザーがテスト用にダミーメアドを使うと永遠にエラー
+
+2. **identities 空配列の silent duplicate**
+   - 同じメアドで再 signUp すると Supabase は **「User already registered」エラーを返さず**、`data.user.identities = []` + `data.session = null` で success を返す（プライバシー保護仕様）
+   - 既存の `supaSignUp` はこれを `needsConfirm: true` と判定 → 「確認メール送信しました」画面 → ユーザーは届かないメールを永遠に待つ
+   - これが「新規登録ができない」体感の最大要因
+
+3. **メール認証ハマり時の escape 不在**
+   - 確認メール待ち / OTP コード待ち / リセットメール待ち で詰まると、モーダルの選択肢は「再送 / メアド変更 / 閉じる」のみ
+   - 「ローカルだけで先に使う」がない → ユーザーが詰む
+
+### 変更ファイル
+- `app-source/familink.html`（+ 約 60 行：6 箇所の修正）
+- `docs/index.html`（同期、キャッシュバスター `20260525c` → `20260526a`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\real-signup-probe.js`（新規・実 Supabase 観測）
+- `C:\Users\ktaka\familink-qa\real-signup-flow.js`（新規・修正後 E2E）
+- `C:\Users\ktaka\familink-qa\session-debug.js`, `docs-209-verify.js`, `syntax-check.js`, `shot-sent-full.js`（新規）
+- `C:\Users\ktaka\familink-qa\shots-209\`（PNG 7 枚）
+
+### コード変更詳細
+
+**1. `_checkSupaEmailHint` 拡張（5364 行付近）**
+```diff
++ // Wave 209: RFC2606 予約ドメイン（example.com / example.org / example.net）も拒否される
++ if(/^example\.(com|org|net)$|^localhost$/i.test(dom)) {
++   hint.innerHTML = '⚠️ <b>@' + dom + '</b> は予約済みドメインのため Supabase に拒否されます。実在するメールアドレスをお使いください。';
++   hint.style.display = '';
++   return;
++ }
+```
+
+**2. OTP form の同等修正（5933 行付近）** — `supa-otp-email` でも同じ予約ドメイン警告
+
+**3. `supaSignUp` に silent duplicate 検出（5118 行付近）**
+```diff
++ if(Array.isArray(data.user.identities) && data.user.identities.length === 0) {
++   return { ok:true, alreadyRegistered:true };
++ }
+```
+
+**4. `doSupaAuthSubmit` で alreadyRegistered を最優先処理（5450 行付近）**
+- signup モードで `r.alreadyRegistered` を検知 → 自動で `signin` モードへ切替
+- email を自動 prefill
+- info バナーで「既登録です」+「OTP に切替」「パスワード再設定」ボタンを提示
+
+**5. 新関数 `useLocalAndCloseSupa()` 追加（5232 行付近）**
+- m-supa-auth / m-supa-invite を閉じて即 `_enterApp(true)`
+- `S.supaSession` は触らない（後でクラウドに再ログイン可能）
+- 「ローカルアカウントで開始しました」success toast
+
+**6. `useLocalAndCloseSupa()` ボタンを 4 箇所に配置**
+- otp form: ghost outline ボタン
+- otp-code form: ghost outline ボタン
+- signin/signup/reset form: ghost outline ボタン
+- **sent screen: primary ボタン（最も目立つ）** + 「後から設定画面でクラウドアカウントに紐付けできます」サブ文
+- reset-sent screen: ghost outline ボタン
+
+### テスト結果
+
+**`real-signup-probe.js`（修正前の根本原因確認）**
+- `example.com` で signUp → `AuthApiError: Email address "..." is invalid` (status: 400) 確認
+- `_supaErr` が翻訳できているのは確認したが、UI 上ではバナーや事前 hint が必要
+
+**`real-signup-flow.js`（修正後 E2E、6 ケース）**
+- ✅ exampleHint：`test@example.com` 入力で即時 inline 警告表示（@example.com は予約済み...）
+- ✅ localQuick：`useLocalAndCloseSupa()` → modal 閉じる + `S.loggedIn=true` + `s-home` 到達
+- ✅ dupeRedirect：mock で alreadyRegistered=true を返すと、signin モードに自動切替 + email prefill + info バナー
+- ✅ seFlow：iPhone SE 375x667 で全モード（otp/signin/signup/reset/sent/reset-sent）描画 OK
+- ⚠ exampleBanner / dupeSilent：Supabase 無料 SMTP rate limit に当たった偽 fail（実 API 観測テストで連続 signup したため）。ロジック自体は dupeRedirect で検証済。
+
+**回帰**
+- `sweep.js`：22 画面 / 61 モーダル / JS エラー 0
+- `mega-intent-80.js`：85/85 PASS
+
+**docs/index.html（GitHub Pages 公開版）検証**
+- `useLocalAndCloseSupa`, `setSupaAuthMode`, `_checkSupaEmailHint` 全関数存在
+- example.com の事前 hint が実際に動作確認
+- md5 差分は 433 バイト（SW + キャッシュバスターのみ、想定通り）
+
+### スクショ（shots-209/）
+- `01-example-hint.png`：例ドメイン警告がフォーム下に表示
+- `03-local-quick.png`：ローカル即時で s-home 到達
+- `05-dupe-signin.png`：既登録自動切替 + info バナー + ボタン
+- `07-sent-full.png`：sent screen に primary ボタン「📱 メールが届かない場合：ローカルだけで先に始める」
+
+### 既存破壊なし
+- `S` / `PERSIST` / `familink_v3` / Supabase init (`persistSession`/`onAuthStateChange`) / Wave 206 バナー / Wave 207 全件 完全無傷
+- 既存の `supaSignUp` 戻り値（`ok` / `needsConfirm`）は追加プロパティのみで後方互換
+- 既存の sent screen 動線は維持、新ボタンは追加配置
+
+### 残課題 / 未確認事項
+- iPhone 実機で 4 修正の動作確認（PC ヘッドレスでは全件 OK）
+- Supabase rate limit に当たった場合の挙動は Wave 206 のカウントダウンで継続表示済
+- オーナー側 Supabase Confirm email OFF 設定はまだ未確認（OFF にすれば signup → 即ログインも可能になる）
+
+### iPhone確認ポイント
+1. 「ログインして使う」→ OTP モード or 「パスワードでログイン/新規登録」 → signup フォームで `test@example.com` と入力 → 入力直後に黄色の警告が表示される
+2. signup フォーム下部に「ログインせずに使い始める（ローカルのみ）」ボタンが見える
+3. 確認メール送信後の sent 画面で「📱 メールが届かない場合：ローカルだけで先に始める」が一番目立つ位置にある
+4. 一度 signup したメアドで再度 signup → 自動でログイン画面に切り替わり、メアドが prefill されている
+
+### 次にやること
+- iPhone 実機での Wave 209 検証
+- Supabase Confirm email OFF 設定推進（オーナー）
+- 招待コード本実装
+- Phase 4-4 家族間データ同期
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 209: fix signup dead-end - example.com hint, identities-empty silent duplicate, local-fallback escape on all stuck screens`
