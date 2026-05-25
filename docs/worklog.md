@@ -14106,3 +14106,95 @@ await sb.auth.signInWithOtp({
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 212: OTP truth - Supabase sends magic-link only, support link+code+paste, emailRedirectTo set, SIGNED_IN auto-enter`
+
+---
+
+## 2026-05-26 17:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 213 — 世界最高品質 QA 26 ケース完走（16+10）＋ CDN 失敗時のローカル signup 経路修正
+
+### 検証スコープ（26 ケース合計）
+
+**A. World-class QA（live + iPhone Safari エミュ、16 ケース）**
+- welcome UI（Wave 211/212 全要素・関数）
+- ローカル signup フルフロー（modal→入力→保存→ホーム→リロード後も維持）
+- ローカル roundtrip（作成→ログアウト→s-login で再ログイン）
+- signup バリデーション 3 ケース（不正メアド / 短パス / 空）
+- silent duplicate（identities=[]）→ signin 自動切替 + email prefill + バナー
+- OTP `emailRedirectTo` 渡し先確認
+- Magic Link URL ペースト → `verifyOtp({token_hash,type:magiclink})`
+- 6 桁コード input → `verifyOtp({email,token,type:email})`
+- 不正 URL（非 supabase）拒否 + 6桁エラー toast
+- ゲスト → ログアウト round trip
+- パスワード表示/非表示トグル（supa & login 両 form）
+- 横スクロール 0（iPhone SE/12/14Pro × welcome/signup/otp/otpCode = 12 組合せ）
+- SIGNED_IN ハンドラ存在
+- PWA メタ（manifest/apple-capable/theme-color/viewport/CSP）
+
+**B. エッジケース＋a11y＋perf＋PWA（10 ケース）**
+- CDN 失敗時のアプリ起動性
+- **CDN 失敗時のローカル signup 動線** ← Wave 213 で修正
+- 連続 signup（同じメアドで上書き）
+- 異常メアド（150 文字 / 絵文字 / 通常）の保存挙動
+- オフライン時ローカル signup
+- a11y（welcome ボタン / pw-eye aria-label / input ラベル）
+- パフォーマンス（loadMs=1099, dom=2052, scripts=2, htmlKB=2485）
+- Service Worker 登録 + manifest + キャッシュバスター
+- safe-area viewport-fit=cover
+- CSP 厳格度（object-src none / base-uri self / form-action self）
+
+### 検出 → 修正（1 件）
+
+**concern: CDN 失敗時に「新規アカウントを作る」ボタンを押してもモーダルが開かない**
+- 旧：`openSupaAuthModal` 冒頭で SUPA_OK 未確認なら早期 return → モーダル開かず toast のみ
+- 結果：ユーザーは緑「メール認証なしで作成」ボタンに辿り着けない（モーダルが必要）
+
+**Wave 213 修正**：
+```js
+const supaAvailable = SUPA_OK || initSupabase();
+// 以下、モーダルは常に開く
+// Supabase 未接続なら signup モード強制（cloud submit より local 緑ボタンを露出）
+if(!supaAvailable && m !== 'signup') m = 'signup';
+setSupaAuthMode(m);
+openModal('m-supa-auth');
+// 未接続バナーで状態を可視化
+if(!supaAvailable) {
+  _setSupaBanner('warn', 'クラウド未接続',
+    '<b>「📱 今すぐ作成（メール認証なし）」</b> なら端末内に即時アカウント作成できます。', []);
+}
+```
+
+### 最終テスト結果（修正後）
+- World-class QA: **16/16 PASS**
+- Edge cases: **10/10 PASS**（旧 9/10 → 修正で 10/10）
+- 合計 **26/26 PASS**
+
+### 変更ファイル
+- `index.html`（root、キャッシュバスター `20260526d` → `20260526e`）
+- `app-source/familink.html`（openSupaAuthModal 修正 +約 18 行）
+- `docs/index.html`（同期、キャッシュバスター `20260526d` → `20260526e`）
+- `docs/worklog.md`
+- `C:\Users\ktaka\familink-qa\world-class-qa.js`（新規・16 ケース）
+- `C:\Users\ktaka\familink-qa\edge-cases-wc.js`（新規・10 ケース）
+- `C:\Users\ktaka\familink-qa\shots-wc/`, `shots-edge/`（PNG 多数）
+
+### 既存破壊なし
+- 既存の supaSignUp / SignIn / SendOtp / VerifyOtp / doSupaLocalSignup / useLocalAndCloseSupa すべて維持
+- Wave 207〜212 の全ロジック温存
+- CDN 接続時の挙動は完全に同じ
+
+### 結論
+コード側で対処可能な認証問題は本ラウンドで全て対処済。Supabase メール経路は：
+- **emailRedirectTo 明示**（Wave 212）→ Site URL 未設定でも redirect 先固定
+- **Magic Link URL ペースト**（Wave 212）→ 6 桁コード以外の経路で verifyOtp 可能
+- **SIGNED_IN auto-enter**（Wave 212）→ 別タブで Link タップしても自動入室
+- **CDN 失敗時もモーダル開く**（Wave 213）→ 緑「メール認証なしで作成」に常に到達可能
+- **welcome 緑一級ボタン**（Wave 211）→ Supabase 経由不要な signup
+- **doSupaLocalSignup**（Wave 210）→ 1 タップでローカル即時アカウント作成
+
+オーナーが Supabase ダッシュボードを触らなくても、ユーザーは確実に新規登録・ログインできる。
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 213: world-class QA 26/26 PASS + open signup modal even when Supabase CDN fails`

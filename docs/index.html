@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260526d';
+  var V='20260526e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5377,10 +5377,9 @@ let _supaLastEmail = '';           // 直近に試行したメール（再送に
 let _supaLastErrorWasInvalidLogin = false; // 直近 signIn が "Invalid login" だったか
 
 function openSupaAuthModal(mode) {
-  if(!SUPA_OK && !initSupabase()) {
-    showToast('クラウドに接続できません。しばらくしてから再度お試しください、または「ログインせずに体験する」をお選びください','error');
-    return;
-  }
+  // Wave 213: Supabase 未接続でもモーダルは開く（ローカル signup ボタンが使えるため）。
+  // 必要なら再初期化を試みつつ、失敗してもモーダルを表示してバナーで状態を知らせる。
+  const supaAvailable = SUPA_OK || initSupabase();
   ['supa-auth-email','supa-auth-pass','supa-otp-email','supa-otp-code'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
@@ -5389,9 +5388,21 @@ function openSupaAuthModal(mode) {
   _hideSupaEmailHint();
   _clearSupaBanner();  // Wave 206: 開くたびにバナーをクリア
   const allowed = ['otp','otp-code','signin','signup','reset','sent','reset-sent'];
-  const m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'otp'; // Wave 205: 既定は OTP
+  let m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'otp'; // Wave 205: 既定は OTP
+  // Wave 213: Supabase 未接続なら signup モード強制（ローカル作成のみ使えるため）
+  if(!supaAvailable && m !== 'signup') {
+    m = 'signup';
+  }
   setSupaAuthMode(m);
   openModal('m-supa-auth');
+  // Wave 213: Supabase 未接続バナー表示
+  if(!supaAvailable) {
+    _setSupaBanner('warn',
+      'クラウド未接続',
+      '現在クラウド（Supabase）に接続できません。<br>'
+      + '<b>「📱 今すぐ作成（メール認証なし）」</b> なら端末内に即時アカウント作成できます（クラウド機能は後で接続可能）。',
+      []);
+  }
   // 自動フォーカス
   setTimeout(() => {
     let f = null;
