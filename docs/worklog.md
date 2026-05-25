@@ -13452,3 +13452,83 @@ Wave 207-c — export/import 検証 / 通知バッジ検証 / Hoku 会話 30 パ
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 207c: Hoku 30/30 chat patterns + export/import/badge verification`
+
+---
+
+## 2026-05-25 10:30  env: PC  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 207-d — Premium gate / メンバー管理 / 通知センター / 最終全回帰検証
+
+### 検証内容（コード変更なし、確認のみ）
+
+**Premium gate（無料 / 有料の境界）**
+- 無料ユーザー：Hoku を 5 回呼べる → 6 回目で確認モーダル表示＋ count blocking（5 で停止）
+- プレミアム：count 増加せず、無制限利用可
+- 日付変更：count が新しい日付で 0 リセット（古い date を持っていれば即初期化）
+- s-premium 画面：開ける、¥480 表記あり、デザイン App Store 品質
+
+**メンバー管理**
+- 追加：MEMBERS.push → saveS → reload で永続化（5→6 確認）
+- 削除：splice → saveS で削除（6→5 確認）
+- 最後の 1 人保護：1 名まで減らして confirmDeleteMember 呼出 → 「最後の 1 人は削除できません」 toast、members=1 維持
+
+**通知センター**
+- 3 件中 2 件 unread の状態で s-notif へ遷移 → screen 切替 OK
+- Wave 207 で検証済の `_refreshNotifBadges` 計算と整合
+
+**長文 / 絵文字 / 高度 XSS**
+- 222 文字 + Unicode 絵文字（⭐🎉🌸）の tasks タイトル → 全保存・破綻なし
+- SVG + foreignObject XSS（`<svg onload=...><foreignObject><body>...`）→ Firefox/Chrome の sanitize で `window.__EVILXSS` 発火せず
+
+### 最終全回帰
+- `mega-intent-80.js`: **85/85 PASS**
+- `hoku-chat-test.js`: **30/30 PASS**
+- `hoku-real-flow-test.js`: 3/3 OK
+- `sweep.js`: 22 画面 / 61 モーダル 全 OK、JS エラー 0
+- `save-roundtrip-test.js`: 4 カテゴリすべて localStorage 復帰確認
+- `modal-esc-test.js`: **61/61 PASS**
+- `badge-test.js`: 0/3-of-5/99/100/undefined/toggle 全 OK
+- `premium-gate-test.js`: 全境界 OK
+
+### コミット累計（このセッション）
+- `946cb43` wave 207   — 4 バグ修正 + 7 テスト追加
+- `510a6d7` wave 207b  — intent 85/85 + onboarding/calendar 検証
+- `d98feff` wave 207c  — Hoku 30/30 + 写真/テーマ/バックアップ知識追加 + 検証 3 件
+- `(本コミット)` wave 207d — Premium/メンバー/通知/最終回帰
+
+### 変更ファイル（本コミット）
+- `docs/worklog.md`（このエントリのみ）
+- `C:\Users\ktaka\familink-qa\premium-gate-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\notif-member-test.js`（新規）
+- `C:\Users\ktaka\familink-qa\member-boundary.js`（新規）
+
+※ app-source / docs/index.html はこのフェーズではコード変更なし。
+
+### 既存破壊なし
+- 既存 17 Skills / S / PERSIST / MEMBERS / Supabase / Wave 206 完全無傷
+- 修正は全て regex への追記 or 新規分岐追加で既存挙動を変えない
+
+### 未確認事項
+- iPhone 実機での 4 Wave（207 + 207b + 207c + 207d）通し検証
+- Supabase OTP メール受領（オーナー Confirm email OFF 待ち、Wave 206 申し送り）
+- 招待コード本実装（Wave 207 申し送り）
+
+### iPhone確認ポイント（全 Wave 統合）
+1. Hoku に「明日 牛乳を買う」「連絡帳にサイン」「健康診断 5月20日」「保護者会の出欠出す」「吐き気あり」「スーパーで3500円使った」と順に話して、すべてカテゴリ自動分類されることを確認
+2. Hoku に「写真の保存先は？」「デザイン変えたい」「バックアップ取れる？」と聞いて新しい説明が出る
+3. ホームの通知ベルが、通知件数に応じて 1〜99/99+ で表示される
+4. プレミアム画面で「¥480」プランが表示され、CTA が押下できる
+5. オンボーディング（空 localStorage 起動）→ ゲスト開始 → プロフィール → 初予定 → ホーム到達 全フロー
+6. カレンダーで前月/次月/今日ジャンプ、月跨ぎ年跨ぎが正しく動く
+
+### 次にやること
+1. iPhone 実機検証ラウンド（上記 6 項目）
+2. オーナー側 Supabase Confirm email OFF 後の OTP 実機メール受領
+3. 招待コード本実装
+4. App Store 申請メタデータ整備
+5. Premium 機能拡張（広告除去・ストレージ 20GB 実装）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 207d: premium gate / member mgmt / notif center / final regression all green`
