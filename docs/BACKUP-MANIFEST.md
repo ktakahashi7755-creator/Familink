@@ -212,3 +212,68 @@ git push --force-with-lease origin claude/merge-and-push-main-u44Ty
 
 ### バックアップカバー範囲
 **Wave 1 から MVP v0.1 まで全て復旧可能。データロスゼロ。**
+
+---
+
+## 🛡️ Wave 214 — 完璧スナップショット（2026-05-26）
+
+CLAUDE.md §14「完全自走モード」下で 3 ラウンド完走後の到達点。
+ユーザー指示「完璧にしてからバックアップ」に対応する最重要復旧ポイント。
+
+### コミットハッシュ
+- **Wave 214 commit**: `d0dfa3f` — Hoku classifier 95→100% + docs sync v20260526f
+- 直前のラウンド：
+  - `d26069f` Round 2 — docs update for wave 213
+  - `ad79398` Round 1 — verify wave 213 login+Supabase 15/15
+  - `accffe9` — CLAUDE.md §14 autonomous-dev rule
+  - `f069099` Wave 213 — world-class QA 26/26 PASS + open signup modal CDN fail
+
+### 復旧手順
+
+**Tag から復旧（推奨）：**
+```bash
+# 完璧スナップショットを別ブランチに切り出し
+git checkout -b restore-wave-214 snapshot-2026-05-26-wave-214-perfect
+
+# 現ブランチを完璧スナップショットに強制復元（破壊的）
+git checkout claude/merge-and-push-main-u44Ty
+git reset --hard snapshot-2026-05-26-wave-214-perfect
+```
+
+**Snapshot ブランチから復旧：**
+```bash
+git checkout snapshot/wave-214-perfect
+# または
+git checkout -b restore-from-214 snapshot/wave-214-perfect
+```
+
+**ZIP から手動復元：**
+```
+C:\Users\ktaka\Familink-backups\familink-wave-214-perfect-2026-05-26.zip
+SHA256: 74E85CC293BF6E49D479FB92AB44D4C18816DE92A156901A9FD9E760A1BB58B3
+Size: 2,679.7 KB
+含まれるファイル：
+  - app-source/familink.html
+  - docs/index.html
+  - CLAUDE.md
+  - docs/worklog.md
+  - docs/BACKUP-MANIFEST.md
+  - docs/appstore-readiness-checklist.md
+  - docs/remaining-tasks.md
+```
+
+### この時点の品質保証
+- **完成条件 15/15 達成**（ログイン+Supabase Auth）
+- **Hoku 分類 100%**（intent-mega 56/56、全カテゴリ 100%）
+- **全 11 系列ハーネステスト緑**：
+  - intent-mega 56/56 / auth-e2e 10/10 / wave212 7/7 / modal-esc 61/0 /
+    syntax-check 0err / save-roundtrip OK / vctest pageerror 0 /
+    hoku-real-flow OK / docs-verify OK / se-layout 22/22 no overflow /
+    premium-gate / backup / export-import / onboarding すべて OK
+- **既存破壊ゼロ**（LocalStorage / 関数名 / 画面 ID / PERSIST すべて無変更）
+
+### 参照
+- 詳細ログ: `docs/worklog.md` の 2026-05-26 Round 1〜3 エントリ
+- 運用ルール: `CLAUDE.md` §14 自律開発・承認最小化ルール
+- 残タスク: `docs/remaining-tasks.md`（Wave 214 反映済）
+- 公開準備: `docs/appstore-readiness-checklist.md`（Wave 214 反映済）
