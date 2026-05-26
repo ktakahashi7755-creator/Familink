@@ -14375,3 +14375,87 @@ Round 1 で 15 完成条件全達成を確認 → ユーザーから「止まら
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `docs: round 2 — sync OneDrive CLAUDE.md, update appstore+remaining-tasks for wave 213`
+
+---
+
+## 2026-05-26  env: PC (Remote Control / 完全自走モード Round 3)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 214 — Hoku 分類精度を 95%→100%（intent-mega 53/56→56/56）。docs 同期 v20260526f。
+
+### 作業背景
+Round 3 包括テストで 11 系列中 1 系列のみ 95%（intent-mega 53/56）と判明。残り 10 系列は全 PASS だが、Hoku 知能の磨き込みは家族向けアプリの中心価値（CLAUDE.md §10.1）なので 100% を目指す。3 誤分類は実母言の典型表現で見逃せない：
+- 「12月誕生会」(calendar) → 月単独表記 `\d{1,2}月` の規則欠落
+- 「上履き持って行く」(prep) → 持って regex がひらがな限定で漢字「行く」を取りこぼし
+- 「花子のピアノ合格」(board) → 達成・受賞語彙（合格/受賞/メダル等）の規則欠落
+
+### 変更ファイル
+- `app-source/familink.html`（+9 -2、classifyHokuInput に 3 パッチ）
+- `docs/index.html`（app-source 同期 + キャッシュバスター v20260526e → v20260526f）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+#### 1. Hoku classifier (app-source/familink.html line ~20225-20309) 3 パッチ
+**Patch 1 — calendar 月単独 +1（line 20226-20228）**
+```js
+// Wave 214: 「12月誕生会」「3月卒業式」のような月単独表記も予定寄りに +1
+// \d{1,2}月\d{1,2} と二重加算しないよう、月の直後が数字の場合は除外
+if(q.match(/\d{1,2}月(?!\d)/)) scores.calendar += 1;
+```
+- 二重加算回避：`\d{1,2}月\d{1,2}` は既に line 20225 で +2 加算済 → lookahead `(?!\d)` で日数付きを除外
+- 「12月の家計」→ calendar +1 / budget +3 → budget 維持（退行なし）
+
+**Patch 2 — prep 持って行く（line 20272）**
+```js
+持って(いく|いか|く|こ|行く|行か)|持参
+```
+- 旧: `持って(いく|いか|く|こ)` → ひらがな限定で「持って行く」を取りこぼし
+- 新: 漢字「行く / 行か」も認識
+
+**Patch 3 — board 達成・受賞（line 20309）**
+```js
+|合格(?:した|だ|！|$|[\s。、])|受かった|受賞|表彰|入賞|金賞|銀賞|銅賞|優勝|準優勝|メダル|賞をもらった|賞を取った
+```
+- 「ピアノ合格」「コンクール入賞」「金メダル」等の家族で共有したい出来事を board に分類
+- `合格` には suffix 制約をかけて「合格点」等の偽陽性を回避（合格した / 合格だ / 合格！ / 合格<末尾> / 合格<区切り> のみ）
+
+#### 2. docs/index.html 同期
+- キャッシュバスター `v20260526e` → `v20260526f` に bump（GitHub Pages のキャッシュを強制更新）
+- app-source/familink.html の全 22331 行を取り込み、先頭 4 行の後に SW + cache buster の 15 行を挿入
+- 結果：22346 行、app-source との純粋な diff は SW + cache buster の 15 行のみ
+
+### テスト結果（patch 適用前）
+- intent-mega: **53/56 (95%)** — 3 失敗（上記 3 ケース）
+- 他 10 系列：全 PASS
+
+### テスト結果（patch 適用後）
+- **intent-mega: 56/56 (100%)** — 全カテゴリ 100%（budget 14/14、task 16/16、calendar 10/10、health 8/8、prep 5/5、board 3/3）
+- auth-e2e: **10/10 PASS**（退行なし）
+- syntax-check: errors none、fns 4/4
+- wave212: **7/7 PASS**（退行なし）
+- modal-esc: **61/0 fail**（退行なし）
+- save-roundtrip: events/tasks/txs/memos すべて OK
+- vctest: 歯医者の予約 タイトル正常、pageerror なし
+- hoku-real-flow: calendar/task/budget 正常分類、errors は CORS（manifest.json file:// の制約・既知の false positive）
+- docs-verify: docs/index.html 経由でも errors none、intents 正常分類、navFix 健全
+
+### 既存破壊なし
+- LocalStorage 構造（familink_v3）、PERSIST 対象キー、全画面 ID、関数名すべて無変更
+- classifyHokuInput の戻り値スキーマ（category/score/secondary/allScores）も無変更
+- 既存の budget/task/calendar/health/prep/board 53 ケース全て退行なし
+
+### 未確認事項
+- 実機 iPhone での体感（合成テストは 100% PASS）
+- LIVE GitHub Pages 環境での挙動（push 待ち）
+
+### iPhone確認ポイント
+- Hoku に「12月誕生会」「上履き持って行く」「花子のピアノ合格」と話して、それぞれ predict が calendar / prep / board になるか
+- 「合格点 80点」等の偽陽性回避が効いているか（board と誤分類されないか）
+
+### 次にやること
+- バックアップ作成（snapshot タグ + BACKUP-MANIFEST 更新）
+- ユーザー判断：このまま push して LIVE 反映するか、ローカル commit のみで止めるか
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 214: Hoku classifier 95→100% (intent-mega 56/56) — month-alone, kanji 持って行く, 合格/受賞/メダル + docs sync v20260526f`
