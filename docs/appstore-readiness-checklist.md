@@ -1,6 +1,8 @@
 # App Store 公開前 チェックリスト
 
-> 最終更新: 2026-05-20 / v1.3.0 — Premium 画面・課金導線・Hoku制限・広告バナー実装済み
+> 最終更新: 2026-05-26 / v1.4.0 — Wave 213 で Supabase Auth 完全接続。
+> 完成条件 15/15 達成（auth-e2e 10/10, wave212 7/7, modal-esc 61/0, syntax clean, SE 22/22 no overflow）。
+> 旧版（Wave 82, 2026-05-16 時点）から Wave 213 状態に更新済。
 
 
 Familink を App Store / Google Play に公開するために確認すべき残課題の一覧。
@@ -12,12 +14,12 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 | 項目 | 状態 | 備考 |
 |---|---|---|
-| 主要 18 画面の表示確認 | ◐ | VM テストは緑、実機目視が残 |
-| 自動テスト全 PASS | ☑ | VM スイート全 PASS（exit 0）+ hoku-api pytest 16/16 |
-| 構文エラーゼロ | ☑ | scripts 1/1 OK |
+| 主要 18 画面の表示確認 | ◐ | auto レンダリングは 22 画面で horizOverflow=false、実機目視が残 |
+| 自動テスト全 PASS | ☑ | VM 全 PASS / hoku-api pytest 18/18 / auth-e2e 10/10 / wave212 7/7 / modal-esc 61/0 |
+| 構文エラーゼロ | ☑ | scripts 1/1 OK、syntax-check pageerror=0 console.error=0 |
 | HTML 構造の整合性 | ☑ | div バランス完全 |
-| 押せないボタン / 行き先なし導線ゼロ | ◐ | QA スイープ実施、実機で最終確認 |
-| 横スクロール無し | ◐ | overflow-x:hidden 設定済、実機確認残 |
+| 押せないボタン / 行き先なし導線ゼロ | ☑ | modal-esc 61 モーダル / 0 失敗、auth-e2e 全 PASS |
+| 横スクロール無し | ☑ | SE(375)/390/430 で docW===winW、22 画面で horizOverflow=false |
 
 ## 2. 実機検証
 
@@ -67,8 +69,8 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 | 項目 | 状態 | 備考 |
 |---|---|---|
 | 課金（IAP）導線 | ◐ | s-premium 画面・Hoku制限・広告バナー・ストレージ誘導を実装済み。本決済は App Store IAP 連携が必要 |
-| 本物のログイン | ☐ | 設計のみ。本実装は要確認 |
-| 家族同期（Supabase 等）| ☐ | 設計のみ。本実装は要確認 |
+| 本物のログイン | ☑ | **Wave 213 で完成**。Supabase Auth（メール+パス / OTP / Magic Link / Magic Link URL 貼付 / SIGNED_IN auto-enter / persistSession+autoRefreshToken / pkce flow / detectSessionInUrl / 日本語エラーハンドリング 9 種 / CDN 失敗時の即時ローカル fallback）。auth-e2e 10/10 PASS。**β 表記の見直しを審査前に検討** |
+| 家族同期（Supabase 等）| ◐ | Auth は完成（上記）。データ同期は syncToSupabase / syncFromSupabase スタブのみ。本実装は要オーナー確認（テーブル設計 + RLS） |
 | プッシュ通知 | ☐ | App Store 版で対応予定 |
 
 ## 7. 審査リスク
@@ -82,13 +84,15 @@ Familink を App Store / Google Play に公開するために確認すべき残�
 
 ## 8. MVP 公開可否判断
 
-現時点の結論：**実機検証 + 法務専門家レビュー + iOS ラッパー実装** が公開の
-必須残作業。プロダクト品質（コード・テスト）・メタデータ・アイコン・法務文書
-草案・サポートページは整備済み。次の優先：
-1. 実機検証（4 デバイス幅 + 音声）— 要実機
+現時点（Wave 213 後）の結論：**実機検証 + 法務専門家レビュー + iOS ラッパー実装**
+が公開の必須残作業。プロダクト品質（コード・テスト）・メタデータ・アイコン・
+法務文書草案・サポートページ・**Supabase Auth 本物のログイン**は整備済み。
+次の優先：
+1. 実機検証（4 デバイス幅 + 音声 + Magic Link / OTP の実体感）— 要実機
 2. スクリーンショット作成（実機/シミュレータ）
 3. 法務専門家レビュー（docs/legal-review-notes.md に論点整理済み）
 4. iOS ラッパー実装（Capacitor 推奨・要オーナー確認）
+5. Supabase ダッシュボード側 Site URL / Redirect URLs 設定の確認（emailRedirectTo と一致）
 
 関連決定ドキュメント：
 - iOS ラッパー：`ios-wrapper-decision.md`

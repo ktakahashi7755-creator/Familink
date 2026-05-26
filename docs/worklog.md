@@ -14307,3 +14307,71 @@ CLAUDE.md に §14「自律開発・承認最小化ルール」を追加（Remot
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `docs(worklog): verify wave 213 login+Supabase 15/15 — auth-e2e 10/10, wave212 7/7, modal-esc 61/0, syntax clean, SE 22/22 no overflow`
+
+---
+
+## 2026-05-26  env: PC (Remote Control / 完全自走モード Round 2)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Round 2：OneDrive CLAUDE.md 同期 + 正本ドキュメント（appstore-readiness / remaining-tasks）の Wave 82→213 全面更新
+
+### 作業背景
+Round 1 で 15 完成条件全達成を確認 → ユーザーから「止まらずタスク完了まで走り切れ」指示。確認不要な安全領域で価値追加を継続：
+1. OneDrive CLAUDE.md 乖離（§10.11 破損 / §13 欠落 / §14 未反映）の解消
+2. 正本ドキュメントが Wave 82 時点で停止していたため Wave 213 状態に更新（特に「本物のログイン: ☐ 設計のみ」→「☑ 完成」）
+3. 安全領域で実行可能な改善を抽出（要オーナー確認の B/A 項目は提案のみで停止）
+
+### 変更ファイル
+- `C:\Users\ktaka\OneDrive\Desktop\【Familink】test_20260522\CLAUDE.md`（git 管理外。正規版から上書きコピー、SHA256 一致確認）
+- `docs/appstore-readiness-checklist.md`（Wave 82→213 更新、§1 品質ステータス全 ☑ 化、§6 本物のログインを ☐→☑、§8 公開可否判断に Supabase Dashboard 設定追加）
+- `docs/remaining-tasks.md`（Wave 82→213 全面更新、C4 ☑、新規 C5/C6 追加、新規 B4 Supabase 同期 / B5 Dashboard 設定追加）
+- `docs/worklog.md`（本エントリ）
+- ※ `app-source/familink.html` と `docs/index.html` は引き続き無変更（実装ギャップ無しのため）
+
+### 変更内容
+#### 1. OneDrive CLAUDE.md 同期
+- 正規版 `C:\Users\ktaka\Familink\CLAUDE.md` を `Copy-Item -Force` で OneDrive 起動側へ上書き
+- SHA256 一致を確認：`B207E6D4EDC55F95A266A07D397C4A2990B7A3B955B6EDA8A2E388C30398FE41`
+- 結果：§10.11 破損 / §13 欠落 / §14 未反映を一括解消
+
+#### 2. appstore-readiness-checklist.md 更新
+- ヘッダ最終更新日を 2026-05-26 / v1.4.0 へ更新
+- §1 プロダクト品質：5/6 を ☑ に格上げ（押せないボタン 0、横スクロール無し、構文 0、HTML 整合、自動テスト全 PASS）
+- §6 課金/同期：**本物のログイン ☐→☑（Wave 213 完成、auth-e2e 10/10）**、家族同期 ☐→◐（Auth 完成、データ同期はスタブ）
+- §8 公開可否判断：実機検証に「Magic Link / OTP の実体感」追記、新項目「Supabase Dashboard 側 Site URL / Redirect URLs 設定の確認」を 5 番目に追加
+
+#### 3. remaining-tasks.md 更新
+- ヘッダ更新日 2026-05-26、Wave 82→213 旨を明記
+- A. オーナー判断項目：変更なし（A1 実機検証〜A8 年齢区分はオーナー領域のため）
+- B. オーナー許可項目：B4「Supabase テーブル本同期」と B5「Supabase Dashboard 設定」を新規追加
+- C. 自走項目：C4 を ☑、C5「Supabase Auth 接続実装 ☑」と C6「完成条件 15 項目検証 ☑」を新規追加
+- D. 公開済み：自動テスト一覧に auth-e2e / wave212 / modal-esc を追加、「Supabase Auth 本物のログイン」を新規 ☑
+- 次の一手（推奨順）：1 番目に Magic Link / OTP の体感、2 番目に Supabase Dashboard 設定を追加
+
+### テスト結果
+- auth-e2e.js: **10/10 PASS**（ドキュメント変更のみだが念のため回帰確認）
+- ※ app-source / docs/index.html 無変更のため他ハーネスは省略
+
+### 既存破壊なし
+- app-source/familink.html、docs/index.html、LocalStorage 構造（familink_v3）、S 形状、PERSIST 対象キー、全画面 ID、全関数名すべて無変更
+
+### 未確認事項
+- OneDrive 側の Claude Code セッションは新しい CLAUDE.md を再読み込みする必要がある（再起動で反映）
+- Supabase Dashboard（Site URL / Redirect URLs / Auth Providers の確認）はオーナー領域で完全に未確認
+- 実機 iPhone での Magic Link / OTP の体験は引き続き未確認
+
+### iPhone確認ポイント
+- 引き続き Round 1 で記録した項目（Magic Link 自動入室 / 6 桁コード入力 / ゲスト導線 / ログアウト confirm）
+- なし（本ラウンドはドキュメント更新のみ）
+
+### 次にやること
+- ユーザー判断待ち：
+  - (A) Supabase Dashboard 側設定（B5）の確認・実施 — オーナーの操作
+  - (B) Supabase テーブル本同期実装（B4）に着手 — 要オーナー確認
+  - (C) App Store スクリーンショット撮影（A3）— 要実機
+  - (D) iOS Capacitor ラッパー実装（A6）— 要オーナー確認
+- どの方向にも進めるよう、提案ドキュメントの形で材料を揃えた状態
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `docs: round 2 — sync OneDrive CLAUDE.md, update appstore+remaining-tasks for wave 213`
