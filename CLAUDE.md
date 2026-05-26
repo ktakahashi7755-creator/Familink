@@ -447,3 +447,48 @@ Familink は家族情報・子ども情報・体調・家計・写真・書類�
 ### 13.7 リリース前確認
 - リリース前は必ず P0/P1 リスクの再確認を行う（`docs/security-audit.md` のリスト）
 - セキュリティ改善は既存機能を壊さず小さく実施する（属性追加・文言追加・確認モーダル追加が中心）
+
+---
+
+## 14. 自律開発・承認最小化ルール
+
+ユーザーはスマホ・Remote Control・別業務中に確認するため、細かい確認待ちで作業を止めない。
+
+### 14.1 基本方針
+- 安全な読み取り・確認・テスト・軽微な編集は自律的に進める
+- `app-source/familink.html` の編集は原則進めてよい
+- 実装 → テスト → 修正 → 再テストを自律ループする
+- commit 直前のみ変更内容・テスト結果・懸念点を報告する
+- ユーザーへの逐一確認は禁止
+
+### 14.2 確認なしで進めてよい操作
+- `pwd` / `cd` / `dir` / `ls` / `Test-Path` / `Get-Content` / `Select-String`
+- `git status` / `git branch` / `git fetch` / `git log` / `git diff`
+- `node --check`
+- Playwright / puppeteer / スクショ生成
+- `app-source/familink.html` 編集
+- `docs/index.html` 同期
+- `docs/worklog.md` 更新
+- CSS / JS / UI 修正
+- レスポンシブ調整
+- console error 修正
+- Supabase Auth 接続
+- ログイン画面実装
+
+### 14.3 必ず停止する操作
+- `rm` / `del`
+- `git reset --hard`
+- `git clean`
+- force push
+- 大量削除
+- LocalStorage 構造破壊
+- service_role key 利用
+- 本番 DB 削除
+- 外部課金
+
+### 14.4 作業場所
+- 正規 repo は `C:\Users\ktaka\Familink`
+- OneDrive 側では作業しない
+- 正本は `app-source/familink.html`
+- 公開用は最後に `docs/index.html` へ同期する
+- 既存 LocalStorage `familink_v3` は削除禁止

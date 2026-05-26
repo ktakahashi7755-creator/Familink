@@ -14198,3 +14198,43 @@ if(!supaAvailable) {
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 213: world-class QA 26/26 PASS + open signup modal even when Supabase CDN fails`
+
+---
+
+## 2026-05-26  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+CLAUDE.md に §14「自律開発・承認最小化ルール」を追加（Remote Control / スマホ運用の承認待ち削減）
+
+### 変更ファイル
+- `CLAUDE.md`（§14 を末尾追加 / +45 行）
+- `C:\Users\ktaka\OneDrive\Desktop\【Familink】test_20260522\CLAUDE.md`（git 管理外。同一内容を反映してこのセッションでも即時有効化）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+- §14.1 基本方針：安全な読取/確認/テスト/軽微編集は自律進行、`app-source/familink.html` 編集は原則進めてよい、実装→テスト→修正→再テストの自律ループ、commit 直前のみ報告、逐一確認禁止
+- §14.2 確認なしで進めてよい操作：`pwd`/`cd`/`dir`/`ls`/`Test-Path`/`Get-Content`/`Select-String`、`git status`/`branch`/`fetch`/`log`/`diff`、`node --check`、Playwright/puppeteer/スクショ、`app-source/familink.html` 編集、`docs/index.html` 同期、`docs/worklog.md` 更新、CSS/JS/UI 修正、レスポンシブ調整、console error 修正、Supabase Auth 接続、ログイン画面実装
+- §14.3 必ず停止する操作：`rm`/`del`、`git reset --hard`、`git clean`、force push、大量削除、LocalStorage 構造破壊、service_role key 利用、本番 DB 削除、外部課金
+- §14.4 作業場所：正規 repo は `C:\Users\ktaka\Familink`、OneDrive 側では作業しない、正本は `app-source/familink.html`、公開用は `docs/index.html` へ同期、既存 LocalStorage `familink_v3` は削除禁止
+- ユーザー指示中のパス `C:\Users\tkaka\Familink` は `ktaka` のタイプミスと判断して実在パス `C:\Users\ktaka\Familink` に修正して記載
+
+### テスト結果
+- 未実施: ドキュメント（運用ルール）のみの変更でコード影響なし。`app-source/familink.html` / `docs/index.html` / LocalStorage 構造は無変更
+
+### 未確認事項
+- OneDrive 側 CLAUDE.md が正規版と乖離している
+  - §10.11 冒頭が `11る家族向けアプリ」としてブランド化` のように破損
+  - §13（セキュリティ・リスクマネジメント方針）が丸ごと欠落
+  - 次セッションで正規版から上書き同期するか相談したい
+- §14.2 の「LocalStorage 構造破壊」禁止表現は §12.2 / §14.3 と重複気味。`familink-chief-review-officer` で整理候補
+
+### iPhone確認ポイント
+- なし（運用ルールのみ）
+
+### 次にやること
+- OneDrive 側 CLAUDE.md の正規版からの上書き同期（破損 §10.11 と欠落 §13 の修復）の可否を確認
+- §14 ルール下で「ログイン画面実装」の続き／Supabase Auth 接続の自律進行
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `docs: add CLAUDE.md §14 autonomous-dev / approval-minimization rule`
