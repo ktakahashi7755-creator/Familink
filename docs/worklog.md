@@ -14459,3 +14459,65 @@ if(q.match(/\d{1,2}月(?!\d)/)) scores.calendar += 1;
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214: Hoku classifier 95→100% (intent-mega 56/56) — month-alone, kanji 持って行く, 合格/受賞/メダル + docs sync v20260526f`
+
+---
+
+## 2026-05-26  env: PC (Remote Control / 完全自走モード Round 4)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Remote Control 解除後も生存する物理 HTML バックアップを 4 ファイル配置（OneDrive 内外 × app/pages）
+
+### 作業背景
+ユーザー指示「リモートコントロールを解除したとしても、バックアップが残るように、実際ファイルを HTML 形式で一回出してほしい」。git tag / snapshot ブランチ / ZIP は既に Round 3 で作ったが、いずれも何らかの操作（git checkout / 解凍）が必要。ユーザーは「物理 HTML ファイル」をそのまま欲しい意向。
+
+### 変更ファイル
+- `C:\Users\ktaka\Familink-backups\familink-app-wave-214-perfect-2026-05-26.html`（新規・2,410.1 KB・SHA256 `38314576...381730`）
+- `C:\Users\ktaka\Familink-backups\familink-pages-wave-214-perfect-2026-05-26.html`（新規・2,410.6 KB・SHA256 `30D70901...4E4D7B`）
+- `C:\Users\ktaka\OneDrive\Desktop\Familink-backups\familink-app-wave-214-perfect-2026-05-26.html`（新規、同一ハッシュ）
+- `C:\Users\ktaka\OneDrive\Desktop\Familink-backups\familink-pages-wave-214-perfect-2026-05-26.html`（新規、同一ハッシュ）
+- `docs/BACKUP-MANIFEST.md`（スタンドアロン HTML セクション追加）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+- app-source/familink.html と docs/index.html を 2 箇所にコピー（合計 4 ファイル）
+  - OneDrive 外（C:\Users\ktaka\Familink-backups\）：同期事故・共有事故から隔離
+  - OneDrive 内（OneDrive\Desktop\Familink-backups\）：クラウド同期で多重保存、別端末からアクセス可能
+- 各ファイルの SHA256 をソースと完全一致確認（4/4 match）
+- スタンドアロン動作のスモークテスト：
+  - puppeteer で file:// から起動 → errs none
+  - 主要関数：supaSignUp / classifyHokuInput / exportFamilinkData すべて健全
+  - Wave 214 修正の動作確認：
+    - 「12月誕生会」→ category=calendar ✓
+    - 「花子のピアノ合格」→ category=board ✓
+- BACKUP-MANIFEST.md に 4 ファイル一覧と復元コマンドを追加
+
+### テスト結果
+- スタンドアロン HTML スモークテスト：**OK**
+  - pageerror 0
+  - welcome 画面 (s-ob) 表示
+  - 主要関数 3/3 存在
+  - Hoku 分類 Wave 214 修正反映確認 2/2
+
+### 復元 4 経路（重要度順）
+1. **物理 HTML（最堅牢）**：そのまま開ける標準 HTML ファイル
+   - OneDrive 外 2 ファイル + OneDrive 内 2 ファイル
+   - リモコン解除・OneDrive 同期停止・git 損傷でも生存
+2. **Git annotated tag**：`snapshot-2026-05-26-wave-214-perfect`
+3. **Snapshot ブランチ**：`snapshot/wave-214-perfect`
+4. **ZIP**：`familink-wave-214-perfect-2026-05-26.zip`（7 ファイル同梱、SHA256 `74E85CC2...`）
+
+### 既存破壊なし
+- アプリ本体・docs/index.html・git 履歴すべて無変更（コピーのみ）
+
+### 未確認事項
+- OneDrive 同期の完了タイミング（PC 起動時に自動同期されるが、別端末からのアクセスは同期完了後）
+
+### iPhone確認ポイント
+- なし（バックアップファイルは PC 上のみ）
+
+### 次にやること
+- ユーザー判断：Round 5 で push して LIVE 反映 / 別の改善着手 / セッション終了
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `docs(backup): add 4 standalone HTML backups (OneDrive in/out × app/pages) for post-disconnect persistence`

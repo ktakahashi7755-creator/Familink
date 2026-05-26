@@ -262,6 +262,35 @@ Size: 2,679.7 KB
   - docs/remaining-tasks.md
 ```
 
+**スタンドアロン HTML から起動／復元（Remote Control 解除後・git なしでも動作）：**
+
+そのままダブルクリックでブラウザに開く完全独立 HTML を 2 系統 ×2 箇所＝合計 4 ファイルとして配置。
+git・Claude Code セッション・OneDrive 同期のいずれかが失われても、残り経路から復元可能。
+
+| 系統 | 配置 | パス | SHA256 | サイズ |
+|---|---|---|---|---|
+| app-source（開発正本）| OneDrive 外 | `C:\Users\ktaka\Familink-backups\familink-app-wave-214-perfect-2026-05-26.html` | `38314576...381730` | 2,410.1 KB |
+| docs/index.html（Pages 公開用、SW+CB 込）| OneDrive 外 | `C:\Users\ktaka\Familink-backups\familink-pages-wave-214-perfect-2026-05-26.html` | `30D70901...4E4D7B` | 2,410.6 KB |
+| app-source | OneDrive 内 | `C:\Users\ktaka\OneDrive\Desktop\Familink-backups\familink-app-wave-214-perfect-2026-05-26.html` | `38314576...381730`（同一）| 2,410.1 KB |
+| docs/index.html | OneDrive 内 | `C:\Users\ktaka\OneDrive\Desktop\Familink-backups\familink-pages-wave-214-perfect-2026-05-26.html` | `30D70901...4E4D7B`（同一）| 2,410.6 KB |
+
+それぞれ単体で：
+- ダブルクリックでブラウザに直接開く（file:// で動作）
+- LocalStorage は端末固有なので空状態から開始
+- Supabase Auth / Hoku 分類 / バックアップ機能すべて動作
+- スモークテスト確認済（errs none / welcome 画面 / Hoku 分類 100%）
+
+復元手順：
+```powershell
+# 例：開発に戻したいとき、app-source を上書き
+Copy-Item "C:\Users\ktaka\Familink-backups\familink-app-wave-214-perfect-2026-05-26.html" `
+  "C:\Users\ktaka\Familink\app-source\familink.html" -Force
+
+# 例：Pages 公開版を戻したいとき
+Copy-Item "C:\Users\ktaka\Familink-backups\familink-pages-wave-214-perfect-2026-05-26.html" `
+  "C:\Users\ktaka\Familink\docs\index.html" -Force
+```
+
 ### この時点の品質保証
 - **完成条件 15/15 達成**（ログイン+Supabase Auth）
 - **Hoku 分類 100%**（intent-mega 56/56、全カテゴリ 100%）
