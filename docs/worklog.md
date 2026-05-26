@@ -14521,3 +14521,100 @@ Remote Control 解除後も生存する物理 HTML バックアップを 4 フ�
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `docs(backup): add 4 standalone HTML backups (OneDrive in/out × app/pages) for post-disconnect persistence`
+
+---
+
+## 2026-05-26  env: PC (Remote Control / 完全自走モード Round 5)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 214b — Supabase Auth モーダルの絵文字撤去（📱 / 📧 → SVG）+ 重複ボタン整理 + チェックリスト圧縮
+
+### 作業背景
+ユーザーから実機スクショ提供＋指摘：
+- 「ボタンが AI 感強く絵文字が使用されている」→ SVG への置換要請
+- 「ごちゃついている」→ シンプル・迷わない設計への整理要請
+CLAUDE.md §10.5「安っぽい絵文字多用は禁止」、§10.6 Hoku ガイド「信頼感」、§10.1 北極星「家族をチームに」のいずれにも整合させる必要あり。
+
+### 変更ファイル
+- `app-source/familink.html`（5 パッチ、+22 -10）
+- `docs/index.html`（同期、v20260526f → v20260526g）
+- `C:\Users\ktaka\familink-qa\shot-signup-ui-214.js`（新規 QA スクリプト・git 管理外）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容（5 パッチ）
+#### Patch 1: signup PRIMARY ボタン整え（line 4002〜4014）
+- 「📱 今すぐ作成（メール認証なし）」→ SVG user-plus アイコン + 「今すぐ作成」のみ
+- 緑チェックリスト 3 行 → 1 行サブテキストに圧縮：「端末内に作成・メール認証なし・あとでクラウド連携可」
+- 緑色＋大きめ＋太字＋グラデーションは維持（主動線である視覚優位は変えない）
+- `← メールでコードを受け取る方法に戻る` に `id="supa-auth-otp-back"` 付与
+- 「ログインせずに使い始める（ローカルのみ）」に `id="supa-auth-use-local-escape"` 付与
+
+#### Patch 2: sent-wrap の 📧 (48px) → SVG 封筒 (56px) (line 4019)
+- 青系（#3B82F6）の outline 風 SVG。プロダクト感を強化。
+
+#### Patch 3: sent-wrap の 📱 緑ボタン（line 4044）→ SVG 雷（zap）
+- 「メールが届かない場合：ローカルだけで先に始める」→ 「メールが届かない場合：ローカルで先に始める」（"だけで" 削除）
+- SVG polygon zap で「即時」を表現。
+
+#### Patch 4: otp-code-wrap の 📧 (40px) → SVG 封筒 (44px) (line 3930)
+- 青系統一。Patch 2 と同デザイン。
+
+#### Patch 5: setSupaAuthMode の visibility 制御（line ~5478〜5484）
+- `supa-auth-use-local-escape` を signup モードでは `display:none`、それ以外（signin/reset）では `''`（表示）
+- 結果：signup で「今すぐ作成」と「ログインせずに使い始める」が同時に出ない（重複解消）
+- signin/reset では escape hatch として残る（メール認証で詰まった人のため）
+
+### テスト結果（patch 適用後・全 PASS / 退行ゼロ）
+- syntax-check: errors **none**、fns 4/4 true
+- auth-e2e: **10/10 PASS**
+- wave212: **7/7 PASS**
+- modal-esc: **61 モーダル / 0 失敗**
+- intent-mega: **56/56 (100%)**
+- 視覚回帰：puppeteer で 7 状態のスクショ取得（welcome / signup / signin / reset / otp / otp-code / sent）
+
+### DOM 検証（visibility 制御の正しさを実証）
+signup mode 状態：
+```json
+{
+  "localSignupVisible": true,             // 緑「今すぐ作成」表示
+  "useLocalEscapeVisible": false,         // 重複 escape 非表示 ✓
+  "noteText": "端末内に作成・メール認証なし・あとでクラウド連携可",  // 1 行に圧縮 ✓
+  "primaryHasSvg": true,                  // SVG アイコン埋め込み ✓
+  "submitText": "クラウドにも登録（メール認証あり）"  // 2nd outline 維持
+}
+```
+signin mode 状態：
+```json
+{ "useLocalEscapeVisible": true }  // escape hatch 復活 ✓
+```
+
+### docs/index.html 同期
+- キャッシュバスター v20260526f → **v20260526g**
+- diff: SW + CB 15 行のみ（§12.3 同期義務遵守）
+- 同期後サイズ：2,316,491 chars
+
+### 既存破壊なし
+- LocalStorage 構造（familink_v3）/ PERSIST / 全関数名 / モード切替ロジック / Wave 213 までの全機能、すべて無変更
+- 5 パッチは UI 層の表示文字列・SVG・JS 1 行の visibility 制御のみ
+
+### 残った絵文字
+- アプリ全体で「絵文字を一切使わない」とまではしない（§10.5「多用は禁止」≠ 全廃）
+- 残るのは：オンボーディングのオプション選択 emoji / Hoku アバター（イラスト画像）/ ステータス絵文字（既存 wave で意図的に残してある UX 文脈）
+- 今回ターゲットは「Supabase Auth モーダル内のボタン・タイトル」のみ → 完全撤去
+
+### 未確認事項
+- ユーザーが提供したスクショと新スクショの主観的「美しさ・信頼感」の評価
+- 残絵文字（アプリ他部位）の整理範囲はユーザー判断待ち
+
+### iPhone確認ポイント
+- 実機で signup モーダルを開き、緑「今すぐ作成」の SVG が綺麗に描画されるか
+- 1 行サブテキストが SE 幅で折り返さず読めるか
+- sent モードの SVG 封筒（56px）が崩れないか
+
+### 次にやること
+- ユーザー判断：このまま push して LIVE / 残絵文字の他部位整理 / 別フェーズへ
+- バックアップ：必要なら Wave 214b で再スナップショット
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 214b: signup modal — emoji→SVG (user-plus/zap/envelope), simplify (drop redundant escape in signup, compress checklist) + docs sync v20260526g`
