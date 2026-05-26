@@ -15878,38 +15878,31 @@ function renderSettings() {
     <!-- Premium -->
     <div class="menu-premium-card">${premiumHtml}</div>
 
-    <!-- Account -->
+    <!-- Wave 214c: 設定階層を 8 → 6 セクションに整理（世界最高峰品質）
+         1. プロフィール・家族 | 2. クラウド連携 | 3. 表示と通知 |
+         4. データ・保管 | 5. ヘルプ・アプリ情報 | 6. ログアウト -->
+
+    <!-- 1. プロフィール・家族 -->
     <div class="settings-section">
-      <div class="settings-title">アカウント・設定</div>
-      <div class="settings-item" onclick="openOfficialAvatarModal('${uid}')">
+      <div class="settings-title">プロフィール・家族</div>
+      <div class="settings-item" onclick="openProfileEdit()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
-        <div class="settings-item-label">アバター設定</div><div class="settings-arrow">›</div>
+        <div class="settings-item-label">プロフィールを編集
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">表示名・アバター・役割</div>
+        </div>
+        <div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" onclick="go('s-ch')">
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#FF6B9D')}</div>
-        <div class="settings-item-label">家族メンバー管理</div><div class="settings-arrow">›</div>
-      </div>
-      <div class="settings-item" onclick="openProfileEdit()">
-        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>','#4A90E2')}</div>
-        <div class="settings-item-label">プロフィールを編集</div><div class="settings-arrow">›</div>
-      </div>
-      <div class="settings-item" onclick="openWorkspaceSwitcher()">
-        <div class="settings-item-icon" style="background:#EEF7F0">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#52C47A')}</div>
-        <div class="settings-item-label">スペース切り替え</div>
-        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${currentWorkspace().name}</div>
-      </div>
-      <div class="settings-item" onclick="openTabSettings()">
-        <div class="settings-item-icon" style="background:#EBF0FF">${si('<rect x="2" y="17" width="20" height="5" rx="2"/><path d="M7 17v-5m5 5V7m5 10V4"/>','#4A65E2')}</div>
-        <div class="settings-item-label">タブのカスタマイズ</div><div class="settings-arrow">›</div>
-      </div>
-      <div class="settings-item" onclick="openWidgetSettings()">
-        <div class="settings-item-icon" style="background:#F0F5FF">${si('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>','#3B5BDB')}</div>
-        <div class="settings-item-label">ウィジェット設定</div><div class="settings-arrow">›</div>
+        <div class="settings-item-label">家族メンバー管理
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">家族の追加・編集</div>
+        </div>
+        <div class="settings-arrow">›</div>
       </div>
       ${accountSecHtml}
     </div>
 
-    <!-- Wave 202: クラウド（Supabase）— 接続 + Auth 第一段階 -->
+    <!-- 2. クラウド連携（ベータ）— Wave 202 -->
     <div class="settings-section">
       <div class="settings-title">クラウド連携（ベータ）${isSupaLoggedIn() ? ' <span style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">ログイン中</span>' : (SUPA_OK ? '' : ' <span style="display:inline-block;background:#F3F4F6;color:#6B7280;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">未接続</span>')}</div>
       ${isSupaLoggedIn()
@@ -15949,9 +15942,43 @@ function renderSettings() {
           </div>`}
     </div>
 
-    <!-- Wave 57: 過去機能の復活 -->
+    <!-- 3. 表示と通知 -->
     <div class="settings-section">
-      <div class="settings-title">家族の保管</div>
+      <div class="settings-title">表示と通知</div>
+      <div class="settings-item" onclick="openWorkspaceSwitcher()">
+        <div class="settings-item-icon" style="background:#EEF7F0">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#52C47A')}</div>
+        <div class="settings-item-label">スペース切り替え</div>
+        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${currentWorkspace().name}</div>
+      </div>
+      <div class="settings-item" onclick="openTabSettings()">
+        <div class="settings-item-icon" style="background:#EBF0FF">${si('<rect x="2" y="17" width="20" height="5" rx="2"/><path d="M7 17v-5m5 5V7m5 10V4"/>','#4A65E2')}</div>
+        <div class="settings-item-label">タブのカスタマイズ</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openWidgetSettings()">
+        <div class="settings-item-icon" style="background:#F0F5FF">${si('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>','#3B5BDB')}</div>
+        <div class="settings-item-label">ウィジェット設定</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openNotifSettings()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>','#4A90E2')}</div>
+        <div class="settings-item-label">通知設定</div><div class="settings-arrow">›</div>
+      </div>
+    </div>
+
+    <!-- 4. データ・保管（旧「家族の保管」+「デモ」を統合） -->
+    <div class="settings-section">
+      <div class="settings-title">データ・保管${S.demoModeEnabled ? ' <span style="display:inline-block;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">デモモード中</span>' : ''}</div>
+      <!-- Wave 172: データのバックアップ（書き出し / 読み込み）— 最も大切なので先頭に -->
+      <div class="settings-item" onclick="openDataShareModal()">
+        <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>','#10B981')}</div>
+        <div class="settings-item-label">データのバックアップ
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">書き出し / 読み込み</div>
+        </div><div class="settings-arrow">›</div>
+      </div>
+      <!-- Wave 60.7: ストレージ管理（容量不足時の整理画面） -->
+      <div class="settings-item" onclick="openStorageModal()">
+        <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
+        <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
+      </div>
       <div class="settings-item" onclick="go('s-archive')">
         <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>','#F59E0B')}</div>
         <div class="settings-item-label">書類保管庫</div><div class="settings-arrow">›</div>
@@ -15960,25 +15987,11 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#FCE7F3">${si('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>','#EC4899')}</div>
         <div class="settings-item-label">アルバム</div><div class="settings-arrow">›</div>
       </div>
-      <!-- Wave 60.7: ストレージ管理（容量不足時の整理画面） -->
-      <div class="settings-item" onclick="openStorageModal()">
-        <div class="settings-item-icon" style="background:#EBF4FF">${si('<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>','#4A90E2')}</div>
-        <div class="settings-item-label">ストレージ管理</div><div class="settings-arrow">›</div>
-      </div>
-      <!-- Wave 172: データのバックアップ（書き出し / 読み込み） -->
-      <div class="settings-item" onclick="openDataShareModal()">
-        <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>','#10B981')}</div>
-        <div class="settings-item-label">データのバックアップ</div><div class="settings-arrow">›</div>
-      </div>
-    </div>
-
-    <!-- Wave 201: デモ・提案用データの管理（複数サンプルの切替） -->
-    <div class="settings-section">
-      <div class="settings-title">デモ・提案用データ${S.demoModeEnabled ? ' <span style="display:inline-block;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">デモモード中</span>' : ''}</div>
+      <!-- Wave 201: デモ・提案用データの管理（複数サンプルの切替）— データ系として併合 -->
       <div class="settings-item" onclick="openDemoManagerModal()">
         <div class="settings-item-icon" style="background:#FFF7ED">${si('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M8 14h3"/>','#F59E0B')}</div>
         <div class="settings-item-label">デモデータ管理
-          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">複数のサンプルを切替（家庭向け / 仮想家族 / 提案用 / 新規）</div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">家庭向け / 仮想家族 / 提案用 / 新規を切替</div>
         </div><div class="settings-arrow">›</div>
       </div>
       ${S.demoModeEnabled ? `
@@ -15988,18 +16001,9 @@ function renderSettings() {
       </div>` : ''}
     </div>
 
-    <!-- Wave 77: Hoku 連携（実験的）— 外部 Hoku API の URL 設定 -->
+    <!-- 5. ヘルプ・アプリ情報（旧「ヘルプ・サポート」+「その他」+「Hoku 連携」を統合） -->
     <div class="settings-section">
-      <div class="settings-title">Hoku 連携（実験的）</div>
-      <div class="settings-item" onclick="openHokuApiModal()">
-        <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
-        <div class="settings-item-label">Hoku API 連携</div>
-        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${(S.hokuApiUrl?'ON':'OFF')}</div>
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-title">ヘルプ・サポート</div>
+      <div class="settings-title">ヘルプ・アプリ情報</div>
       <div class="settings-item" onclick="openGuide()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<circle cx="12" cy="12" r="10"/><path d="M9.2 9.2a3 3 0 0 1 5.6 1c0 2-2.8 2.6-2.8 4"/><line x1="12" y1="17.4" x2="12.01" y2="17.4"/>','#4A90E2')}</div>
         <div class="settings-item-label">使い方ガイド</div><div class="settings-arrow">›</div>
@@ -16012,14 +16016,6 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EAF7EE">${si('<path d="M4 4h16v13H7l-3 3z"/>','#3A9E6B')}</div>
         <div class="settings-item-label">お問い合わせ</div><div class="settings-arrow">›</div>
       </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-title">その他</div>
-      <div class="settings-item" onclick="openNotifSettings()">
-        <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>','#4A90E2')}</div>
-        <div class="settings-item-label">通知設定</div><div class="settings-arrow">›</div>
-      </div>
       <div class="settings-item" onclick="openLegalDoc('privacy')">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/>','#4A90E2')}</div>
         <div class="settings-item-label">プライバシーポリシー</div><div class="settings-arrow">›</div>
@@ -16028,11 +16024,21 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>','#4A90E2')}</div>
         <div class="settings-item-label">利用規約</div><div class="settings-arrow">›</div>
       </div>
+      <!-- Wave 77: Hoku 連携（実験的）— 単独セクションから情報セクションに吸収 -->
+      <div class="settings-item" onclick="openHokuApiModal()">
+        <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
+        <div class="settings-item-label">Hoku API 連携（実験的）</div>
+        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${(S.hokuApiUrl?'ON':'OFF')}</div>
+      </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
         <div class="settings-item-label">バージョン</div>
         <div class="settings-arrow" style="font-size:12px;color:var(--text-muted);">${H(APP_VERSION)}</div>
       </div>
+    </div>
+
+    <!-- 6. ログアウト（独立した danger zone として最下部に） -->
+    <div class="settings-section">
       <div class="settings-item" onclick="doLogout()">
         <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
         <div class="settings-item-label" style="color:var(--red)">ログアウト</div>

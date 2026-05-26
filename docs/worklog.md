@@ -14618,3 +14618,99 @@ signin mode 状態：
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214b: signup modal — emoji→SVG (user-plus/zap/envelope), simplify (drop redundant escape in signup, compress checklist) + docs sync v20260526g`
+
+---
+
+## 2026-05-27  env: PC (Remote Control / 完全自走モード Round 6)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 6 セクション + 独立ログアウト）
+
+### 作業背景
+ユーザー指摘「設定メニューの項目が多すぎる。多くあるのは良いけど、世界最高峰の品質で、階層をわかりやすくシンプルにまとめてみやすく構築してほしい」。
+旧構造は 8 セクション（アカウント・設定 / クラウド連携 / 家族の保管 / デモ・提案用データ / Hoku 連携 / ヘルプ・サポート / その他 / 開発用）。
+問題点：
+- 「アバター設定」と「プロフィールを編集」が別アイテムで意味重複（共に user profile を編集）
+- 「通知設定」が「その他」に紛れていて見つけにくい
+- 「Hoku 連携（実験的）」が 1 アイテムのみで単独セクション化、視覚ノイズ
+- 「ログアウト」が「その他」末尾に埋もれて danger zone として目立たない
+- 「家族の保管」「デモ・提案用データ」を別セクションにする必要なし（共にデータ系）
+
+### 変更ファイル
+- `app-source/familink.html`（renderSettings 関数の HTML テンプレート、+30 -50 程度の純減）
+- `docs/index.html`（同期、v20260526g → v20260526h）
+- `index.html`（root リダイレクター、v20260526g → v20260526h）
+- `C:\Users\ktaka\familink-qa\shot-settings-214c.js`（新規 QA スクリプト・git 管理外）
+- `docs/worklog.md`（本エントリ）
+
+### 変更内容
+旧 8 セクション → 新 6 セクション + 独立ログアウト + 開発用：
+
+| # | 旧 | 新 | 内容 |
+|---|---|---|---|
+| 1 | アカウント・設定（7-8 items）| **プロフィール・家族**（3 items）| プロフィール編集（アバター単独 item と統合）+ 家族メンバー + アカウント情報 |
+| 2 | クラウド連携（ベータ）| **クラウド連携（ベータ）**（2-4 items）| 変更なし（既に良い構造）|
+| 3 | （旧アカウント・設定 内）| **表示と通知**（4 items）| スペース切替 + タブ + ウィジェット + 通知設定（"その他"から移動） |
+| 4 | 家族の保管（4 items）+ デモ（1-2 items）| **データ・保管**（5-6 items）| バックアップを先頭に / ストレージ + 書類保管庫 + アルバム + デモデータ管理を一箇所に |
+| 5 | Hoku 連携（1）+ ヘルプ・サポート（3）+ その他（4-5）| **ヘルプ・アプリ情報**（7 items）| ガイド / FAQ / 問合せ / プライバシー / 利用規約 / Hoku 連携（吸収）/ バージョン |
+| 6 | （旧"その他"末尾）| **ログアウト**（1 item、独立 section）| ヘッダ無し、独立 danger zone として最下部に配置 |
+| dev | 開発用オプション | **開発用オプション**（変更なし）| opacity:.6 で薄表示 |
+
+#### 主な改善ポイント
+1. **重複除去**：「アバター設定」単体アイテム削除 → プロフィール編集に統合（アバターは brand header の user-row clickable でもアクセス可）
+2. **通知の家**：通知設定を「その他」から「表示と通知」へ移動（自然なグルーピング）
+3. **Hoku 連携の吸収**：1 アイテムだけの単独セクションを廃止し「ヘルプ・アプリ情報」内へ
+4. **ログアウト昇格**：埋もれていた最重要アクションを独立 section に。danger color 維持
+5. **バックアップ昇格**：「データ・保管」section の先頭に配置（最も大切な機能）
+6. **デモ統合**：データ系として自然に併合、デモモード中バッジは section title に併設
+
+### テスト結果（patch 適用後・全 PASS / 退行ゼロ）
+- syntax-check: errors **none**、fns 4/4
+- auth-e2e: **10/10 PASS**
+- modal-esc: **61 / 0 失敗**
+- intent-mega: **56/56 (100%)**
+- save-roundtrip: events / tasks / txs / memos すべて OK
+
+### DOM 検証（puppeteer で構造実測）
+```json
+{
+  "sectionCount": 7,
+  "sections": [
+    {"title": "プロフィール・家族", "itemCount": 3},
+    {"title": "クラウド連携（ベータ）", "itemCount": 2},
+    {"title": "表示と通知", "itemCount": 4},
+    {"title": "データ・保管", "itemCount": 5},
+    {"title": "ヘルプ・アプリ情報", "itemCount": 7},
+    {"title": "(no title)", "itemCount": 1},  // ログアウト独立
+    {"title": "開発用オプション", "itemCount": 1}
+  ],
+  "docOverflow": false  // 横スクロール無し
+}
+```
+
+### docs/index.html / root index.html 同期
+- キャッシュバスター v20260526g → **v20260526h**
+- 両方の index.html を bump し iOS Safari キャッシュ強制更新
+
+### 既存破壊なし
+- すべての onclick ハンドラ維持（openProfileEdit / openSupaAuthModal / openTabSettings / openWidgetSettings / openNotifSettings / openWorkspaceSwitcher / openDataShareModal / openStorageModal / openDemoManagerModal / restoreBeforeDemoApply / openGuide / openFaq / openContact / openLegalDoc / openHokuApiModal / openOfficialAvatarModal / supaSignOut / syncToSupabase / syncFromSupabase / go(s-ch/s-archive/s-album) / doLogout / devTogglePremium）
+- すべての SVG アイコンと色維持
+- 機能項目はゼロ削除（重複の "アバター設定" 単体 item のみ削除、機能は openOfficialAvatarModal として残存しヘッダから到達可）
+
+### 未確認事項
+- 実機 iPhone での新階層の体感
+- ユーザーの主観的「分かりやすさ」評価
+
+### iPhone確認ポイント
+- 設定画面を開き、6 セクションの section title が明確に見えるか
+- 「ログアウト」が独立 section として最下部に danger color で見えるか
+- 各 item にラベル + アイコン + サブテキスト（一部）が正しく表示されるか
+- スクロール時に縦の流れが自然か
+
+### 次にやること
+- ユーザー判断：このまま push して LIVE 反映 / 他画面の整理 / Hoku 改善
+- 次のバックアップは Wave 214c で再スナップショット推奨
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `wave 214c: settings UI — 8→6 sections, dedupe avatar, group notif into 表示, absorb hoku api, promote logout to danger zone + docs sync v20260526h`
