@@ -14238,3 +14238,72 @@ CLAUDE.md に §14「自律開発・承認最小化ルール」を追加（Remot
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `docs: add CLAUDE.md §14 autonomous-dev / approval-minimization rule`
+
+---
+
+## 2026-05-26  env: PC (Remote Control / 完全自走モード)  branch: claude/merge-and-push-main-u44Ty
+
+### 作業名
+完全自走モードでログイン画面+Supabase Auth の 15 完成条件を全数検証（Wave 213 後の確認ラウンド）
+
+### 作業背景
+ユーザーから「完全自走モード」指示。最優先タスクは「ログイン画面 + Supabase Auth 接続」で 15 完成条件（新規登録/ログイン/ログアウト/セッション保持/ゲストモード/Supabase Auth接続/エラーハンドリング/iPhone SE/PC/横スクロール無/JSエラー0/既存機能維持/docs同期/worklog/commit準備）の達成が条件。Wave 213 の実装で大半は対応済の想定で、まず監査して埋めるべきギャップを洗い出す方針で着手。
+
+### 変更ファイル
+- `docs/worklog.md`（本エントリのみ）
+- ※ `app-source/familink.html` / `docs/index.html` は無変更（実装ギャップ無しのため）
+
+### 変更内容
+- 監査：`app-source/familink.html` の Auth まわり（initSupabase / supaSignUp / supaSignIn / supaSignOut / supaSendOtp / supaVerifyOtp / onAuthStateChange / useLocalAndCloseSupa / doSupaLocalSignup / supaEntryClickLogin/Signup/Guest/Invite / openSupaAuthModal / setSupaAuthMode）を読み、15 完成条件のマッピングを実施
+- 検証ハーネスを 4 系列並列実行し全 PASS を確認
+  - `auth-e2e.js`（10 ケース：welcome/supaModalOpen/guestEnter/modeSwitch/shortPassRejection/invalidEmailRejection/pwToggle/sessionRestore/seWidth/pcWidth）→ **10/10 PASS**
+  - `wave212-test.js`（7 ケース：otpModeDesc/otpCodeUI/parseLink/magicLinkPaste/sixDigitFlow/emailRedirectTo/signedInHandler）→ **7/7 PASS**
+  - `modal-esc-test.js`（61 モーダルの ESC 閉じ）→ **61/61 PASS（失敗 0）**
+  - `syntax-check.js`（pageerror / console.error / 主要関数存在）→ **errors: none, fns: 4/4 true**
+  - `se-layout-test.js`（iPhone SE 375 で全 22 画面の横スクロール判定）→ **horizOverflow: false（22/22）**。`.child-tab-name` の右端 392 等は `.child-tabs { overflow-x: auto }` 内の意図スクロールで false positive
+
+### 15 完成条件マッピング（全達成）
+| 完成条件 | 状態 | 根拠 |
+|---|---|---|
+| 新規登録 | ✅ | supaSignUp() / doSupaLocalSignup() / Wave 209 silent duplicate 検出 |
+| ログイン | ✅ | supaSignIn() + OTP (supaSendOtp / supaVerifyOtp) + Magic Link URL 貼付 |
+| ログアウト | ✅ | supaSignOut() + 設定画面に showConfirm 確認導線（line 15920） |
+| セッション保持 | ✅ | persistSession=true / autoRefreshToken=true / getSession on init / S.supaSession 永続化 |
+| ゲストモード | ✅ | supaEntryClickGuest() → _enterApp(true)、useLocalAndCloseSupa() の即時ローカル化 |
+| Supabase Auth接続 | ✅ | createClient + pkce + detectSessionInUrl + onAuthStateChange（SIGNED_IN auto-enter） |
+| エラーハンドリング | ✅ | _supaErr() で 9 種類の英語エラーを日本語化、Wave 213 で CDN 失敗時もモーダル開く |
+| iPhone SE 対応 | ✅ | SE(375) 22 画面 horizOverflow=false、auth-e2e seWidth ✅ |
+| PC 確認 | ✅ | auth-e2e pcWidth(1280) ✅、JS エラー 0 |
+| 横スクロールなし | ✅ | SE/390/430 すべて docW===winW |
+| JS エラー 0 | ✅ | pageerror=0、console.error=none（manifest/CSP 例外除外後） |
+| 既存機能維持 | ✅ | familink_v3 / PERSIST / S 形状すべて無変更、modal-esc 61/61 |
+| docs 同期 | ✅ | Wave 213 で v20260526e 同期済、本ラウンドで app-source 未変更のため bump 不要 |
+| worklog 更新 | ✅ | 本エントリ |
+| commit 準備 | ✅ | 本ラウンドの commit は worklog 追記のみ |
+
+### テスト結果（数値サマリ）
+- auth-e2e: **10/10 PASS**
+- wave212: **7/7 PASS**
+- modal-esc: **61 モーダル中 0 失敗**
+- syntax-check: **errors none, fns 4/4 true**
+- SE layout: **22 画面で horizOverflow=false**
+
+### 未確認事項
+- 実機 iPhone での Magic Link / OTP の体感（本セッションは puppeteer での合成テストのみ）
+- Supabase Auth ダッシュボードの Site URL / Redirect URLs 設定が emailRedirectTo と一致しているか（オーナー側で要確認、ここは触れない領域）
+- OneDrive 側 CLAUDE.md と正規版の乖離（§10.11 破損 / §13 欠落）→ 次セッションで上書き同期可否を相談
+
+### iPhone確認ポイント
+- 実機 iPhone でメール受信 → Magic Link タップ → 自動入室の体験
+- 実機 iPhone で 6 桁コード入力 → 入室の体験
+- 「ログインせずに体験する」→ オンボーディング → ホーム の素早さ
+- 設定 > クラウドからログアウト → confirm モーダル → トースト
+
+### 次にやること
+- ユーザー判断：このまま App Store 公開準備に進むか、Supabase 側で User テーブル/RLS の本実装に進むか
+- もし「機能追加」フェーズに進むなら：syncToSupabase / syncFromSupabase のスタブ→本実装（events/tasks/txs/posts/announces、conflict は updated_at 新しい方優先）
+- OneDrive 側 CLAUDE.md の上書き同期
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `docs(worklog): verify wave 213 login+Supabase 15/15 — auth-e2e 10/10, wave212 7/7, modal-esc 61/0, syntax clean, SE 22/22 no overflow`
