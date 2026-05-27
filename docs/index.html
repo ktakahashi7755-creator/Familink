@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527h';
+  var V='20260527i';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8284,13 +8284,66 @@ function saveProfileEdit() {
 }
 
 function doLogout() {
-  showConfirm('ログアウト','ログアウトしますか？','ログアウトする', () => {
+  showConfirm('ログアウト','ログアウトしますか？','ログアウトする', async () => {
+    try { await supaSignOut(); } catch(_){}
     S.loggedIn = false; S.user = null;
     saveS();
     document.getElementById('tabbar').classList.add('hidden');
     showScreen('s-ob');
     showToast('ログアウトしました');
   }, '');
+}
+
+/* Wave 226: アカウント削除（App Store要件） */
+function confirmDeleteAccount() {
+  showConfirm(
+    'アカウントを削除',
+    'クラウドアカウントと端末内のすべてのデータを削除します。この操作は取り消せません。本当に削除しますか？',
+    '削除する',
+    () => {
+      showConfirm(
+        '最終確認',
+        'すべてのデータが完全に削除されます。\n本当によろしいですか？',
+        '完全に削除する',
+        async () => {
+          showLoading('アカウントを削除中...');
+          try {
+            const sb = getSupabase();
+            if(sb && isSupaLoggedIn()) {
+              try {
+                const uid = S.supaSession && S.supaSession.id;
+                if(uid) {
+                  await sb.from('fl_family_data').delete().eq('user_id', uid);
+                }
+                await sb.auth.signOut();
+              } catch(e) { console.error('delete account:', e && e.message); }
+            }
+          } finally {
+            hideLoading();
+          }
+          localStorage.removeItem('familink_v3');
+          showToast('アカウントとデータを削除しました');
+          setTimeout(() => location.reload(), 1200);
+        },
+        ''
+      );
+    },
+    ''
+  );
+}
+
+function confirmClearLocalData() {
+  showConfirm(
+    'ローカルデータを削除',
+    '端末内のすべてのデータを削除します。クラウドにバックアップがある場合はログイン後に復元できます。本当に削除しますか？',
+    '削除する',
+    () => {
+      localStorage.removeItem('familink_v3');
+      showToast('データを削除しました');
+      setTimeout(() => location.reload(), 800);
+    },
+    ''
+  );
 }
 
 /* ============================================================
@@ -16395,12 +16448,26 @@ function renderSettings() {
       </div>
     </div>
 
-    <!-- 6. ログアウト（独立した danger zone として最下部に） -->
+    <!-- 6. ログアウト / 危険ゾーン -->
     <div class="settings-section">
-      <div class="settings-item" onclick="doLogout()">
-        <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
-        <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
-      </div>
+      ${isSupaLoggedIn()
+        ? `<div class="settings-item" onclick="doLogout()">
+            <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
+            <div class="settings-item-label" style="color:var(--red)">クラウドからログアウト</div>
+          </div>
+          <div class="settings-item" onclick="confirmDeleteAccount()">
+            <div class="settings-item-icon" style="background:#FFE8E8">${si('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>','#EF4444')}</div>
+            <div class="settings-item-label" style="color:var(--red)">アカウントを削除<div style="font-size:11px;color:var(--text-muted);font-weight:400;">クラウドデータを含む全データを削除</div></div>
+          </div>`
+        : `<div class="settings-item" onclick="doLogout()">
+            <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
+            <div class="settings-item-label" style="color:var(--red)">ログアウト</div>
+          </div>
+          <div class="settings-item" onclick="confirmClearLocalData()">
+            <div class="settings-item-icon" style="background:#FFF7ED">${si('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>','#F59E0B')}</div>
+            <div class="settings-item-label" style="color:var(--text-sub)">ローカルデータを削除<div style="font-size:11px;color:var(--text-muted);font-weight:400;">端末内のすべてのデータを消去</div></div>
+          </div>`
+      }
     </div>
 
     <!-- Dev: プレミアム切替トグル（本番想定では非表示に） -->
