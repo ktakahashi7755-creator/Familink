@@ -4158,24 +4158,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- Wave 202: 招待コードで参加（家族招待の受け入れ用、第一段階はスタブ） -->
+<!-- Wave 223: 招待コードで参加（家族スペース参加） -->
 <div id="m-supa-invite" class="modal-backdrop hidden">
   <div class="modal">
     <div class="modal-grip"></div>
     <div class="modal-title">招待コードで参加</div>
     <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-      ご家族から共有された招待コードを入力してください。承諾するとそのご家族のスペースに参加できます。
+      ご家族から共有された招待コードを入力してください。同じコードを持つ家族と予定・やることを共有できます。
     </p>
     <div class="modal-form" style="gap:4px;">
       <label class="form-label">招待コード</label>
-      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX" autocomplete="off" maxlength="64" style="letter-spacing:1px;">
-      <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:#FFF7ED;border:1px solid #FCD9B0;border-radius:8px;padding:10px 12px;color:#92400E;">
-        この機能はまもなくリリース予定です。現時点では入力のみ受け付けます。
-      </p>
+      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX" autocomplete="off" maxlength="20" style="letter-spacing:2px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      <div id="supa-invite-err" style="font-size:12px;color:var(--red);min-height:16px;margin-top:4px;"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary btn-block" onclick="doSupaInviteSubmit()">次へ</button>
+      <button class="btn btn-primary btn-block" onclick="doSupaInviteSubmit()">このコードで参加する</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-invite')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wave 223: 自分の招待コードを表示・共有 -->
+<div id="m-my-invite" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-title">家族を招待する</div>
+    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
+      下のコードをご家族に共有してください。同じコードで参加した方と予定・やることを共有できます。
+    </p>
+    <div style="background:var(--bg-muted);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;">
+      <div id="my-invite-code" style="font-size:26px;font-weight:800;letter-spacing:4px;color:var(--primary);font-family:monospace;"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">このコードをご家族に伝えてください</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="copyMyInviteCode()">コードをコピー</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-my-invite')">閉じる</button>
     </div>
   </div>
 </div>
@@ -5086,6 +5103,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 <!-- Toast container -->
 <div id="toast-wrap"></div>
+<!-- Wave 224: グローバルローディングオーバーレイ -->
+<div id="global-loading" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(255,255,255,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <div class="loading"><span></span><span></span><span></span></div>
+  <div id="global-loading-msg" style="font-size:13px;font-weight:600;color:var(--text-sub);"></div>
+</div>
 
 </div><!-- #app -->
 
@@ -5385,6 +5407,7 @@ async function _pushToSupabase() {
 async function _fetchFromSupabase() {
   const sb = getSupabase();
   if(!sb || !isSupaLoggedIn()) return;
+  showLoading('データを取得中...');
   try {
     const uid = S.supaSession && S.supaSession.id;
     if(!uid) return;
@@ -5415,6 +5438,8 @@ async function _fetchFromSupabase() {
   } catch(e) {
     console.error('_fetchFromSupabase:', e && e.message);
     _setSyncDot('error');
+  } finally {
+    hideLoading();
   }
 }
 
@@ -6424,19 +6449,67 @@ document.addEventListener('keydown', function(e){
   }
 });
 
-/* ── 招待コードで参加（スタブ：今後の家族招待・共有受け入れ用） ── */
+/* ── Wave 223: 家族招待コードシステム ──────────────────────────
+   形式: FAMI-XXXX (8文字ランダム英数字)
+   familyId をコード化して LocalStorage / Supabase で共有する。
+   受け取り側はコードを入力して同じ familyId に参加する。
+   ─────────────────────────────────────────────────────────────── */
+function _generateFamilyId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = 'FAMI-';
+  for(let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
 function openSupaInviteModal() {
   const inp = document.getElementById('supa-invite-code');
   if(inp) inp.value = '';
+  const errEl = document.getElementById('supa-invite-err');
+  if(errEl) errEl.textContent = '';
   openModal('m-supa-invite');
 }
+
+function openMyInviteModal() {
+  if(!S.familyId) {
+    S.familyId = _generateFamilyId();
+    saveS();
+  }
+  const el = document.getElementById('my-invite-code');
+  if(el) el.textContent = S.familyId;
+  openModal('m-my-invite');
+}
+
+function copyMyInviteCode() {
+  const code = S.familyId || '';
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code);
+      showToast('招待コードをコピーしました');
+    } else {
+      showToast('コードを長押しでコピーしてください', 'info');
+    }
+  } catch(e) { showToast('コードを長押しでコピーしてください', 'info'); }
+}
+
 function doSupaInviteSubmit() {
-  const code = (document.getElementById('supa-invite-code').value || '').trim();
-  if(!code) { showToast('招待コードを入力してください','error'); return; }
-  if(code.length < 6 || code.length > 64) { showToast('招待コードの長さが正しくありません','error'); return; }
-  // 第一段階ではコードの存在チェックは行わず、案内のみ
+  const raw = (document.getElementById('supa-invite-code').value || '').trim().toUpperCase();
+  const errEl = document.getElementById('supa-invite-err');
+  if(errEl) errEl.textContent = '';
+  if(!raw) { if(errEl) errEl.textContent = '招待コードを入力してください'; return; }
+  if(!/^FAMI-[A-Z0-9]{4}$/.test(raw)) {
+    if(errEl) errEl.textContent = '「FAMI-XXXX」の形式で入力してください';
+    return;
+  }
+  if(raw === S.familyId) {
+    if(errEl) errEl.textContent = 'これはあなた自身の招待コードです';
+    return;
+  }
+  S.familyId = raw;
+  saveS();
   closeModal('m-supa-invite');
-  showToast('招待コード機能は準備中です。リリースをお待ちください。','info');
+  closeModal('m-supa-auth');
+  showToast('家族コードで参加しました！データが同期されます', 'success');
+  _enterApp(true);
 }
 
 /* ── 設定画面 / 入口画面の Supabase 関連 UI を再描画 ── */
@@ -7148,6 +7221,23 @@ function greeting() {
 /* ============================================================
    TOAST
    ============================================================ */
+/* ── Wave 224: グローバルローディングオーバーレイ ── */
+let _loadingCount = 0;
+function showLoading(msg) {
+  _loadingCount++;
+  const el = document.getElementById('global-loading');
+  if(!el) return;
+  el.style.display = 'flex';
+  const msgEl = document.getElementById('global-loading-msg');
+  if(msgEl) msgEl.textContent = msg || '';
+}
+function hideLoading() {
+  _loadingCount = Math.max(0, _loadingCount - 1);
+  if(_loadingCount > 0) return;
+  const el = document.getElementById('global-loading');
+  if(el) el.style.display = 'none';
+}
+
 function showToast(msg, type='success') {
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
@@ -16166,10 +16256,16 @@ function renderSettings() {
               <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${SUPA_OK ? '6 桁のコードを受け取って入力するだけ。パスワード不要' : 'クラウドに接続できません。ネットワークをご確認ください'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
+          <div class="settings-item" onclick="openMyInviteModal()">
+            <div class="settings-item-icon" style="background:#F0FDF4">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#22C55E')}</div>
+            <div class="settings-item-label">家族を招待する
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'コードを生成して家族に共有'}</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
           <div class="settings-item" onclick="openSupaInviteModal()">
             <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#F59E0B')}</div>
             <div class="settings-item-label">招待コードで参加
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">家族から受け取ったコードで参加（準備中）</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族から受け取ったコードで参加'}</div>
             </div><div class="settings-arrow">›</div>
           </div>`}
     </div>
@@ -22035,7 +22131,9 @@ async function ob2Login() {
   if(!email) { if(errEl) errEl.textContent = 'メールアドレスを入力してください'; return; }
   if(!pass)  { if(errEl) errEl.textContent = 'パスワードを入力してください'; return; }
   if(btn) { btn.disabled = true; btn.textContent = 'ログイン中...'; }
+  showLoading('ログイン中...');
   const r = await supaSignIn(email, pass);
+  hideLoading();
   if(btn) { btn.disabled = false; btn.textContent = 'ログイン'; }
   if(r && r.ok) return;
   const msg = (r && r.error) ? _supaErr(r.error) : 'ログインに失敗しました';
