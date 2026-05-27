@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages
+
+# トリガー：main または QA ブランチへの push、または手動実行
+on:
+  push:
+    branches:
+      - main
+      - claude/familylink-unicorn-product-TzM1F
+      - claude/merge-and-push-main-u44Ty
+  workflow_dispatch:
+
+# Pages デプロイに必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行は最新だけを保持
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # docs/ フォルダを直接配信（index.html = フルアプリ、リダイレクト不要）
+          # /Familink/sw.js → docs/sw.js ✓  /Familink/manifest.json → docs/manifest.json ✓
+          path: 'docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
