@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527i';
+  var V='20260527j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -22849,6 +22849,23 @@ async function ob2AppleLogin() {
 </div>
 
 <script>
+/* ── Wave 227: オフライン/オンライン状態のハンドリング ─────────── */
+(function() {
+  function onOnline() {
+    _setSyncDot(isSupaLoggedIn() ? 'syncing' : 'offline');
+    if(isSupaLoggedIn()) {
+      _fetchFromSupabase().catch(_=>{});
+    }
+    try { showToast('オンラインに戻りました', 'success'); } catch(_){}
+  }
+  function onOffline() {
+    _setSyncDot('offline');
+    try { showToast('オフラインです。データは端末に保存されています', 'info'); } catch(_){}
+  }
+  window.addEventListener('online',  onOnline);
+  window.addEventListener('offline', onOffline);
+})();
+
 /* ── Wave 221: iOS キーボード開閉時のスクロール補正 ──────────────
    iOS Safari では input focus でウィンドウが意図せずスクロールし、
    固定ヘッダーや下部ボタンが隠れる問題がある。
