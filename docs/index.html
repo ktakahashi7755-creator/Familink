@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527q';
+  var V='v20260527r';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -2123,11 +2123,19 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   background:var(--bg-card); border-radius:14px; margin:0 16px 8px;
   padding:13px 14px; box-shadow:var(--s-sm);
   border:1.5px solid var(--border-light);
-  display:flex; align-items:flex-start; gap:10px;
+  display:flex; align-items:flex-start; gap:10px; position:relative; overflow:hidden;
   cursor:pointer; transition:var(--t-spring); touch-action:pan-y;
 }
 .tk-card.dragging { opacity:.5; transform:scale(.98); }
 .tk-card.done-card { background:rgba(248,250,252,.7); border-color:var(--border-light); opacity:.78; }
+/* Wave 236: スワイプオーバーレイ */
+._sw-r, ._sw-l {
+  position:absolute; top:0; left:0; right:0; bottom:0; border-radius:14px;
+  opacity:0; pointer-events:none; display:flex; align-items:center; padding:0 18px;
+  font-size:12px; font-weight:700; gap:5px;
+}
+._sw-r { background:rgba(34,197,94,.18); color:#15803d; justify-content:flex-start; }
+._sw-l { background:rgba(239,68,68,.14); color:#dc2626; justify-content:flex-end; }
 .tk-del-btn {
   background:transparent; border:1px solid var(--border-light);
   border-radius:8px; padding:6px 8px; cursor:pointer;
@@ -6940,8 +6948,8 @@ let S = {
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
 };
 
-const APP_VERSION = 'v1.3.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt'];
+const APP_VERSION = 'v1.4.0';
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
 
 function saveS() {
   const d = {};
@@ -7674,6 +7682,10 @@ function _enterApp(greet) {
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
   if(greet) showToast(`${displayName()}さん、ようこそ`);
+  // Wave 237: OS通知チェッカーを起動
+  if(S.browserNotifEnabled && typeof _startNotifChecker === 'function') {
+    try { _startNotifChecker(); } catch(_) {}
+  }
 }
 
 /* ── 新規登録 ── */
@@ -9233,14 +9245,31 @@ function renderHome() {
     try { saveS(); } catch(_){}
     setTimeout(function(){ if(typeof openGuide === 'function') openGuide(); }, 700);
   }
+  // Wave 239: 連続使用ストリーク更新
+  const _todayStr = todayStr();
+  if(S.lastActiveDate !== _todayStr) {
+    const yesterday = addDays(_todayStr, -1);
+    S.activeStreak = (S.lastActiveDate === yesterday) ? ((S.activeStreak||0) + 1) : 1;
+    S.lastActiveDate = _todayStr;
+    try { saveS(); } catch(_){}
+  }
+  const _streak = S.activeStreak || 1;
+
   const greetEl = document.getElementById('home-greeting');
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
-    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
+    const streakBadge = _streak >= 3
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border-radius:10px;padding:2px 7px;margin-left:7px;vertical-align:middle;">🔥${_streak}日</span>`
+      : '';
+    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん${streakBadge}`;
   }
   // 日付表示なし（削除済み）
   const dateMid = document.getElementById('home-date-mid');
-  if(dateMid) dateMid.innerHTML = '';
+  if(dateMid) {
+    const now = new Date();
+    const dowJP = ['日','月','火','水','木','金','土'][now.getDay()];
+    dateMid.innerHTML = `<span style="font-size:12px;color:var(--text-muted);font-weight:500;">${now.getMonth()+1}月${now.getDate()}日（${dowJP}）</span>`;
+  }
   // ワークスペースボタン
   const modeLabel = document.getElementById('home-mode-label');
   if(modeLabel) modeLabel.textContent = currentWorkspace().name;
@@ -9420,7 +9449,61 @@ function renderHome() {
   }).join('');
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
+  // Wave 238: プルトゥリフレッシュ
+  _setupHomePTR();
 }
+
+/* ── Wave 238: ホームスクリーン プルトゥリフレッシュ ─────────── */
+(function() {
+  let _ptrEl = null, _ptrStartY = 0, _ptrActive = false, _ptrDragging = false;
+  const PTR_H = 52, PTR_SNAP = 40;
+
+  window._setupHomePTR = function() {
+    const scrollEl = document.querySelector('#s-home .home-board-scroll');
+    if(!scrollEl || scrollEl._ptrBound) return;
+    scrollEl._ptrBound = true;
+
+    const ind = document.createElement('div');
+    ind.id = 'home-ptr-ind';
+    ind.style.cssText = 'height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--primary);transition:height .2s;';
+    ind.innerHTML = '<svg id="ptr-spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span id="ptr-label">引っ張って更新</span>';
+    scrollEl.insertBefore(ind, scrollEl.firstChild);
+    _ptrEl = ind;
+
+    scrollEl.addEventListener('touchstart', function(e) {
+      if(scrollEl.scrollTop > 2) return;
+      _ptrStartY = e.touches[0].clientY;
+      _ptrDragging = true; _ptrActive = false;
+    }, {passive:true});
+
+    scrollEl.addEventListener('touchmove', function(e) {
+      if(!_ptrDragging) return;
+      const dy = e.touches[0].clientY - _ptrStartY;
+      if(dy < 0) { _ptrDragging = false; _ptrEl.style.height='0'; return; }
+      if(scrollEl.scrollTop > 2) { _ptrDragging = false; return; }
+      const h = Math.min(PTR_H, dy * 0.4);
+      _ptrEl.style.height = h + 'px';
+      _ptrActive = h >= PTR_SNAP;
+      const lbl = document.getElementById('ptr-label');
+      if(lbl) lbl.textContent = _ptrActive ? '離して更新' : '引っ張って更新';
+    }, {passive:true});
+
+    scrollEl.addEventListener('touchend', function() {
+      if(!_ptrDragging) return;
+      _ptrDragging = false;
+      _ptrEl.style.height = '0';
+      if(!_ptrActive) return;
+      _ptrActive = false;
+      if(isSupaLoggedIn()) {
+        _setSyncDot('syncing');
+        _fetchFromSupabase().catch(_=>{});
+      } else {
+        renderHome();
+        showToast('更新しました');
+      }
+    }, {passive:true});
+  };
+})();
 
 /* ============================================================
    HOME ORDER — 全ボード統一並び替え
@@ -9478,7 +9561,8 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
     /* Wave 234: 快速タスク追加入力フォーム */
     const quickAddHtml = '<div class="bc-quick-add" onclick="event.stopPropagation();">'
       + '<input class="bc-quick-input" id="home-quick-task" placeholder="タスクを追加..." maxlength="60"'
-      + ' onkeydown="if(event.key===\'Enter\'){event.preventDefault();homeQuickAddTask()}">'
+      + ' enterkeyhint="done" autocomplete="off"'
+      + ' onkeydown="if(event.key===\'Enter\'||event.keyCode===13){event.preventDefault();homeQuickAddTask()}">'
       + '<button class="bc-quick-btn" onclick="homeQuickAddTask()" aria-label="追加">'
       + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
       + '</button></div>';
@@ -11243,16 +11327,26 @@ function renderListView(){
   el.style.overflowX='';
   const tasks=applyTkFilters(wsFilter(S.tasks));
   if(!tasks.length){
-    el.innerHTML=`<div class="docs-empty" style="margin-top:48px;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
-      <div class="docs-empty-title">${_tkFilter==='done'?'完了タスクなし':'タスクがありません'}</div>
-      <div class="docs-empty-sub">${_tkFilter==='all'?'右上の＋からタスクを追加できます':''}</div>
-    </div>`;
+    if(_tkFilter==='done') {
+      el.innerHTML=`<div class="docs-empty" style="margin-top:48px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
+        <div class="docs-empty-title">完了タスクなし</div>
+      </div>`;
+    } else {
+      el.innerHTML=`<div class="docs-empty" style="margin-top:40px;padding:0 20px;">
+        <img src="${IMGS.hoku||''}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:10px;opacity:.85;" alt="Hoku">
+        <div class="docs-empty-title" style="font-size:15px;">タスクがありません</div>
+        <div class="docs-empty-sub" style="margin:8px 0 16px;">右上の ＋ からタスクを追加、またはHokuに話しかけてみてください</div>
+        <button class="btn btn-primary" style="font-size:13px;padding:9px 22px;border-radius:22px;" onclick="openTaskModal(null)">＋ タスクを追加</button>
+      </div>`;
+    }
     return;
   }
   el.innerHTML=`<div style="padding:8px 0;">${tasks.map(t=>tkCardHtml(t)).join('')}</div>`;
   // タッチ長押しD&Dをバインド
   el.querySelectorAll('.tk-card').forEach(card => bindListDrag(card));
+  // Wave 236: スワイプジェスチャー
+  _attachTaskSwipe(el);
 }
 
 function renderTaskScreen(){
@@ -11336,6 +11430,8 @@ function tkCardHtml(t){
        </button>`
     : '';
   return`<div class="tk-card ${isDone?'done-card':''}" data-id="${H(t.id)}" onclick="openTaskModal('${H(t.id)}')">
+    <div class="_sw-r" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>${isDone?'未完了':'完了'}</div>
+    <div class="_sw-l" aria-hidden="true">削除<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
     <div class="tk-pbar ${t.priority||'none'}" style="background:${TK_PRIORITY_COLOR[t.priority||'none']};min-height:40px;"></div>
     <div class="tk-chk ${isDone?'done':''}" onclick="event.stopPropagation();toggleTaskDone('${H(t.id)}')">${isDone?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:''}</div>
     <div style="flex:1;min-width:0;">
@@ -11493,6 +11589,108 @@ function _flipTkCards(mutateFn) {
     c.style.transform = '';
   });
 }
+/* ── Wave 236: タスクカード スワイプジェスチャー ──────────────
+   右スワイプ → 完了/未完了トグル
+   左スワイプ → 削除確認
+   ──────────────────────────────────────────────── */
+const _swSt = { card:null, startX:0, startY:0, decided:null };
+const _SW_DECIDE = 9; // 方向確定ピクセル
+const _SW_ACT    = 78; // 実行ピクセル
+
+function _attachTaskSwipe(container) {
+  if(!container) return;
+  // 既存リスナーを除去してから再バインド
+  if(container._swTs) container.removeEventListener('touchstart', container._swTs, {capture:true});
+  if(container._swTm) container.removeEventListener('touchmove',  container._swTm);
+  if(container._swTe) container.removeEventListener('touchend',   container._swTe);
+  if(container._swTc) container.removeEventListener('touchcancel',container._swTc);
+
+  function _reset() {
+    if(_swSt.card) {
+      _swSt.card.style.transition = 'transform .2s ease';
+      _swSt.card.style.transform  = '';
+      _swSt.card.style.touchAction = '';
+      const r = _swSt.card.querySelector('._sw-r');
+      const l = _swSt.card.querySelector('._sw-l');
+      if(r) { r.style.transition='opacity .2s'; r.style.opacity='0'; }
+      if(l) { l.style.transition='opacity .2s'; l.style.opacity='0'; }
+    }
+    _swSt.card = null; _swSt.decided = null;
+  }
+
+  container._swTs = function(e) {
+    if(e.touches.length !== 1) { _reset(); return; }
+    const card = e.target.closest('.tk-card');
+    if(!card) { _reset(); return; }
+    _reset();
+    _swSt.card   = card;
+    _swSt.startX = e.touches[0].clientX;
+    _swSt.startY = e.touches[0].clientY;
+    _swSt.decided = null;
+  };
+
+  container._swTm = function(e) {
+    if(!_swSt.card || _ds.mode === 'list') { _reset(); return; }
+    const t   = e.touches[0];
+    const dx  = t.clientX - _swSt.startX;
+    const dy  = t.clientY - _swSt.startY;
+
+    if(!_swSt.decided) {
+      if(Math.abs(dx) < _SW_DECIDE && Math.abs(dy) < _SW_DECIDE) return;
+      if(Math.abs(dx) > Math.abs(dy) * 1.1) {
+        _swSt.decided = 'swipe';
+        _swSt.card.style.touchAction = 'none'; // ブラウザスクロールを中断
+      } else {
+        _swSt.decided = 'scroll';
+        _reset();
+        return;
+      }
+    }
+    if(_swSt.decided !== 'swipe') return;
+
+    e.preventDefault();
+    const clamped = Math.max(-110, Math.min(110, dx));
+    _swSt.card.style.transition = '';
+    _swSt.card.style.transform  = `translateX(${clamped}px)`;
+
+    const prog = Math.min(1, Math.abs(clamped) / _SW_ACT);
+    const r = _swSt.card.querySelector('._sw-r');
+    const l = _swSt.card.querySelector('._sw-l');
+    if(r) { r.style.transition=''; r.style.opacity = dx > 0 ? String(prog) : '0'; }
+    if(l) { l.style.transition=''; l.style.opacity = dx < 0 ? String(prog) : '0'; }
+  };
+
+  function _endHandler() {
+    if(!_swSt.card || _swSt.decided !== 'swipe') { _reset(); return; }
+    const m = _swSt.card.style.transform.match(/translateX\((-?\d+(?:\.\d+)?)px\)/);
+    const dx = m ? parseFloat(m[1]) : 0;
+    const cardId = _swSt.card.dataset.id;
+    _reset();
+    if(dx >= _SW_ACT) {
+      navigator.vibrate && navigator.vibrate(15);
+      setTimeout(() => toggleTaskDone(cardId), 180);
+    } else if(dx <= -_SW_ACT) {
+      navigator.vibrate && navigator.vibrate([10,5,15]);
+      setTimeout(() => {
+        const t = (S.tasks||[]).find(x => x.id === cardId);
+        if(!t) return;
+        showConfirm('タスクを削除', `「${t.title}」を削除しますか？`, '削除する', () => {
+          S.tasks = (S.tasks||[]).filter(x => x.id !== cardId);
+          saveS(); renderTaskScreen(); if(typeof renderHome==='function') renderHome();
+        }, 'danger');
+      }, 180);
+    }
+  }
+
+  container._swTe = _endHandler;
+  container._swTc = _reset;
+
+  container.addEventListener('touchstart',  container._swTs, {passive:true, capture:true});
+  container.addEventListener('touchmove',   container._swTm, {passive:false});
+  container.addEventListener('touchend',    container._swTe, {passive:true});
+  container.addEventListener('touchcancel', container._swTc, {passive:true});
+}
+
 function bindListDrag(card) {
   const activate = (cx, cy) => {
     _ds.mode    = 'list';
@@ -12727,8 +12925,28 @@ function _switchHtml(on) {
 function openNotifSettings() {
   _ensureNotifPrefs();
   const body = document.getElementById('notif-settings-body');
-  if(body) body.innerHTML =
-      '<div style="font-size:12px;color:var(--text-sub);line-height:1.65;padding:2px 4px 12px;">受け取りたいお知らせを選べます。オフにした種類の通知は届きません。</div>'
+  if(!body) { openModal('m-notif-settings'); return; }
+
+  const bSupport = _browserNotifSupported();
+  const bPerm    = bSupport ? Notification.permission : 'unsupported';
+  const bOn      = !!S.browserNotifEnabled && bPerm === 'granted';
+  const bLabel   = bPerm === 'denied'   ? '（ブラウザ設定で拒否中）'
+                 : bPerm === 'unsupported' ? '（このブラウザは非対応）'
+                 : '';
+  const browserSection =
+    '<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;padding:14px 4px 6px;">OS通知（ホーム画面外でも届く）</div>'
+    + '<div onclick="toggleBrowserNotif()" style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;">'
+    +   '<div style="color:var(--primary);flex:none;">'+ICON('bell',20)+'</div>'
+    +   '<div style="flex:1;">'
+    +     '<div style="font-size:14px;color:var(--text);">OS通知（予定・タスクリマインダー）</div>'
+    +     '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">予定の30分前・期限切れタスクをお知らせ '+H(bLabel)+'</div>'
+    +   '</div>'
+    +   _switchHtml(bOn)
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text-muted);line-height:1.65;padding:8px 4px 14px;">OS通知はアプリを開いている間のみ動作します。</div>';
+
+  body.innerHTML =
+    '<div style="font-size:12px;color:var(--text-sub);line-height:1.65;padding:2px 4px 12px;">受け取りたいお知らせを選べます。</div>'
     + NOTIF_PREF_DEFS.map(function(d){
         const on = S.notifPrefs[d.key] !== false;
         return '<div onclick="toggleNotifPref(\''+d.key+'\')" style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;">'
@@ -12736,7 +12954,8 @@ function openNotifSettings() {
           + '<div style="flex:1;font-size:14px;color:var(--text);">'+H(d.label)+'</div>'
           + _switchHtml(on)
           + '</div>';
-      }).join('');
+      }).join('')
+    + browserSection;
   openModal('m-notif-settings');
 }
 function toggleNotifPref(key) {
@@ -12746,13 +12965,110 @@ function toggleNotifPref(key) {
   openNotifSettings();
 }
 
+/* ── Wave 237: ブラウザ通知（Notification API）────────────────────
+   アプリ起動中に OS レベルのプッシュ通知を表示する。
+   予定の 30 分前・期限切れタスクを 1 分ごとにチェック。
+   ──────────────────────────────────────────────── */
+let _notifCheckTimer = null;
+
+function _browserNotifSupported() {
+  return 'Notification' in window;
+}
+
+function requestBrowserNotifPermission() {
+  if(!_browserNotifSupported()) {
+    showToast('このブラウザはOS通知に対応していません', 'info');
+    openNotifSettings();
+    return;
+  }
+  Notification.requestPermission().then(function(perm) {
+    S.browserNotifEnabled = (perm === 'granted');
+    saveS();
+    if(perm === 'granted') {
+      showToast('OS通知を許可しました');
+      _startNotifChecker();
+    } else {
+      showToast('OS通知が拒否されました。端末設定から変更できます', 'info');
+    }
+    openNotifSettings();
+  });
+}
+
+function toggleBrowserNotif() {
+  if(!_browserNotifSupported()) { showToast('このブラウザはOS通知に対応していません','info'); return; }
+  if(!S.browserNotifEnabled) {
+    if(Notification.permission === 'granted') {
+      S.browserNotifEnabled = true;
+      saveS();
+      _startNotifChecker();
+      showToast('OS通知をオンにしました');
+      openNotifSettings();
+    } else {
+      requestBrowserNotifPermission();
+    }
+  } else {
+    S.browserNotifEnabled = false;
+    saveS();
+    if(_notifCheckTimer) { clearInterval(_notifCheckTimer); _notifCheckTimer = null; }
+    showToast('OS通知をオフにしました');
+    openNotifSettings();
+  }
+}
+
+function _startNotifChecker() {
+  if(_notifCheckTimer) clearInterval(_notifCheckTimer);
+  _checkEventNotifs();
+  _notifCheckTimer = setInterval(_checkEventNotifs, 60000);
+}
+
+function _checkEventNotifs() {
+  if(!S.browserNotifEnabled) return;
+  if(!_browserNotifSupported() || Notification.permission !== 'granted') return;
+  const now  = new Date();
+  const today = todayStr();
+  // 予定リマインダー（30 分前に 1 回）
+  (S.events||[]).forEach(function(ev) {
+    if(ev.date !== today || !ev.time) return;
+    try {
+      const parts = ev.time.split(':');
+      const h = parseInt(parts[0]), m = parseInt(parts[1]);
+      const evMs  = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).getTime();
+      const diff  = (evMs - now.getTime()) / 60000;
+      if(diff < 25 || diff > 35) return;
+      const key = 'fn_ev_' + ev.id + '_' + today;
+      if(sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      new Notification('📅 まもなく予定があります', {
+        body: ev.time + ' ' + ev.title, icon: '/favicon.ico',
+        tag: 'fl_ev_' + ev.id, silent: false
+      });
+    } catch(_) {}
+  });
+  // 期限切れタスク（1 日 1 回、起動後に 1 回）
+  const overdueKey = 'fn_ov_' + today;
+  if(!sessionStorage.getItem(overdueKey)) {
+    const overdueTasks = (S.tasks||[]).filter(function(t) {
+      return t.status !== 'done' && t.dueDate && t.dueDate < today;
+    });
+    if(overdueTasks.length) {
+      sessionStorage.setItem(overdueKey, '1');
+      try {
+        new Notification('⚠️ 期限切れのタスクがあります', {
+          body: overdueTasks.length + '件のタスクが期限を過ぎています',
+          icon: '/favicon.ico', tag: 'fl_overdue', silent: true
+        });
+      } catch(_) {}
+    }
+  }
+}
+
 /* ── よくある質問 ── */
 const FAQ_ITEMS = [
   { q:'データはどこに保存されますか？', a:'ゲストとして使う場合は端末内にのみ保存されます。無料クラウドアカウントを作成してログインすると、Supabaseサービス（暗号化）に自動保存され、機種変更時もデータを引き継げます。' },
-  { q:'機種変更したらデータはどうなりますか？', a:'データは端末内に保存されます。大切なデータは、こまめに記録内容をご確認ください。複数端末での共有は今後のアップデートで対応予定です。' },
-  { q:'家族のスマホとデータを共有できますか？', a:'複数端末をまたいだ共有は今後のアップデートで対応予定です。現在は1台の端末内でご利用ください。' },
+  { q:'機種変更したらデータはどうなりますか？', a:'ゲスト利用の場合はデータが消える可能性があります。設定画面からクラウドアカウントを作成してログインすると、Supabaseサーバーに暗号化して保存され、機種変更後も同じアカウントでデータを引き継げます。' },
+  { q:'家族のスマホとデータを共有できますか？', a:'設定 → クラウド同期 から招待コードを発行・入力することで、同じ家族コードのメンバー間でデータを共有できます。各自クラウドアカウントが必要です。' },
   { q:'Hoku（AI）の音声入力が使えません。', a:'音声入力は端末ブラウザの音声認識機能を利用します。対応していない端末ではキーボード入力をご利用ください。' },
-  { q:'通知が届きません。', a:'設定 →「その他」→「通知設定」で、受け取りたい通知の種類がオンになっているかご確認ください。' },
+  { q:'通知が届きません。', a:'設定 →「その他」→「通知設定」でアプリ内通知の設定を確認してください。OS通知（予定リマインダー）は通知設定画面の「OS通知」をオンにしてブラウザの通知許可を付与してください。' },
   { q:'プレミアムを解約したいです。', a:'使い方ガイドの下部、または設定からいつでも解約できます。解約後も無料プランの基本機能はご利用いただけます。' },
   { q:'料金はかかりますか？', a:'基本機能は無料です。一部の高度な機能は月額480円（または年額4,800円）の Familink プレミアムで利用できます。' },
 ];
