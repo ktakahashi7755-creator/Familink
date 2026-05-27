@@ -15435,3 +15435,40 @@ Wave 236-239: スワイプジェスチャー・ブラウザ通知・プルトゥ
 
 ### コミット
 - メッセージ: ウェルカムページを2ボタンのみに簡素化
+
+---
+
+## 2026-05-27 06:30  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+iPhone で旧4ボタンデザインが表示され続けるバグの修正（SW強制更新）
+
+### 変更ファイル
+- docs/sw.js
+- docs/index.html（キャッシュバスター更新のみ）
+
+### 変更内容
+- SW_VERSION を 20260526h → 20260527u に変更（ブラウザに変更検知させる）
+- activate 時に全クライアントを強制リロード（navigate）する処理を追加
+- fetch handler を改善：navigate リクエストは `cache: 'no-store'` で強制ネットワーク取得
+- キャッシュバスター v20260527t → v20260527u に更新
+
+### テスト結果
+- 未実施（iPhone実機で確認必要）
+
+### 未確認事項
+- GitHub Actions Pages deploy が main push で正常トリガーされたか
+- iPhone Safari でキャッシュが正しくクリアされ新デザインが表示されるか
+
+### iPhone確認ポイント
+- Safari でキャッシュクリア後に `https://ktakahashi7755-creator.github.io/Familink/` を開く
+- ウェルカムページがメール+パスワードフォームのデザインで表示されるか確認
+- ログインボタン・Google・Apple各ボタンが反応するか確認
+
+### 次にやること
+- iPhone実機で新デザイン表示確認
+- ボタン動作テスト（ログイン・ゲスト体験・新規登録）
+
+### コミット
+- ハッシュ: `89193d8`
+- メッセージ: fix: SW強制更新でiPhoneキャッシュをクリア (v20260527u)
