@@ -5808,7 +5808,7 @@ async function doSupaSendOtp() {
   if(_isSupaRateLimited()) {
     _setSupaBanner('warn',
       'メール送信のレート制限中です',
-      'Supabase 無料 SMTP は 1 時間 2 通までです。<br><b>次の送信まで：</b><span id="supa-rate-cd">…</span>',
+      'Supabase 無料 SMTP は 1 時間 2 通までです。<br><b>次の送信まで：</b><span class="supa-rate-cd">…</span>',
       []);
     _supaStartCountdown();
     return;
@@ -6004,7 +6004,7 @@ function _setSupaBannerFromError(op, error) {
     _setSupaBanner('warn',
       'メール送信のレート制限に到達しました',
       'Supabase の無料 SMTP は <b>1 時間あたり 2 通まで</b>の制限があります。<br>'
-      + '<b>次の送信まで：</b><span id="supa-rate-cd">約 60 分</span><br>'
+      + '<b>次の送信まで：</b><span class="supa-rate-cd">約 60 分</span><br>'
       + 'メールが届いた可能性もあるので、迷惑メールフォルダもご確認ください。',
       []);
     return;
@@ -6067,7 +6067,7 @@ function _setSupaBannerFromError(op, error) {
 function _supaStartCountdown() {
   if(_supaCountdownTimer) clearInterval(_supaCountdownTimer);
   _supaCountdownTimer = setInterval(() => {
-    const el = document.getElementById('supa-rate-cd');
+    const el = document.querySelector('.supa-rate-cd');
     const remain = _supaRateLimitUntil - Date.now();
     if(!el) return;
     if(remain <= 0) {
