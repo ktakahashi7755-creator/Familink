@@ -14901,3 +14901,43 @@ Wave 222: 30日無料トライアル実装・クラウド同期ステータス�
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 222: 30日無料トライアル・クラウド同期ステータスドット
+
+## 2026-05-27 XX:XX  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 226: アカウント削除機能・App Store審査対応
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- Wave 226a: アカウント削除機能（App Store要件）
+  - confirmDeleteAccount(): Supabaseデータ + LocalStorage の完全削除（二段階確認）
+  - confirmClearLocalData(): ゲストユーザー向けローカルデータ削除
+  - 設定画面にログイン状態に応じて表示切り替え
+  - doLogout()をasyncに変更（supaSignOutを先に呼ぶ）
+- Wave 226b: プライバシーポリシー・FAQ更新（Supabase同期反映）
+- キャッシュバスター: v20260527i
+
+### テスト結果
+- 未実施
+
+### 未確認事項
+- Supabase service_role を使わずにユーザーデータ削除が可能か
+  （現在はfl_family_dataの削除のみ。auth.usersからの削除にはservice_roleが必要）
+  → App Store審査的には削除リクエストフォームでも可（GitHubのIssueリンク記載済）
+
+### iPhone確認ポイント
+- 設定 → アカウントを削除が表示されるか（Supabaseログイン時）
+- 設定 → ローカルデータを削除が表示されるか（ゲスト時）
+- 二段階確認が正しく動作するか
+
+### 次にやること
+- P5-1: TestFlight準備（app-source → React Native WKWebView）
+- P6-2: デモデータポリッシュ（営業/体験用の完璧なサンプル）
+- P4-1: Claude API経由のHoku AI強化
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 226: アカウント削除機能追加（App Store要件対応）
