@@ -15408,3 +15408,30 @@ Wave 236-239: スワイプジェスチャー・ブラウザ通知・プルトゥ
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 236-239: スワイプジェスチャー・OS通知・PTR・ストリーク
+
+## 2026-05-27 15:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+ウェルカムページ簡素化：ボタン2つのみに変更
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- `s-ob`（ウェルカム画面）の `ob2-bottom` を完全刷新
+- 削除したもの: メール/パスワードフォーム、Googleログイン、Appleログイン、「はじめての方は新規登録」リンク、「ログインせずに体験する」リンク、利用規約/プライバシーポリシーリンク
+- 残したもの: ボタン2つのみ
+  - 「新規アカウント作成」（primary、青グラデーション）→ openSupaAuthModal('signup')
+  - 「ログインする」（secondary、アウトライン）→ openSupaAuthModal('signin')
+- CSS追加: `.ob2-btn-secondary`（アウトラインボタン）、`.ob2-bottom-simple`（padding調整）
+- キャッシュバスター: v20260527s
+
+### テスト結果
+- JS構文チェック（node --check）: エラーなし
+
+### 次にやること
+- iPhone実機で表示確認
+
+### コミット
+- メッセージ: ウェルカムページを2ボタンのみに簡素化
