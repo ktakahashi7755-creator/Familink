@@ -14714,3 +14714,46 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214c: settings UI — 8→6 sections, dedupe avatar, group notif into 表示, absorb hoku api, promote logout to danger zone + docs sync v20260526h`
+
+## 2026-05-27 00:00  env: 不明 (claude.ai/code Web Remote)  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+GitHub Pages 最新版反映・総合QA・重複ID修正
+
+### 変更ファイル
+- `docs/index.html`（supa-rate-cd 重複ID修正 id→class）
+- `app-source/familink.html`（同上）
+- `docs/sw.js`（SW_VERSION v20260520h → v20260526h）
+- `gh-pages` ブランチ: `index.html` / `sw.js` を wave 214c に更新
+- `main` ブランチ: `docs/index.html` / `app-source/familink.html` を wave 214c に更新
+
+### 変更内容
+- GitHub Pages（gh-pages ブランチ）が旧バージョン v20260521b のままだったため、最新版 v20260526h を反映
+- 総合QAを実施：致命的バグなし、重要(A)バグ1件検出・修正
+- `supa-rate-cd` 重複ID（lines 5811/6007）を id→class に変更、querySelector に統一
+
+### テスト結果
+- HTML構造チェック: OK
+- JS括弧バランス: OK（Node.js --check 相当）
+- 重複ID検査: supa-rate-cd のみ → 修正済み
+- showScreen 整合性: 全22画面 valid
+- QAエージェント総合評価: 致命的S問題なし / 重要A問題1件（修正済み）/ 軽微B問題なし
+
+### 未確認事項
+- GitHub Pages 反映後の実機動作確認（ユーザーが確認予定）
+- エラー画面の詳細（スクリーンショット未受信のため根本原因不明）
+
+### iPhone確認ポイント
+- https://ktakahashi7755-creator.github.io/Familink/ にアクセスして正常起動するか
+- 設定画面が6セクション（プロフィール・家族 / クラウド連携 / 表示と通知 / データ・保管 / ヘルプ・アプリ情報 / ログアウト）で表示されるか
+- ログイン・サインアップが正常に動作するか
+
+### 次にやること
+- エラー画面のスクリーンショットを確認（ユーザーから受け取る）
+- 実機確認後に残課題があれば対応
+- docs/index.html の gh-pages 最終同期確認（supa-rate-cd 修正版）
+
+### コミット
+- ハッシュ: `9eb5889` (sw.js bump)
+- ハッシュ: `605652f` (supa-rate-cd fix)
+- メッセージ: `fix(A): supa-rate-cd 重複ID解消 — id→class + querySelector に統一`
