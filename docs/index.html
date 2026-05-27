@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260527s';
+  var V='v20260527t';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3042,9 +3042,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 
   <!-- Bottom: ログインUI（Apple風・上質カード） -->
-  <div class="ob2-bottom ob2-bottom-simple">
-    <button class="ob2-btn-primary" onclick="openSupaAuthModal('signup')">新規アカウント作成</button>
-    <button class="ob2-btn-secondary" onclick="openSupaAuthModal('signin')">ログインする</button>
+  <div class="ob2-bottom">
+    <div class="ob2-field">
+      <label class="ob2-label">メールアドレス</label>
+      <input type="email" id="ob2-email" class="ob2-input" placeholder="example@mail.com"
+             autocomplete="email" inputmode="email">
+    </div>
+    <div class="ob2-field ob2-field-pass">
+      <label class="ob2-label">パスワード</label>
+      <input type="password" id="ob2-pass" class="ob2-input" placeholder="6文字以上"
+             autocomplete="current-password">
+      <button class="ob2-eye" onclick="ob2TogglePass()" type="button" aria-label="パスワード表示切替">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="ob2-err" class="ob2-err"></div>
+    <button class="ob2-btn-primary" id="ob2-login-btn" onclick="ob2Login()">ログイン</button>
+
+    <div class="ob2-divider"><span>または</span></div>
+
+    <button class="ob2-btn-oauth ob2-btn-google" onclick="ob2GoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.96 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Google で続行
+    </button>
+    <button class="ob2-btn-oauth ob2-btn-apple" onclick="ob2AppleLogin()">
+      <svg width="16" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 391.3 0 232.4 0 182.9 0 80.1 65.2 26.4 129.4 26.4c43.3 0 80.8 29.3 102.8 29.3 21.1 0 62.2-31.7 114.6-31.7 118.5 0 162.7 89.4 166.8 98.4zm-319.3-68.1c11.2-46.3 41.3-97.9 94.8-131.4 48.9-30.7 101.8-41.7 116.2-44 .1 3.7 0 7.3 0 11 0 72.1-42.6 137.9-89.8 183.2-17.1 16.3-63.4 49.3-108.2 49.3-.3-2.5-.9-9.9-1.5-17.5-2.3-29.6-3.4-53.9 0-58.1z"/></svg>
+      Apple で続行
+    </button>
+
+    <div class="ob2-links">
+      はじめての方は<a class="ob2-link-signup" onclick="supaEntryClickSignup()">新規登録</a>
+    </div>
+    <a class="ob2-link-guest" onclick="supaEntryClickGuest()">ログインせずに体験する</a>
+
+    <div class="ob2-footer">
+      <a class="ob2-footer-link" onclick="openLegalDoc('terms')">利用規約</a>
+      <span class="ob2-footer-dot">·</span>
+      <a class="ob2-footer-link" onclick="openLegalDoc('privacy')">プライバシーポリシー</a>
+    </div>
   </div>
 </div>
 
