@@ -14757,3 +14757,48 @@ GitHub Pages 最新版反映・総合QA・重複ID修正
 - ハッシュ: `9eb5889` (sw.js bump)
 - ハッシュ: `605652f` (supa-rate-cd fix)
 - メッセージ: `fix(A): supa-rate-cd 重複ID解消 — id→class + querySelector に統一`
+
+## 2026-05-27 02:00  env: 不明 (claude.ai/code Web Remote)  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+wave 215: ハイブリッドウェルカム+ログイン画面（1画面・スクロールなし）全品質検証完了
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`
+- gh-pages: `index.html` を wave 215b に更新
+
+### 変更内容
+- s-ob 画面を完全再設計：上半分（ブランド+イラスト+キャッチコピー）＋下半分（ログインフォーム）を1画面に
+- メール/パスワード inline ログイン（ob2Login）実装
+- Google/Apple OAuth ボタン（Supabase signInWithOAuth 経由）実装
+- 全iPhoneモデルでスクロールなしを確認（SE 1st +23px / SE 3rd +3px / 13/14 +87px slack）
+- @media(max-height:600px) で iPhone SE 1st/2nd gen 対応
+- キャッシュバスター: v20260526h → v20260527a
+- 品質チェック 41/41 PASS
+
+### テスト結果
+- レスポンシブシミュレーション: 全5モデル ✓（スクロールなし）
+- CSS/HTML/JS チェック: 41/41 PASS
+- 重複ID: なし
+- XSS: ob2JS に innerHTML なし ✓
+- app-source ⇄ docs 同期: ✓
+
+### 未確認事項
+- Google/Apple OAuth が Supabase Console で有効化されているか（OAuth プロバイダ設定必要）
+- iPhone 実機での実際の表示確認
+
+### iPhone確認ポイント
+- https://ktakahashi7755-creator.github.io/Familink/ を Safari で開く
+- 1画面に全要素が収まってスクロールが発生しないこと
+- メール/パスワード入力 → ログインボタンが動作すること
+- 「ログインせずに体験する」でアプリに入れること
+- Google/Apple ボタンをタップしてエラーなく動作すること
+
+### 次にやること
+- 実機確認後のフィードバック対応
+- Google/Apple OAuth が未設定なら Supabase Console でプロバイダ有効化
+
+### コミット
+- ハッシュ: `9a84a89` - wave 215: ハイブリッドウェルカム+ログイン画面
+- ハッシュ: `6e4205a` - wave 215b: レスポンシブ修正
