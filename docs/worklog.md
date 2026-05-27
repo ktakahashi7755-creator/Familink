@@ -15153,3 +15153,44 @@ Wave 231: ホーム画面サマリーバー・カレンダーカード改善
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 231: ホーム今日のサマリーバー・カレンダーカード時刻表示追加
+
+## 2026-05-27 07:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 232: App Store メタデータ更新・初期デモデータ改善
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- docs/app-store-metadata.md
+
+### 変更内容
+- docs/app-store-metadata.md 更新
+  - プライバシー記述を修正（Supabase使用を正確に記載）
+  - App Privacy データ種類表を更新（ゲスト/登録後の2列）
+  - 年齢区分にアカウント削除機能対応の追記
+  - App Review用メモをベータ版の実態に合わせて更新（課金なし・β版明記）
+- seedDemo() 改善（Wave 232）
+  - _buildHomeDemoData()が定義済みの場合はリッチな初期データを使用
+  - events/tasks/txs/health/prep/prepRoutines/shoppingItems/announces/posts/memos を一括設定
+  - フォールバック: 旧来の方法で続行
+- キャッシュバスター: v20260527o
+
+### テスト結果
+- JS構文チェック: エラーなし
+
+### 未確認事項
+- 新規ユーザーが初回起動した際にリッチなデモデータが表示されるか
+- _buildHomeDemoData()がseedDemo()より後に定義される場合の動作確認（現在は後に定義されているため、実行時には定義済み）
+
+### iPhone確認ポイント
+- 新規インストール後の初回起動でデモデータが入っているか
+- 運動会・ピアノ発表会・次男の発熱回復ストーリーが見えるか
+
+### 次にやること
+- push waves 232 to origin/main/gh-pages
+- Wave 233: さらなるUX改善（セクションヘッダー、お知らせカード等）
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 232: App Storeメタデータ更新・初期デモデータリッチ化
