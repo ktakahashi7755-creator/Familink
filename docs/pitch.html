@@ -335,6 +335,53 @@ h3 { font-size: 19px; font-weight: 700; letter-spacing: -.012em; margin: 0 0 8px
 .diff-no  { color: var(--ink-4); font-size: 18px; }
 .diff-partial { color: var(--accent); font-weight: 600; }
 
+/* Moat cards */
+.moat-grid {
+  margin-top: 48px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+@media (max-width: 720px) { .moat-grid { grid-template-columns: 1fr; } }
+.moat-card {
+  background: var(--bg-card); border-radius: 18px;
+  padding: 32px 28px; border: 1px solid var(--line);
+  position: relative; overflow: hidden;
+  transition: var(--t);
+}
+.moat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.moat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.moat-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: var(--accent-soft); display: grid; place-items: center;
+  color: var(--accent); margin-bottom: 20px;
+}
+.moat-card h4 { font-size: 16px; font-weight: 700; margin: 0 0 10px; color: var(--ink); }
+.moat-card p { font-size: 13.5px; color: var(--ink-3); margin: 0; line-height: 1.75; }
+.moat-card .moat-tag {
+  display: inline-block; margin-top: 16px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+}
+.moat-banner {
+  margin-top: 40px; padding: 40px 36px;
+  background: linear-gradient(135deg, var(--ink) 0%, var(--ink-2) 100%);
+  border-radius: 20px; color: #fff;
+  display: flex; gap: 28px; align-items: center; flex-wrap: wrap;
+}
+.moat-banner .mb-text { flex: 1; min-width: 240px; }
+.moat-banner .mb-text p { font-size: 15px; line-height: 1.75; color: rgba(255,255,255,.82); margin: 8px 0 0; }
+.moat-banner .mb-text strong { font-size: 18px; font-weight: 700; color: #fff; }
+.moat-banner .mb-stat {
+  flex-shrink: 0; text-align: center;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px; padding: 20px 28px;
+}
+.moat-banner .mb-stat .mv { font-size: 28px; font-weight: 700; color: var(--accent-2); letter-spacing: -.02em; }
+.moat-banner .mb-stat .ml { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 4px; }
+
 .pricing-grid {
   margin-top: 48px;
   display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
@@ -374,6 +421,34 @@ h3 { font-size: 19px; font-weight: 700; letter-spacing: -.012em; margin: 0 0 8px
   font-size: 13.5px; color: var(--ink-3); line-height: 1.85;
 }
 
+/* Unit economics table */
+.ue-wrap {
+  margin-top: 48px;
+  background: var(--bg-card); border-radius: 18px;
+  border: 1px solid var(--line); overflow: hidden;
+}
+.ue-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+.ue-table th, .ue-table td {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.ue-table thead th {
+  font-size: 11px; color: var(--ink-4); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--line-2);
+}
+.ue-table tbody tr:last-child td { border-bottom: none; }
+.ue-table tbody td:first-child { font-weight: 600; color: var(--ink-2); width: 42%; }
+.ue-table tbody td:nth-child(2) { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ue-table tbody td:nth-child(3) { color: var(--ink-3); font-size: 13px; }
+.ue-table .ue-highlight td { background: rgba(184,121,74,.04); }
+.ue-table .ue-highlight td:nth-child(2) { color: var(--accent); }
+
+/* Market grid */
 .market-grid {
   margin-top: 48px;
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
@@ -384,15 +459,71 @@ h3 { font-size: 19px; font-weight: 700; letter-spacing: -.012em; margin: 0 0 8px
   padding: 32px 28px; border: 1px solid var(--line);
 }
 .market-card .label {
-  font-family: var(--serif); font-size: 28px; color: var(--accent);
-  font-weight: 400; letter-spacing: -.01em; margin-bottom: 12px;
+  font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px;
 }
-.market-card h4 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
-.market-card p { font-size: 13.5px; color: var(--ink-3); margin: 0; line-height: 1.75; }
+.market-card .market-num {
+  font-family: var(--serif); font-size: 36px; color: var(--accent);
+  font-weight: 400; letter-spacing: -.02em; margin-bottom: 8px; line-height: 1;
+}
+.market-card .market-sub {
+  font-size: 12px; color: var(--ink-4); font-weight: 600; margin-bottom: 14px;
+  letter-spacing: .04em;
+}
+.market-card h4 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.market-card p { font-size: 13px; color: var(--ink-3); margin: 0; line-height: 1.75; }
+.market-funnel {
+  margin-top: 40px; padding: 36px;
+  background: var(--bg-card); border-radius: 18px;
+  border: 1px solid var(--line);
+}
+.market-funnel h4 { font-size: 15px; font-weight: 700; margin: 0 0 22px; color: var(--ink); }
+.funnel-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 0; border-top: 1px solid var(--line);
+}
+.funnel-row:first-of-type { border-top: none; }
+.funnel-bar-wrap { flex: 1; }
+.funnel-label { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 60px; }
+.funnel-bar {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  margin-top: 6px;
+}
+.funnel-value { font-size: 14px; font-weight: 700; color: var(--accent); min-width: 90px; text-align: right; font-variant-numeric: tabular-nums; }
 .note {
   margin-top: 28px; font-size: 12.5px; color: var(--ink-4);
   background: var(--bg-soft); padding: 14px 18px; border-radius: 10px;
   display: inline-block;
+}
+
+/* GTM section */
+.gtm-grid {
+  margin-top: 48px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+  background: var(--bg-card); border-radius: 22px;
+  border: 1px solid var(--line); overflow: hidden;
+}
+@media (max-width: 720px) { .gtm-grid { grid-template-columns: 1fr; } }
+.gtm-col { padding: 36px 30px; }
+.gtm-col + .gtm-col { border-left: 1px solid var(--line); }
+@media (max-width: 720px) { .gtm-col + .gtm-col { border-left: none; border-top: 1px solid var(--line); } }
+.gtm-col .phase-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  background: var(--accent-soft); color: var(--accent); margin-bottom: 14px;
+}
+.gtm-col h4 { font-size: 17px; font-weight: 700; margin: 0 0 6px; color: var(--ink); }
+.gtm-col .gtm-period { font-size: 12px; color: var(--ink-4); font-weight: 500; margin-bottom: 18px; }
+.gtm-col ul { margin: 0; padding: 0; list-style: none; }
+.gtm-col li {
+  font-size: 13.5px; color: var(--ink-3); padding: 7px 0;
+  padding-left: 16px; position: relative; line-height: 1.6; border-top: 1px solid var(--line);
+}
+.gtm-col li:first-child { border-top: none; }
+.gtm-col li::before {
+  content: ''; position: absolute; left: 0; top: 14px;
+  width: 6px; height: 1px; background: var(--accent);
 }
 
 .roadmap {
@@ -416,6 +547,84 @@ h3 { font-size: 19px; font-weight: 700; letter-spacing: -.012em; margin: 0 0 8px
   content: ''; position: absolute; left: 0; top: 13px;
   width: 6px; height: 1px; background: var(--ink-4);
 }
+
+/* Founder / Transparency shared styles */
+.founder-grid {
+  margin-top: 48px;
+  display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: start;
+}
+@media (max-width: 920px) { .founder-grid { grid-template-columns: 1fr; } }
+.founder-card {
+  background: var(--bg-card); border-radius: 20px;
+  padding: 40px 36px; border: 1px solid var(--line);
+}
+.founder-card h3 { font-size: 21px; font-weight: 700; margin: 0 0 20px; }
+.founder-list { margin: 0; padding: 0; list-style: none; }
+.founder-list li {
+  display: flex; gap: 14px; padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px; color: var(--ink-3); line-height: 1.75;
+}
+.founder-list li:first-child { border-top: none; padding-top: 0; }
+.founder-list li .fl-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--accent-soft); display: grid; place-items: center;
+  color: var(--accent); flex-shrink: 0; margin-top: 2px;
+}
+.founder-list li b { color: var(--ink); font-weight: 600; }
+.founder-quote {
+  background: var(--ink); color: #fff;
+  border-radius: 20px; padding: 36px 32px;
+}
+.founder-quote .fq-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 16px;
+}
+.founder-quote blockquote {
+  margin: 0; font-size: 16px; line-height: 1.85;
+  color: rgba(255,255,255,.9); font-weight: 400;
+  font-style: normal;
+}
+.founder-quote blockquote::before { content: '"'; color: var(--accent-2); font-size: 28px; line-height: 0; vertical-align: -8px; margin-right: 4px; }
+.founder-quote blockquote::after  { content: '"'; color: var(--accent-2); font-size: 28px; line-height: 0; vertical-align: -8px; margin-left: 4px; }
+.founder-quote .fq-name {
+  margin-top: 22px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7);
+}
+
+/* Transparency / now section */
+.now-grid {
+  margin-top: 48px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+}
+@media (max-width: 640px) { .now-grid { grid-template-columns: 1fr; } }
+.now-card {
+  background: var(--bg-card); border-radius: 16px;
+  padding: 28px 26px; border: 1px solid var(--line);
+  display: flex; gap: 18px; align-items: flex-start;
+}
+.now-card .nc-status {
+  flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 10px;
+  display: grid; place-items: center;
+}
+.now-card .nc-status.done { background: rgba(44,123,90,.10); color: var(--positive); }
+.now-card .nc-status.in-progress { background: rgba(184,121,74,.12); color: var(--accent); }
+.now-card .nc-status.next { background: rgba(14,26,51,.07); color: var(--ink-3); }
+.now-card .nc-body {}
+.now-card .nc-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-4); margin-bottom: 4px;
+}
+.now-card .nc-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.now-card .nc-desc { font-size: 13px; color: var(--ink-3); line-height: 1.7; margin: 0; }
+.now-honest {
+  margin-top: 36px; padding: 32px 36px;
+  background: linear-gradient(135deg, rgba(44,79,128,.06) 0%, rgba(184,121,74,.06) 100%);
+  border-radius: 18px; border: 1px solid var(--line);
+}
+.now-honest h4 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--ink); }
+.now-honest p { font-size: 14px; color: var(--ink-3); line-height: 1.85; margin: 0; }
+.now-honest p + p { margin-top: 10px; }
 
 .ask-section { background: var(--ink); color: #fff; padding: 120px 0; }
 .ask-section .eyebrow { background: rgba(232,178,132,.16); color: var(--accent-2); }
@@ -489,13 +698,16 @@ footer a:hover { color: var(--ink); }
       <a href="#solution">解決策</a>
       <a href="#demo">デモ</a>
       <a href="#hoku">Hoku</a>
+      <a href="#market">市場</a>
       <a href="#business">価格</a>
+      <a href="#founder">ファウンダー</a>
       <a href="#roadmap">展開</a>
     </div>
     <button class="nav-cta" onclick="document.getElementById('ask').scrollIntoView({behavior:'smooth'})">投資家相談</button>
   </div>
 </nav>
 
+<!-- HERO -->
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="reveal">
@@ -526,6 +738,7 @@ footer a:hover { color: var(--ink); }
 
 <div class="divider"></div>
 
+<!-- PROBLEM -->
 <section id="problem">
   <div class="wrap">
     <div class="reveal" style="max-width:720px;">
@@ -556,6 +769,7 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- SOLUTION -->
 <section id="solution" style="background:var(--bg-soft);">
   <div class="wrap">
     <div class="reveal" style="max-width:720px;">
@@ -608,6 +822,7 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- DEMO -->
 <section id="demo">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
@@ -713,6 +928,7 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- HOKU -->
 <section class="hoku-section" id="hoku">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
@@ -763,6 +979,7 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- DIFFERENTIATION (comparison table) -->
 <section id="differentiation">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
@@ -798,6 +1015,115 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- COMPETITIVE MOAT -->
+<section id="moat" style="background:var(--bg-soft);">
+  <div class="wrap">
+    <div class="reveal" style="max-width:760px;">
+      <span class="eyebrow ink">競合優位</span>
+      <h2 class="section-title">なぜ、<br>真似されないのか。</h2>
+      <p class="lead">機能は模倣できても、<b>家族の記憶と習慣</b> は模倣できません。Familink は使い続けるほどスイッチングコストが高まる、構造的な堀を持ちます。</p>
+    </div>
+    <div class="moat-grid">
+      <div class="moat-card reveal">
+        <div class="moat-icon">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h4>家族データの蓄積</h4>
+        <p>3 ヶ月以上のカレンダー・家計・体調記録が蓄積されると、家族は「この記録が手放せない」状態になります。データを持ち出せないのではなく、<b>移行のコストが心理的に高くなる</b> 設計です。</p>
+        <span class="moat-tag">スイッチングコスト</span>
+      </div>
+      <div class="moat-card reveal">
+        <div class="moat-icon">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <h4>Hoku の文脈理解</h4>
+        <p>日本の学校制度・行事カレンダー・育児文化（運動会・授業参観・給食費・保育料控除）に特化した文脈理解は、汎用 AI では再現できません。<b>日本の子育て家庭専用 AI</b> として磨き続けます。</p>
+        <span class="moat-tag">専門特化</span>
+      </div>
+      <div class="moat-card reveal">
+        <div class="moat-icon">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <h4>家族 OS として先に定着</h4>
+        <p>「家族で最初に入れたアプリ」は簡単には替えられません。先行者として習慣の入口を押さえ、家族の朝・夜のルーティンに Familink が組み込まれた状態を作ります。</p>
+        <span class="moat-tag">先行者優位</span>
+      </div>
+    </div>
+    <div class="moat-banner reveal">
+      <div class="mb-text">
+        <strong>家族で使い始めた OS は、乗り換えられない。</strong>
+        <p>子どもの成長記録・家計の履歴・習い事のスケジュール — これらが 1 アプリに蓄積されるほど、Familink は家族インフラになります。競合が同じ機能を作っても、すでに蓄積された「家族の歴史」は移行できません。</p>
+      </div>
+      <div class="mb-stat">
+        <div class="mv">3ヶ月</div>
+        <div class="ml">平均的な習慣定着期間</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section id="market">
+  <div class="wrap">
+    <div class="reveal" style="max-width:760px;">
+      <span class="eyebrow ink">市場機会 · TAM / SAM / SOM</span>
+      <h2 class="section-title">家庭内 DX の余白は、<br>まだ大きい。</h2>
+      <p class="lead">日本の共働き世帯は約 1,200 万世帯。そのうち子育て家庭はスマホで複数アプリを使いこなし、毎日情報管理に追われています。家族 SaaS への支払い意欲は十分に形成されます。</p>
+    </div>
+    <div class="market-grid">
+      <div class="market-card reveal">
+        <div class="label">TAM · 総市場</div>
+        <div class="market-num">4,320億</div>
+        <div class="market-sub">円 / 年</div>
+        <h4>日本の共働き子育て市場</h4>
+        <p>共働き世帯 1,200 万 × 子あり 30% = 360 万世帯 × 月額 1,000 円想定 × 12 ヶ月。家庭 DX の上限値。</p>
+      </div>
+      <div class="market-card reveal">
+        <div class="label">SAM · 獲得可能市場</div>
+        <div class="market-num">58億</div>
+        <div class="market-sub">円 / 年</div>
+        <h4>スマホ活用率の高い都市圏</h4>
+        <p>スマホ活用度の高い都市圏共働き子育て家庭 = 100 万世帯 × 月額 480 円 × 12 ヶ月。現実的な狙い目。</p>
+      </div>
+      <div class="market-card reveal">
+        <div class="label">SOM · 短期目標</div>
+        <div class="market-num">2.9億</div>
+        <div class="market-sub">円 ARR · Year 3</div>
+        <h4>3 年以内の現実目標</h4>
+        <p>Year 1: 1,000 世帯、Year 3: 50,000 世帯の有料転換。口コミ主体の低 CAC グロースで達成を狙います。</p>
+      </div>
+    </div>
+    <div class="market-funnel reveal">
+      <h4>年間目標フェーズ</h4>
+      <div class="funnel-row">
+        <span class="funnel-label">Year 1</span>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar" style="width:4%;"></div>
+        </div>
+        <span class="funnel-value">1,000 世帯</span>
+      </div>
+      <div class="funnel-row">
+        <span class="funnel-label">Year 2</span>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar" style="width:20%;"></div>
+        </div>
+        <span class="funnel-value">10,000 世帯</span>
+      </div>
+      <div class="funnel-row">
+        <span class="funnel-label">Year 3</span>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar" style="width:100%;"></div>
+        </div>
+        <span class="funnel-value">50,000 世帯</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;">
+      <div class="note">※ TAM/SAM は共働き世帯数（総務省統計）+ 都市圏スマホ利用率をベースに試算。精緻なリサーチは資金調達後に実施予定。</div>
+    </div>
+  </div>
+</section>
+
+<!-- BUSINESS / PRICING -->
 <section id="business" style="background:var(--bg-soft);">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
@@ -840,35 +1166,217 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
-<section id="market">
+<!-- UNIT ECONOMICS -->
+<section id="economics">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
-      <span class="eyebrow ink">市場機会</span>
-      <h2 class="section-title">家庭内 DX の余白は、<br>まだ大きい。</h2>
-      <p class="lead">日本の共働き世帯は約 1,200 万世帯。子育て家庭は毎日複数の情報管理を行い、共有漏れによる夫婦間の摩擦は普遍的な課題です。AI による家庭オペレーション支援は、今後伸びる領域。</p>
+      <span class="eyebrow ink">ユニットエコノミクス</span>
+      <h2 class="section-title">1 世帯あたりの<br>経済性。</h2>
+      <p class="lead">保守的な前提でも、口コミ主体の低 CAC モデルで健全な回収が見込めます。家族単位の継続利用が LTV を支えます。</p>
     </div>
-    <div class="market-grid">
-      <div class="market-card reveal">
-        <div class="label">01</div>
-        <h4>子育て家庭の課題密度</h4>
-        <p>予定 / タスク / 家計 / 健康 / 教育 / 持ち物 — 1 日に管理する情報の種類は、他の世代より圧倒的に多い。</p>
-      </div>
-      <div class="market-card reveal">
-        <div class="label">02</div>
-        <h4>共働き比率の上昇</h4>
-        <p>共働き家庭は専業家庭の 2 倍以上。情報共有の必然性が高く、家族 SaaS への支払い意欲が形成されやすい。</p>
-      </div>
-      <div class="market-card reveal">
-        <div class="label">03</div>
-        <h4>AI 受容性の急上昇</h4>
-        <p>ChatGPT 普及で「自然言語で AI に頼む」体験が標準に。家庭領域への AI 浸透も加速段階。</p>
-      </div>
+    <div class="ue-wrap reveal">
+      <table class="ue-table">
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>数値</th>
+            <th>前提・補足</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="ue-highlight">
+            <td>LTV（保守的）</td>
+            <td>17,280 円 / 世帯</td>
+            <td>480 円 × 36 ヶ月（3 年継続）</td>
+          </tr>
+          <tr class="ue-highlight">
+            <td>LTV（中期想定）</td>
+            <td>57,600 円 / 世帯</td>
+            <td>480 円 × 120 ヶ月（10 年・子育て期間全体）</td>
+          </tr>
+          <tr>
+            <td>CAC 目標</td>
+            <td>2,000 〜 5,000 円</td>
+            <td>口コミ主体 + ママ友ネットワーク × SNS シーディング</td>
+          </tr>
+          <tr>
+            <td>回収期間（Payback）</td>
+            <td>5 〜 11 ヶ月</td>
+            <td>CAC ÷ 月額 480 円。口コミで CAC が下がれば短縮</td>
+          </tr>
+          <tr>
+            <td>Year 1 Revenue 目標</td>
+            <td>288 万円</td>
+            <td>1,000 世帯 × 480 円 × 平均 6 ヶ月課金</td>
+          </tr>
+          <tr>
+            <td>月次損益分岐（MVP 段階）</td>
+            <td>300 世帯</td>
+            <td>サーバーレス MVP のため固定費ほぼゼロ。実質 CAC 回収が分岐点</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <div class="note">※ 数値の精緻化（TAM / SAM / SOM）は今後リサーチ予定。本セクションは戦略仮説の提示にとどめます。</div>
+    <p style="font-size:12.5px;color:var(--ink-4);margin-top:16px;">※ 現在 MVP はサーバーレス（LocalStorage ベース）のため月次固定費はほぼ発生しません。Supabase 移行後は世帯数に応じてスケールするコスト構造に移行します。</p>
   </div>
 </section>
 
-<section id="roadmap" style="background:var(--bg-soft);">
+<!-- GTM -->
+<section id="gtm" style="background:var(--bg-soft);">
+  <div class="wrap">
+    <div class="reveal" style="max-width:760px;">
+      <span class="eyebrow ink">Go-To-Market</span>
+      <h2 class="section-title">口コミから始め、<br>規模を広げる。</h2>
+      <p class="lead">「3 児パパが作った家族アプリ」という実体験を起点に、ママ友ネットワーク・育児 SNS・幼稚園連携という 3 段階で広げます。初期は CAC ゼロのオーガニック獲得を最大化します。</p>
+    </div>
+    <div class="gtm-grid reveal">
+      <div class="gtm-col">
+        <span class="phase-badge">Phase 1</span>
+        <h4>口コミ × シーディング</h4>
+        <div class="gtm-period">App Store 公開直後 · 0〜3 ヶ月</div>
+        <ul>
+          <li>ファミリー内クローズドβテスト（TestFlight）</li>
+          <li>ママ友ネットワークへの直接展開</li>
+          <li>育児ブロガー・インフルエンサーへのシーディング（無料提供）</li>
+          <li>App Store レビュー獲得を最優先</li>
+          <li>口コミ紹介機能の実装（招待リンク）</li>
+        </ul>
+      </div>
+      <div class="gtm-col">
+        <span class="phase-badge">Phase 2</span>
+        <h4>SNS × ショート動画</h4>
+        <div class="gtm-period">認知拡大フェーズ · 3〜9 ヶ月</div>
+        <ul>
+          <li>TikTok / Instagram Reels「3 児パパが作った家族アプリ」</li>
+          <li>X（旧 Twitter）育児アカウントでの情報発信</li>
+          <li>「朝の準備が楽になった」体験談コンテンツ</li>
+          <li>ASO（App Store 最適化）継続改善</li>
+          <li>育児系メディア・ブログへの記事寄稿</li>
+        </ul>
+      </div>
+      <div class="gtm-col">
+        <span class="phase-badge">Phase 3</span>
+        <h4>幼稚園 / 保育園 連携</h4>
+        <div class="gtm-period">B2B 展開フェーズ · 9〜24 ヶ月</div>
+        <ul>
+          <li>幼稚園・保育園の配布物デジタル化連携</li>
+          <li>行事カレンダー ICS 自動取込パートナー</li>
+          <li>園からの「おすすめアプリ」として紹介導線</li>
+          <li>小学校 PTA ・学童との連携検討</li>
+          <li>自治体・子育て支援窓口との協議</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER -->
+<section id="founder">
+  <div class="wrap">
+    <div class="reveal" style="max-width:760px;">
+      <span class="eyebrow ink">ファウンダー</span>
+      <h2 class="section-title">現場から生まれた、<br>プロダクト。</h2>
+      <p class="lead">Familink は、投資や流行を追って作ったアプリではありません。3 人の子を育てる当事者が「本当に欲しかったアプリ」を、自分で設計・実装しました。</p>
+    </div>
+    <div class="founder-grid">
+      <div class="founder-card reveal">
+        <h3>なぜ作れるか / なぜ売れるか</h3>
+        <ul class="founder-list">
+          <li>
+            <div class="fl-icon">
+              <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <span><b>3 児の父・現場起点。</b>幼稚園児 × 小学生 × 乳幼児を育てる当事者として、毎日「このアプリが欲しかった」と感じてきました。課題の解像度が競合と根本的に違います。</span>
+          </li>
+          <li>
+            <div class="fl-icon">
+              <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <span><b>設計から実装まで 1 人で完結。</b>要件定義・UI/UX・フロントエンド実装・AI 設計・ドキュメント整備を一人で行い、MVP v3.1 まで到達しています。技術的な実現可能性は証明済みです。</span>
+          </li>
+          <li>
+            <div class="fl-icon">
+              <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span><b>ユニコーン・事業売却を明確なゴールに。</b>家族向けスーパーアプリとして子育て家庭の標準プラットフォームを目指します。単なるツールではなく、家族インフラとしての事業価値を作ります。</span>
+          </li>
+          <li>
+            <div class="fl-icon">
+              <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <span><b>AI 支援で開発速度を最大化。</b>Claude Code を活用した AI ペアプログラミングで、1 人でも企業チームに匹敵するスピードで開発・改善しています。</span>
+          </li>
+        </ul>
+      </div>
+      <div class="founder-quote reveal">
+        <div class="fq-label">ファウンダーより</div>
+        <blockquote>毎朝「体操服どこ？」「今日お金いる？」「次の習い事いつ？」が繰り返される。3 人の子と格闘しながら、なぜこの情報が家族で共有できないのか、ずっと疑問でした。既存アプリはどれも縦割りで、家族の横軸がない。だから作りました。このアプリを使うことで、家族の朝が 5 分楽になる。それだけで十分な価値だと思っています。</blockquote>
+        <div class="fq-name">Familink 代表 · 3 児の父</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSPARENCY / NOW -->
+<section id="now" style="background:var(--bg-soft);">
+  <div class="wrap">
+    <div class="reveal" style="max-width:760px;">
+      <span class="eyebrow ink">現在地と正直な数字</span>
+      <h2 class="section-title">今、どこまで<br>できているか。</h2>
+      <p class="lead">投資判断に必要な情報を正直に開示します。誇張なく、現時点での実力と次のマイルストーンをお伝えします。</p>
+    </div>
+    <div class="now-grid">
+      <div class="now-card reveal">
+        <div class="nc-status done">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="nc-body">
+          <div class="nc-label">完了</div>
+          <div class="nc-title">MVP 稼働中</div>
+          <p class="nc-desc">LocalStorage ベース、サーバーレス構成で 8 機能が実動。Hoku AI 込みで v3.1 まで到達。</p>
+        </div>
+      </div>
+      <div class="now-card reveal">
+        <div class="nc-status done">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="nc-body">
+          <div class="nc-label">完了</div>
+          <div class="nc-title">家族内クローズドテスト</div>
+          <p class="nc-desc">実際の家族での日常利用でバグ検証・UX 改善を繰り返し実施中。</p>
+        </div>
+      </div>
+      <div class="now-card reveal">
+        <div class="nc-status in-progress">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="nc-body">
+          <div class="nc-label">進行中</div>
+          <div class="nc-title">App Store 申請準備</div>
+          <p class="nc-desc">iOS ラッパー（Capacitor / WebView）対応と審査要件の整備を進行中。TestFlight 公開前。</p>
+        </div>
+      </div>
+      <div class="now-card reveal">
+        <div class="nc-status next">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="nc-body">
+          <div class="nc-label">次のマイルストーン</div>
+          <div class="nc-title">TestFlight 公開 → 有料化</div>
+          <p class="nc-desc">クローズドβ（30〜100 家族）→ App Store 公開 → 月額 480 円課金導線の本実装。</p>
+        </div>
+      </div>
+    </div>
+    <div class="now-honest reveal">
+      <h4>正直に伝えること</h4>
+      <p>現時点では実ユーザーは家族内のクローズドテストのみです。収益はゼロ、サーバー同期は未実装です。これは「まだ道半ば」ではなく、<b>MVP 検証フェーズが正常に進行している</b> ことを意味します。</p>
+      <p>投資を求めるのは「作れないから」ではありません。<b>App Store 公開・家族同期バックエンド・初期マーケティングの加速</b> のためです。今のフェーズに適した規模の協力をお願いしています。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
       <span class="eyebrow ink">展開</span>
@@ -913,6 +1421,7 @@ footer a:hover { color: var(--ink); }
   </div>
 </section>
 
+<!-- ASK / CTA -->
 <section class="ask-section" id="ask">
   <div class="wrap">
     <div class="reveal" style="max-width:760px;">
@@ -936,12 +1445,17 @@ footer a:hover { color: var(--ink); }
           <div class="v">¥50万 〜 ¥300万</div>
           <div class="n">App Store 公開 / 初期検証 / マーケ検証 を進める範囲。金額・条件はご相談で調整させてください。</div>
         </div>
-        <div class="ask-amount note">
+        <div class="ask-amount" style="margin-top:18px;">
+          <div class="lbl">Year 1 Revenue 目標</div>
+          <div class="v">288 万円</div>
+          <div class="n">1,000 世帯 × 480 円 × 6 ヶ月。口コミ主体で損益分岐（300 世帯）を早期達成します。</div>
+        </div>
+        <div class="ask-amount note" style="margin-top:18px;">
           <div class="lbl">代表者から</div>
           <p>3 児の父として、毎日「家族のオペレーションがバラバラすぎる」と感じてきました。<br>既存アプリは縦割りで、家族の <b>横軸</b> が抜けています。Familink は、その横軸を AI で接着するプロダクトです。</p>
         </div>
         <div class="ask-cta">
-          <button class="btn btn-primary" onclick="window.open('mailto:?subject=Familink%20%E6%8A%95%E8%B3%87%E5%AE%B6%E7%9B%B8%E8%AB%87&body=Familink%20%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E8%A9%B1%E3%81%97%E3%81%9F%E3%81%84%E3%81%A7%E3%81%99%E3%80%82');">
+          <button class="btn btn-primary" onclick="window.open('mailto:k.takahashi.7755@gmail.com?subject=Familink%20%E6%8A%95%E8%B3%87%E5%AE%B6%E7%9B%B8%E8%AB%87&body=Familink%20%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E8%A9%B1%E3%81%97%E3%81%9F%E3%81%84%E3%81%A7%E3%81%99%E3%80%82');">
             連絡する <span class="arrow">→</span>
           </button>
           <button class="btn btn-ghost" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">デモを見る</button>
@@ -961,9 +1475,11 @@ footer a:hover { color: var(--ink); }
     <a href="./app-source/familink.html?demo=1">アプリを試す</a>
     <a href="#problem">課題</a>
     <a href="#solution">解決策</a>
+    <a href="#market">市場</a>
+    <a href="#founder">ファウンダー</a>
     <a href="#ask">投資家相談</a>
   </div>
-  <div style="margin-top:12px;font-size:11px;opacity:.7;">本資料は MVP 段階のプロトタイプ紹介を目的としています。記載の機能・価格・スケジュールは実装・調整中の項目を含みます。</div>
+  <div style="margin-top:12px;font-size:11px;opacity:.7;">本資料は MVP 段階のプロトタイプ紹介を目的としています。記載の機能・価格・スケジュールは実装・調整中の項目を含みます。TAM/SAM/SOM は戦略仮説に基づく試算値です。</div>
 </footer>
 
 <script>
