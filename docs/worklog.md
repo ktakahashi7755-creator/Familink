@@ -15025,3 +15025,47 @@ Wave 228: デモデータポリッシュ（投資家・App Store スクショ品
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 228: デモデータポリッシュ（投資家/App Storeスクショ品質）
+
+## 2026-05-27 04:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 229: プレミアム変換ファネル強化・グローバルエラーハンドラー（P2-4 / P3-3）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- P2-4: プレミアム変換ファネル
+  - checkPremiumLimit(): 80%接近時に「あとX件」のソフト警告トースト（sessionStorage で1回のみ）
+  - 上限到達時: showUpgradeModal() でボトムシート型コンテキストモーダル表示
+    - 機能名・制限件数を動的表示
+    - 「30日間 無料でためす」CTA でs-premiumへ誘導
+    - 「あとで」で閉じるだけ
+  - #m-upgrade-overlay: fixed位置のボトムシートオーバーレイ HTML追加
+  - CSS: #m-upgrade-overlay.visible のアニメーション（スライドアップ）
+- P3-3: グローバルエラーハンドラー
+  - window.addEventListener('error'): 未捕捉エラーをconsole.error + 開発時トースト
+  - window.addEventListener('unhandledrejection'): 未処理Promiseをconsole.error + 開発時トースト
+  - 本番では静粛（UIトーストなし）
+- キャッシュバスター: v20260527l
+
+### テスト結果
+- JS構文チェック: node --check /tmp/check.js → エラーなし
+
+### 未確認事項
+- showUpgradeModal() のスライドアップアニメーションがiOSで正常動作するか
+- 80%警告の sessionStorage が正しく動くか
+
+### iPhone確認ポイント
+- タスクを30件登録後に31件目を追加しようとするとアップグレードモーダルが表示されるか
+- ボトムシートが下からスライドアップするか
+- 「あとで」で閉じられるか
+
+### 次にやること
+- Wave 230: Hoku 文脈応答強化（現在のデータを参照したコメント生成）
+- Wave 231: ホーム画面の情報密度・視認性向上
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 229: プレミアム変換ファネル強化・グローバルエラーハンドラー追加
