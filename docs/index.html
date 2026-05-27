@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527i';
+  var V='20260527n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -756,6 +756,10 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .sync-dot.error   { background:#EF4444; }
 @keyframes sync-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.7} }
 
+/* Wave 229: アップグレードオーバーレイ */
+#m-upgrade-overlay.visible { opacity:1; }
+#m-upgrade-overlay.visible #m-upgrade-box { transform:translateY(0); }
+
 /* Wave 57: 書類保管庫 / アルバム */
 .archive-row {
   background:var(--bg-card); border:1.5px solid var(--border-light);
@@ -848,7 +852,20 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 16px 16px calc(98px + env(safe-area-inset-bottom));
 }
-.home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+/* Wave 231: 今日のサマリーバー */
+.home-today-bar { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+.home-today-chip {
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg-card); border:1.5px solid var(--border-light);
+  border-radius:var(--r-full); padding:5px 10px;
+  font-size:11px; font-weight:700; color:var(--text-sub);
+  box-shadow:var(--s-sm); cursor:default; white-space:nowrap;
+}
+.home-today-chip.fever { background:#FFF0F0; border-color:#FFCDD2; color:#D32F2F; }
+.home-today-chip.event { background:#EEF5FF; border-color:#BBDEFB; color:#1565C0; }
+.home-today-chip.task  { background:#F0FFF4; border-color:#C8E6C9; color:#2E7D32; }
+.home-today-chip.shop  { background:#FFFDE7; border-color:#FFF176; color:#F57F17; }
 .home-date-mid {
   font-size: 13px; font-weight: 700; color: var(--primary);
   background: var(--primary-light); border-radius: var(--r-full);
@@ -3152,6 +3169,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
+    <!-- Wave 231: 今日のサマリーバー -->
+    <div id="home-today-bar" class="home-today-bar"></div>
     <div class="home-grid" id="home-grid"></div>
     <div id="home-ad-bar"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
@@ -5120,6 +5139,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <div id="global-loading" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(255,255,255,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
   <div class="loading"><span></span><span></span><span></span></div>
   <div id="global-loading-msg" style="font-size:13px;font-weight:600;color:var(--text-sub);"></div>
+</div>
+
+<!-- Wave 229: アップグレードモーダル -->
+<div id="m-upgrade-overlay" style="display:none;position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);align-items:flex-end;justify-content:center;transition:opacity .26s;opacity:0;" onclick="if(event.target===this)closeUpgradeModal();">
+  <div id="m-upgrade-box" style="width:100%;max-width:440px;background:#fff;border-radius:20px 20px 0 0;overflow:hidden;transform:translateY(100%);transition:transform .28s cubic-bezier(.22,1,.36,1);"></div>
 </div>
 
 </div><!-- #app -->
@@ -8507,9 +8531,11 @@ function _restoreDemoFields(data) {
 
 /* 共通：日付ヘルパ（既存 todayStr / addDays を利用） */
 
-/* ① 家庭向けリアルデモ — 既存 seedDemo を厚めにしたパターン */
+/* ① 家庭向けリアルデモ — Wave 228: 投資家/App Store スクショ品質に強化 */
 function _buildHomeDemoData() {
   const t = todayStr();
+  const yr = new Date().getFullYear();
+  const mo = new Date().getMonth();
   return {
     members: [
       { id:'kenya',   name:'パパ',  role:'parent', av:'パ', grad:'var(--grad-primary)' },
@@ -8519,69 +8545,178 @@ function _buildHomeDemoData() {
       { id:'seitaro', name:'三男',  role:'child',  av:'三', grad:'linear-gradient(135deg,#9B7EDE,#C4B5FD)' },
     ],
     events: [
-      {id:uid(),title:'長男 小学校 持ち物確認',date:t,time:'07:00',color:'#4A90E2',member:'seiai',note:'体操服・絵の具セット'},
-      {id:uid(),title:'次男 保育園 お迎え',date:t,time:'17:30',color:'#52C47A',member:'kenya',note:'連絡帳を確認'},
-      {id:uid(),title:'三男 ピアノ教室',date:addDays(t,1),time:'16:00',color:'#9B7EDE',member:'seitaro',note:'発表会の譜面を持参'},
-      {id:uid(),title:'家族 小児科 予防接種',date:addDays(t,2),time:'10:00',color:'#FF6B6B',member:'seiai',note:'保険証・母子手帳'},
-      {id:uid(),title:'運動会 練習日',date:addDays(t,4),time:'09:00',color:'#FF9B4E',member:'seito',note:'帽子・水筒'},
-      {id:uid(),title:'家族で外食（誕生日）',date:addDays(t,6),time:'18:00',color:'#F07CB3',member:'kenya',note:'予約済み'},
+      /* 今日 */
+      {id:uid(),title:'次男 保育園お迎え',date:t,time:'17:30',color:'#52C47A',member:'kenya',note:'連絡帳・水筒を忘れずに'},
+      {id:uid(),title:'三男 ピアノ教室',date:t,time:'16:00',color:'#9B7EDE',member:'seiai',note:'発表会の譜面を持参'},
+      /* 明日 */
+      {id:uid(),title:'長男 小学校 家庭訪問',date:addDays(t,1),time:'14:30',color:'#4A90E2',member:'seiai',note:'先生が来る前に部屋を片付ける'},
+      {id:uid(),title:'食材まとめ買い',date:addDays(t,1),time:'19:00',color:'#FF9B4E',member:'kenya',note:'週末分・離乳食も'},
+      /* 今週 */
+      {id:uid(),title:'次男 小児科（予防接種）',date:addDays(t,2),time:'10:30',color:'#FF6B6B',member:'seiai',note:'保険証・母子手帳・お薬手帳'},
+      {id:uid(),title:'三男 ピアノ発表会 リハーサル',date:addDays(t,3),time:'14:00',color:'#9B7EDE',member:'kenya',note:'黒フォーマル着用'},
+      {id:uid(),title:'長男 運動会',date:addDays(t,4),time:'09:00',color:'#FF9B4E',member:'seito',note:'弁当・水筒・日焼け止め・カメラ'},
+      /* 来週以降 */
+      {id:uid(),title:'三男 ピアノ発表会 本番',date:addDays(t,7),time:'14:00',color:'#9B7EDE',member:'seitaro',note:'会場：市民ホール2F'},
+      {id:uid(),title:'家族で外食（パパ誕生日）',date:addDays(t,9),time:'18:00',color:'#F07CB3',member:'kenya',note:'レストラン予約済み 5名'},
+      {id:uid(),title:'長男 参観日',date:addDays(t,12),time:'13:30',color:'#4A90E2',member:'seiai',note:''},
+      /* 過去（履歴として見える） */
+      {id:uid(),title:'三男 1歳 健診',date:addDays(t,-3),time:'10:00',color:'#FF6B6B',member:'seiai',note:'完了'},
+      {id:uid(),title:'長男 サッカー練習',date:addDays(t,-1),time:'09:00',color:'#FF9B4E',member:'kenya',note:''},
     ],
     tasks: [
-      {id:uid(),text:'長男の体操服を洗濯',member:'seiai',done:false,at:t},
-      {id:uid(),text:'保育園の連絡帳記入',member:'kenya',done:false,at:t},
-      {id:uid(),text:'家計簿の入力（先週分）',member:'seiai',done:true,at:addDays(t,-1)},
-      {id:uid(),text:'ピアノ発表会の衣装確認',member:'seiai',done:false,at:addDays(t,2)},
+      {id:uid(),text:'長男の体操服を洗濯してアイロン',member:'seiai',done:false,at:t,priority:'high'},
+      {id:uid(),text:'保育園の連絡帳を書く',member:'kenya',done:false,at:t,priority:'high'},
+      {id:uid(),text:'ピアノ発表会の衣装を確認',member:'seiai',done:false,at:addDays(t,1),priority:'normal'},
+      {id:uid(),text:'運動会のお弁当メニューを決める',member:'seiai',done:false,at:addDays(t,2),priority:'normal'},
+      {id:uid(),text:'次男の予防接種の予約リマインド確認',member:'kenya',done:true,at:addDays(t,-1),priority:'normal'},
+      {id:uid(),text:'家計簿の入力（先週分）',member:'seiai',done:true,at:addDays(t,-2),priority:'low'},
+      {id:uid(),text:'パパ誕生日プレゼント注文',member:'seiai',done:false,at:addDays(t,5),priority:'normal'},
+      {id:uid(),text:'市民ホールへの行き方を調べる',member:'kenya',done:false,at:addDays(t,6),priority:'low'},
     ],
     txs: [
-      {id:uid(),type:'income', amount:420000,cat:'給与',desc:'月給（パパ）',date:addDays(t,-7),member:'kenya'},
-      {id:uid(),type:'income', amount:280000,cat:'給与',desc:'月給（ママ・時短）',date:addDays(t,-7),member:'seiai'},
-      {id:uid(),type:'expense',amount:118000, cat:'住居費',desc:'家賃',date:addDays(t,-5),member:'kenya'},
-      {id:uid(),type:'expense',amount:62000,  cat:'食費',desc:'食費（月計）',date:addDays(t,-3),member:'seiai'},
-      {id:uid(),type:'expense',amount:14800,  cat:'通信費',desc:'スマホ・ネット',date:addDays(t,-3),member:'kenya'},
-      {id:uid(),type:'expense',amount:38000,  cat:'保育園',desc:'保育園 月額',date:addDays(t,-2),member:'seiai'},
-      {id:uid(),type:'expense',amount:22000,  cat:'教育費',desc:'三男 ピアノ月謝',date:addDays(t,-1),member:'seitaro'},
-      {id:uid(),type:'expense',amount:6800,   cat:'医療費',desc:'次男 小児科',date:t,member:'seio'},
+      /* 収入 */
+      {id:uid(),type:'income', amount:420000,cat:'給与',desc:'パパ 月給',date:addDays(t,-10),member:'kenya'},
+      {id:uid(),type:'income', amount:260000,cat:'給与',desc:'ママ 月給（時短）',date:addDays(t,-10),member:'seiai'},
+      /* 固定費 */
+      {id:uid(),type:'expense',amount:128000,cat:'住居費',desc:'家賃',date:addDays(t,-8),member:'kenya'},
+      {id:uid(),type:'expense',amount:12800, cat:'通信費',desc:'スマホ2台・ネット',date:addDays(t,-7),member:'kenya'},
+      {id:uid(),type:'expense',amount:2600,  cat:'サブスク',desc:'Familink プレミアム',date:addDays(t,-6),member:'kenya'},
+      /* 変動費 */
+      {id:uid(),type:'expense',amount:68000, cat:'食費',desc:'食費（スーパー・外食）',date:addDays(t,-5),member:'seiai'},
+      {id:uid(),type:'expense',amount:38500, cat:'保育園',desc:'保育料 + 延長保育',date:addDays(t,-5),member:'seiai'},
+      {id:uid(),type:'expense',amount:22000, cat:'教育費',desc:'ピアノ月謝',date:addDays(t,-4),member:'seitaro'},
+      {id:uid(),type:'expense',amount:8500,  cat:'教育費',desc:'サッカー月謝',date:addDays(t,-4),member:'seito'},
+      {id:uid(),type:'expense',amount:6800,  cat:'医療費',desc:'次男 小児科 診察+薬',date:addDays(t,-2),member:'seio'},
+      {id:uid(),type:'expense',amount:14200, cat:'日用品',desc:'ドラッグストア まとめ買い',date:addDays(t,-1),member:'seiai'},
+      {id:uid(),type:'expense',amount:3200,  cat:'こども',desc:'長男 図書館で借りた本 延滞料',date:t,member:'seito'},
+    ],
+    recurringTxs: [
+      {id:uid(),name:'家賃',type:'expense',amount:128000,cat:'住居費',member:'kenya',day:25,active:true},
+      {id:uid(),name:'通信費',type:'expense',amount:12800,cat:'通信費',member:'kenya',day:10,active:true},
+      {id:uid(),name:'保育料',type:'expense',amount:38500,cat:'保育園',member:'seiai',day:27,active:true},
+      {id:uid(),name:'ピアノ月謝',type:'expense',amount:22000,cat:'教育費',member:'seitaro',day:1,active:true},
     ],
     health: [
-      {id:uid(),child:'seio',date:t,temp:36.7,cond:'普通',note:'',meds:''},
-      {id:uid(),child:'seio',date:addDays(t,-1),temp:37.2,cond:'微熱',note:'夜中に1回起きた',meds:''},
-      {id:uid(),child:'seito',date:t,temp:36.5,cond:'普通',note:'',meds:''},
+      /* 次男の発熱→回復ストーリー */
+      {id:uid(),child:'seio',date:addDays(t,-4),temp:37.8,cond:'発熱',note:'夜から熱が出始めた。食欲なし',meds:'小児用解熱剤'},
+      {id:uid(),child:'seio',date:addDays(t,-3),temp:38.4,cond:'発熱',note:'病院で診てもらった。RSウイルスの疑い',meds:'処方薬'},
+      {id:uid(),child:'seio',date:addDays(t,-2),temp:37.5,cond:'微熱',note:'少し食べられるようになった',meds:'処方薬'},
+      {id:uid(),child:'seio',date:addDays(t,-1),temp:37.1,cond:'微熱',note:'元気が戻ってきた',meds:''},
+      {id:uid(),child:'seio',date:t,temp:36.7,cond:'普通',note:'完全回復！保育園OK',meds:''},
+      /* 長男・三男 */
+      {id:uid(),child:'seito',date:addDays(t,-2),temp:36.5,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'seito',date:t,temp:36.4,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'seitaro',date:addDays(t,-1),temp:36.9,cond:'普通',note:'',meds:''},
       {id:uid(),child:'seitaro',date:t,temp:36.8,cond:'普通',note:'',meds:''},
     ],
     prep: [
-      {id:uid(),text:'体操服（洗濯済）',cat:'学校',done:false,date:addDays(t,1)},
-      {id:uid(),text:'絵の具セット',cat:'学校',done:false,date:addDays(t,1)},
-      {id:uid(),text:'連絡帳',cat:'保育園',done:true,date:t},
-      {id:uid(),text:'お弁当箱',cat:'保育園',done:false,date:addDays(t,1)},
-      {id:uid(),text:'ピアノ譜面・教本',cat:'習い事',done:false,date:addDays(t,1)},
-      {id:uid(),text:'保険証・母子手帳',cat:'病院',done:false,date:addDays(t,2)},
+      /* 運動会 */
+      {id:uid(),text:'紅白帽',cat:'運動会',done:true,date:addDays(t,4),member:'seito'},
+      {id:uid(),text:'水筒（大）',cat:'運動会',done:false,date:addDays(t,4),member:'seito'},
+      {id:uid(),text:'お弁当（5人分）',cat:'運動会',done:false,date:addDays(t,4),member:'seiai'},
+      {id:uid(),text:'カメラ・予備バッテリー',cat:'運動会',done:false,date:addDays(t,4),member:'kenya'},
+      {id:uid(),text:'レジャーシート',cat:'運動会',done:false,date:addDays(t,4),member:'kenya'},
+      /* ピアノ発表会 */
+      {id:uid(),text:'黒のフォーマル服（三男）',cat:'発表会',done:true,date:addDays(t,7),member:'seiai'},
+      {id:uid(),text:'演奏曲の楽譜（本番用）',cat:'発表会',done:false,date:addDays(t,7),member:'seitaro'},
+      {id:uid(),text:'発表会チケット（3枚）',cat:'発表会',done:true,date:addDays(t,7),member:'kenya'},
+      /* 小児科 */
+      {id:uid(),text:'保険証',cat:'小児科',done:false,date:addDays(t,2),member:'seiai'},
+      {id:uid(),text:'母子手帳',cat:'小児科',done:false,date:addDays(t,2),member:'seiai'},
+      {id:uid(),text:'お薬手帳',cat:'小児科',done:false,date:addDays(t,2),member:'seiai'},
+    ],
+    prepRoutines: [
+      {id:uid(),name:'保育園 毎朝チェック',items:[
+        {id:uid(),text:'連絡帳記入',done:false},
+        {id:uid(),text:'着替え袋（2セット）',done:false},
+        {id:uid(),text:'水筒（名前確認）',done:false},
+        {id:uid(),text:'タオル・ハンカチ',done:false},
+      ]},
+      {id:uid(),name:'小学校 週初めチェック',items:[
+        {id:uid(),text:'連絡袋（お便り確認）',done:false},
+        {id:uid(),text:'体操服（洗濯済み）',done:false},
+        {id:uid(),text:'ハンカチ・ティッシュ',done:false},
+        {id:uid(),text:'上履き（週1持ち帰り）',done:false},
+      ]},
     ],
     shoppingItems: [
       {id:uid(),name:'牛乳',qty:'2本',cat:'食料品',done:false,at:t},
       {id:uid(),name:'食パン',qty:'1袋',cat:'食料品',done:false,at:t},
-      {id:uid(),name:'おむつ（M）',qty:'1パック',cat:'日用品',done:false,at:t},
-      {id:uid(),name:'洗剤',qty:'1個',cat:'日用品',done:true,at:addDays(t,-1)},
+      {id:uid(),name:'鶏もも肉（運動会弁当用）',qty:'500g',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'卵',qty:'1パック',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'おむつ（Sサイズ）',qty:'1パック',cat:'日用品',done:false,at:t},
+      {id:uid(),name:'子ども用日焼け止め',qty:'1本',cat:'日用品',done:false,at:t},
+      {id:uid(),name:'洗剤（詰め替え）',qty:'1袋',cat:'日用品',done:true,at:addDays(t,-1)},
+      {id:uid(),name:'シャンプー',qty:'1本',cat:'日用品',done:true,at:addDays(t,-1)},
+    ],
+    shoppingFrequent: [
+      {id:uid(),name:'牛乳',qty:'2本',cat:'食料品'},
+      {id:uid(),name:'おむつ',qty:'1パック',cat:'日用品'},
+      {id:uid(),name:'食パン',qty:'1袋',cat:'食料品'},
+      {id:uid(),name:'卵',qty:'1パック',cat:'食料品'},
     ],
     announces: [
-      {id:uid(), title:'今週末の予定',
-        body:'土曜は次男の小児科、日曜は家族で公園に行きます。お弁当はママ担当です。',
-        author:'seiai', cat:'家族', isPinned:true, targets:'all', expiresAt:'',
-        reads:['seiai'], reactions:{}, reactMap:{kenya:'confirmed'},
+      {id:uid(), title:'運動会の役割分担',
+        body:'今週土曜の運動会、場所取りはパパ担当（7時現地入り）、お弁当はママ担当、カメラ係もパパが頑張ります！\n前日は早めに寝かせましょう。',
+        author:'kenya', cat:'重要', isPinned:true, targets:'all', expiresAt:'',
+        reads:['kenya','seiai'], reactions:{}, reactMap:{seiai:'thanks',kenya:'confirmed'},
+        comments:[
+          {id:uid(),author:'seiai',text:'了解！お弁当は唐揚げ・卵焼き・おにぎりにします🍱',at:addDays(t,-1)},
+        ], createdAt:addDays(t,-2), updatedAt:addDays(t,-1)},
+      {id:uid(), title:'三男 ピアノ発表会のお知らせ',
+        body:'来週土曜の14:00〜、市民ホール2Fにて。\n衣装は黒のフォーマル、楽譜は先生から受け取り済みです。\nチケット3枚確保しました（祖父母も招待）。',
+        author:'seiai', cat:'お知らせ', isPinned:false, targets:'all', expiresAt:'',
+        reads:['seiai','kenya'], reactions:{}, reactMap:{kenya:'confirmed'},
+        comments:[], createdAt:addDays(t,-3), updatedAt:addDays(t,-3)},
+      {id:uid(), title:'次男 回復しました！',
+        body:'4日間発熱していた次男ですが、今日の朝36.7℃で完全回復！明日から保育園に戻れます。\nみんな心配かけてごめんね。ありがとう！',
+        author:'seiai', cat:'家族', isPinned:false, targets:'all', expiresAt:'',
+        reads:['seiai'], reactions:{}, reactMap:{kenya:'thanks'},
         comments:[], createdAt:t, updatedAt:t},
-      {id:uid(), title:'三男のピアノ発表会',
-        body:'来週土曜の14:00から。衣装は黒のフォーマルで揃えます。',
-        author:'kenya', cat:'重要', isPinned:false, targets:'all', expiresAt:'',
-        reads:['kenya'], reactions:{}, reactMap:{seiai:'thanks'},
-        comments:[], createdAt:addDays(t,-1), updatedAt:addDays(t,-1)},
     ],
-    budgetY: new Date().getFullYear(),
-    budgetM: new Date().getMonth(),
+    posts: [
+      {id:uid(), author:'seiai', body:'次男が初めて「ママ」って言いました🥹 ビデオに撮れた！',
+        likes:['kenya','seito'], comments:[
+          {id:uid(),author:'kenya',text:'見た！めちゃくちゃかわいかった😭',at:addDays(t,-5)},
+        ], at:addDays(t,-5), tag:'成長'},
+      {id:uid(), author:'kenya', body:'長男、サッカーの試合で初ゴール！チームメイトに胴上げされてたw',
+        likes:['seiai'], comments:[], at:addDays(t,-3), tag:'スポーツ'},
+      {id:uid(), author:'seiai', body:'運動会の練習を見学してきた。長男、本番まで頑張れ〜！！',
+        likes:['kenya'], comments:[
+          {id:uid(),author:'seito',text:'ぼくもがんばる！',at:addDays(t,-2)},
+        ], at:addDays(t,-2), tag:'学校'},
+    ],
+    memos: [
+      {id:uid(),title:'保育園 先生へのメモ', body:'次男が4日間発熱していました。RSウイルスの疑いで小児科受診済。薬は飲み終わっています。登園許可書は提出済みです。', folderId:'', at:addDays(t,-1), updatedAt:t},
+      {id:uid(),title:'長男 担任の先生のお話（家庭訪問メモ）', body:'・学校では積極的に手を挙げている\n・算数が得意、国語の読解を伸ばしたい\n・友達関係は良好\n→ 家でも音読の練習を続けること', folderId:'', at:addDays(t,-10), updatedAt:addDays(t,-10)},
+      {id:uid(),title:'三男のアレルギー情報', body:'卵アレルギー（軽度）\n・加熱済みの卵は食べられる\n・生卵・半熟は避ける\n・アイスクリームも少量なら可\n※次回の小児科で再検査予定', folderId:'allergy', at:addDays(t,-30), updatedAt:addDays(t,-7)},
+      {id:uid(),title:'月末 TO DO まとめ', body:'□ 保育園の月謝引き落とし確認\n□ ピアノ月謝の振込（1日締め）\n□ 家計簿の締め作業\n□ 翌月の習い事スケジュール調整', folderId:'', at:addDays(t,-5), updatedAt:t},
+    ],
+    memoFolders: [
+      {id:'allergy', name:'アレルギー・医療メモ', color:'#FF6B6B'},
+    ],
+    customBoards: [
+      {id:'board_growth', name:'こどもの成長記録', desc:'3人の成長マイルストーン', color:'#9B7EDE', icon:'🌱'},
+      {id:'board_school', name:'学校・習い事管理', desc:'提出物・行事・習い事まとめ', color:'#4A90E2', icon:'📚'},
+    ],
+    boardItems: [
+      {id:uid(),boardId:'board_growth',title:'次男 初めて「ママ」と言った',note:'2026年5月22日。ビデオ撮影済み',done:false,at:addDays(t,-5)},
+      {id:uid(),boardId:'board_growth',title:'三男 つかまり立ち開始',note:'2026年5月15日',done:false,at:addDays(t,-12)},
+      {id:uid(),boardId:'board_growth',title:'長男 サッカー初ゴール',note:'チームの試合で決めた！',done:false,at:addDays(t,-3)},
+      {id:uid(),boardId:'board_school',title:'長男 家庭訪問',note:'明日14:30 担任の先生来訪',done:false,at:addDays(t,1)},
+      {id:uid(),boardId:'board_school',title:'長男 算数テスト提出',note:'水曜日締め切り',done:true,at:addDays(t,-2)},
+      {id:uid(),boardId:'board_school',title:'三男 ピアノ発表会',note:'来週土曜 市民ホール',done:false,at:addDays(t,7)},
+    ],
+    budgetY: yr,
+    budgetM: mo,
   };
 }
 
-/* ② 仮想家族デモ — 個人情報を含まない完全架空データ */
+/* ② 仮想家族デモ — Wave 228: SNS/営業/スクショ用 完全架空データ */
 function _buildVirtualFamilyDemoData() {
   const t = todayStr();
+  const yr = new Date().getFullYear();
+  const mo = new Date().getMonth();
   return {
     members: [
       { id:'demo_papa', name:'たろうパパ', role:'parent', av:'タ', grad:'var(--grad-primary)' },
@@ -8590,45 +8725,77 @@ function _buildVirtualFamilyDemoData() {
       { id:'demo_mio',  name:'みおちゃん', role:'child',  av:'み', grad:'linear-gradient(135deg,#52C47A,#86EFAC)' },
     ],
     events: [
-      {id:uid(),title:'運動会',date:addDays(t,3),time:'09:00',color:'#FF9B4E',member:'demo_yu',note:'お弁当・水筒'},
-      {id:uid(),title:'予防接種（みお）',date:addDays(t,5),time:'10:30',color:'#FF6B6B',member:'demo_mio',note:'母子手帳'},
-      {id:uid(),title:'スイミング（ゆう）',date:addDays(t,1),time:'16:00',color:'#4A90E2',member:'demo_yu',note:'ゴーグル'},
-      {id:uid(),title:'家族で買い物',date:addDays(t,2),time:'14:00',color:'#52C47A',member:'demo_papa',note:''},
+      {id:uid(),title:'ゆう スイミング',date:t,time:'16:00',color:'#4A90E2',member:'demo_yu',note:'ゴーグル・水着・タオル'},
+      {id:uid(),title:'みお 予防接種',date:addDays(t,2),time:'10:30',color:'#FF6B6B',member:'demo_mio',note:'母子手帳・保険証'},
+      {id:uid(),title:'ゆう 運動会',date:addDays(t,4),time:'09:00',color:'#FF9B4E',member:'demo_yu',note:'お弁当・水筒・帽子'},
+      {id:uid(),title:'家族でお出かけ（動物園）',date:addDays(t,8),time:'10:00',color:'#52C47A',member:'demo_papa',note:'年パス持参'},
+      {id:uid(),title:'みお 1歳半健診',date:addDays(t,14),time:'09:30',color:'#FF6B6B',member:'demo_mama',note:'アンケート記入済'},
     ],
     tasks: [
-      {id:uid(),text:'運動会のお弁当の下準備',member:'demo_mama',done:false,at:t},
-      {id:uid(),text:'スイミングバッグの確認',member:'demo_papa',done:true,at:t},
-      {id:uid(),text:'みおの予防接種の予約確認',member:'demo_mama',done:false,at:t},
+      {id:uid(),text:'運動会のお弁当の下準備（前日）',member:'demo_mama',done:false,at:addDays(t,3)},
+      {id:uid(),text:'スイミングバッグの中身確認',member:'demo_papa',done:true,at:t},
+      {id:uid(),text:'みおの予防接種の問診票記入',member:'demo_mama',done:false,at:addDays(t,1)},
+      {id:uid(),text:'動物園の年パス更新',member:'demo_papa',done:false,at:addDays(t,6)},
+      {id:uid(),text:'今月の家計簿締め',member:'demo_mama',done:false,at:addDays(t,5)},
     ],
     txs: [
-      {id:uid(),type:'income', amount:350000,cat:'給与',desc:'月給',date:addDays(t,-7),member:'demo_papa'},
-      {id:uid(),type:'expense',amount:95000, cat:'住居費',desc:'家賃',date:addDays(t,-5),member:'demo_papa'},
-      {id:uid(),type:'expense',amount:48000, cat:'食費',desc:'食費（月計）',date:addDays(t,-3),member:'demo_mama'},
-      {id:uid(),type:'expense',amount:18000, cat:'教育費',desc:'スイミング月謝',date:addDays(t,-2),member:'demo_yu'},
+      {id:uid(),type:'income', amount:380000,cat:'給与',desc:'たろう 月給',date:addDays(t,-8),member:'demo_papa'},
+      {id:uid(),type:'income', amount:220000,cat:'給与',desc:'はな パート収入',date:addDays(t,-8),member:'demo_mama'},
+      {id:uid(),type:'expense',amount:105000,cat:'住居費',desc:'マンション家賃',date:addDays(t,-7),member:'demo_papa'},
+      {id:uid(),type:'expense',amount:52000, cat:'食費',desc:'食費',date:addDays(t,-4),member:'demo_mama'},
+      {id:uid(),type:'expense',amount:16000, cat:'教育費',desc:'スイミング月謝',date:addDays(t,-3),member:'demo_yu'},
+      {id:uid(),type:'expense',amount:9200,  cat:'医療費',desc:'みお 小児科',date:addDays(t,-2),member:'demo_mio'},
+      {id:uid(),type:'expense',amount:11500, cat:'日用品',desc:'ドラッグストア',date:addDays(t,-1),member:'demo_mama'},
+      {id:uid(),type:'expense',amount:2600,  cat:'サブスク',desc:'Familink プレミアム',date:addDays(t,-5),member:'demo_papa'},
     ],
     health: [
+      {id:uid(),child:'demo_mio',date:addDays(t,-3),temp:37.8,cond:'発熱',note:'夜泣きひどい、食欲なし',meds:'小児用解熱剤'},
+      {id:uid(),child:'demo_mio',date:addDays(t,-2),temp:37.2,cond:'微熱',note:'少し回復',meds:''},
+      {id:uid(),child:'demo_mio',date:addDays(t,-1),temp:36.8,cond:'普通',note:'元気になった！',meds:''},
       {id:uid(),child:'demo_mio',date:t,temp:36.6,cond:'普通',note:'',meds:''},
-      {id:uid(),child:'demo_yu',date:t,temp:36.8,cond:'普通',note:'',meds:''},
+      {id:uid(),child:'demo_yu', date:t,temp:36.8,cond:'普通',note:'',meds:''},
     ],
     prep: [
-      {id:uid(),text:'運動会の帽子・水筒',cat:'学校',done:false,date:addDays(t,3)},
-      {id:uid(),text:'スイミングの水着・ゴーグル',cat:'習い事',done:true,date:addDays(t,1)},
-      {id:uid(),text:'母子手帳',cat:'病院',done:false,date:addDays(t,5)},
+      {id:uid(),text:'運動会 お弁当（4人分）',cat:'運動会',done:false,date:addDays(t,4),member:'demo_mama'},
+      {id:uid(),text:'運動会 レジャーシート',cat:'運動会',done:true,date:addDays(t,4),member:'demo_papa'},
+      {id:uid(),text:'スイミング 水着',cat:'習い事',done:true,date:t,member:'demo_yu'},
+      {id:uid(),text:'予防接種 母子手帳・保険証',cat:'病院',done:false,date:addDays(t,2),member:'demo_mama'},
     ],
     shoppingItems: [
-      {id:uid(),name:'牛乳',qty:'1本',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'牛乳',qty:'2本',cat:'食料品',done:false,at:t},
+      {id:uid(),name:'から揚げ用鶏もも',qty:'400g',cat:'食料品',done:false,at:t},
       {id:uid(),name:'卵',qty:'1パック',cat:'食料品',done:false,at:t},
-      {id:uid(),name:'ティッシュ',qty:'1箱',cat:'日用品',done:false,at:t},
+      {id:uid(),name:'おむつ（Lサイズ）',qty:'1パック',cat:'日用品',done:false,at:t},
+      {id:uid(),name:'子供用日焼け止め',qty:'1本',cat:'日用品',done:false,at:t},
     ],
     announces: [
-      {id:uid(), title:'運動会のお知らせ',
-        body:'今週末の運動会、お弁当はママ、応援はパパ担当です！',
-        author:'demo_mama', cat:'家族', isPinned:true, targets:'all', expiresAt:'',
-        reads:[], reactions:{}, reactMap:{},
+      {id:uid(), title:'運動会 役割分担決定！',
+        body:'たろうパパが場所取り（7時入り）と写真係。\nはなママがお弁当担当（から揚げ・おにぎり予定）。\n前日はゆうくんを早めに就寝させましょう！',
+        author:'demo_mama', cat:'重要', isPinned:true, targets:'all', expiresAt:'',
+        reads:['demo_mama','demo_papa'], reactions:{}, reactMap:{demo_papa:'confirmed'},
+        comments:[
+          {id:uid(),author:'demo_papa',text:'了解！場所取りシートは車に積んだよ',at:addDays(t,-1)},
+        ], createdAt:addDays(t,-2), updatedAt:addDays(t,-1)},
+      {id:uid(), title:'みおの発熱、回復しました',
+        body:'3日間発熱していたみおですが今日の朝から平熱に戻りました！\n明日から保育園に戻れそうです。心配かけてごめんね。',
+        author:'demo_mama', cat:'家族', isPinned:false, targets:'all', expiresAt:'',
+        reads:['demo_mama'], reactions:{}, reactMap:{demo_papa:'thanks'},
         comments:[], createdAt:t, updatedAt:t},
     ],
-    budgetY: new Date().getFullYear(),
-    budgetM: new Date().getMonth(),
+    posts: [
+      {id:uid(), author:'demo_mama', body:'みおが初めて「パパ」って言った！たろうが大号泣してた笑',
+        likes:['demo_papa','demo_yu'], comments:[
+          {id:uid(),author:'demo_papa',text:'嬉しすぎてホントに泣いた😂',at:addDays(t,-6)},
+        ], at:addDays(t,-6), tag:'成長'},
+      {id:uid(), author:'demo_papa', body:'ゆうくん、今日のスイミングで25m初完泳！コーチにも褒められた。成長を感じる。',
+        likes:['demo_mama'], comments:[], at:addDays(t,-2), tag:'スポーツ'},
+    ],
+    memos: [
+      {id:uid(),title:'みおのアレルギーメモ', body:'卵・大豆（軽度）。加熱済みはOK。次回の1歳半健診で再検査予定。', folderId:'', at:addDays(t,-20), updatedAt:addDays(t,-5)},
+      {id:uid(),title:'ゆうくん 懇談会メモ', body:'・算数得意、ひらがなの書き順を練習中\n・お友達と仲良くできている\n・発表会に向けて練習頑張っている', folderId:'', at:addDays(t,-14), updatedAt:addDays(t,-14)},
+    ],
+    budgetY: yr,
+    budgetM: mo,
   };
 }
 
@@ -9073,16 +9240,57 @@ function renderHome() {
   // ── 今週の予定コンテンツ ──
   const td = todayStr();
   const upcoming = wsFilter(S.events).filter(e=>e.date>=td)
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,4);
-  const evHTML = upcoming.length ? upcoming.map(e =>
-    `<div class="bc-row">
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||'')).slice(0,4);
+  const evHTML = upcoming.length ? upcoming.map(e => {
+    const isToday = e.date === td;
+    const dateLabel = isToday ? '今日' : e.date.slice(5).replace('-','/');
+    const timeLabel = e.time ? ` ${e.time}` : '';
+    return `<div class="bc-row">
       <div class="bc-dot" style="background:${H(e.color)}"></div>
-      <div class="bc-text">${H(e.date.slice(5).replace('-','/'))} ${H(e.title)}</div>
-    </div>`).join('')
+      <div class="bc-text" style="${isToday?'font-weight:700;':''}">${H(dateLabel)}${H(timeLabel)} ${H(e.title)}</div>
+    </div>`;
+  }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
       <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
+
+  // Wave 231: 今日のサマリーバー
+  const todayBar = document.getElementById('home-today-bar');
+  if(todayBar) {
+    const chips = [];
+    const todayEvs231 = (S.events||[]).filter(e=>e.date===td);
+    if(todayEvs231.length > 0) {
+      const nextEv = todayEvs231.sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+      chips.push(`<div class="home-today-chip event">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        今日 ${H(todayEvs231.length)}件${nextEv.time?' 次 '+H(nextEv.time):''}
+      </div>`);
+    }
+    const pendingTasks231 = wsFilter(S.tasks).filter(t=>!t.done);
+    if(pendingTasks231.length > 0) {
+      chips.push(`<div class="home-today-chip task">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        未完了 ${H(pendingTasks231.length)}件
+      </div>`);
+    }
+    const feverKids231 = (S.health||[]).filter(h=>h.date>=td&&(h.temp||0)>=38);
+    if(feverKids231.length > 0) {
+      const kid = (S.members||[]).find(x=>x.id===feverKids231[0].child);
+      chips.push(`<div class="home-today-chip fever">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 9.5a2.5 2.5 0 0 1 0 5M12 3v1M12 20v1M3 12h1M20 12h1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 18.4l.7-.7M17.7 6.3l.7-.7"/></svg>
+        ${kid?H(kid.name):''} 発熱 ${feverKids231[0].temp}℃
+      </div>`);
+    }
+    const shopLeft231 = (S.shoppingItems||[]).filter(x=>!x.done);
+    if(shopLeft231.length > 0 && chips.length < 4) {
+      chips.push(`<div class="home-today-chip shop">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        買い物 ${H(shopLeft231.length)}件
+      </div>`);
+    }
+    todayBar.innerHTML = chips.join('');
+  }
 
   // Wave 225: ゲストユーザー向けクラウド登録促進バナー
   var adBar = document.getElementById('home-ad-bar');
@@ -16686,9 +16894,55 @@ function checkPremiumLimit(key) {
   if(!limit) return true;
   const arr = S[key];
   const count = Array.isArray(arr) ? arr.length : 0;
-  if(count < limit.free) return true;
-  showToast(`無料プランでは${limit.label}は${limit.free}件まで。設定 → プレミアムで無制限に。`, 'info');
+  if(count < limit.free) {
+    /* 80%で近接警告（1セッションに1回のみ） */
+    if(count >= Math.floor(limit.free * 0.8)) {
+      const warnKey = '_premWarn_' + key;
+      if(!sessionStorage.getItem(warnKey)) {
+        sessionStorage.setItem(warnKey, '1');
+        const left = limit.free - count;
+        showToast(`${limit.label}の無料上限まであと${left}件です。`, 'info');
+      }
+    }
+    return true;
+  }
+  showUpgradeModal(limit.label, limit.free);
   return false;
+}
+
+/* Wave 229: コンテキスト付きアップグレードモーダル */
+function showUpgradeModal(featureLabel, freeLimit) {
+  const overlay = document.getElementById('m-upgrade-overlay');
+  const box = document.getElementById('m-upgrade-box');
+  if(!overlay || !box) { go('s-premium'); return; }
+  box.innerHTML = `
+    <div style="text-align:center;padding:24px 20px 0;">
+      <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FF8C00);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
+      </div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;">${featureLabel}の上限に達しました</div>
+      <div style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:18px;">無料プランでは${featureLabel}は${freeLimit}件まで保存できます。<br>プレミアムにアップグレードすると<strong>無制限</strong>で使えます。</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
+      <button onclick="closeUpgradeModal();go('s-premium');"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD700,#FF8C00);color:#fff;font-size:15px;font-weight:800;border:none;border-radius:14px;cursor:pointer;">
+        30日間 無料でためす
+        <div style="font-size:11px;font-weight:500;margin-top:2px;">クレジットカード不要・今すぐ開始</div>
+      </button>
+      <button onclick="closeUpgradeModal();"
+        style="width:100%;padding:12px;background:transparent;color:var(--text-sub);font-size:13px;border:none;cursor:pointer;">
+        あとで
+      </button>
+    </div>`;
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('visible'), 10);
+}
+
+function closeUpgradeModal() {
+  const overlay = document.getElementById('m-upgrade-overlay');
+  if(!overlay) return;
+  overlay.classList.remove('visible');
+  setTimeout(() => { overlay.style.display = 'none'; }, 260);
 }
 
 /* プレミアムゲートモーダルを表示 */
@@ -18540,15 +18794,53 @@ function renderHoku() {
 function renderHokuSuggs() {
   const el = document.getElementById('hoku-suggs');
   if(!el) return;
-  // Wave 225: 文脈に応じた動的サジェスト
+  /* Wave 230: データ駆動型サジェスト — 家族の現状に特化した具体提案 */
   const today = todayStr();
-  const todayEvs = (S.events||[]).filter(e => e.date === today);
-  const overdueTasks = (S.tasks||[]).filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today);
-  const suggs = [...HOKU_SUGGESTIONS];
-  if(todayEvs.length > 0) suggs.unshift('今日の予定を確認して');
-  if(overdueTasks.length > 0) suggs.unshift('期限切れのタスクを見せて');
-  const thisMonthTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(today.slice(0,7)));
-  if(thisMonthTxs.length > 5) suggs.splice(2, 0, '今月の家計をまとめて');
+  const tomorrow = addDays(today, 1);
+  const suggs = [];
+
+  /* ① 発熱アラート（最優先）— 直近2日に38℃以上の記録があれば */
+  const feverKids = [];
+  (S.health||[]).filter(h => h.date >= addDays(today,-2) && (h.temp||0) >= 38).forEach(h => {
+    const m = (S.members||[]).find(x => x.id === h.child);
+    if(m && !feverKids.includes(m.name)) feverKids.push(m.name);
+  });
+  if(feverKids.length) suggs.push(feverKids[0]+'の体調を記録して');
+
+  /* ② 今日の予定（具体タイトルで訴求） */
+  const todayEvs = (S.events||[]).filter(e => e.date === today).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
+  if(todayEvs.length === 1) suggs.push('今日 '+todayEvs[0].title+'を確認して');
+  else if(todayEvs.length > 1) suggs.push('今日の予定 '+todayEvs.length+'件を確認して');
+
+  /* ③ 未完了タスク（具体名で） */
+  const pendingTasks = (S.tasks||[]).filter(t => !t.done);
+  if(pendingTasks.length === 1) suggs.push('「'+pendingTasks[0].text+'」を完了にして');
+  else if(pendingTasks.length > 1) suggs.push('未完了タスク '+pendingTasks.length+'件を確認');
+
+  /* ④ 明日の準備チェック */
+  const tomorrowEvs = (S.events||[]).filter(e => e.date === tomorrow);
+  const tomorrowPrep = (S.prep||[]).filter(p => p.date === tomorrow && !p.done);
+  if(tomorrowEvs.length && tomorrowPrep.length) {
+    suggs.push('明日の'+tomorrowEvs[0].title+'の準備を確認');
+  } else if(tomorrowEvs.length) {
+    suggs.push('明日の'+tomorrowEvs[0].title+'の持ち物を確認');
+  }
+
+  /* ⑤ 買い物リスト */
+  const shopLeft = (S.shoppingItems||[]).filter(x => !x.done);
+  if(shopLeft.length > 0) suggs.push('買い物リスト（'+shopLeft.length+'件）を確認');
+
+  /* ⑥ 今月の家計サマリー */
+  const mo = today.slice(0,7);
+  const thisMoTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(mo));
+  const totalExp = thisMoTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
+  if(thisMoTxs.length >= 3) suggs.push('今月の支出（¥'+totalExp.toLocaleString()+'）をまとめて');
+  else if(thisMoTxs.length > 0) suggs.push('今月の家計を確認して');
+
+  /* ⑦ 静的サジェストで補完 */
+  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.includes(s.slice(0,6))));
+  while(suggs.length < 6 && fallback.length) suggs.push(fallback.shift());
+
   el.innerHTML = suggs.slice(0,8).map(s =>
     `<button class="hoku-sugg" onclick="sendHokuMsg('${H(s)}')">${H(s)}</button>`
   ).join('');
@@ -18561,15 +18853,30 @@ function renderHokuMsgs() {
 
   if(!msgs.length) {
     const nm = (S.userProfile && S.userProfile.displayName) || (S.user && S.user.name) || '';
+    /* Wave 230: データ駆動型ウェルカムチップ */
+    const today = todayStr();
+    const todayEvCount = (S.events||[]).filter(e=>e.date===today).length;
+    const pendingCount = (S.tasks||[]).filter(t=>!t.done).length;
+    const shopCount = (S.shoppingItems||[]).filter(x=>!x.done).length;
+    const feverToday = (S.health||[]).filter(h=>h.date===today&&(h.temp||0)>=37.5).length;
+
+    const chip1 = todayEvCount
+      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定を教えて')">${ICON('calendar',16)} 今日の予定(${todayEvCount}件)</button>`
+      : `<button class="hoku-empty-chip" onclick="sendHokuMsg('今週の予定を教えて')">${ICON('calendar',16)} 今週の予定</button>`;
+    const chip2 = pendingCount
+      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('未完了のタスクを見せて')">${ICON('check',16)} タスク(${pendingCount}件)</button>`
+      : `<button class="hoku-empty-chip" onclick="sendHokuMsg('タスクを追加したい')">${ICON('check',16)} タスクを追加</button>`;
+    const chip3 = feverToday
+      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('体調を記録して')">${ICON('health',16)} 体調を記録</button>`
+      : shopCount
+      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('買い物リストを教えて')">${ICON('cart',16)} 買い物(${shopCount}件)</button>`
+      : `<button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">${ICON('wallet',16)} 家計確認</button>`;
+
     el.innerHTML = `<div class="hoku-empty-state">
       <img src="${IMGS.hoku}" class="hoku-empty-img" alt="Hoku">
       <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
       <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
-      <div class="hoku-empty-chips">
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定教えて')">${ICON('calendar',16)} 今日の予定</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('最近のタスクを確認')">${ICON('check',16)} タスク確認</button>
-        <button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">${ICON('wallet',16)} 家計確認</button>
-      </div>
+      <div class="hoku-empty-chips">${chip1}${chip2}${chip3}</div>
       <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
     return;
@@ -22849,6 +23156,23 @@ async function ob2AppleLogin() {
 </div>
 
 <script>
+/* ── Wave 227: オフライン/オンライン状態のハンドリング ─────────── */
+(function() {
+  function onOnline() {
+    _setSyncDot(isSupaLoggedIn() ? 'syncing' : 'offline');
+    if(isSupaLoggedIn()) {
+      _fetchFromSupabase().catch(_=>{});
+    }
+    try { showToast('オンラインに戻りました', 'success'); } catch(_){}
+  }
+  function onOffline() {
+    _setSyncDot('offline');
+    try { showToast('オフラインです。データは端末に保存されています', 'info'); } catch(_){}
+  }
+  window.addEventListener('online',  onOnline);
+  window.addEventListener('offline', onOffline);
+})();
+
 /* ── Wave 221: iOS キーボード開閉時のスクロール補正 ──────────────
    iOS Safari では input focus でウィンドウが意図せずスクロールし、
    固定ヘッダーや下部ボタンが隠れる問題がある。
@@ -22885,6 +23209,30 @@ async function ob2AppleLogin() {
 
   window.visualViewport.addEventListener('resize', onViewportChange);
   window.visualViewport.addEventListener('scroll', onViewportChange);
+})();
+
+/* ── Wave 229: グローバルエラーハンドラー（P3-3）────────────────
+   致命的なJS例外をキャッチしてサイレントに失敗せず、
+   開発中は分かりやすくトーストで通知する。
+   本番ではconsole.errorのみ（UI通知はしない）。
+   ──────────────────────────────────────────────────────────── */
+(function() {
+  const _isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  window.addEventListener('error', function(e) {
+    if(!e || !e.error) return;
+    console.error('[Familink] Uncaught error:', e.error);
+    if(_isDev) {
+      try { showToast('JS Error: ' + (e.error.message || e.error), 'error'); } catch(_){}
+    }
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    if(!e || !e.reason) return;
+    console.error('[Familink] Unhandled promise rejection:', e.reason);
+    if(_isDev) {
+      const msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+      try { showToast('Promise Error: ' + msg, 'error'); } catch(_){}
+    }
+  });
 })();
 </script>
 
