@@ -14802,3 +14802,54 @@ wave 215: ハイブリッドウェルカム+ログイン画面（1画面・ス�
 ### コミット
 - ハッシュ: `9a84a89` - wave 215: ハイブリッドウェルカム+ログイン画面
 - ハッシュ: `6e4205a` - wave 215b: レスポンシブ修正
+
+## 2026-05-27 XX:XX  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 219〜221: Supabase データ同期エンジン実装・プレミアム上限ゲート・iOS キーボード補正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- docs/worklog.md
+
+### 変更内容
+- Wave 219: Supabase fl_family_data テーブル用の同期エンジン実装
+  - SYNC_KEYS 配列（36 キー）定義
+  - _scheduleSyncToSupabase(): saveS() 後 1.5s デバウンス push
+  - _pushToSupabase(): 20件バッチ upsert（onConflict: user_id,data_key）
+  - _fetchFromSupabase(): ログイン直後に fetch → 配列は id マージ、非配列は上書き
+  - supaSignIn / verifyOtp / magiclink / getSession / SIGNED_IN イベント全5箇所で _fetchFromSupabase() 呼び出し
+  - saveS() に _scheduleSyncToSupabase() フック追加
+  - S.familyId: null を S オブジェクトと PERSIST に追加
+- Wave 220: checkPremiumLimit() + PREMIUM_LIMITS 定数実装
+  - events(50), tasks(30), txs(100), health(50), albumPhotos(20), customBoards(3), members(4), memos(20), docs(15)
+  - saveEvent / saveTaskEdit / saveTx / health保存 / アルバム追加 に checkPremiumLimit() 組み込み
+- Wave 221: iOS キーボード visualViewport API による画面補正
+  - キーボード出現時 body.paddingBottom で UI が隠れないよう補正
+  - activeElement を scrollIntoView で中央に収める
+- キャッシュバスター: v20260527d → v20260527e
+
+### テスト結果
+- 未実施（実機テスト・Supabase テーブル作成が必要）
+- Supabase SQL: fl_family_data テーブル + RLS ポリシーをダッシュボードで作成必要
+
+### 未確認事項
+- fl_family_data テーブルが Supabase に存在しない場合 _pushToSupabase が 404 エラーを返す（テーブル作成前は同期は動かない）
+- albumPhotos の checkPremiumLimit が Promise chain 内にあるため count タイミングに注意
+
+### iPhone確認ポイント
+- ログイン後にクラウド同期が走るか確認（console.log で確認）
+- キーボード表示時に入力フォームが隠れないこと
+- 無料プランで50件超のイベント追加時に制限トーストが出るか
+
+### 次にやること
+- Supabase ダッシュボードで fl_family_data テーブル作成（SQLは Wave 219 コメントに記載）
+- P1-3: ファミリー招待コード実装
+- P2-2: Stripe/App Store IAP 接続（スタブのまま vs 本実装）
+- P3-2: ローディング状態の統一
+- P4-1: Hoku AI 実API接続
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 219-221: Supabase同期エンジン・プレミアム上限ゲート・iOSキーボード補正
