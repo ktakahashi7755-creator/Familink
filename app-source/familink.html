@@ -550,7 +550,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .ob2-top {
   flex: 0 0 auto;
-  padding: calc(env(safe-area-inset-top) + 14px) 20px 0;
+  padding: calc(env(safe-area-inset-top) + 10px) 20px 0;
 }
 .ob2-logo {
   font-family: var(--font-display);
@@ -559,7 +559,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .ob2-hero-wrap {
   position: relative;
-  width: 100%; height: clamp(130px, 26vh, 200px); margin-bottom: 10px;
+  width: 100%; height: clamp(100px, 22vh, 190px); margin-bottom: 8px;
 }
 .ob2-hero-img {
   width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 18px;
@@ -575,14 +575,14 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   line-height: 1.45; letter-spacing: -.3px; margin-bottom: 0;
 }
 .ob2-bottom {
-  flex: 1; background: #fff; border-radius: 22px 22px 0 0; margin-top: 14px;
-  padding: 18px 20px calc(env(safe-area-inset-bottom) + 8px);
+  flex: 1; background: #fff; border-radius: 22px 22px 0 0; margin-top: 12px;
+  padding: 14px 20px calc(env(safe-area-inset-bottom) + 6px);
   box-shadow: 0 -4px 20px rgba(26,36,64,.08);
   display: flex; flex-direction: column; overflow: hidden;
 }
-.ob2-field { position: relative; margin-bottom: 9px; }
+.ob2-field { position: relative; margin-bottom: 7px; }
 .ob2-input {
-  width: 100%; height: 46px; border: 1.5px solid #E2E8F0; border-radius: 12px;
+  width: 100%; height: 44px; border: 1.5px solid #E2E8F0; border-radius: 12px;
   padding: 0 14px; font-size: 15px; color: var(--text); background: #F8FAFC;
   outline: none; box-sizing: border-box; transition: border-color .15s;
   -webkit-appearance: none;
@@ -598,7 +598,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .ob2-err { font-size: 12px; color: #E53E3E; margin-bottom: 5px; min-height: 0; display: none; }
 .ob2-err:not(:empty) { display: block; }
 .ob2-btn-primary {
-  width: 100%; height: 50px; background: var(--grad-primary); color: #fff;
+  width: 100%; height: 48px; background: var(--grad-primary); color: #fff;
   font-size: 16px; font-weight: 700; border: none; border-radius: var(--r-full);
   box-shadow: 0 4px 16px rgba(74,144,226,.32); letter-spacing: .2px; cursor: pointer;
   transition: var(--t-spring);
@@ -607,25 +607,25 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .ob2-btn-primary:disabled { opacity: .7; cursor: default; }
 .ob2-divider {
   display: flex; align-items: center; gap: 10px;
-  margin: 9px 0; color: #CBD5E0; font-size: 12px;
+  margin: 7px 0; color: #CBD5E0; font-size: 12px;
 }
 .ob2-divider::before,.ob2-divider::after { content:''; flex:1; height:1px; background:#E2E8F0; }
 .ob2-btn-oauth {
-  width: 100%; height: 44px; border-radius: var(--r-full);
+  width: 100%; height: 42px; border-radius: var(--r-full);
   font-size: 14px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  cursor: pointer; transition: var(--t-spring); border: none; margin-bottom: 7px;
+  cursor: pointer; transition: var(--t-spring); border: none; margin-bottom: 6px;
 }
 .ob2-btn-oauth:active { transform: scale(.97); }
 .ob2-btn-google { background: #fff; border: 1.5px solid #E2E8F0 !important; color: #1A2440; }
 .ob2-btn-apple  { background: #000; color: #fff; margin-bottom: 0; }
 .ob2-links {
-  text-align: center; font-size: 13px; color: var(--text-sub); margin-top: 9px; flex-shrink: 0;
+  text-align: center; font-size: 13px; color: var(--text-sub); margin-top: 7px; flex-shrink: 0;
 }
 .ob2-link-signup { color: var(--primary); font-weight: 700; cursor: pointer; margin-left: 4px; }
 .ob2-link-guest {
   font-size: 13px; color: var(--text-muted); cursor: pointer;
-  text-align: center; display: block; margin-top: 7px;
+  text-align: center; display: block; margin-top: 5px;
 }
 .ob-wrap {
   min-height: 100%;
@@ -718,6 +718,22 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .ob-btn-login:active { transform: scale(.97); background: rgba(255,255,255,.6); border-color: var(--primary); color: var(--primary); }
 .ob-note { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 18px; letter-spacing: .2px; }
 
+
+/* iPhone SE 1st/2nd gen (≤600px) — 極小画面でさらにコンパクト化 */
+@media (max-height: 600px) {
+  .ob2-top { padding-top: calc(env(safe-area-inset-top) + 6px); }
+  .ob2-logo { font-size: 20px; margin-bottom: 6px; }
+  .ob2-hero-wrap { height: 90px; margin-bottom: 6px; }
+  .ob2-tagline { font-size: 15px; line-height: 1.4; }
+  .ob2-bottom { margin-top: 8px; padding-top: 10px; }
+  .ob2-field { margin-bottom: 5px; }
+  .ob2-input { height: 40px; font-size: 14px; }
+  .ob2-btn-primary { height: 44px; font-size: 15px; }
+  .ob2-divider { margin: 5px 0; }
+  .ob2-btn-oauth { height: 38px; font-size: 13px; margin-bottom: 4px; }
+  .ob2-links { margin-top: 5px; font-size: 12px; }
+  .ob2-link-guest { margin-top: 4px; font-size: 12px; }
+}
 /* ============================================================
    LOGIN SCREEN
    ============================================================ */
