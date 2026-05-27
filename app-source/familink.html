@@ -5128,6 +5128,7 @@ function initSupabase() {
       if(sess && sess.user) {
         S.supaSession = { id: sess.user.id, email: sess.user.email || '' };
         try { saveS(); } catch(_) {}
+        try { _fetchFromSupabase().catch(_=>{}); } catch(_) {}
       }
       try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
     }).catch(()=>{});
@@ -5141,9 +5142,8 @@ function initSupabase() {
           // Wave 212: Magic Link 経由ログイン（SIGNED_IN イベント）でアプリ内に自動入室
           if(event === 'SIGNED_IN' && !wasLoggedIn) {
             try {
-              // モーダル開いていれば閉じる
               try { closeModal('m-supa-auth'); } catch(_){}
-              // すでにアプリ内なら何もしない、ウェルカム画面なら _enterApp
+              _fetchFromSupabase().catch(_=>{});
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
                 showToast('Magic Link でログインしました', 'success');
                 _enterApp(true);
@@ -5259,6 +5259,7 @@ async function supaSignIn(email, password) {
     if(data && data.user) {
       S.supaSession = { id: data.user.id, email: data.user.email || '' };
       saveS();
+      _fetchFromSupabase().catch(_=>{});
       _supaLastErrorWasInvalidLogin = false;
       return { ok:true };
     }
@@ -5285,25 +5286,125 @@ async function supaSignOut() {
 }
 
 /* ============================================================
-   Wave 202 — クラウド同期スタブ（将来の段階拡張用の骨格のみ）
+   Wave 219 — データ同期エンジン（Supabase fl_family_data）
 
-   方針：
-   - 今回は no-op（呼んでも例外を出さない）。テーブル設計とポリシーが整ってから本実装
-   - 必須 RLS：各テーブルに `user_id uuid references auth.users(id)` を持たせ、
-     `policy: (auth.uid() = user_id)` を select/insert/update/delete すべてに適用する
-   - 同期粒度の暫定案：profile / events / tasks / txs / posts / announces を最初の対象、
-     conflict 解決は updated_at の新しい方優先。送信は upsert、受信は merge-by-id
+   Supabase SQL（ダッシュボードで一度だけ実行）:
+     create table if not exists fl_family_data (
+       id         uuid default gen_random_uuid() primary key,
+       user_id    uuid references auth.users(id) on delete cascade not null,
+       family_id  text,
+       data_key   text not null,
+       payload    jsonb,
+       updated_at timestamptz default now() not null,
+       unique(user_id, data_key)
+     );
+     alter table fl_family_data enable row level security;
+     create policy "users_own_data" on fl_family_data
+       using (auth.uid() = user_id)
+       with check (auth.uid() = user_id);
+
+   同期方針：
+   - saveS() 後 1.5s デバウンスで push（書きすぎ防止）
+   - ログイン直後に fetch してローカルにマージ
+   - 配列は id でマージ（cloud 優先。ローカル専用 id は保持）
+   - 非配列はクラウド値で上書き（最終書き込み優先）
    ============================================================ */
+
+const SYNC_KEYS = [
+  'events','tasks','txs','health','posts','announces',
+  'prep','prepRoutines','folders','docs','albumPhotos',
+  'shoppingItems','shoppingFrequent','members',
+  'customBoards','boardItems','boardSections',
+  'recurringTxs','memos','memoFolders','workspaces',
+  'notifs','tabConfig','widgetItems','homeOrder',
+  'userPhotos','userAvatars','userAvatarType',
+  'userProfile','isPremiumUser','onboardCompleted','hokuContext',
+  'cashflowSettings','demoProfiles','familyId'
+];
+
+let _syncTimer = null;
+let _isSyncing = false;
+
+function _scheduleSyncToSupabase() {
+  if(!isSupaLoggedIn()) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(_pushToSupabase, 1500);
+}
+
+async function _pushToSupabase() {
+  if(_isSyncing || !isSupaLoggedIn()) return;
+  const sb = getSupabase();
+  if(!sb) return;
+  _isSyncing = true;
+  try {
+    const uid = S.supaSession && S.supaSession.id;
+    if(!uid) return;
+    const now = new Date().toISOString();
+    const rows = SYNC_KEYS.map(key => ({
+      user_id: uid,
+      family_id: S.familyId || null,
+      data_key: key,
+      payload: S[key] !== undefined ? S[key] : null,
+      updated_at: now
+    }));
+    for(let i = 0; i < rows.length; i += 20) {
+      const { error } = await sb.from('fl_family_data').upsert(rows.slice(i, i + 20), {
+        onConflict: 'user_id,data_key', ignoreDuplicates: false
+      });
+      if(error) { console.error('sync push error:', error.message); break; }
+    }
+  } catch(e) {
+    console.error('_pushToSupabase:', e && e.message);
+  } finally {
+    _isSyncing = false;
+  }
+}
+
+async function _fetchFromSupabase() {
+  const sb = getSupabase();
+  if(!sb || !isSupaLoggedIn()) return;
+  try {
+    const uid = S.supaSession && S.supaSession.id;
+    if(!uid) return;
+    const { data, error } = await sb
+      .from('fl_family_data')
+      .select('data_key,payload,updated_at')
+      .eq('user_id', uid);
+    if(error) { console.error('sync fetch error:', error.message); return; }
+    if(!data || !data.length) { _pushToSupabase(); return; }
+    let changed = false;
+    data.forEach(row => {
+      const k = row.data_key;
+      if(!SYNC_KEYS.includes(k)) return;
+      if(Array.isArray(row.payload) && Array.isArray(S[k])) {
+        const cloudIds = new Set(row.payload.map(i => i && i.id).filter(Boolean));
+        const localOnly = S[k].filter(i => i && i.id && !cloudIds.has(i.id));
+        S[k] = [...row.payload, ...localOnly];
+      } else if(row.payload !== null && row.payload !== undefined) {
+        S[k] = row.payload;
+      }
+      changed = true;
+    });
+    if(changed) {
+      saveS();
+      try { go(S.screen); } catch(_){}
+    }
+  } catch(e) {
+    console.error('_fetchFromSupabase:', e && e.message);
+  }
+}
+
 async function syncToSupabase() {
   if(!isSupaLoggedIn()) { showToast('クラウドへの送信にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
-  // 第一段階はスタブ。後段でテーブル設計に従って実装する
-  showToast('クラウド同期は準備中です（接続のみ確認できています）','info');
-  return { ok:true, stub:true };
+  await _pushToSupabase();
+  showToast('クラウドに保存しました','success');
+  return { ok:true };
 }
 async function syncFromSupabase() {
   if(!isSupaLoggedIn()) { showToast('クラウドからの取得にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
-  showToast('クラウド同期は準備中です（接続のみ確認できています）','info');
-  return { ok:true, stub:true };
+  await _fetchFromSupabase();
+  showToast('クラウドから取得しました','success');
+  return { ok:true };
 }
 
 /* ============================================================
@@ -5813,6 +5914,7 @@ async function supaVerifyOtp(email, token) {
     if(data && data.user) {
       S.supaSession = { id: data.user.id, email: data.user.email || '' };
       saveS();
+      _fetchFromSupabase().catch(_=>{});
       return { ok:true };
     }
     return { ok:false };
@@ -5917,6 +6019,7 @@ async function doSupaVerifyOtp() {
       if(data && data.user) {
         S.supaSession = { id: data.user.id, email: data.user.email || '' };
         saveS();
+        _fetchFromSupabase().catch(_=>{});
         _recordSupaAttempt('verifyOtp', email, { ok:true, via:'magiclink-paste' });
         closeModal('m-supa-auth');
         showToast('クラウドにログインしました','success');
@@ -6624,15 +6727,19 @@ let S = {
   // Wave 202: Supabase 接続（接続+ Auth 第一段階）
   supaSession: null,             // クラウドログイン中なら { id, email }、未ログインは null。本体セッションは sb-* キーに自動保存
   supaEntryChoice: null,         // ウェルカム画面で選択した入口: 'supa' | 'guest' | 'invite' | null（未選択）
+  familyId: null,                // Wave 219: 家族グループID（将来の招待・多端末同期で使用）
 };
 
 const APP_VERSION = 'v1.3.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId'];
 
 function saveS() {
   const d = {};
   PERSIST.forEach(k => d[k] = S[k]);
-  try { localStorage.setItem(SK, JSON.stringify(d)); return true; }
+  try { localStorage.setItem(SK, JSON.stringify(d));
+    try { if(typeof _scheduleSyncToSupabase === 'function') _scheduleSyncToSupabase(); } catch(_){}
+    return true;
+  }
   catch(e) {
     // Wave 58: 容量超過などの保存失敗を黙殺せずユーザーに通知
     try { if(typeof showToast === 'function') showToast("保存容量が上限に達しました。設定 → ストレージ管理から整理してください。","error"); } catch(_){}
@@ -10319,6 +10426,7 @@ function saveEvent() {
     if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を更新しました');
   } else {
+    if(!checkPremiumLimit('events')) return;
     (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
     showToast('予定を追加しました');
   }
@@ -11006,6 +11114,7 @@ function saveTaskEdit(){
     const t=(S.tasks||[]).find(t=>t.id===id);
     if(t){Object.assign(t,{title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:document.getElementById('te-status').value,updatedAt:now});if(t.status==='done'&&!t.completedAt)t.completedAt=now;}
   }else{
+    if(!checkPremiumLimit('tasks')) return;
     S.tasks=S.tasks||[];
     const maxOrder=(S.tasks).reduce((m,t)=>Math.max(m,t.order||0),-1);
     S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now,workspaceId:curWsId()});
@@ -12020,6 +12129,7 @@ function saveTx() {
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('保存しました');
   } else {
+    if(!checkPremiumLimit('txs')) return;
     (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member,workspaceId:curWsId()});
     saveS(); closeModal('m-budget'); renderBudget();
     showToast('記録しました');
@@ -13735,6 +13845,7 @@ function saveHealth() {
         });
       }
     } else {
+      if(!checkPremiumLimit('health')) return;
       S.health.push({
         id: 'health_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
         // 旧スキーマ互換キー
@@ -14549,7 +14660,7 @@ function albumOnFilesPicked(ev) {
   for(let i=0; i<total; i++) {
     const f = files[i];
     downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
-      if(dataUrl) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'' });
+      if(dataUrl && checkPremiumLimit('albumPhotos')) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'' });
       else failed++;
       pending--;
       if(pending === 0) {
@@ -16276,6 +16387,33 @@ function selectAvatarItem(avatarId) {
   renderAvatarGrid();
   const btn = document.getElementById('avatar-confirm-btn');
   if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+/* ── Wave 220: プレミアム上限チェック ──────────────────────────
+   checkPremiumLimit(key) → true = OK, false = 上限超過（トースト表示済み）
+   無料プランは各キーの free 上限を超えると upgrade 促進トーストを表示する。
+   ────────────────────────────────────────────────────────────── */
+const PREMIUM_LIMITS = {
+  events:       { free: 50,  label: 'イベント' },
+  tasks:        { free: 30,  label: 'タスク' },
+  txs:          { free: 100, label: '家計入力' },
+  health:       { free: 50,  label: '体調記録' },
+  albumPhotos:  { free: 20,  label: 'アルバム写真' },
+  customBoards: { free: 3,   label: 'カスタムボード' },
+  members:      { free: 4,   label: 'メンバー' },
+  memos:        { free: 20,  label: 'メモ' },
+  docs:         { free: 15,  label: '書類' },
+};
+
+function checkPremiumLimit(key) {
+  if(S.isPremiumUser) return true;
+  const limit = PREMIUM_LIMITS[key];
+  if(!limit) return true;
+  const arr = S[key];
+  const count = Array.isArray(arr) ? arr.length : 0;
+  if(count < limit.free) return true;
+  showToast(`無料プランでは${limit.label}は${limit.free}件まで。設定 → プレミアムで無制限に。`, 'info');
+  return false;
 }
 
 /* プレミアムゲートモーダルを表示 */
@@ -22423,6 +22561,46 @@ async function ob2AppleLogin() {
     <div class="hoku-fab-fb" id="hoku-fab-fb" style="display:none">H</div>
   </div>
 </div>
+
+<script>
+/* ── Wave 221: iOS キーボード開閉時のスクロール補正 ──────────────
+   iOS Safari では input focus でウィンドウが意図せずスクロールし、
+   固定ヘッダーや下部ボタンが隠れる問題がある。
+   visualViewport API で高さ変化を検知し、アクティブ input を
+   常にビューポート内に収める。
+   ─────────────────────────────────────────────────────────────── */
+(function() {
+  if(!window.visualViewport) return;
+  let _kbShown = false;
+  const SHRINK_THRESHOLD = 150; // px
+
+  function onViewportChange() {
+    const vvh = window.visualViewport.height;
+    const wh  = window.innerHeight;
+    const shrink = wh - vvh;
+    if(shrink > SHRINK_THRESHOLD) {
+      // キーボード出現中
+      if(!_kbShown) {
+        _kbShown = true;
+        document.body.style.paddingBottom = shrink + 'px';
+      }
+      // アクティブ要素をスクロール
+      const ae = document.activeElement;
+      if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) {
+        setTimeout(() => { ae.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
+      }
+    } else {
+      if(_kbShown) {
+        _kbShown = false;
+        document.body.style.paddingBottom = '';
+      }
+    }
+  }
+
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
+})();
+</script>
 
 </body>
 </html>
