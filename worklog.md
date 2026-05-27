@@ -15281,3 +15281,130 @@ Wave 234: ホームカードからの快速タスク追加UI
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 234: ホームカードからの快速タスク追加UI
+
+## 2026-05-27 10:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 235: セッション最終確認・品質チェック
+
+### 変更ファイル
+- docs/worklog.md のみ
+
+### 変更内容
+- JS構文: エラーなし（node --check確認済み）
+- XSSチェック: innerHTML使用箇所を確認、すべて H() でエスケープ済み
+  または内部定数のみ使用（問題なし）
+- console.log: 0件（クリーン）
+- 総行数: 23,361行
+
+### 今セッションで実装したWave一覧
+- Wave 227: オフライン/オンライン状態ハンドリング
+- Wave 228: デモデータポリッシュ（投資家/App Storeスクショ品質）
+- Wave 229: プレミアム変換ファネル強化（ボトムシートモーダル）・グローバルエラーハンドラー
+- Wave 230: Hoku データ駆動型サジェスト（体調/予定/タスク/買い物を動的表示）
+- Wave 231: ホーム今日のサマリーバー・カレンダーカード時刻表示追加
+- Wave 232: App Storeメタデータ更新・初期デモデータリッチ化
+- Wave 233: Supabase Realtimeリアルタイム同期（startRealtimeSync）
+- Wave 234: ホームカードからの快速タスク追加UI
+
+### スコア評価（推定）
+- 前回: 71/100
+- 今回: ~88/100
+- 残ギャップ: IAP(App Store)/プッシュ通知(APNs)/アナリティクス/TestFlight は外部要件でブロック
+
+### 残作業（人間実施が必要）
+1. Supabaseダッシュボードで fl_family_data テーブルのRealtime有効化
+2. App Store開発者アカウントでIAP設定
+3. APNs/FCMでプッシュ通知設定
+4. Xcodeでネイティブラッパービルド
+5. TestFlight β テスト
+6. App Store審査提出
+
+### 未確認事項
+- Supabase Realtime が RLS 有効テーブルで機能するか（Dashboard設定要）
+- iOSでの快速タスク追加のEnterキー動作
+
+### iPhone確認ポイント
+- 全画面スクロール: 横スクロールなし
+- ホームサマリーバー表示
+- 快速タスク追加
+- プレミアムアップグレードモーダル（ボトムシートスライドアップ）
+
+### 次にやること
+- Supabaseダッシュボード設定（別途手順書参照）
+- TestFlight準備
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 235: セッション最終確認・worklogまとめ
+
+## 2026-05-27 14:30  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 236-239: スワイプジェスチャー・ブラウザ通知・プルトゥリフレッシュ・連続使用ストリーク
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **Wave 236**: タスクカード スワイプジェスチャー
+  - 右スワイプ → 完了/未完了トグル（75px 以上で実行）
+  - 左スワイプ → 削除確認ダイアログ表示
+  - `_attachTaskSwipe()` 関数を `#tk-main` コンテナに委譲リスナーとして実装
+  - 長押しD&D（`_ds.mode`）検出時はスワイプを回避
+  - `.tk-card` に `position:relative; overflow:hidden;` を追加
+  - `._sw-r`, `._sw-l` スワイプオーバーレイ CSS を追加
+  - バイブレーション対応（右: 15ms、左: [10,5,15]）
+
+- **Wave 237**: ブラウザ通知（Notification API）
+  - `requestBrowserNotifPermission()` → OS 通知権限リクエスト
+  - `_checkEventNotifs()` → 30 分前イベント通知 + 期限切れタスク通知
+  - `_startNotifChecker()` → 60 秒間隔のタイマー管理
+  - 通知設定モーダル（`openNotifSettings()`）に OS 通知セクション追加
+  - `toggleBrowserNotif()` でオン/オフ切り替え
+  - `_enterApp()` で通知チェッカー起動
+  - `browserNotifEnabled` を PERSIST に追加
+
+- **Wave 238**: プルトゥリフレッシュ
+  - `_setupHomePTR()` をホームスクロールエリアに実装
+  - 下引きで青いインジケーター表示、離すとSupabase同期 or renderHome()
+  - `_ptrBound` フラグで二重バインド防止
+
+- **Wave 239**: 連続使用ストリーク
+  - `lastActiveDate` / `activeStreak` を PERSIST に追加
+  - 毎日の初回 renderHome() でストリーク更新
+  - 3 日以上の連続利用で 🔥N日 バッジをグリーティングに表示
+
+- **その他改善**:
+  - ホームヘッダーに今日の日付（M月D日（曜））を表示
+  - クイックタスク入力に `enterkeyhint="done"` 追加（iOS キーボード対応）
+  - タスク空状態を Hoku 誘導付きに改善（+ タスクを追加ボタン）
+  - FAQ の機種変更・共有の回答を Supabase 対応済みに更新
+  - 通知 FAQ を OS 通知の説明を含む形に更新
+  - APP_VERSION を v1.3.0 → v1.4.0 に更新
+  - キャッシュバスター: v20260527r
+
+### テスト結果
+- JS 構文チェック（node --check）: エラーなし
+
+### 未確認事項
+- iOS Safari で Notification API の権限リクエストが正しく表示されるか（iOS 16.4+ 対応）
+- スワイプジェスチャーが既存のD&Dと干渉しないか
+- プルトゥリフレッシュのインジケーターが正しく表示されるか
+
+### iPhone確認ポイント
+- タスク画面でカードを右スワイプ → 完了になるか
+- タスク画面でカードを左スワイプ → 削除確認が出るか
+- 通知設定 → OS通知 をタップ → 権限ダイアログが表示されるか
+- ホーム画面を下に引っ張って離す → データ更新されるか
+- 3 日以上使用後にホームグリーティングに 🔥 が出るか
+
+### 次にやること
+- Supabase Realtime 有効化（ダッシュボード設定）
+- TestFlight 準備（Xcode でネイティブラッパービルド）
+- iOSでのスワイプ・通知の動作確認
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 236-239: スワイプジェスチャー・OS通知・PTR・ストリーク
