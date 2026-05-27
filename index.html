@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527g';
+  var V='20260527h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -9031,14 +9031,30 @@ function renderHome() {
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
+  // Wave 225: ゲストユーザー向けクラウド登録促進バナー
+  var adBar = document.getElementById('home-ad-bar');
+  if(adBar) {
+    if(!isSupaLoggedIn() && S.supaEntryChoice === 'guest') {
+      adBar.innerHTML = '<div style="background:linear-gradient(135deg,#EBF4FF,#F0FDF4);border:1.5px solid #D0E8FF;border-radius:14px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openSupaAuthModal(\'otp\')">'
+        + '<div style="width:34px;height:34px;border-radius:50%;background:var(--grad-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+        + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text);">データをクラウドに保存しよう</div>'
+        + '<div style="font-size:11px;color:var(--text-sub);">無料でメール登録するだけ。機種変更してもデータが守られます。</div>'
+        + '</div>'
+        + '<div style="color:var(--primary);font-size:18px;font-weight:700;">›</div>'
+        + '</div>';
+    } else {
+      adBar.innerHTML = '';
+    }
+  }
+
   // ── グリッド描画 ──
   hoInitOrder();
   grid.innerHTML = (S.homeOrder||[]).map(function(bid, idx) {
     return hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending);
   }).join('');
-
-  var adBar = document.getElementById('home-ad-bar');
-  if(adBar) adBar.innerHTML = '';
   // イベント委譲（初回のみ）
   setTimeout(cbAttachGridEvents, 0);
 }
@@ -12337,7 +12353,7 @@ function toggleNotifPref(key) {
 
 /* ── よくある質問 ── */
 const FAQ_ITEMS = [
-  { q:'データはどこに保存されますか？', a:'すべてのデータはお使いの端末内に保存され、外部サーバーには送信されません。詳しくはプライバシーポリシーをご覧ください。' },
+  { q:'データはどこに保存されますか？', a:'ゲストとして使う場合は端末内にのみ保存されます。無料クラウドアカウントを作成してログインすると、Supabaseサービス（暗号化）に自動保存され、機種変更時もデータを引き継げます。' },
   { q:'機種変更したらデータはどうなりますか？', a:'データは端末内に保存されます。大切なデータは、こまめに記録内容をご確認ください。複数端末での共有は今後のアップデートで対応予定です。' },
   { q:'家族のスマホとデータを共有できますか？', a:'複数端末をまたいだ共有は今後のアップデートで対応予定です。現在は1台の端末内でご利用ください。' },
   { q:'Hoku（AI）の音声入力が使えません。', a:'音声入力は端末ブラウザの音声認識機能を利用します。対応していない端末ではキーボード入力をご利用ください。' },
@@ -12364,27 +12380,28 @@ const LEGAL_PRIVACY = {
   sections: [
     { h:'1. はじめに', items:[
       'Familink（以下「本アプリ」）は、家族の予定・タスク・体調・家計・準備リスト・家族ボードを共有するためのアプリです。開発者（以下「当方」）は、お客様のプライバシーを最大限に尊重します。',
-      '本アプリはデータを端末内（LocalStorage）にのみ保存し、外部サーバへ送信しません。'] },
+      'クラウドにログイン（無料）した場合、データはSupabaseサービス（アイルランド所在）に暗号化して保存されます。ゲストとして使用した場合は端末内（LocalStorage）にのみ保存されます。'] },
     { h:'2. 収集する情報', items:[
-      '2.1 個人を識別する情報：収集しません。入力された家族の名前・体調・家計・予定・投稿・写真は、すべてお客様の端末内にのみ保存されます。',
-      '2.2 端末識別子・利用統計：収集しません。解析ツールやクラッシュレポートの自動送信もありません。',
-      '2.3 マイク・音声データ：Hoku の音声入力は端末側の Web Speech API で処理され、当方は音声データを受信・保存しません。',
-      '2.4 写真・カメラ：撮影・選択した画像は端末内にのみ保存され、第三者には送信されません。'] },
+      '2.1 クラウドログイン時：メールアドレスまたはGoogleアカウント情報（認証用のみ）。入力された家族の予定・タスク・家計・体調・写真等はSupabaseサービスに暗号化して保存されます。',
+      '2.2 ゲスト利用時：個人を識別する情報は収集しません。すべてのデータはお客様の端末内にのみ保存されます。',
+      '2.3 端末識別子・利用統計：収集しません。解析ツールやクラッシュレポートの自動送信もありません。',
+      '2.4 マイク・音声データ：Hoku の音声入力は端末側の Web Speech API で処理され、当方は音声データを受信・保存しません。',
+      '2.5 写真・カメラ：撮影・選択した画像は端末内またはSupabase（ログイン時）に保存されます。'] },
     { h:'3. 収集しない情報', items:[
-      '・氏名・メールアドレス・電話番号',
       '・住所・位置情報（GPS）',
-      '・クレジットカード情報',
-      '・健康情報（体調記録は端末内のみ）',
+      '・クレジットカード情報（課金はApp Store/Google Play経由）',
       '・連絡先・OSカレンダー連携',
-      '・端末識別子（IDFA等）・IPアドレス・アクセスログ'] },
+      '・端末識別子（IDFA等）・IPアドレス・アクセスログ（ゲスト使用時）'] },
     { h:'4. クッキー・類似技術', items:[
       '本アプリはクッキーを使用しません。Web版では LocalStorage を使用しますが、これは端末内にデータを保存する目的のみに使用します。'] },
     { h:'5. 第三者サービス', items:[
+      '・Supabase（データ保存・認証。EU/アイルランド所在。クラウドログイン時のみ使用）',
       '・Google Fonts（フォント配信のみ。当方が受け取るデータなし）',
       '・Web Speech API（音声認識。端末側で完結）',
       'これら以外の第三者サービス（解析・広告・SDK 等）は使用していません。'] },
     { h:'6. データの保持と削除', items:[
-      'データはお客様の端末内にのみ保存されます。アプリ削除や設定の「データを削除」でいつでも全削除できます。当方はバックアップを保有しないため、削除後の復元はできません。'] },
+      'ゲスト使用時：データはお客様の端末内にのみ保存されます。アプリ削除や設定の「データを削除」で全削除できます。',
+      'クラウドログイン時：Supabaseサービス上のデータを含みます。アカウント削除申請はGitHub Issuesからご連絡ください。削除後の復元はできません。'] },
     { h:'7. 子どものプライバシー', items:[
       '本アプリは13歳未満の子ども本人による利用を意図していません。保護者が子どもの情報を記録する用途で使用されますが、それらも端末内にのみ保存されます。'] },
     { h:'8. 課金情報', items:[
@@ -18456,8 +18473,16 @@ function renderHoku() {
 function renderHokuSuggs() {
   const el = document.getElementById('hoku-suggs');
   if(!el) return;
-  // 会話中も常時表示（下部に固定）
-  el.innerHTML = HOKU_SUGGESTIONS.map(s =>
+  // Wave 225: 文脈に応じた動的サジェスト
+  const today = todayStr();
+  const todayEvs = (S.events||[]).filter(e => e.date === today);
+  const overdueTasks = (S.tasks||[]).filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today);
+  const suggs = [...HOKU_SUGGESTIONS];
+  if(todayEvs.length > 0) suggs.unshift('今日の予定を確認して');
+  if(overdueTasks.length > 0) suggs.unshift('期限切れのタスクを見せて');
+  const thisMonthTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(today.slice(0,7)));
+  if(thisMonthTxs.length > 5) suggs.splice(2, 0, '今月の家計をまとめて');
+  el.innerHTML = suggs.slice(0,8).map(s =>
     `<button class="hoku-sugg" onclick="sendHokuMsg('${H(s)}')">${H(s)}</button>`
   ).join('');
 }
