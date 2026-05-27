@@ -1,8 +1,0 @@
-# Hoku API — 依存（MVP 最小構成）
-# 設計: docs/hoku-ai-assistant-plan.md §3「採用」ライブラリのみ
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-pydantic==2.9.2
-python-dotenv==1.0.1
-httpx==0.27.2
-pytest==8.3.3
