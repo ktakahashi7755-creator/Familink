@@ -1,6 +1,6 @@
-// Familink Service Worker v20260520h
+// Familink Service Worker v20260526h
 // ネットワーク優先: キャッシュを一切使わず常に最新版を配信
-var SW_VERSION = '20260520h';
+var SW_VERSION = '20260526h';
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
