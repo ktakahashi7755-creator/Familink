@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='20260527m';
+  var V='20260527n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -852,7 +852,20 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 16px 16px calc(98px + env(safe-area-inset-bottom));
 }
-.home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+/* Wave 231: 今日のサマリーバー */
+.home-today-bar { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+.home-today-chip {
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg-card); border:1.5px solid var(--border-light);
+  border-radius:var(--r-full); padding:5px 10px;
+  font-size:11px; font-weight:700; color:var(--text-sub);
+  box-shadow:var(--s-sm); cursor:default; white-space:nowrap;
+}
+.home-today-chip.fever { background:#FFF0F0; border-color:#FFCDD2; color:#D32F2F; }
+.home-today-chip.event { background:#EEF5FF; border-color:#BBDEFB; color:#1565C0; }
+.home-today-chip.task  { background:#F0FFF4; border-color:#C8E6C9; color:#2E7D32; }
+.home-today-chip.shop  { background:#FFFDE7; border-color:#FFF176; color:#F57F17; }
 .home-date-mid {
   font-size: 13px; font-weight: 700; color: var(--primary);
   background: var(--primary-light); border-radius: var(--r-full);
@@ -3156,6 +3169,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
+    <!-- Wave 231: 今日のサマリーバー -->
+    <div id="home-today-bar" class="home-today-bar"></div>
     <div class="home-grid" id="home-grid"></div>
     <div id="home-ad-bar"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
@@ -9225,16 +9240,57 @@ function renderHome() {
   // ── 今週の予定コンテンツ ──
   const td = todayStr();
   const upcoming = wsFilter(S.events).filter(e=>e.date>=td)
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,4);
-  const evHTML = upcoming.length ? upcoming.map(e =>
-    `<div class="bc-row">
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||'')).slice(0,4);
+  const evHTML = upcoming.length ? upcoming.map(e => {
+    const isToday = e.date === td;
+    const dateLabel = isToday ? '今日' : e.date.slice(5).replace('-','/');
+    const timeLabel = e.time ? ` ${e.time}` : '';
+    return `<div class="bc-row">
       <div class="bc-dot" style="background:${H(e.color)}"></div>
-      <div class="bc-text">${H(e.date.slice(5).replace('-','/'))} ${H(e.title)}</div>
-    </div>`).join('')
+      <div class="bc-text" style="${isToday?'font-weight:700;':''}">${H(dateLabel)}${H(timeLabel)} ${H(e.title)}</div>
+    </div>`;
+  }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
       <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
+
+  // Wave 231: 今日のサマリーバー
+  const todayBar = document.getElementById('home-today-bar');
+  if(todayBar) {
+    const chips = [];
+    const todayEvs231 = (S.events||[]).filter(e=>e.date===td);
+    if(todayEvs231.length > 0) {
+      const nextEv = todayEvs231.sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+      chips.push(`<div class="home-today-chip event">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        今日 ${H(todayEvs231.length)}件${nextEv.time?' 次 '+H(nextEv.time):''}
+      </div>`);
+    }
+    const pendingTasks231 = wsFilter(S.tasks).filter(t=>!t.done);
+    if(pendingTasks231.length > 0) {
+      chips.push(`<div class="home-today-chip task">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        未完了 ${H(pendingTasks231.length)}件
+      </div>`);
+    }
+    const feverKids231 = (S.health||[]).filter(h=>h.date>=td&&(h.temp||0)>=38);
+    if(feverKids231.length > 0) {
+      const kid = (S.members||[]).find(x=>x.id===feverKids231[0].child);
+      chips.push(`<div class="home-today-chip fever">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 9.5a2.5 2.5 0 0 1 0 5M12 3v1M12 20v1M3 12h1M20 12h1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 18.4l.7-.7M17.7 6.3l.7-.7"/></svg>
+        ${kid?H(kid.name):''} 発熱 ${feverKids231[0].temp}℃
+      </div>`);
+    }
+    const shopLeft231 = (S.shoppingItems||[]).filter(x=>!x.done);
+    if(shopLeft231.length > 0 && chips.length < 4) {
+      chips.push(`<div class="home-today-chip shop">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        買い物 ${H(shopLeft231.length)}件
+      </div>`);
+    }
+    todayBar.innerHTML = chips.join('');
+  }
 
   // Wave 225: ゲストユーザー向けクラウド登録促進バナー
   var adBar = document.getElementById('home-ad-bar');
