@@ -15240,3 +15240,44 @@ Wave 233: Supabase Realtimeリアルタイム同期
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 233: Supabase Realtimeリアルタイム同期追加
+
+## 2026-05-27 09:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 234: ホームカードからの快速タスク追加UI
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- bc-quick-add: タスクカード下部にインライン入力フォームを追加
+  - プレースホルダー「タスクを追加...」
+  - Enterキーまたは＋ボタンで追加
+  - フォームが表示された状態でホーム画面から直接タスクを追加できる
+- homeQuickAddTask(): 新規タスク追加処理
+  - checkPremiumLimit('tasks')で無料上限チェック
+  - 新旧スキーマ互換（title/text両方設定）
+  - 追加後にrenderHome()とrenderTaskScreen()を呼んで即反映
+- CSS: .bc-quick-add/.bc-quick-input/.bc-quick-btn のスタイル
+- キャッシュバスター: v20260527q
+
+### テスト結果
+- JS構文チェック: エラーなし
+
+### 未確認事項
+- iOSでEnterキーが正しくタスク追加をトリガーするか
+- タスク上限（30件）に達したときにアップグレードモーダルが表示されるか
+
+### iPhone確認ポイント
+- ホーム→やることカードの下部に入力欄が表示されるか
+- 入力して「＋」ボタンまたはEnterでタスクが追加されるか
+- 追加後にカードが即座に更新されるか
+
+### 次にやること
+- Wave 235: 総点検・最終スコア評価
+- push waves 233-234 to origin/main/gh-pages
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 234: ホームカードからの快速タスク追加UI
