@@ -5398,6 +5398,7 @@ function _scheduleSyncToSupabase() {
 }
 
 async function _pushToSupabase() {
+  _lastPushAt = new Date();
   if(_isSyncing || !isSupaLoggedIn()) return;
   const sb = getSupabase();
   if(!sb) return;
@@ -5459,6 +5460,10 @@ async function _fetchFromSupabase() {
       try { go(S.screen); } catch(_){}
     }
     _setSyncDot('synced');
+    /* Wave 233: Realtimeチャンネルをまだ開いていなければ開始 */
+    if(!_realtimeChannel) {
+      try { startRealtimeSync(); } catch(_){}
+    }
   } catch(e) {
     console.error('_fetchFromSupabase:', e && e.message);
     _setSyncDot('error');
@@ -5479,6 +5484,56 @@ async function syncFromSupabase() {
   showToast('クラウドから取得しました','success');
   return { ok:true };
 }
+
+/* ── Wave 233: Supabase Realtime — 家族間リアルタイム同期 ──────────────
+   fl_family_data への変更を家族全員に即座に反映する。
+   同一 family_id を持つメンバー間で変更がリアルタイムに届く。
+   ─────────────────────────────────────────────────────────── */
+let _realtimeChannel = null;
+let _realtimeDebounce = null;
+
+function startRealtimeSync() {
+  const sb = getSupabase();
+  if(!sb || !isSupaLoggedIn()) return;
+  stopRealtimeSync();
+  const uid = S.supaSession && S.supaSession.id;
+  if(!uid) return;
+  try {
+    _realtimeChannel = sb
+      .channel('familink_sync_' + uid.slice(0, 8))
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'fl_family_data',
+      }, (payload) => {
+        /* 自分が書いた変更は無視（pushTo直後のechoback） */
+        if(payload.new && payload.new.user_id === uid &&
+           payload.new.updated_at && _lastPushAt &&
+           Math.abs(new Date(payload.new.updated_at) - _lastPushAt) < 3000) return;
+        /* 他のデバイス/メンバーからの変更 → debounce後に再取得 */
+        clearTimeout(_realtimeDebounce);
+        _realtimeDebounce = setTimeout(() => {
+          _setSyncDot('syncing');
+          _fetchFromSupabase().catch(_=>{});
+        }, 800);
+      })
+      .subscribe((status) => {
+        if(status === 'SUBSCRIBED') _setSyncDot(navigator.onLine ? 'synced' : 'offline');
+      });
+  } catch(e) {
+    console.error('Realtime setup failed:', e && e.message);
+  }
+}
+
+function stopRealtimeSync() {
+  if(_realtimeChannel) {
+    try { _realtimeChannel.unsubscribe(); } catch(_){}
+    _realtimeChannel = null;
+  }
+  clearTimeout(_realtimeDebounce);
+}
+
+let _lastPushAt = null;
 
 /* ============================================================
    Wave 202 — 入口画面（s-ob）3 ボタンのハンドラ
@@ -8296,6 +8351,7 @@ function saveProfileEdit() {
 
 function doLogout() {
   showConfirm('ログアウト','ログアウトしますか？','ログアウトする', async () => {
+    try { stopRealtimeSync(); } catch(_){}
     try { await supaSignOut(); } catch(_){}
     S.loggedIn = false; S.user = null;
     saveS();

@@ -15194,3 +15194,49 @@ Wave 232: App Store メタデータ更新・初期デモデータ改善
 ### コミット
 - ハッシュ: (コミット後に記入)
 - メッセージ: wave 232: App Storeメタデータ更新・初期デモデータリッチ化
+
+## 2026-05-27 08:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Wave 233: Supabase Realtimeリアルタイム同期
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- startRealtimeSync(): Supabaseのpostgres_changesを購読
+  - fl_family_dataへの変更をリアルタイムで検知
+  - 自分の変更は3秒以内のものは無視（echoback防止）
+  - 他デバイス/メンバーの変更は800ms debounce後に再取得
+  - SUBSCRIBED時に同期ドットを更新
+- stopRealtimeSync(): チャンネルのunsubscribe + タイマークリア
+- _pushToSupabase(): _lastPushAt を記録（echoback防止用）
+- _fetchFromSupabase(): 成功後にstartRealtimeSync()を起動
+- doLogout(): ログアウト前にstopRealtimeSync()を呼ぶ
+- キャッシュバスター: v20260527p
+
+### テスト結果
+- JS構文チェック: エラーなし
+
+### 未確認事項
+- Supabase RealtimeがRLS有効のテーブルで機能するか
+  → Realtimeを有効にするにはSupabaseダッシュボードでfl_family_dataテーブルのReplica Identityをfullに変更が必要
+  → Supabaseダッシュボード: Database → Tables → fl_family_data → Edit → Enable Realtime
+- echoback抑制ロジック（_lastPushAt比較）の誤差許容が適切か
+
+### iPhone確認ポイント
+- 2台のデバイスでログイン後、片方でタスクを追加した際にもう一方に即座に反映されるか
+- 同期ドットがSUBSCRIBED後に緑（synced）に変わるか
+
+### Supabase設定（ユーザーが実施）
+- Dashboard → Database → Tables → fl_family_data → Edit → "Enable Realtime" ON
+- または: ALTER TABLE fl_family_data REPLICA IDENTITY FULL;
+
+### 次にやること
+- Wave 234: ホーム画面の快速タスク追加UI
+- Wave 235: 総点検・最終スコア評価
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: wave 233: Supabase Realtimeリアルタイム同期追加
