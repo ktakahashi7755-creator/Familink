@@ -15435,3 +15435,110 @@ Wave 236-239: スワイプジェスチャー・ブラウザ通知・プルトゥ
 
 ### コミット
 - メッセージ: ウェルカムページを2ボタンのみに簡素化
+
+---
+
+## 2026-05-27 06:30  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+iPhone で旧4ボタンデザインが表示され続けるバグの修正（SW強制更新）
+
+### 変更ファイル
+- docs/sw.js
+- docs/index.html（キャッシュバスター更新のみ）
+
+### 変更内容
+- SW_VERSION を 20260526h → 20260527u に変更（ブラウザに変更検知させる）
+- activate 時に全クライアントを強制リロード（navigate）する処理を追加
+- fetch handler を改善：navigate リクエストは `cache: 'no-store'` で強制ネットワーク取得
+- キャッシュバスター v20260527t → v20260527u に更新
+
+### テスト結果
+- 未実施（iPhone実機で確認必要）
+
+### 未確認事項
+- GitHub Actions Pages deploy が main push で正常トリガーされたか
+- iPhone Safari でキャッシュが正しくクリアされ新デザインが表示されるか
+
+### iPhone確認ポイント
+- Safari でキャッシュクリア後に `https://ktakahashi7755-creator.github.io/Familink/` を開く
+- ウェルカムページがメール+パスワードフォームのデザインで表示されるか確認
+- ログインボタン・Google・Apple各ボタンが反応するか確認
+
+### 次にやること
+- iPhone実機で新デザイン表示確認
+- ボタン動作テスト（ログイン・ゲスト体験・新規登録）
+
+### コミット
+- ハッシュ: `89193d8`
+- メッセージ: fix: SW強制更新でiPhoneキャッシュをクリア (v20260527u)
+
+## 2026-05-28 09:30  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+ウェルカム画面の体系的リデザイン・GitHub Pages配信修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- .github/workflows/pages.yml
+- docs/sw.js
+
+### 変更内容
+
+#### GitHub Pages 修正（最重要）
+- `actions/configure-pages@v5` が Pages source を「GitHub Actions」に切り替え続けるバグを修正
+- ワークフローを `deploy-pages` 方式 → `git push gh-pages branch` 方式に変更
+- ユーザーに GitHub Settings → Pages → Branch: `gh-pages / root` に変更してもらい解決
+- ライブURL `https://ktakahashi7755-creator.github.io/Familink/` の配信が復活
+
+#### ウェルカム画面デザイン（3回の反復改善）
+1. **第1回**: タグライン位置変更 + Appleボタンをピル形状に
+2. **第2回**: frosted glass（backdrop-filter）を導入 → ユーザーから「違和感」と指摘
+3. **第3回（最終）**: カード完全廃止・背景グラデーションと一体化（透明背景）
+   - ob2-bottom: `background: transparent; box-shadow: none; border-radius: 0`
+   - 入力フィールド: `rgba(255,255,255,0.92)` + 青系ボーダー（`rgba(165,200,240,0.85)`）
+   - タグライン: フォントサイズ拡大、色を `#1A2440` に強化
+   - ヒーロー画像: `border-radius: 20px` + 軽いシャドウ追加
+   - ボタン・ディバイダー: 青系グラデーション背景に馴染む色調に統一
+   - iPhone SE メディアクエリ更新
+   - キャッシュバスター: v20260528c
+
+#### 全体品質調査（Agentによる調査）
+- Supabase認証: 完全実装済み（ob2Login/Google/Apple全ハンドラ ✅）
+- 主要画面22個すべて存在 ✅
+- ログインボタン: disabled + ローディング実装済み ✅
+- エラーハンドリング: try-catch完備 ✅
+- 空状態表示: 全画面に実装 ✅
+- 法的文書: openLegalDoc() 実装済み ✅
+
+### テスト結果
+- JS構文チェック: 未実施（node --check が.htmlに非対応）
+- 目視確認: iPhoneスクリーンショットで旧デザインから新デザインへの移行確認
+
+### 未確認事項
+- ライブURLで新ウェルカムデザインがiPhoneに表示されているか（キャッシュ v20260528c）
+- GitHub Actions ワークフローが main push で gh-pages を正常更新しているか
+
+### iPhone確認ポイント
+- `https://ktakahashi7755-creator.github.io/Familink/` を開く
+- ウェルカム画面の背景グラデーションと入力エリアが自然に馴染んでいるか
+- 「家族をチームに。予定も、やることも、ひとつに。」タグラインが読みやすいか
+- ログインボタン（青グラデーション）・Googleボタン（白）・Appleボタン（黒）が見やすいか
+- スクロールして下部の「新規登録」「体験する」「利用規約」リンクが確認できるか
+
+### 次にやること
+【ユーザーが対応するもの】
+1. Supabase Realtime 有効化（ダッシュボード: Database → Replication）
+2. Supabase Auth プロバイダ設定（Google/Apple OAuth クライアントID/シークレット設定）
+3. Apple Developer アカウント → TestFlight 配布準備
+
+【Claude が対応できるもの】
+4. ホーム画面・タスク・カレンダー各画面の表示品質確認・改善
+5. 新規登録フロー（s-onboard）のUI確認・改善
+6. プレミアム画面（s-premium）のUI確認・改善
+7. 設定画面（s-settings）の整理・改善
+
+### コミット
+- ハッシュ: c9fe445（最終デザインコミット）
+- メッセージ: ui: ウェルカム画面を完全リデザイン（カード廃止・背景と一体化）
