@@ -15580,3 +15580,66 @@ iPhone で旧4ボタンデザインが表示され続けるバグの修正（SW�
 ### コミット
 - ハッシュ: `b84625e`
 - メッセージ: merge: パスワード目玉アイコン縦位置修正をmainに統合
+
+---
+
+## 2026-05-28 14:00  env: 不明  branch: main
+
+### 作業名
+全画面Appleライクデザインリデザイン（CSS全面刷新 + OAuth修正 + 同期）
+
+### 変更ファイル
+- `app-source/familink.html`
+- `docs/index.html`
+
+### 変更内容
+**デザイントークン全面更新**
+- プライマリカラーを iOS System Blue `#0A84FF` に統一（旧 `#4A90E2` を全廃）
+- `rgba(74,144,226,x)` を `rgba(10,132,255,x)` に全置換（32箇所）
+- `#4A90E2` を `#0A84FF` に全置換（36箇所）
+- `:root` に iOS グループ背景 `#F2F2F7`、iOS ラベル `#1C1C1E`、iOS セパレータ `rgba(60,60,67,x)` を導入
+- フォントスタックを `-apple-system, BlinkMacSystemFont` 優先に変更
+
+**コンポーネント刷新**
+- ヘッダー: frosted glass `saturate(180%) blur(20px)` + `0.5px` ボーダー
+- タブバー: Apple floating dock スタイル（`backdrop-filter`, 角丸22px, inset shadow）
+- ボタン: Apple HIG 準拠（solid primary, 影 `0 3px 14px rgba(10,132,255,.32)`）
+- フォーム入力: `rgba(118,118,128,0.10)` 背景 + focus ring `0 0 0 3.5px rgba(10,132,255,.18)`
+- モーダル: Apple bottom sheet（`border-radius: 20px 20px 0 0`、grip pill）
+- 設定画面: iOS inset grouped list スタイル（`0.5px` セパレータ、chevron SVG）
+- Hoku 画面: iMessage スタイルバブル（AI=白、ユーザー=primary solid）
+- プレミアム画面: frosted glass ヘッダー、グラデーションヒーロー
+- メニューオーバーレイ: premium card を CSS変数化（`var(--primary-light)`, `var(--primary-mid)`）
+- オンボーディング: solid primary ボタン（gradient廃止）
+
+**バグ修正**
+- `ob2GoogleLogin()` / `ob2AppleLogin()`: 未定義変数 `sb` 参照を `const sb = getSupabase()` に修正
+- `meta theme-color`: `#4A90E2` → `#0A84FF` に更新
+
+**同期**
+- `docs/index.html` に全変更を同期
+- キャッシュバスター: `v20260528e` → `v20260528f`
+
+### テスト結果
+- 未実施: iPhone実機での目視確認が必要
+
+### 未確認事項
+- iPhone Safari (14以上) でfrosted glassが正しく表示されるか
+- 各画面のタップターゲット（44px以上）が確保されているか
+- iPhone SE (375px幅) で横スクロールが発生しないか
+
+### iPhone確認ポイント
+- ウェルカム画面のAppleライクフォーム表示
+- ホーム画面のfloating tab bar表示
+- Hoku画面のiMessageスタイルバブル
+- 設定画面のiOS grouped listスタイル
+
+### 次にやること
+- iPhone実機テスト（特にSafari, SE幅）
+- TestFlight配布準備
+- App Store スクリーンショット撮影
+- プレミアム課金フロー動作確認
+
+### コミット
+- ハッシュ: (コミット後に記入)
+- メッセージ: ui: 全画面Appleライクデザイン全面刷新 + OAuth修正 + docs同期
