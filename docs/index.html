@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260528f';
+  var V='v20260528g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1592,9 +1592,14 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .settings-item-label { flex: 1; font-size: 16px; font-weight: 400; color: var(--text); }
 .settings-arrow {
-  width: 8px; height: 14px; flex-shrink: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='14' viewBox='0 0 8 14' fill='none'%3E%3Cpath d='M1 1l6 6-6 6' stroke='rgba(60%2C60%2C67%2C0.35)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: center;
+  flex-shrink: 0; color: rgba(60,60,67,0.28);
+  font-size: 18px; font-weight: 300; line-height: 1;
+}
+.settings-value {
+  font-size: 13px; color: rgba(60,60,67,0.45);
+  flex-shrink: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 90px;
+  margin-right: 2px;
 }
 
 /* ── menu redesign ── */
@@ -17059,7 +17064,7 @@ function renderSettings() {
       <div class="settings-item" onclick="openWorkspaceSwitcher()">
         <div class="settings-item-icon" style="background:#EEF7F0">${si('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>','#52C47A')}</div>
         <div class="settings-item-label">スペース切り替え</div>
-        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${currentWorkspace().name}</div>
+        <div class="settings-value">${currentWorkspace().name}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" onclick="openTabSettings()">
         <div class="settings-item-icon" style="background:#EBF0FF">${si('<rect x="2" y="17" width="20" height="5" rx="2"/><path d="M7 17v-5m5 5V7m5 10V4"/>','#4A65E2')}</div>
@@ -17139,12 +17144,12 @@ function renderSettings() {
       <div class="settings-item" onclick="openHokuApiModal()">
         <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
         <div class="settings-item-label">Hoku API 連携（実験的）</div>
-        <div class="settings-arrow" style="font-size:11px;color:var(--text-muted);">${(S.hokuApiUrl?'ON':'OFF')}</div>
+        <div class="settings-value">${(S.hokuApiUrl?'ON':'OFF')}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
         <div class="settings-item-label">バージョン</div>
-        <div class="settings-arrow" style="font-size:12px;color:var(--text-muted);">${H(APP_VERSION)}</div>
+        <div class="settings-value">${H(APP_VERSION)}</div>
       </div>
     </div>
 
@@ -17180,7 +17185,7 @@ function renderSettings() {
         <div class="settings-item-label" style="font-size:12px;color:var(--text-muted)">プレミアム状態を切り替え（開発用）
           <div style="font-size:11px;color:var(--primary)">${S.isPremiumUser ? 'ON（プレミアム中）' : 'OFF（無料中）'}</div>
         </div>
-        <div class="settings-arrow">${S.isPremiumUser ? '●' : '○'}</div>
+        <div class="settings-value">${S.isPremiumUser ? '●' : '○'}</div>
       </div>
     </div>
 
