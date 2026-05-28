@@ -9,7 +9,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260528j';
+  var V='v20260528k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18577,7 +18577,21 @@ async function sendHokuMsg(text) {
         if(intent.type === 'action') {
           reply = handleAction(intent, text);
         } else {
-          reply = hokuLocalAnswer(text);
+          // detectIntent が query でも、parseHokuIntent が高信頼の登録系インテントなら
+          // 確認モーダル（m-voice-confirm）へ橋渡しして取りこぼしを防ぐ。
+          // executeHokuAction は即保存せず必ず確認 UI を開くため安全。
+          let bridged = null;
+          try {
+            const pi = parseHokuIntent(text, 'text');
+            const ADD_INTENTS = ['calendar_add','task_add','budget_add','prep_add','prep_routine_add','health_add','board_post_add','shopping_add','shopping_frequent_add','shopping_purchased','recurring_budget_add'];
+            if(pi && ADD_INTENTS.indexOf(pi.intentType) >= 0
+               && (pi.confidence || 0) >= 0.78
+               && (!pi.missingFields || pi.missingFields.length === 0)) {
+              const r = executeHokuAction(pi);
+              bridged = (r && r.message) || (typeof getHokuShortReply==='function' ? getHokuShortReply(pi.intentType) : '') || 'これで保存する？';
+            }
+          } catch(e) { bridged = null; }
+          reply = bridged || hokuLocalAnswer(text);
         }
       }
     }
@@ -23045,15 +23059,54 @@ async function ob2Login() {
   const btn   = document.getElementById('ob2-login-btn');
   if(errEl) errEl.textContent = '';
   if(!email) { if(errEl) errEl.textContent = 'メールアドレスを入力してください'; return; }
+  if(!_validEmail(email)) { if(errEl) errEl.textContent = 'メールアドレスの形式が正しくありません'; return; }
   if(!pass)  { if(errEl) errEl.textContent = 'パスワードを入力してください'; return; }
-  if(btn) { btn.disabled = true; btn.textContent = 'ログイン中...'; }
-  showLoading('ログイン中...');
-  const r = await supaSignIn(email, pass);
-  hideLoading();
-  if(btn) { btn.disabled = false; btn.textContent = 'ログイン'; }
-  if(r && r.ok) return;
-  const msg = (r && r.error) ? _supaErr(r.error) : 'ログインに失敗しました';
-  if(errEl) errEl.textContent = msg;
+
+  // 1) ローカルアカウントが一致すれば即ログイン（オフラインでも確実に入れる）
+  if(typeof hasAccount === 'function' && hasAccount()
+     && S.account.email === _normEmail(email)
+     && S.account.passHash === _hashStr(pass)) {
+    _enterApp(true);
+    return;
+  }
+
+  // 2) クラウドログインを試す（接続できる場合のみ）
+  const sb = getSupabase();
+  if(sb) {
+    if(btn) { btn.disabled = true; btn.textContent = 'ログイン中...'; }
+    showLoading('ログイン中...');
+    const r = await supaSignIn(email, pass);
+    hideLoading();
+    if(btn) { btn.disabled = false; btn.textContent = 'ログイン'; }
+    if(r && r.ok) {
+      // クラウド成功 → 次回オフラインログイン用にローカルアカウントも保存
+      try {
+        S.account = {
+          email: _normEmail(email),
+          passHash: _hashStr(pass),
+          recoveryCode: (S.account && S.account.recoveryCode) || _genRecoveryCode(),
+          createdAt: (S.account && S.account.createdAt) || todayStr()
+        };
+        saveS();
+      } catch(_){}
+      // SIGNED_IN ハンドラが未発火の場合に備えて明示的に入室
+      if(!S.loggedIn) _enterApp(true);
+      return;
+    }
+    // クラウドで認証失敗（誤パス / 未登録 / 確認待ち）
+    const msg = (r && r.error) ? _supaErr(r.error)
+              : (hasAccount() ? 'メールアドレスまたはパスワードが正しくありません'
+                              : 'ログインできませんでした。アカウントが未作成の場合は下の「新規登録」から作成してください。');
+    if(errEl) errEl.textContent = msg;
+    return;
+  }
+
+  // 3) クラウド未接続 + ローカルアカウント不一致
+  if(typeof hasAccount === 'function' && hasAccount()) {
+    if(errEl) errEl.textContent = 'メールアドレスまたはパスワードが正しくありません';
+  } else {
+    if(errEl) errEl.textContent = 'まだアカウントがありません。「新規登録」または「ログインせずに体験する」をお試しください。';
+  }
 }
 async function ob2GoogleLogin() {
   return _oauthSignIn('google');
