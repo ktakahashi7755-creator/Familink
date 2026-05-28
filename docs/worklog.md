@@ -15542,3 +15542,41 @@ iPhone で旧4ボタンデザインが表示され続けるバグの修正（SW�
 ### コミット
 - ハッシュ: c9fe445（最終デザインコミット）
 - メッセージ: ui: ウェルカム画面を完全リデザイン（カード廃止・背景と一体化）
+
+---
+
+## 2026-05-28 10:00  env: 不明  branch: claude/latest-version-device-check-652i3 → main
+
+### 作業名
+パスワード目玉アイコンの縦位置ズレ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- `.ob2-eye` の `top: 50%; transform: translateY(-50%)` を廃止
+  - 親要素 `.ob2-field-pass` の高さ（ラベル約24px + インプット52px = 約76px）に対して50%でセンタリングされていたため約12px上にズレていた
+  - `bottom: 0; height: 52px; top: auto; transform: none` に変更し、インプット高さでセンタリング
+- iPhone SE (max-width:375px) メディアクエリに `.ob2-eye { height: 48px }` を追加
+- キャッシュバスター: v20260528d → v20260528e
+- docs/index.html に同期
+
+### テスト結果
+- 未実施（iPhone実機での目視確認が必要）
+
+### 未確認事項
+- iPhone Safari で目玉アイコンがパスワードフィールド内の中央に正しく表示されているか
+
+### iPhone確認ポイント
+- ウェルカム画面のパスワードフィールドを確認
+- 目玉アイコンが入力欄の垂直中央に位置しているか
+
+### 次にやること
+- s-onboard（新規ユーザーオンボーディング）のUI確認・改善
+- ホーム画面（s-home）の表示品質確認
+- プレミアム画面（s-premium）のUI確認
+
+### コミット
+- ハッシュ: `b84625e`
+- メッセージ: merge: パスワード目玉アイコン縦位置修正をmainに統合
