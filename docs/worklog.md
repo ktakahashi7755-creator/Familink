@@ -15738,3 +15738,52 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 ### コミット
 - ハッシュ: （コミット後に記入）
 - メッセージ: feat: ログイン堅牢化 + Hoku認識精度向上 + 全画面総点検（販売品質）
+
+## 2026-05-28 18:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+全画面再徹底QA：バグ修正 + 28項目テスト完全合格（28 PASS / 0 FAIL）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **[BUG FIX S] userAvHtml null crash**: `S.user` が null 時に `.trim()` でクラッシュ → `((u && u.name) || '').trim()` に修正（ホーム・設定画面で JS エラー発生していた）
+- **[BUG FIX S] sendHokuMsg undefined crash**: 引数なし呼び出し時に `undefined.trim()` → `!(text||'').trim()` ガード追加
+- **docs/index.html 同期**: cache buster `v20260528m` → `v20260528n` にバンプ
+
+### テスト結果
+- Playwright 28項目テスト: **28 PASS / 0 FAIL / 0 WARN**
+- 全22画面の存在確認 ✅
+- 全モーダル open/close動作 ✅
+- タスク CRUD + 永続化 ✅
+- XSS 安全性（H() エスケープ） ✅
+- 横スクロール無し（6主要画面） ✅
+- LocalStorage `familink_v3` のみ ✅
+- Hoku メッセージ送受信 ✅
+- goBack() ナビゲーション ✅
+
+### コード監査結果（Explore agent）
+- 全 go('s-xxx') 呼び出し: 全て定義済み画面 ✅
+- 全 openModal('m-xxx') 呼び出し: 全て定義済みDOM ✅
+- 全 onclick 関数（281個）: 全て定義済み ✅
+- XSS: 全 innerHTML に H() 適用済み ✅
+- 未使用モーダル: m-react-detail, m-task（デッドコード・動作支障なし）
+
+### 未確認事項
+- budgetType が PERSIST に含まれない（セッション限りの UI 状態）→ 設計意図通りか要確認
+- calView/calM/calY も PERSIST 外（リロード毎に今月に戻る）→ 現状維持
+
+### iPhone確認ポイント
+- ホーム画面・設定画面が null クラッシュなく表示されるか（Safari実機）
+- Hoku メッセージ送信が正常動作するか
+
+### 次にやること
+- iPhone Safari 実機確認
+- Google / Apple OAuth の残タスク（Word ドキュメント済）
+- App Store 公開前チェックリスト
+
+### コミット
+- ハッシュ: (次のコミット)
+- メッセージ: fix: userAvHtml null crash & sendHokuMsg undefined guard + 全画面QA 28/28 PASS
