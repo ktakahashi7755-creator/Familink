@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/Familink/sw.js').then(function(r){r.update();}).catch(function(){});
@@ -9,13 +8,14 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260528k';
+  var V='v20260528m';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
 })();
 </script>
 
+<meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3541,7 +3541,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div id="tk-member-filter" style="display:flex;gap:6px;padding:6px 16px 8px;overflow-x:auto;scrollbar-width:none;"></div>
 
   <!-- メインエリア（リスト or カンバン） -->
-  <div class="scroll-area" id="tk-main" style="flex:1;padding:0 0 120px;"></div>
+  <div class="scroll-area" id="tk-main" style="flex:1;padding:0 0 calc(120px + env(safe-area-inset-bottom));"></div>
 
   <!-- 完了タスク 一括削除バー -->
   <div id="tk-delbar" class="tk-delbar">
@@ -4374,7 +4374,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">体調管理</div>
     <button class="header-icon-btn" onclick="openHealthModal()" aria-label="体調を記録">＋</button>
   </div>
@@ -4391,7 +4391,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== PREP ===== -->
 <div id="s-prep" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">持ち物・準備リスト</div>
     <button class="header-icon-btn" onclick="openPrepModal()" aria-label="持ち物を追加">＋</button>
   </div>
@@ -4495,7 +4495,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== CHILDREN ===== -->
 <div id="s-ch" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">家族メンバー管理</div>
     <button class="header-icon-btn" onclick="openMemberEdit(null)" aria-label="メンバーを追加" title="メンバーを追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -4554,7 +4554,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== CHILD DETAIL ===== -->
 <div id="s-cdetail" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title" id="cdetail-title">詳細</div>
   </div>
   <div class="scroll-area" id="cdetail-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
@@ -4563,7 +4563,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== NOTIFICATIONS ===== -->
 <div id="s-notif" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">通知</div>
     <button class="header-icon-btn" onclick="markAllRead()" aria-label="全て既読" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全既読</button>
     <button class="header-icon-btn" onclick="confirmClearAllNotifs()" aria-label="全て削除" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);color:var(--red);">全削除</button>
@@ -4574,7 +4574,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== SETTINGS ===== -->
 <div id="s-settings" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">設定・メニュー</div>
   </div>
   <div class="scroll-area" id="settings-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
@@ -7511,7 +7511,7 @@ function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-ok').textContent = btnTxt;
-  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (typeof ICON==='function') ? ICON(icon,40) : '';
+  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (icon && typeof ICON==='function') ? ICON(icon,40) : '';
   _confirmCb = cb;
   openModal('m-confirm');
 }
@@ -9376,7 +9376,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">投稿がありません</div>
     </div>`;
 
@@ -9409,7 +9409,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
@@ -9427,7 +9427,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
@@ -12159,7 +12159,7 @@ function renderBudget() {
   if(!listEl) return;
   if(!filtered.length) {
     listEl.innerHTML = `<div class="empty">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">記録がありません</div>
       <div class="empty-desc">右下の＋ボタンで追加できます</div>
     </div>`;
@@ -15773,7 +15773,7 @@ function renderPrep() {
                 : _prepTab === 'tomorrow' ? '前日のうちに準備しておくと、朝がラクになります。'
                 : '右上の＋ボタンで追加できます';
       html += `<div class="empty" style="padding:42px 24px;text-align:center;">
-        <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
+        <img src="${IMGS.wave}" alt="" style="width:60px;height:60px;object-fit:contain">
         <div class="empty-title">${hint}はまだありません</div>
         <div class="empty-desc">${desc}</div>
         <button onclick="openPrepModal()" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${hint}を追加</button>
@@ -16586,8 +16586,8 @@ function goChildDetail(id) {
     <div class="settings-section">
       <div class="settings-title">体調記録</div>
       ${hlth.length ? hlth.map(r=>`<div class="settings-item">
-        <div style="font-size:20px">${r.temp>=37.5?ICON('thermometer',18):ICON('check',18)}</div>
-        <div class="settings-item-label">${r.temp}℃ — ${H(r.cond)}</div>
+        <div style="font-size:20px">${(r.temp||0)>=37.5?ICON('thermometer',18):ICON('check',18)}</div>
+        <div class="settings-item-label">${r.temp?r.temp+'℃ — ':''}${H(r.cond||r.status||'')}</div>
         <div style="font-size:12px;color:var(--text-muted)">${H(r.date.slice(5).replace('-','/'))}</div>
       </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px">記録なし</div>'}
     </div>`;
@@ -16603,7 +16603,7 @@ function renderNotif() {
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">通知はありません</div>
     </div>`;
     return;
