@@ -14851,7 +14851,7 @@ Wave 219〜221: Supabase データ同期エンジン実装・プレミアム上�
 - P4-1: Hoku AI 実API接続
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 219-221: Supabase同期エンジン・プレミアム上限ゲート・iOSキーボード補正
 
 ## 2026-05-27 XX:XX  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -14899,7 +14899,7 @@ Wave 222: 30日無料トライアル実装・クラウド同期ステータス�
 - P5-1: TestFlight 準備
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 222: 30日無料トライアル・クラウド同期ステータスドット
 
 ## 2026-05-27 XX:XX  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -14939,7 +14939,7 @@ Wave 226: アカウント削除機能・App Store審査対応
 - P4-1: Claude API経由のHoku AI強化
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 226: アカウント削除機能追加（App Store要件対応）
 
 ## 2026-05-27 02:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -14974,7 +14974,7 @@ Wave 227: オフライン/オンライン状態ハンドリング
 - P4-1: Hoku AI Claude API接続（バックエンドレス案：直接fetch）
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 227: オフライン/オンライン状態ハンドリング追加
 
 ## 2026-05-27 03:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15023,7 +15023,7 @@ Wave 228: デモデータポリッシュ（投資家・App Store スクショ品
 - Wave 230: Hoku AI 文脈応答の強化（現在のデータを参照したコメント生成）
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 228: デモデータポリッシュ（投資家/App Storeスクショ品質）
 
 ## 2026-05-27 04:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15067,7 +15067,7 @@ Wave 229: プレミアム変換ファネル強化・グローバルエラーハ�
 - Wave 231: ホーム画面の情報密度・視認性向上
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 229: プレミアム変換ファネル強化・グローバルエラーハンドラー追加
 
 ## 2026-05-27 05:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15108,7 +15108,7 @@ Wave 230: Hoku 文脈応答強化（データ駆動型サジェスト）
 - push to origin
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 230: Hoku データ駆動型サジェスト強化
 
 ## 2026-05-27 06:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15151,7 +15151,7 @@ Wave 231: ホーム画面サマリーバー・カレンダーカード改善
 - push to origin and main
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 231: ホーム今日のサマリーバー・カレンダーカード時刻表示追加
 
 ## 2026-05-27 07:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15192,7 +15192,7 @@ Wave 232: App Store メタデータ更新・初期デモデータ改善
 - Wave 233: さらなるUX改善（セクションヘッダー、お知らせカード等）
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 232: App Storeメタデータ更新・初期デモデータリッチ化
 
 ## 2026-05-27 08:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15238,7 +15238,7 @@ Wave 233: Supabase Realtimeリアルタイム同期
 - Wave 235: 総点検・最終スコア評価
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 233: Supabase Realtimeリアルタイム同期追加
 
 ## 2026-05-27 09:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15279,7 +15279,7 @@ Wave 234: ホームカードからの快速タスク追加UI
 - push waves 233-234 to origin/main/gh-pages
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 234: ホームカードからの快速タスク追加UI
 
 ## 2026-05-27 10:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15335,7 +15335,7 @@ Wave 235: セッション最終確認・品質チェック
 - TestFlight準備
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 235: セッション最終確認・worklogまとめ
 
 ## 2026-05-27 14:30  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15406,7 +15406,7 @@ Wave 236-239: スワイプジェスチャー・ブラウザ通知・プルトゥ
 - iOSでのスワイプ・通知の動作確認
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: wave 236-239: スワイプジェスチャー・OS通知・PTR・ストリーク
 
 ## 2026-05-27 15:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -15641,5 +15641,5 @@ iPhone で旧4ボタンデザインが表示され続けるバグの修正（SW�
 - プレミアム課金フロー動作確認
 
 ### コミット
-- ハッシュ: (コミット後に記入)
+- ハッシュ: `6db14d4`
 - メッセージ: ui: 全画面Appleライクデザイン全面刷新 + OAuth修正 + docs同期
