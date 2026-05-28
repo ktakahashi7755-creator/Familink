@@ -9,12 +9,19 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260528h';
+  var V='v20260528i';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
 })();
 </script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23065,26 +23072,41 @@ async function ob2Login() {
   if(errEl) errEl.textContent = msg;
 }
 async function ob2GoogleLogin() {
-  const sb = getSupabase();
-  if(!sb) { showToast('接続中...しばらくお待ちください', 'info'); return; }
-  showLoading('Google でログイン中...');
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: location.origin + location.pathname }
-  });
-  hideLoading();
-  if(error) showToast(_supaErr(error), 'error');
+  return _oauthSignIn('google');
 }
 async function ob2AppleLogin() {
+  return _oauthSignIn('apple');
+}
+async function _oauthSignIn(provider) {
   const sb = getSupabase();
   if(!sb) { showToast('接続中...しばらくお待ちください', 'info'); return; }
-  showLoading('Apple でログイン中...');
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'apple',
-    options: { redirectTo: location.origin + location.pathname }
+  const label = provider === 'google' ? 'Google' : 'Apple';
+  showLoading(label + ' でログイン中...');
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: location.origin + location.pathname, skipBrowserRedirect: true }
   });
+  if(error || !data?.url) {
+    hideLoading();
+    showToast(_supaErr(error) || (label + 'ログインに失敗しました'), 'error');
+    return;
+  }
+  // プロバイダーが有効かどうかを事前確認（生JSONエラーページへの遷移を防ぐ）
+  // 302リダイレクト → type='opaqueredirect', status=0 → 有効
+  // 400エラー       → status=400 OR NetworkError(CORS) → 未設定
+  let canProceed = false;
+  try {
+    const chk = await fetch(data.url, { redirect: 'manual' });
+    canProceed = (chk.status === 0 || chk.type === 'opaqueredirect');
+  } catch(_) {
+    // CORS or ネットワークエラー → プロバイダー未設定の可能性大
+  }
   hideLoading();
-  if(error) showToast(_supaErr(error), 'error');
+  if(!canProceed) {
+    showToast(label + '認証は現在ご利用できません。\nメールアドレスでログインしてください。', 'info');
+    return;
+  }
+  window.location.assign(data.url);
 }
 </script>
 
