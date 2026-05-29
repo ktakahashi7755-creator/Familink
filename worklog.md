@@ -16057,3 +16057,37 @@ QA総点検・board_view バグ修正・Playwright全84テスト通過確認
 ### コミット
 - ハッシュ: `dac3fdb`
 - メッセージ: `fix: Hoku board_view がタイトルなし（内容なし）を返すバグを修正`
+
+## 2026-05-29 16:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+全画面総点検（後半）：IMGS.bg_*未定義参照バグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- Explore エージェントによる HTML構造・CSS・モーダル・画像参照の総点検
+- 判明したバグ：ホーム画面カード bc-bg 6箇所で IMGS.bg_green1/green2/yellow1/yellow2/pink が未定義のまま参照され `src="undefined"` → 404 ネットワークエラーが発生
+- 修正：ternary 条件付きレンダリングに変更し、未定義時は `<img>` 要素を出力しない
+- モーダル backdrop onclick が58個ないとの指摘 → グローバルイベント委任ハンドラで対応済みのため偽陽性として除外
+- docs/index.html 同期・キャッシュバスター v20260529l → v20260529m に更新
+
+### テスト結果
+- Playwright QA全84テスト：84 PASS / 0 FAIL / 0 WARN
+
+### 未確認事項
+- IMGS.bg_* の実際の画像素材が存在しない（Hoku画像6種のみ定義）。将来的にカード背景イラストを追加するかは未決定
+
+### iPhone確認ポイント
+- ホーム画面カード（家族ボード/やること/カレンダー/体調/メモ）の表示が正常であること
+- bc-bg 修正後、カード下部に意図しないギャップや崩れがないこと
+
+### 次にやること
+- App Store 申請前チェックリスト残項目（A-01〜A-05）の対応
+- iPhone 実機テスト（S-01〜S-05）
+
+### コミット
+- ハッシュ: `eaf96e6`
+- メッセージ: `fix: ホーム画面カードの未定義IMGS.bg_*参照を修正（src=undefinedによる404解消）`
