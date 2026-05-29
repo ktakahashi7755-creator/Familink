@@ -57,13 +57,15 @@ async function clearStorage(page) {
   const hokuImg = await page.$('#s-ob img');
   log(hokuImg ? 'PASS' : 'FAIL', 'ウェルカム', 'ウェルカム画面にHoku画像がある');
 
-  // 「ログインせずに体験する」ボタン
-  const guestBtn = await page.$('button[onclick*="ob2Guest"], button[onclick*="guestLogin"], #ob2-guest-btn, button:has-text("体験")');
-  const guestBtnText = await page.$$('button');
-  let guestFound = false;
-  for (const btn of guestBtnText) {
-    const txt = await btn.textContent();
-    if (txt && txt.includes('体験')) { guestFound = true; break; }
+  // 「ログインせずに体験する」ボタン（<a class="ob2-link-guest"> または <button>）
+  const guestEl = await page.$('.ob2-link-guest, button[onclick*="supaEntryClickGuest"], a[onclick*="supaEntryClickGuest"]');
+  let guestFound = !!guestEl;
+  if (!guestFound) {
+    const allBtns = await page.$$('button, a');
+    for (const el of allBtns) {
+      const txt = await el.textContent();
+      if (txt && txt.includes('体験')) { guestFound = true; break; }
+    }
   }
   log(guestFound ? 'PASS' : 'WARN', 'ウェルカム', 'ゲスト体験ボタンが存在する');
 

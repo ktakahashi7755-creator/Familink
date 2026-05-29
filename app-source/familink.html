@@ -20902,18 +20902,12 @@ function _hokuExecuteView(intent) {
     return { ok:true, message:'買い物リスト '+items.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:shopping]]' };
   }
   if(t === 'board_view') {
-    const posts = (S.posts||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     const announces = (S.announces||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
     const lines = [];
     if(announces.length) {
-      lines.push('【お知らせ '+announces.length+' 件】');
-      announces.slice(0,3).forEach(a => lines.push('・'+(a.text||a.content||'(内容なし)').slice(0,30)));
+      lines.push('【家族ボード '+announces.length+' 件】');
+      announces.slice(0,3).forEach(a => lines.push('・'+(a.title||a.body||'(内容なし)').slice(0,30)));
       if(announces.length>3) lines.push('…ほか '+(announces.length-3)+' 件');
-    }
-    if(posts.length) {
-      lines.push('【投稿 '+posts.length+' 件】');
-      posts.slice(0,3).forEach(p => lines.push('・'+(p.text||p.content||'(内容なし)').slice(0,30)));
-      if(posts.length>3) lines.push('…ほか '+(posts.length-3)+' 件');
     }
     if(!lines.length) return { ok:true, message:'家族ボードにはまだ投稿がないよ。\n\n[[ACTION_BUTTONS:board]]' };
     return { ok:true, message: lines.join(NL)+'\n\n[[ACTION_BUTTONS:board]]' };
