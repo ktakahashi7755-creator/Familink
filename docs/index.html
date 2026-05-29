@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529c';
+  var V='v20260529d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3455,6 +3455,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
   <!-- ヘッダー：月ナビ + 今日ボタン + 外部取り込み -->
   <div class="cal-hd">
+    <button class="cal-hd-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
     <div class="cal-hd-nav">
       <button class="cal-hd-btn" onclick="changeCalMonth(-1)" aria-label="前の月">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3790,7 +3793,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== BUDGET ===== -->
 <div id="s-budget" class="screen hidden">
   <div class="header">
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
     <div class="header-title">家計管理</div>
+    <div style="width:34px;height:34px;flex-shrink:0;"></div>
   </div>
   <!-- Wave 60: 家計タブ（家計 / 固定収支 / 資金繰り） -->
   <div id="budget-tabs" style="display:flex;gap:6px;padding:10px 16px 6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border-light);">

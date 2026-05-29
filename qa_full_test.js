@@ -68,22 +68,11 @@ async function clearStorage(page) {
   log(guestFound ? 'PASS' : 'WARN', 'ウェルカム', 'ゲスト体験ボタンが存在する');
 
   // ══════════════════════════════════════════════════════════════════
-  // TEST 2: ログイン画面への遷移
+  // TEST 2: ログインフォームの存在確認（新デザイン: s-ob にインライン表示）
   // ══════════════════════════════════════════════════════════════════
-  // ログインボタンをクリック
-  const loginBtns = await page.$$('button');
-  let loginClicked = false;
-  for (const btn of loginBtns) {
-    const txt = await btn.textContent();
-    if (txt && (txt.includes('ログイン') || txt.includes('メール'))) {
-      await btn.click();
-      loginClicked = true;
-      break;
-    }
-  }
-  await page.waitForTimeout(500);
-  const loginVisible = await page.isVisible('#s-login');
-  log(loginVisible ? 'PASS' : (loginClicked ? 'FAIL' : 'WARN'), 'ログイン', 'ログイン画面(s-login)が表示される');
+  const emailInput = await page.$('#ob2-email');
+  const loginBtn = await page.$('#ob2-login-btn');
+  log(emailInput && loginBtn ? 'PASS' : 'FAIL', 'ログイン', 'ウェルカム画面にログインフォームがある(#ob2-email, #ob2-login-btn)');
 
   // ══════════════════════════════════════════════════════════════════
   // TEST 3: ゲストとしてホームに入る
@@ -92,20 +81,11 @@ async function clearStorage(page) {
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
 
-  // ob2Guest または体験系ボタンを探す
-  const allBtns = await page.$$('button');
-  let enteredApp = false;
-  for (const btn of allBtns) {
-    const txt = await btn.textContent();
-    const onclick = await btn.getAttribute('onclick');
-    if (txt && (txt.includes('体験') || txt.includes('ゲスト')) ||
-        onclick && (onclick.includes('Guest') || onclick.includes('guest') || onclick.includes('skip'))) {
-      await btn.click();
-      await page.waitForTimeout(1500);
-      enteredApp = true;
-      break;
-    }
-  }
+  // supaEntryClickGuest() を直接呼ぶ（ゲスト体験リンクは <a> タグのため button検索では見つからない）
+  // guideSeen を事前にセットして初回ガイドモーダル(m-guide)が自動起動しないようにする
+  await page.evaluate(() => { try { S.guideSeen = true; } catch(_){} });
+  await page.evaluate(() => { try { supaEntryClickGuest(); } catch(_){} });
+  await page.waitForTimeout(1500);
 
   // もしオンボーディングが出たらスキップ
   const onboardVisible = await page.isVisible('#s-onboard');
@@ -186,7 +166,14 @@ async function clearStorage(page) {
   // ══════════════════════════════════════════════════════════════════
   // TEST 6: ホームへ戻る（goBack）
   // ══════════════════════════════════════════════════════════════════
-  await page.evaluate(() => { try { go('s-task'); } catch(_){} });
+  // _navStack をリセットしてホームをベースにし、タスク → goBack でホームに戻ることを確認
+  await page.evaluate(() => {
+    try {
+      _navStack = [];
+      S.screen = 's-home';
+      go('s-task');
+    } catch(_){}
+  });
   await page.waitForTimeout(300);
   await page.evaluate(() => { try { goBack(); } catch(_){} });
   await page.waitForTimeout(300);
@@ -212,7 +199,7 @@ async function clearStorage(page) {
     // 保存
     await page.evaluate(() => { try { saveEvent(); } catch(_){} });
     await page.waitForTimeout(500);
-    const modalClosed = !(await page.isVisible('#m-event'));
+    const modalClosed = await page.evaluate(() => !document.getElementById('m-event').classList.contains('open'));
     log(modalClosed ? 'PASS' : 'FAIL', '予定追加', '予定保存後にモーダルが閉じる');
     // カレンダーに反映されるか
     const calHtml = await page.evaluate(() => {
@@ -236,7 +223,7 @@ async function clearStorage(page) {
     await page.fill('#te-title', 'テストタスク');
     await page.evaluate(() => { try { saveTaskEdit(); } catch(_){} });
     await page.waitForTimeout(400);
-    const taskClosed = !(await page.isVisible('#m-task-edit'));
+    const taskClosed = await page.evaluate(() => !document.getElementById('m-task-edit').classList.contains('open'));
     log(taskClosed ? 'PASS' : 'FAIL', 'タスク追加', 'タスク保存後にモーダルが閉じる');
     // タスク一覧に反映
     const taskHtml = await page.evaluate(() => {
@@ -262,7 +249,7 @@ async function clearStorage(page) {
     await page.fill('#bm-date', today2);
     await page.evaluate(() => { try { saveTx(); } catch(_){} });
     await page.waitForTimeout(400);
-    const budgetClosed = !(await page.isVisible('#m-budget'));
+    const budgetClosed = await page.evaluate(() => !document.getElementById('m-budget').classList.contains('open'));
     log(budgetClosed ? 'PASS' : 'FAIL', '家計入力', '家計保存後にモーダルが閉じる');
   }
 
@@ -284,7 +271,7 @@ async function clearStorage(page) {
     if (hmTemp) await page.fill('#hm-temp', '36.5');
     await page.evaluate(() => { try { saveHealth(); } catch(_){} });
     await page.waitForTimeout(400);
-    const healthClosed = !(await page.isVisible('#m-health'));
+    const healthClosed = await page.evaluate(() => !document.getElementById('m-health').classList.contains('open'));
     log(healthClosed ? 'PASS' : 'FAIL', '体調記録', '体調保存後にモーダルが閉じる');
   }
 
@@ -302,7 +289,7 @@ async function clearStorage(page) {
     await page.fill('#post-title', 'テスト投稿');
     await page.evaluate(() => { try { savePost(); } catch(_){} });
     await page.waitForTimeout(400);
-    const postClosed = !(await page.isVisible('#m-post'));
+    const postClosed = await page.evaluate(() => !document.getElementById('m-post').classList.contains('open'));
     log(postClosed ? 'PASS' : 'FAIL', 'ボード投稿', '投稿保存後にモーダルが閉じる');
   }
 
@@ -404,7 +391,7 @@ async function clearStorage(page) {
   // モーダルを閉じる
   await page.evaluate(() => { try { closeModal('m-event'); } catch(_){} });
   await page.waitForTimeout(300);
-  const modalClosed2 = !(await page.isVisible('#m-event'));
+  const modalClosed2 = await page.evaluate(() => !document.getElementById('m-event').classList.contains('open'));
   log(modalClosed2 ? 'PASS' : 'FAIL', '多重クリック', 'モーダルを正常に閉じられる');
 
   // ══════════════════════════════════════════════════════════════════
@@ -636,7 +623,7 @@ async function clearStorage(page) {
       if (!S.tasks || !S.tasks.length) return 'no-task';
       const t = S.tasks[0];
       const prevStatus = t.status;
-      toggleTaskStatus(t.id);
+      toggleTaskDone(t.id);
       const newStatus = (S.tasks.find(x => x.id === t.id) || {}).status;
       return prevStatus !== newStatus ? 'CHANGED' : 'UNCHANGED';
     } catch(e) { return 'ERROR:' + e.message; }
