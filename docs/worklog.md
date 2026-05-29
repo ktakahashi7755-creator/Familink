@@ -15841,3 +15841,46 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 
 ### コミット
 - メッセージ: refactor: 孤立モーダル削除(m-task/m-react-detail) + 全画面QA 37/37 PASS
+
+---
+
+## 2026-05-29 (Session 3)  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Hoku精度修正・ホーム画面データバグ修正・設定画面ヘッダーUI改善
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+1. **renderHokuSuggs** — 4バグ修正:
+   - タスク判定 `!t.done` → `t.status!=='done'`（新スキーマ対応）
+   - タスクタイトル `t.text` → `t.title`
+   - メンバー取得 `(S.members||[]).find()` → `getMem()`（S.members=null クラッシュ防止）
+   - 買い物カウント `filter(!x.done).length` → `.length`（done フィールド非存在）
+2. **renderHokuMsgs** — 同様のタスク・買い物フィールドバグ修正
+3. **HOKU_SUGGESTIONS** — 全エントリを簡潔な短文に変更
+4. **ホーム画面 renderHome231** — 同3バグ修正（タスク/買い物/メンバー）
+5. **設定画面ヘッダー CSS** — `menu-brand-header` 背景色を `primary-light`（青）→ `#fff` に変更、ロゴ行とユーザー行の間に仕切り線追加、premium card margin 増加
+
+### テスト結果
+- node syntax check: OK
+- 目視: 全修正箇所を grep 確認済み
+- docs/index.html 同期 + キャッシュバスター v20260529b
+
+### 未確認事項
+- iPhone Safari 実機での設定画面ヘッダーの見た目確認
+
+### iPhone確認ポイント
+- 設定画面: ヘッダー（白）→仕切り→プレミアムカード（青）の視覚的分離が確認できるか
+- ホーム画面: 未完了タスク・買い物カウントチップが正しく表示されるか
+
+### 次にやること
+- iPhone Safari 実機確認（設定画面ヘッダー・ホーム画面チップ）
+- Google / Apple OAuth 設定（Word ドキュメント参照）
+- App Store 公開前チェックリスト
+
+### コミット
+- ハッシュ: `90a19ed`
+- メッセージ: `fix: Hoku精度修正・ホーム画面バグ修正・設定画面ヘッダーUI改善`
