@@ -1587,11 +1587,11 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 
 /* ── menu redesign ── */
-.menu-brand-header { padding:22px 18px 18px; background:var(--primary-light); border-bottom:1px solid var(--border); }
-.menu-brand-logo { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+.menu-brand-header { padding:20px 18px 0; background:#fff; border-bottom:1px solid var(--border); }
+.menu-brand-logo { display:flex; align-items:center; gap:9px; margin-bottom:0; padding-bottom:14px; border-bottom:1px solid rgba(0,0,0,.06); }
 .menu-brand-name { font-size:20px; font-weight:800; color:var(--text); font-family:var(--font-display); }
 .menu-brand-tagline { font-size:11px; color:var(--text-sub); margin-top:1px; line-height:1.5; }
-.menu-user-row { display:flex; align-items:center; gap:12px; cursor:pointer; }
+.menu-user-row { display:flex; align-items:center; gap:12px; cursor:pointer; padding:14px 0 16px; }
 .menu-user-name { font-size:15px; font-weight:700; color:var(--text); }
 .menu-user-role { font-size:11px; color:var(--text-muted); margin-top:2px; }
 .menu-nav-item { display:flex; align-items:center; gap:14px; padding:13px 14px; background:#fff; border-radius:var(--r-sm); box-shadow:var(--s-sm); margin-bottom:7px; cursor:pointer; transition:var(--t); }
@@ -1604,7 +1604,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .menu-nav-desc { font-size:11px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
 .menu-nav-arrow { font-size:18px; color:var(--text-muted); flex-shrink:0; }
 .menu-nav-item.active .menu-nav-arrow { color:var(--primary); }
-.menu-premium-card { margin:4px 16px 8px; background:var(--primary-light); border:1px solid var(--primary-mid); border-radius:var(--r-lg); padding:16px 18px; }
+.menu-premium-card { margin:14px 16px 8px; background:var(--primary-light); border:1px solid var(--primary-mid); border-radius:var(--r-lg); padding:16px 18px; }
 .menu-premium-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:var(--text); margin-bottom:5px; }
 .menu-premium-desc { font-size:12px; color:var(--text-sub); line-height:1.6; margin-bottom:12px; }
 .menu-premium-btn { display:inline-flex; align-items:center; gap:6px; background:var(--primary); color:#fff; border:none; border-radius:var(--r-full); padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font); transition:var(--t); }
@@ -3527,7 +3527,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div id="tk-member-filter" style="display:flex;gap:6px;padding:6px 16px 8px;overflow-x:auto;scrollbar-width:none;"></div>
 
   <!-- メインエリア（リスト or カンバン） -->
-  <div class="scroll-area" id="tk-main" style="flex:1;padding:0 0 120px;"></div>
+  <div class="scroll-area" id="tk-main" style="flex:1;padding:0 0 calc(120px + env(safe-area-inset-bottom));"></div>
 
   <!-- 完了タスク 一括削除バー -->
   <div id="tk-delbar" class="tk-delbar">
@@ -3773,15 +3773,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- リアクション詳細モーダル -->
-<div id="m-react-detail" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-react-label"></div>
-    <div id="m-react-list" style="padding:4px 0 8px;"></div>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-react-detail')">閉じる</button>
-  </div>
-</div>
 
 <!-- ===== BUDGET ===== -->
 <div id="s-budget" class="screen hidden">
@@ -4360,7 +4351,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">体調管理</div>
     <button class="header-icon-btn" onclick="openHealthModal()" aria-label="体調を記録">＋</button>
   </div>
@@ -4377,7 +4368,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== PREP ===== -->
 <div id="s-prep" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">持ち物・準備リスト</div>
     <button class="header-icon-btn" onclick="openPrepModal()" aria-label="持ち物を追加">＋</button>
   </div>
@@ -4481,7 +4472,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== CHILDREN ===== -->
 <div id="s-ch" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">家族メンバー管理</div>
     <button class="header-icon-btn" onclick="openMemberEdit(null)" aria-label="メンバーを追加" title="メンバーを追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -4540,7 +4531,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== CHILD DETAIL ===== -->
 <div id="s-cdetail" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title" id="cdetail-title">詳細</div>
   </div>
   <div class="scroll-area" id="cdetail-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
@@ -4549,7 +4540,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== NOTIFICATIONS ===== -->
 <div id="s-notif" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">通知</div>
     <button class="header-icon-btn" onclick="markAllRead()" aria-label="全て既読" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);">全既読</button>
     <button class="header-icon-btn" onclick="confirmClearAllNotifs()" aria-label="全て削除" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;border-radius:var(--r-full);color:var(--red);">全削除</button>
@@ -4560,7 +4551,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <!-- ===== SETTINGS ===== -->
 <div id="s-settings" class="screen hidden">
   <div class="header">
-    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">←</button>
+    <button class="header-icon-btn" onclick="goBack()" aria-label="戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="header-title">設定・メニュー</div>
   </div>
   <div class="scroll-area" id="settings-body" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
@@ -4885,21 +4876,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-event')">キャンセル</button>
     </div>
-  </div>
-</div>
-
-<!-- Task Modal -->
-<div id="m-task" class="modal-backdrop">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title">やること管理</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <input class="input" id="task-input" placeholder="タスクを追加…" style="flex:1;height:46px;">
-      <select class="input" id="task-member" style="width:80px;height:46px;padding:0 6px;"></select>
-      <button class="btn btn-primary btn-sm" style="height:46px;" onclick="saveTask()">追加</button>
-    </div>
-    <div id="task-list" style="max-height:58vh;overflow-y:auto;"></div>
-    <button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="closeModal('m-task')">閉じる</button>
   </div>
 </div>
 
@@ -7345,7 +7321,7 @@ function userAvHtml(size=36, fontSize=14, extraStyle='') {
   if(u && u.id && getMem(u.id)) return avHtml(u.id, size, fontSize, extraStyle);
   const sz = typeof size === 'number' ? size+'px' : size;
   const fs = typeof fontSize === 'number' ? fontSize+'px' : fontSize;
-  const nm = (u && (u.name||'')).trim();
+  const nm = ((u && u.name) || '').trim();
   const initial = (u && u.av) || (nm ? nm.charAt(0) : '') || '👤';
   const grad = (u && u.grad) || 'linear-gradient(135deg,#0A84FF,#6FA8DC)';
   return `<div class="av" style="background:${grad};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(initial)}</div>`;
@@ -7497,7 +7473,7 @@ function showConfirm(title, msg, btnTxt, cb, icon='warning') {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-ok').textContent = btnTxt;
-  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (typeof ICON==='function') ? ICON(icon,40) : '';
+  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (icon && typeof ICON==='function') ? ICON(icon,40) : '';
   _confirmCb = cb;
   openModal('m-confirm');
 }
@@ -9362,7 +9338,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">投稿がありません</div>
     </div>`;
 
@@ -9395,7 +9371,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
@@ -9413,7 +9389,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
@@ -9429,7 +9405,7 @@ function renderHome() {
         今日 ${H(todayEvs231.length)}件${nextEv.time?' 次 '+H(nextEv.time):''}
       </div>`);
     }
-    const pendingTasks231 = wsFilter(S.tasks).filter(t=>!t.done);
+    const pendingTasks231 = wsFilter(S.tasks).filter(t=>t.status!=='done');
     if(pendingTasks231.length > 0) {
       chips.push(`<div class="home-today-chip task">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -9438,17 +9414,17 @@ function renderHome() {
     }
     const feverKids231 = (S.health||[]).filter(h=>h.date>=td&&(h.temp||0)>=38);
     if(feverKids231.length > 0) {
-      const kid = (S.members||[]).find(x=>x.id===feverKids231[0].child);
+      const kid = getMem(feverKids231[0].memberId || feverKids231[0].child);
       chips.push(`<div class="home-today-chip fever">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 9.5a2.5 2.5 0 0 1 0 5M12 3v1M12 20v1M3 12h1M20 12h1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 18.4l.7-.7M17.7 6.3l.7-.7"/></svg>
         ${kid?H(kid.name):''} 発熱 ${feverKids231[0].temp}℃
       </div>`);
     }
-    const shopLeft231 = (S.shoppingItems||[]).filter(x=>!x.done);
-    if(shopLeft231.length > 0 && chips.length < 4) {
+    const shopLeft231 = (S.shoppingItems||[]).length;
+    if(shopLeft231 > 0 && chips.length < 4) {
       chips.push(`<div class="home-today-chip shop">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        買い物 ${H(shopLeft231.length)}件
+        買い物 ${H(shopLeft231)}件
       </div>`);
     }
     todayBar.innerHTML = chips.join('');
@@ -12145,7 +12121,7 @@ function renderBudget() {
   if(!listEl) return;
   if(!filtered.length) {
     listEl.innerHTML = `<div class="empty">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">記録がありません</div>
       <div class="empty-desc">右下の＋ボタンで追加できます</div>
     </div>`;
@@ -15759,7 +15735,7 @@ function renderPrep() {
                 : _prepTab === 'tomorrow' ? '前日のうちに準備しておくと、朝がラクになります。'
                 : '右上の＋ボタンで追加できます';
       html += `<div class="empty" style="padding:42px 24px;text-align:center;">
-        <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
+        <img src="${IMGS.wave}" alt="" style="width:60px;height:60px;object-fit:contain">
         <div class="empty-title">${hint}はまだありません</div>
         <div class="empty-desc">${desc}</div>
         <button onclick="openPrepModal()" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${hint}を追加</button>
@@ -16572,8 +16548,8 @@ function goChildDetail(id) {
     <div class="settings-section">
       <div class="settings-title">体調記録</div>
       ${hlth.length ? hlth.map(r=>`<div class="settings-item">
-        <div style="font-size:20px">${r.temp>=37.5?ICON('thermometer',18):ICON('check',18)}</div>
-        <div class="settings-item-label">${r.temp}℃ — ${H(r.cond)}</div>
+        <div style="font-size:20px">${(r.temp||0)>=37.5?ICON('thermometer',18):ICON('check',18)}</div>
+        <div class="settings-item-label">${r.temp?r.temp+'℃ — ':''}${H(r.cond||r.status||'')}</div>
         <div style="font-size:12px;color:var(--text-muted)">${H(r.date.slice(5).replace('-','/'))}</div>
       </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:8px 4px">記録なし</div>'}
     </div>`;
@@ -16589,7 +16565,7 @@ function renderNotif() {
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">通知はありません</div>
     </div>`;
     return;
@@ -18419,16 +18395,15 @@ function saveBoardSection() {
 /* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
 /* Wave 62: 見る系（_view）と 入れる系（_add）を分けて並べる */
 const HOKU_SUGGESTIONS = [
-  '明日の予定を見る',
-  '今週の予定を見る',
-  '今日のタスクを見る',
-  '今月の家計を見る',
-  '体調を確認したい',
-  '買い物リストを見る',
-  '明日の準備を見る',
+  '今日の予定を確認',
+  '明日の予定を確認',
+  '未完了タスクを確認',
+  '今月の家計を確認',
+  '体調を記録して',
+  '買い物リストを確認',
+  '準備リストを確認',
   '予定を追加したい',
   'タスクを追加したい',
-  '体調を記録したい',
   '何ができる？',
 ];
 
@@ -18488,7 +18463,8 @@ function saveHokuApiUrl() {
 }
 
 async function sendHokuMsg(text) {
-  if(_hokuBusy || !text.trim()) return;
+  if(_hokuBusy || !(text||'').trim()) return;
+  text = (text||'').trim();
   _hokuBusy = true;
   const sendBtn = document.getElementById('hoku-send');
   if(sendBtn) sendBtn.disabled = true;
@@ -19295,54 +19271,55 @@ function renderHoku() {
 function renderHokuSuggs() {
   const el = document.getElementById('hoku-suggs');
   if(!el) return;
-  /* Wave 230: データ駆動型サジェスト — 家族の現状に特化した具体提案 */
   const today = todayStr();
   const tomorrow = addDays(today, 1);
   const suggs = [];
+  // タイトルを最大8文字に切り詰めるヘルパー
+  const short = (s, max) => s && s.length > max ? s.slice(0, max) + '…' : (s || '');
 
-  /* ① 発熱アラート（最優先）— 直近2日に38℃以上の記録があれば */
-  const feverKids = [];
-  (S.health||[]).filter(h => h.date >= addDays(today,-2) && (h.temp||0) >= 38).forEach(h => {
-    const m = (S.members||[]).find(x => x.id === h.child);
-    if(m && !feverKids.includes(m.name)) feverKids.push(m.name);
-  });
-  if(feverKids.length) suggs.push(feverKids[0]+'の体調を記録して');
+  /* ① 発熱アラート（最優先）— 直近2日に38℃以上 */
+  const feverRecs = (S.health||[]).filter(h => h.date >= addDays(today,-2) && (h.temp||0) >= 38);
+  if(feverRecs.length) {
+    const m = getMem(feverRecs[0].memberId || feverRecs[0].child);
+    if(m) suggs.push(short(m.name, 5)+'の体調を記録して');
+  }
 
-  /* ② 今日の予定（具体タイトルで訴求） */
+  /* ② 今日の予定 */
   const todayEvs = (S.events||[]).filter(e => e.date === today).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
-  if(todayEvs.length === 1) suggs.push('今日 '+todayEvs[0].title+'を確認して');
-  else if(todayEvs.length > 1) suggs.push('今日の予定 '+todayEvs.length+'件を確認して');
+  if(todayEvs.length === 1) suggs.push('今日「'+short(todayEvs[0].title, 8)+'」を確認');
+  else if(todayEvs.length > 1) suggs.push('今日の予定（'+todayEvs.length+'件）を確認');
 
-  /* ③ 未完了タスク（具体名で） */
-  const pendingTasks = (S.tasks||[]).filter(t => !t.done);
-  if(pendingTasks.length === 1) suggs.push('「'+pendingTasks[0].text+'」を完了にして');
-  else if(pendingTasks.length > 1) suggs.push('未完了タスク '+pendingTasks.length+'件を確認');
+  /* ③ 未完了タスク — status:'todo' で判定（done boolean は旧スキーマ互換のみ） */
+  const pendingTasks = (S.tasks||[]).filter(t => t.status !== 'done');
+  if(pendingTasks.length === 1) suggs.push('「'+short(pendingTasks[0].title, 8)+'」を完了にして');
+  else if(pendingTasks.length > 1) suggs.push('未完了タスク（'+pendingTasks.length+'件）を確認');
 
   /* ④ 明日の準備チェック */
   const tomorrowEvs = (S.events||[]).filter(e => e.date === tomorrow);
   const tomorrowPrep = (S.prep||[]).filter(p => p.date === tomorrow && !p.done);
   if(tomorrowEvs.length && tomorrowPrep.length) {
-    suggs.push('明日の'+tomorrowEvs[0].title+'の準備を確認');
+    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の準備確認');
   } else if(tomorrowEvs.length) {
-    suggs.push('明日の'+tomorrowEvs[0].title+'の持ち物を確認');
+    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の持ち物');
   }
 
-  /* ⑤ 買い物リスト */
-  const shopLeft = (S.shoppingItems||[]).filter(x => !x.done);
-  if(shopLeft.length > 0) suggs.push('買い物リスト（'+shopLeft.length+'件）を確認');
+  /* ⑤ 買い物リスト — shoppingItems は全件 active（purchased は history へ移動済） */
+  const shopLeft = (S.shoppingItems||[]).length;
+  if(shopLeft > 0) suggs.push('買い物リスト（'+shopLeft+'件）を確認');
 
-  /* ⑥ 今月の家計サマリー */
+  /* ⑥ 今月の家計 */
   const mo = today.slice(0,7);
-  const thisMoTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(mo));
-  const totalExp = thisMoTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
-  if(thisMoTxs.length >= 3) suggs.push('今月の支出（¥'+totalExp.toLocaleString()+'）をまとめて');
-  else if(thisMoTxs.length > 0) suggs.push('今月の家計を確認して');
+  const moTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(mo));
+  if(moTxs.length >= 3) {
+    const exp = moTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
+    suggs.push('今月の支出 ¥'+Math.round(exp/1000)+'千円');
+  } else if(moTxs.length > 0) suggs.push('今月の家計を確認');
 
   /* ⑦ 静的サジェストで補完 */
-  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.includes(s.slice(0,6))));
-  while(suggs.length < 6 && fallback.length) suggs.push(fallback.shift());
+  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.includes(s.slice(0,5))));
+  while(suggs.length < 4 && fallback.length) suggs.push(fallback.shift());
 
-  el.innerHTML = suggs.slice(0,8).map(s =>
+  el.innerHTML = suggs.slice(0,6).map(s =>
     `<button class="hoku-sugg" onclick="sendHokuMsg('${H(s)}')">${H(s)}</button>`
   ).join('');
 }
@@ -19357,8 +19334,8 @@ function renderHokuMsgs() {
     /* Wave 230: データ駆動型ウェルカムチップ */
     const today = todayStr();
     const todayEvCount = (S.events||[]).filter(e=>e.date===today).length;
-    const pendingCount = (S.tasks||[]).filter(t=>!t.done).length;
-    const shopCount = (S.shoppingItems||[]).filter(x=>!x.done).length;
+    const pendingCount = (S.tasks||[]).filter(t=>t.status!=='done').length;
+    const shopCount = (S.shoppingItems||[]).length;
     const feverToday = (S.health||[]).filter(h=>h.date===today&&(h.temp||0)>=37.5).length;
 
     const chip1 = todayEvCount

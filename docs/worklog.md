@@ -15738,3 +15738,149 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 ### コミット
 - ハッシュ: （コミット後に記入）
 - メッセージ: feat: ログイン堅牢化 + Hoku認識精度向上 + 全画面総点検（販売品質）
+
+## 2026-05-28 18:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+全画面再徹底QA：バグ修正 + 28項目テスト完全合格（28 PASS / 0 FAIL）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **[BUG FIX S] userAvHtml null crash**: `S.user` が null 時に `.trim()` でクラッシュ → `((u && u.name) || '').trim()` に修正（ホーム・設定画面で JS エラー発生していた）
+- **[BUG FIX S] sendHokuMsg undefined crash**: 引数なし呼び出し時に `undefined.trim()` → `!(text||'').trim()` ガード追加
+- **docs/index.html 同期**: cache buster `v20260528m` → `v20260528n` にバンプ
+
+### テスト結果
+- Playwright 28項目テスト: **28 PASS / 0 FAIL / 0 WARN**
+- 全22画面の存在確認 ✅
+- 全モーダル open/close動作 ✅
+- タスク CRUD + 永続化 ✅
+- XSS 安全性（H() エスケープ） ✅
+- 横スクロール無し（6主要画面） ✅
+- LocalStorage `familink_v3` のみ ✅
+- Hoku メッセージ送受信 ✅
+- goBack() ナビゲーション ✅
+
+### コード監査結果（Explore agent）
+- 全 go('s-xxx') 呼び出し: 全て定義済み画面 ✅
+- 全 openModal('m-xxx') 呼び出し: 全て定義済みDOM ✅
+- 全 onclick 関数（281個）: 全て定義済み ✅
+- XSS: 全 innerHTML に H() 適用済み ✅
+- 未使用モーダル: m-react-detail, m-task（デッドコード・動作支障なし）
+
+### 未確認事項
+- budgetType が PERSIST に含まれない（セッション限りの UI 状態）→ 設計意図通りか要確認
+- calView/calM/calY も PERSIST 外（リロード毎に今月に戻る）→ 現状維持
+
+### iPhone確認ポイント
+- ホーム画面・設定画面が null クラッシュなく表示されるか（Safari実機）
+- Hoku メッセージ送信が正常動作するか
+
+### 次にやること
+- iPhone Safari 実機確認
+- Google / Apple OAuth の残タスク（Word ドキュメント済）
+- App Store 公開前チェックリスト
+
+### コミット
+- ハッシュ: (次のコミット)
+- メッセージ: fix: userAvHtml null crash & sendHokuMsg undefined guard + 全画面QA 28/28 PASS
+
+## 2026-05-29 00:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+全画面再々徹底QA：デッドコード削除 + 37項目テスト完全合格（37 PASS / 0 FAIL）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **[DEAD CODE 削除] m-react-detail モーダル**: openModal()で一度も開かれない孤立モーダル（`リアクション詳細モーダル` ブロック）を削除
+- **[DEAD CODE 削除] m-task モーダル**: m-task-edit に完全置き換え済みの旧タスクモーダル（`Task Modal` ブロック）を削除
+- **docs/index.html 同期**: cache buster `v20260528n` → `v20260529a` にバンプ
+
+### テスト結果
+**Playwright 37項目テスト: 37 PASS / 0 FAIL / 0 WARN**
+
+カバレッジ:
+- 全22画面 DOM 存在確認 ✅
+- 全CRUD（タスク/予定/家計/体調/準備/買い物/メモ/投稿）保存・復元 ✅
+- 買い物購入済み→履歴移動フロー ✅
+- goBack()連続でhome到達 ✅
+- 全サブ画面アクセス（11画面）✅
+- 全モーダルに閉じるボタン ✅
+- 死んだモーダル削除確認 ✅
+- XSS無害化（タスク・メモ）✅
+- 横スクロールなし（8画面）✅
+- LocalStorage familink_v3 のみ ✅
+- Hoku送受信・null引数ガード ✅
+- 多重クリック安全性 ✅
+
+### コード監査結果
+- 孤立モーダル: m-task、m-react-detail（削除済み）
+- 孤立画面: なし（全22画面到達可能）
+- モーダル閉じるボタン: 全62モーダル確認済み
+- console.log: なし（production clean）
+- 重複関数定義: なし
+
+### 未確認事項
+- budgetType は PERSIST 外（セッション限り）→ 仕様通り
+- calView/calM/calY も PERSIST 外（リロード毎に今月）→ 仕様通り
+
+### iPhone確認ポイント
+- 全画面Safari実機での表示確認
+- PTR（プルトゥリフレッシュ）がiPhoneで動作するか
+
+### 次にやること
+- iPhone Safari 実機確認
+- Google / Apple OAuth 設定（Word ドキュメント参照）
+- App Store 公開前チェックリスト
+
+### コミット
+- メッセージ: refactor: 孤立モーダル削除(m-task/m-react-detail) + 全画面QA 37/37 PASS
+
+---
+
+## 2026-05-29 (Session 3)  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Hoku精度修正・ホーム画面データバグ修正・設定画面ヘッダーUI改善
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+1. **renderHokuSuggs** — 4バグ修正:
+   - タスク判定 `!t.done` → `t.status!=='done'`（新スキーマ対応）
+   - タスクタイトル `t.text` → `t.title`
+   - メンバー取得 `(S.members||[]).find()` → `getMem()`（S.members=null クラッシュ防止）
+   - 買い物カウント `filter(!x.done).length` → `.length`（done フィールド非存在）
+2. **renderHokuMsgs** — 同様のタスク・買い物フィールドバグ修正
+3. **HOKU_SUGGESTIONS** — 全エントリを簡潔な短文に変更
+4. **ホーム画面 renderHome231** — 同3バグ修正（タスク/買い物/メンバー）
+5. **設定画面ヘッダー CSS** — `menu-brand-header` 背景色を `primary-light`（青）→ `#fff` に変更、ロゴ行とユーザー行の間に仕切り線追加、premium card margin 増加
+
+### テスト結果
+- node syntax check: OK
+- 目視: 全修正箇所を grep 確認済み
+- docs/index.html 同期 + キャッシュバスター v20260529b
+
+### 未確認事項
+- iPhone Safari 実機での設定画面ヘッダーの見た目確認
+
+### iPhone確認ポイント
+- 設定画面: ヘッダー（白）→仕切り→プレミアムカード（青）の視覚的分離が確認できるか
+- ホーム画面: 未完了タスク・買い物カウントチップが正しく表示されるか
+
+### 次にやること
+- iPhone Safari 実機確認（設定画面ヘッダー・ホーム画面チップ）
+- Google / Apple OAuth 設定（Word ドキュメント参照）
+- App Store 公開前チェックリスト
+
+### コミット
+- ハッシュ: `90a19ed`
+- メッセージ: `fix: Hoku精度修正・ホーム画面バグ修正・設定画面ヘッダーUI改善`
