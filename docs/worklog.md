@@ -15934,3 +15934,43 @@ QA Playwright 全点検 — 12件FAILを0件に解消
 ### コミット
 - ハッシュ: （コミット後に記録）
 - メッセージ: `fix: QA全点検 — 12件FAIL解消（戻るボタン追加・テスト修正）`
+
+## 2026-05-29 15:30  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+Hoku 7固定サジェストチップ実装 + board_view intent 追加
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- HOKU_SUGGESTIONS を10アイテムの動的リストから7固定アイテムに変更
+- renderHokuSuggs() をデータ依存の動的生成から7固定チップ表示に書き換え
+  - ○○テンプレートチップ（タスク追加・買い物メモ追加）は inputに差し込み（送信しない）
+  - それ以外はそのまま sendHokuMsg() で送信
+- _hokuDetectViewIntent() に board_view 判定を追加（家族ボード関連テキスト）
+- _hokuExecuteView() に board_view ハンドラを追加（S.posts / S.announces を表示）
+- VIEW_INTENTS に 'board_view' を追加
+- docs/index.html 同期・キャッシュバスター v20260529f
+
+### テスト結果
+- 未実施（実機確認推奨）
+
+### 未確認事項
+- iPhone 実機でHokuチップ7件が正しく表示されるか
+- ○○チップタップ時にinputに差し込まれるか
+- 「家族ボードの内容を教えて」送信でboard_viewが正しく返るか
+
+### iPhone確認ポイント
+- Hokuチップが7件横スクロールで表示されるか確認
+- ○○チップタップ時の動作（input差し込み）確認
+- 「家族ボードの内容を教えて」の回答テキスト確認
+
+### 次にやること
+- iPhone実機でHokuチップ動作確認
+- その他優先度S/Aバグ対応
+
+### コミット
+- ハッシュ: `7b5952a`
+- メッセージ: `Hoku: 7固定サジェストチップ実装 + board_view intent 追加`
