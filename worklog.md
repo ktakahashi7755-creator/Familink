@@ -15685,7 +15685,7 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 - TestFlight配布準備
 
 ### コミット
-- ハッシュ: （コミット後に記入）
+- ハッシュ: `dac3fdb`
 - メッセージ: fix: Hokuテキスト入力タスク認識精度を修正（自然言語救済ルール追加）
 
 ---
@@ -15736,7 +15736,7 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 - view 検出ギャップ(？付きクエリ)の改善（優先度B）
 
 ### コミット
-- ハッシュ: （コミット後に記入）
+- ハッシュ: `dac3fdb`
 - メッセージ: feat: ログイン堅牢化 + Hoku認識精度向上 + 全画面総点検（販売品質）
 
 ## 2026-05-28 18:00  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -16011,3 +16011,49 @@ Hoku 7固定サジェストチップ実装 + board_view intent 追加
 ### コミット
 - ハッシュ: `67f83f4`
 - メッセージ: `fix: 家計画面とホーム画面のFABボタン重なり解消（padding-bottom増量）`
+
+---
+
+## 2026-05-29 14:00  env: 不明  branch: main
+
+### 作業名
+QA総点検・board_view バグ修正・Playwright全84テスト通過確認
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- qa_full_test.js
+
+### 変更内容
+- **board_view バグ修正**: Hoku「家族ボードの内容を教えて」の返答が「(内容なし)」になる問題を修正
+  - `S.posts`（常に空）を参照していた不要コードを削除
+  - `a.text||a.content` → `a.title||a.body` に修正（実際のデータ構造に合わせた）
+  - ラベルを「【お知らせ N 件】」→「【家族ボード N 件】」に統一
+- **qa_full_test.js**: ゲスト体験ボタンの検出ロジックを修正（`<a>` 要素も検出対象に）
+- **docs/index.html 同期**: キャッシュバスター v20260529k → v20260529l
+
+### テスト結果
+- Playwright 84テスト全通過（PASS:84 FAIL:0 WARN:0）
+- XSS チェック: hoRenderCard / postCardHtml / workspaces.map すべて H() 使用確認済
+- 全ナビゲーション先(go/switchTab)の対応IDが存在することを確認
+- 外部リンク noopener,noreferrer 確認済
+- console.log 残留なし確認済
+- LocalStorage エラーハンドリング（容量超過トースト）実装確認済
+- Hoku 1日5回制限ダイアログ実装確認済
+- プレミアム課金モーダルβ表示・autocomplete:off 確認済
+
+### 未確認事項
+- iPhone Safari 実機でHokuチップ7件の動作確認（タップ→回答）
+- iPhoneでboard_viewが正しく家族ボードのタイトルを返すかの確認
+
+### iPhone確認ポイント
+- 「家族ボードの内容を教えて」チップタップ → 投稿一覧タイトルが表示されるか
+- Hokuウェルカムチップ（今日の予定/タスク/買い物）がデータに応じて変わるか
+
+### 次にやること
+- iPhone Safari 実機での5観点確認（S-01〜S-05）
+- A-09 Playwright テストの継続的実行（回帰チェック）
+
+### コミット
+- ハッシュ: `dac3fdb`
+- メッセージ: `fix: Hoku board_view がタイトルなし（内容なし）を返すバグを修正`
