@@ -9572,7 +9572,7 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + '<div class="bc-title">家族ボード</div>'
       + (unreadAnn ? '<div class="badge">'+unreadAnn+'</div>' : '')
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+postHTML+'</div><img class="bc-bg" src="'+IMGS.bg_green2+'" alt=""></div>';
+      + '<div class="bc-body"><div class="bc-content">'+postHTML+'</div>'+(IMGS.bg_green2?'<img class="bc-bg" src="'+IMGS.bg_green2+'" alt="">':'')+'</div>';
   } else if(bid === 'b_task') {
     /* Wave 234: 快速タスク追加入力フォーム */
     const quickAddHtml = '<div class="bc-quick-add" onclick="event.stopPropagation();">'
@@ -9587,27 +9587,27 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + '<div class="bc-title">やること</div>'
       + (pending ? '<div class="badge">'+pending+'</div>' : '')
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+taskHTML+'</div><img class="bc-bg" src="'+IMGS.bg_yellow1+'" alt=""></div>'
+      + '<div class="bc-body"><div class="bc-content">'+taskHTML+'</div>'+(IMGS.bg_yellow1?'<img class="bc-bg" src="'+IMGS.bg_yellow1+'" alt="">':'')+'</div>'
       + quickAddHtml;
   } else if(bid === 'b_cal') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FCE7F3;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
       + '<div class="bc-title">今週の予定</div>'
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+evHTML+'</div><img class="bc-bg" src="'+IMGS.bg_green1+'" alt=""></div>';
+      + '<div class="bc-body"><div class="bc-content">'+evHTML+'</div>'+(IMGS.bg_green1?'<img class="bc-bg" src="'+IMGS.bg_green1+'" alt="">':'')+'</div>';
   } else if(bid === 'b_health') {
     var healthHTML = renderBoardCardHealthPreview();
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FFE8E8;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>'
       + '<div class="bc-title">体調管理</div>'
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+healthHTML+'</div><img class="bc-bg" src="'+(IMGS.bg_pink||IMGS.bg_yellow1||'')+'" alt=""></div>';
+      + '<div class="bc-body"><div class="bc-content">'+healthHTML+'</div>'+((IMGS.bg_pink||IMGS.bg_yellow1)?'<img class="bc-bg" src="'+(IMGS.bg_pink||IMGS.bg_yellow1)+'" alt="">':'')+'</div>';
   } else if(bid === 'b_memo') {
     card = '<div class="bc-head">'
       + '<div class="bc-icon" style="background:#FEF3C7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 16.5h5"/></svg></div>'
       + '<div class="bc-title">メモ</div>'
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+_memoCardPreview()+'</div><img class="bc-bg" src="'+(IMGS.bg_yellow2||'')+'" alt=""></div>';
+      + '<div class="bc-body"><div class="bc-content">'+_memoCardPreview()+'</div>'+(IMGS.bg_yellow2?'<img class="bc-bg" src="'+IMGS.bg_yellow2+'" alt="">':'')+'</div>';
   } else if(bid.startsWith('cb_')) {
     var customId = bid.slice(3);
     var b = (S.customBoards||[]).find(function(x){ return x.id===customId; });
@@ -9639,7 +9639,7 @@ function hoRenderCard(bid, idx, postHTML, taskHTML, evHTML, unreadAnn, pending) 
       + '<div class="bc-icon" style="background:'+meta.color+';">'+boardTypeIcon(b.type,meta.iconColor)+'</div>'
       + '<div class="bc-title">'+H(b.name)+'</div>'
       + '</div>'
-      + '<div class="bc-body"><div class="bc-content">'+prev+'</div><img class="bc-bg" src="'+(IMGS[meta.bgKey]||'')+'" alt=""></div>';
+      + '<div class="bc-body"><div class="bc-content">'+prev+'</div>'+(IMGS[meta.bgKey]?'<img class="bc-bg" src="'+IMGS[meta.bgKey]+'" alt="">':'')+'</div>';
   }
   if(!card) return '';
   return '<div class="board-card ho-card" data-hoid="'+bid+'" data-hoidx="'+idx+'">'+card+'</div>';
