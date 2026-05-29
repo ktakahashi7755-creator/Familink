@@ -15974,3 +15974,40 @@ Hoku 7固定サジェストチップ実装 + board_view intent 追加
 ### コミット
 - ハッシュ: `7b5952a`
 - メッセージ: `Hoku: 7固定サジェストチップ実装 + board_view intent 追加`
+
+---
+
+## 2026-05-29 env: 不明  branch: main
+
+### 作業名
+6タスク一括実行：Hoku意図解析チェック / App Store メタデータ草案 / XSS点検 / 横スクロールCSS点検 / FABパディング修正（家計・ホーム）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- s-budget スクロールエリア padding-bottom: calc(98px) → calc(160px) に増量（FABに隠れる問題修正）
+- .home-board-scroll padding-bottom: calc(98px) → calc(240px) に増量（Hoku FABに隠れる問題修正）
+- docs/index.html 同期、キャッシュバスター v20260529j → v20260529k
+
+### テスト結果
+- 未実施（実機確認推奨）
+
+### 未確認事項
+- 家計画面で最終リストアイテムが「＋」FABに隠れていないことの実機確認
+- ホーム画面最下部コンテンツがHoku FABに隠れていないことの実機確認
+- padding増量により空白が多すぎないかの見た目確認
+
+### iPhone確認ポイント
+- 家計画面(s-budget)を開き、支出リストを下までスクロールして「＋」FABに隠れないか確認
+- ホーム画面(s-home)を下までスクロールしてHoku FABに隠れないか確認
+
+### 次にやること
+- iPhone実機でFABパディング確認
+- Hoku意図解析の精度改善（board_view: 「家族ボードの内容を教えて」の確認）
+- XSSリスク箇所（task_view・calendar event title描画）のH()漏れ対応検討
+
+### コミット
+- ハッシュ: `67f83f4`
+- メッセージ: `fix: 家計画面とホーム画面のFABボタン重なり解消（padding-bottom増量）`
