@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529j';
+  var V='v20260529k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -887,7 +887,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .fc-sw:active { transform:scale(.9); }
 .home-board-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 16px 16px calc(98px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(240px + env(safe-area-inset-bottom));
 }
 .home-greeting { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
 /* Wave 234: ホームカード クイックタスク追加 */
@@ -3813,7 +3813,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div style="margin:6px 14px 0;padding:6px 10px;background:rgba(10,132,255,.06);border:1px solid var(--border-light);border-radius:8px;font-size:10.5px;line-height:1.6;color:var(--text-muted);">
     ※ 家計管理は家族内の記録・振り返り支援です。金融商品・税務・投資の助言を行うものではありません。
   </div>
-  <div class="scroll-area" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));">
+  <div class="scroll-area" style="padding-bottom:calc(160px + env(safe-area-inset-bottom));">
     <!-- 通常家計（既存） -->
     <div id="budget-section-normal">
       <div class="budget-header-bar">
