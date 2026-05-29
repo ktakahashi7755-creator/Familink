@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529m';
+  var V='v20260529n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8065,7 +8065,7 @@ function renderWorkspaceSwitcher() {
     const checkSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     const dotsSvg  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
 
-    return '<div class="ws-card' + (isSelected ? ' selected' : '') + '" onclick="switchWorkspace(\'' + ws.id + '\')" role="button" tabindex="0">'
+    return '<div class="ws-card' + (isSelected ? ' selected' : '') + '" onclick="switchWorkspace(\'' + H(ws.id) + '\')" role="button" tabindex="0">'
       + '<div class="ws-card-icon-wrap" style="background:' + iconBg + ';color:' + iconColor + ';">' + icon + '</div>'
       + '<div class="ws-card-info">'
       +   '<div class="ws-card-name">' + H(ws.name) + (isSelected ? '&nbsp;<span class="ws-badge-active">使用中</span>' : '') + '</div>'
@@ -8073,7 +8073,7 @@ function renderWorkspaceSwitcher() {
       + '</div>'
       + '<div class="ws-card-actions">'
       +   (isSelected ? '<div class="ws-card-check">' + checkSvg + '</div>' : '')
-      +   '<div class="ws-card-dots" onclick="event.stopPropagation();openWorkspaceEdit(\'' + ws.id + '\')" aria-label="編集">' + dotsSvg + '</div>'
+      +   '<div class="ws-card-dots" onclick="event.stopPropagation();openWorkspaceEdit(\'' + H(ws.id) + '\')" aria-label="編集">' + dotsSvg + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
@@ -8271,15 +8271,15 @@ function renderTabSettingsModal() {
       const canUp   = vi > 0 && !(prevVisDef && prevVisDef.fixed);
       const canDown = vi < visible.length - 1;
       controls = '<div class="tab-cfg-arrows">'
-        + '<button class="tab-cfg-arrow-btn" onclick="moveVisibleTab(\''+item.id+'\',-1)" aria-label="上へ"'+(canUp?'':' disabled')+'>'
+        + '<button class="tab-cfg-arrow-btn" onclick="moveVisibleTab(\''+H(item.id)+'\',-1)" aria-label="上へ"'+(canUp?'':' disabled')+'>'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>'
-        + '<button class="tab-cfg-arrow-btn" onclick="moveVisibleTab(\''+item.id+'\',1)" aria-label="下へ"'+(canDown?'':' disabled')+'>'
+        + '<button class="tab-cfg-arrow-btn" onclick="moveVisibleTab(\''+H(item.id)+'\',1)" aria-label="下へ"'+(canDown?'':' disabled')+'>'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>'
         + '</div>'
-        + '<button class="tab-cfg-toggle-btn" onclick="toggleTabItemInConfig(\''+item.id+'\')" aria-label="非表示にする" style="padding:3px;">'
+        + '<button class="tab-cfg-toggle-btn" onclick="toggleTabItemInConfig(\''+H(item.id)+'\')" aria-label="非表示にする" style="padding:3px;">'
         + toggleSvg + '</button>';
     } else {
-      controls = '<button class="tab-cfg-toggle-btn" onclick="toggleTabItemInConfig(\''+item.id+'\')" aria-label="表示にする"'
+      controls = '<button class="tab-cfg-toggle-btn" onclick="toggleTabItemInConfig(\''+H(item.id)+'\')" aria-label="表示にする"'
         + (atMax ? ' disabled' : '') + ' style="padding:3px;">'
         + toggleSvg + '</button>';
     }
@@ -8385,7 +8385,7 @@ function renderWidgetSettingsModal() {
       + '<div style="flex:1;">'
       + '<div style="font-size:14px;font-weight:600;color:var(--text);">' + H(item.label) + '</div>'
       + '</div>'
-      + '<button onclick="toggleWidgetItem(\'' + item.type + '\')" style="background:none;border:none;cursor:pointer;padding:4px;">' + visTgl + '</button>'
+      + '<button onclick="toggleWidgetItem(\'' + H(item.type) + '\')" style="background:none;border:none;cursor:pointer;padding:4px;">' + visTgl + '</button>'
       + '</div>';
   }).join('')
   + '<div style="margin-top:16px;padding:12px 14px;background:var(--bg-muted);border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.7;">'
@@ -9228,11 +9228,11 @@ function renderDemoManagerModal() {
       + '<div style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">' + summary + '</div>'
       + (p.memo ? '<div style="font-size:11px;color:var(--text-sub);line-height:1.5;background:var(--bg-muted);border-radius:8px;padding:8px 10px;margin-bottom:10px;">' + H(p.memo) + '</div>' : '')
       + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
-      +   '<button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="applyDemoProfile(\'' + p.id + '\')">適用する</button>'
-      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="openDemoEditModal(\'' + p.id + '\')">編集</button>'
-      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="duplicateDemoProfile(\'' + p.id + '\')">複製</button>'
-      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="saveCurrentAsDemoProfile(\'' + p.id + '\')">現在を上書き</button>'
-      +   (p.isDefault ? '' : '<button class="btn btn-ghost" style="font-size:12px;padding:7px 12px;color:var(--danger);" onclick="deleteDemoProfile(\'' + p.id + '\')">削除</button>')
+      +   '<button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="applyDemoProfile(\'' + H(p.id) + '\')">適用する</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="openDemoEditModal(\'' + H(p.id) + '\')">編集</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="duplicateDemoProfile(\'' + H(p.id) + '\')">複製</button>'
+      +   '<button class="btn btn-ghost"   style="font-size:12px;padding:7px 12px;" onclick="saveCurrentAsDemoProfile(\'' + H(p.id) + '\')">現在を上書き</button>'
+      +   (p.isDefault ? '' : '<button class="btn btn-ghost" style="font-size:12px;padding:7px 12px;color:var(--danger);" onclick="deleteDemoProfile(\'' + H(p.id) + '\')">削除</button>')
       + '</div>'
       + '</div>';
   });
@@ -12639,7 +12639,7 @@ function renderCashflowSection() {
     html += '<div class="cf-warn">注意：'+H(monthLabel)+' は支出予定（¥'+cf.totalExpense.toLocaleString()+'）が収入予定（¥'+cf.totalIncome.toLocaleString()+'）を超えています。</div>';
   }
   if(!obSet) {
-    html += '<div class="cf-warn">月初残高が未設定です。<button onclick="openOpeningBalanceModal(\''+monthKey+'\')" style="background:transparent;border:1px solid currentColor;padding:3px 10px;border-radius:6px;color:inherit;font-size:11px;cursor:pointer;margin-left:6px;">設定する</button></div>';
+    html += '<div class="cf-warn">月初残高が未設定です。<button onclick="openOpeningBalanceModal(\''+H(monthKey)+'\')" style="background:transparent;border:1px solid currentColor;padding:3px 10px;border-radius:6px;color:inherit;font-size:11px;cursor:pointer;margin-left:6px;">設定する</button></div>';
   }
   // サマリーカード
   html += '<div class="cf-card">'
@@ -12658,7 +12658,7 @@ function renderCashflowSection() {
     + '</div>';
   // 月初残高ボタン
   html += '<div style="margin:0 16px 14px;display:flex;gap:8px;">'
-    + '<button class="btn btn-outline" onclick="openOpeningBalanceModal(\''+monthKey+'\')" style="flex:1;padding:9px;font-size:12px;border-radius:10px;">月初残高を設定</button>'
+    + '<button class="btn btn-outline" onclick="openOpeningBalanceModal(\''+H(monthKey)+'\')" style="flex:1;padding:9px;font-size:12px;border-radius:10px;">月初残高を設定</button>'
     + '<button class="btn btn-primary" onclick="confirmApplyRecurring('+y+','+m0+')" style="flex:1;padding:9px;font-size:12px;border-radius:10px;">今月分の予定を実績へ反映</button>'
     + '</div>';
   // 予定明細
@@ -12978,7 +12978,7 @@ function openNotifSettings() {
     '<div style="font-size:12px;color:var(--text-sub);line-height:1.65;padding:2px 4px 12px;">受け取りたいお知らせを選べます。</div>'
     + NOTIF_PREF_DEFS.map(function(d){
         const on = S.notifPrefs[d.key] !== false;
-        return '<div onclick="toggleNotifPref(\''+d.key+'\')" style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;">'
+        return '<div onclick="toggleNotifPref(\''+H(d.key)+'\')" style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;">'
           + '<div style="color:var(--primary);flex:none;">'+ICON(d.icon,20)+'</div>'
           + '<div style="flex:1;font-size:14px;color:var(--text);">'+H(d.label)+'</div>'
           + _switchHtml(on)
