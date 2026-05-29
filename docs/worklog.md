@@ -16134,3 +16134,41 @@ GitHub Pages 404修正・総点検・残タスク洗い出し
 ### コミット
 - ハッシュ: `3cb126b`
 - メッセージ: `ci: GitHub Pages ソースを GitHub Actions に変更後の初回デプロイトリガー`
+
+## 2026-05-29 23:50  env: 不明  branch: main
+
+### 作業名
+A-06 XSSチェック対応 — onclick 属性の H() エスケープ漏れ修正（11箇所）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- XSSエージェントが指摘した11箇所の onclick 属性にある変数に H() エスケープを追加
+  - ws.id × 2（ワークスペース切替・編集ボタン）
+  - item.id × 4（タブ設定 移動/表示切替ボタン）
+  - item.type × 1（ウィジェット切替ボタン）
+  - p.id × 5（デモプロファイル 適用/編集/複製/上書き/削除）
+  - monthKey × 2（家計キャッシュフロー 月初残高設定）
+  - d.key × 1（通知設定 切替）
+- 実際のXSS被害リスクはゼロ（全IDは uid()=英数字のみ、または system 定数）だが、CLAUDE.md §13.2 に基づく防御的実装として対応
+- docs/index.html 同期・キャッシュバスター v20260529m → v20260529n に更新
+
+### テスト結果
+- Playwright 84テスト全通過（PASS:84 FAIL:0 WARN:0）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- ワークスペース切替・タブ設定・通知設定が正常動作すること
+
+### 次にやること
+- GitHub Pages デプロイ完了確認（https://ktakahashi7755-creator.github.io/Familink/ の200確認）
+- task_add confidence 改善（B優先度、0.62 → 0.75）
+- App Store メタデータ仕上げ（A-01）
+
+### コミット
+- ハッシュ: `c78c8a2`
+- メッセージ: `fix: onclick属性のH()エスケープ漏れを修正（A-06 XSS対策・防御的実装）`
