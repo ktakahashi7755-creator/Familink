@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529b';
+  var V='v20260529c';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18408,12 +18408,12 @@ function saveBoardSection() {
 /* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
 /* Wave 62: 見る系（_view）と 入れる系（_add）を分けて並べる */
 const HOKU_SUGGESTIONS = [
-  '今日の予定を確認',
-  '明日の予定を確認',
-  '未完了タスクを確認',
-  '今月の家計を確認',
+  '今日の予定を教えて',
+  '明日の予定を教えて',
+  'タスクを見せて',
+  '今月の家計を教えて',
   '体調を記録して',
-  '買い物リストを確認',
+  '買い物リストを見せて',
   '準備リストを確認',
   '予定を追加したい',
   'タスクを追加したい',
@@ -18559,11 +18559,19 @@ async function sendHokuMsg(text) {
           try {
             const pi = parseHokuIntent(text, 'text');
             const ADD_INTENTS = ['calendar_add','task_add','budget_add','prep_add','prep_routine_add','health_add','board_post_add','shopping_add','shopping_frequent_add','shopping_purchased','recurring_budget_add'];
+            // 参照系 view intent も executeHokuAction で処理（hokuLocalAnswer より正確なデータ表示）
+            const VIEW_INTENTS = ['calendar_view','task_view','budget_view','health_view','prep_view','shopping_view','cashflow_view'];
             if(pi && ADD_INTENTS.indexOf(pi.intentType) >= 0
                && (pi.confidence || 0) >= 0.78
                && (!pi.missingFields || pi.missingFields.length === 0)) {
               const r = executeHokuAction(pi);
               bridged = (r && r.message) || (typeof getHokuShortReply==='function' ? getHokuShortReply(pi.intentType) : '') || 'これで保存する？';
+            } else if(pi && VIEW_INTENTS.indexOf(pi.intentType) >= 0
+               && (pi.confidence || 0) >= 0.6) {
+              try {
+                const r = executeHokuAction(pi);
+                bridged = r && r.message;
+              } catch(e2) { bridged = null; }
             }
           } catch(e) { bridged = null; }
           reply = bridged || hokuLocalAnswer(text);
@@ -19287,49 +19295,48 @@ function renderHokuSuggs() {
   const today = todayStr();
   const tomorrow = addDays(today, 1);
   const suggs = [];
-  // タイトルを最大8文字に切り詰めるヘルパー
   const short = (s, max) => s && s.length > max ? s.slice(0, max) + '…' : (s || '');
 
-  /* ① 発熱アラート（最優先）— 直近2日に38℃以上 */
+  /* ① 発熱アラート（最優先）*/
   const feverRecs = (S.health||[]).filter(h => h.date >= addDays(today,-2) && (h.temp||0) >= 38);
   if(feverRecs.length) {
     const m = getMem(feverRecs[0].memberId || feverRecs[0].child);
+    // 「体調を記録して」→ detectIntent の create_health に確実にヒット
     if(m) suggs.push(short(m.name, 5)+'の体調を記録して');
   }
 
-  /* ② 今日の予定 */
+  /* ② 今日の予定 — hokuLocalAnswer /今日/ にヒット */
   const todayEvs = (S.events||[]).filter(e => e.date === today).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
-  if(todayEvs.length === 1) suggs.push('今日「'+short(todayEvs[0].title, 8)+'」を確認');
-  else if(todayEvs.length > 1) suggs.push('今日の予定（'+todayEvs.length+'件）を確認');
+  if(todayEvs.length === 1) suggs.push('今日「'+short(todayEvs[0].title, 7)+'」を教えて');
+  else if(todayEvs.length > 1) suggs.push('今日の予定を教えて');
 
-  /* ③ 未完了タスク — status:'todo' で判定（done boolean は旧スキーマ互換のみ） */
+  /* ③ タスク — "未完了" を避け "タスクを見せて" で task_view を確実に呼ぶ */
   const pendingTasks = (S.tasks||[]).filter(t => t.status !== 'done');
-  if(pendingTasks.length === 1) suggs.push('「'+short(pendingTasks[0].title, 8)+'」を完了にして');
-  else if(pendingTasks.length > 1) suggs.push('未完了タスク（'+pendingTasks.length+'件）を確認');
+  if(pendingTasks.length > 0) suggs.push('タスクを見せて（'+pendingTasks.length+'件）');
 
-  /* ④ 明日の準備チェック */
+  /* ④ 明日の準備 — hokuLocalAnswer /明日/ にヒット */
   const tomorrowEvs = (S.events||[]).filter(e => e.date === tomorrow);
   const tomorrowPrep = (S.prep||[]).filter(p => p.date === tomorrow && !p.done);
-  if(tomorrowEvs.length && tomorrowPrep.length) {
-    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の準備確認');
-  } else if(tomorrowEvs.length) {
-    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の持ち物');
+  if(tomorrowEvs.length) {
+    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の準備は？');
+  } else if(tomorrowPrep.length) {
+    suggs.push('明日の持ち物を確認');
   }
 
-  /* ⑤ 買い物リスト — shoppingItems は全件 active（purchased は history へ移動済） */
+  /* ⑤ 買い物リスト — "買い物リストを見せて" → shopping_view にヒット */
   const shopLeft = (S.shoppingItems||[]).length;
-  if(shopLeft > 0) suggs.push('買い物リスト（'+shopLeft+'件）を確認');
+  if(shopLeft > 0) suggs.push('買い物リストを見せて（'+shopLeft+'件）');
 
-  /* ⑥ 今月の家計 */
+  /* ⑥ 今月の家計 — hokuLocalAnswer /家計/ にヒット */
   const mo = today.slice(0,7);
   const moTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(mo));
   if(moTxs.length >= 3) {
     const exp = moTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
-    suggs.push('今月の支出 ¥'+Math.round(exp/1000)+'千円');
-  } else if(moTxs.length > 0) suggs.push('今月の家計を確認');
+    suggs.push('今月の家計を教えて');
+  } else if(moTxs.length > 0) suggs.push('今月の家計を教えて');
 
-  /* ⑦ 静的サジェストで補完 */
-  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.includes(s.slice(0,5))));
+  /* ⑦ 静的サジェストで補完（重複除去） */
+  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.slice(0,4) === s.slice(0,4)));
   while(suggs.length < 4 && fallback.length) suggs.push(fallback.shift());
 
   el.innerHTML = suggs.slice(0,6).map(s =>
@@ -19355,7 +19362,7 @@ function renderHokuMsgs() {
       ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('今日の予定を教えて')">${ICON('calendar',16)} 今日の予定(${todayEvCount}件)</button>`
       : `<button class="hoku-empty-chip" onclick="sendHokuMsg('今週の予定を教えて')">${ICON('calendar',16)} 今週の予定</button>`;
     const chip2 = pendingCount
-      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('未完了のタスクを見せて')">${ICON('check',16)} タスク(${pendingCount}件)</button>`
+      ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('タスクを見せて')">${ICON('check',16)} タスク(${pendingCount}件)</button>`
       : `<button class="hoku-empty-chip" onclick="sendHokuMsg('タスクを追加したい')">${ICON('check',16)} タスクを追加</button>`;
     const chip3 = feverToday
       ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('体調を記録して')">${ICON('health',16)} 体調を記録</button>`
@@ -21965,8 +21972,8 @@ function hokuLocalAnswer(q) {
       '増えすぎを感じたら、子どもの様子を見ながら見直す機会を作るのも大切ですね。';
   }
 
-  /* ガイダンス：買い物 */
-  if(ql.match(/買い物|スーパー|まとめ買い|お米|牛乳.*買|食材|献立|買うもの/)) {
+  /* ガイダンス：買い物 — "見せて/教えて/確認/リスト" は view intent で処理済みなので除外 */
+  if(ql.match(/買い物|スーパー|まとめ買い|お米|牛乳.*買|食材|献立|買うもの/) && !ql.match(/見せて|教えて|確認|リスト/)) {
     return '買い物リストは家族で共有すると、買い忘れや重複買いが減らせます。'+NL+NL+
       '・「家族ボード」に「買い物」カテゴリで投稿 → 気付いた人が追記'+NL+
       '・定番商品は固定リストとしてメモしておく'+NL+
@@ -22014,7 +22021,7 @@ function hokuLocalAnswer(q) {
   }
 
   /* タスク */
-  if(ql.match(/タスク|やること|todo|仕事|作業|宿題/i) && !ql.match(/追加|入れ|登録|消|削除|完了/)) {
+  if(ql.match(/タスク|やること|todo|仕事|作業|宿題/i) && !ql.match(/追加|入れ|登録|消|削除|完了にして|を完了|完了した/)) {
     const t=ctx.tasks;
     if(!t.total) return '未完了のタスクはありません。お疲れさまです。';
     let r=`タスク（未完了 ${t.total}件）${NL+NL}`;
