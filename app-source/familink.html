@@ -2651,8 +2651,8 @@ nav#tabbar.hidden { display: none !important; }
 .prm-header-title { flex:1; text-align:center; font-size:17px; font-weight:700;
   color:var(--text); margin:0 8px; letter-spacing:-0.2px; }
 .prm-hero {
-  padding:32px 20px 24px; text-align:center;
-  background: linear-gradient(160deg, #FFF6E8 0%, #FFF3E0 60%, #F2F2F7 100%);
+  padding:32px 20px 64px; text-align:center;
+  background: linear-gradient(180deg, #FFF6E8 0%, #FFF0D6 45%, #F2F2F7 100%);
 }
 .prm-crown {
   width:64px; height:64px; border-radius:50%;
@@ -2672,11 +2672,12 @@ nav#tabbar.hidden { display: none !important; }
   color:#fff; font-size:13px; font-weight:600; border-radius:var(--r-full);
   padding:8px 20px; margin-top:12px;
 }
-/* Benefits checklist */
+/* Benefits checklist — hero から浮き上がるカード */
 .prm-checklist {
-  margin:0 16px 16px; background:#fff;
-  border-radius:16px; padding:18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin:-44px 20px 20px; background:#fff;
+  border-radius:20px; padding:20px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.11), 0 2px 6px rgba(0,0,0,0.06);
+  position:relative; z-index:2;
 }
 .prm-check-item {
   display:flex; align-items:flex-start; gap:10px;
@@ -2925,10 +2926,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   text-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
 
-/* Checklist card: amber border */
+/* Checklist card: warm amber accent */
 .prm-checklist {
   background: var(--premium-light);
-  border: 1.5px solid #FFE082;
+  border: 1.5px solid rgba(255,193,50,0.40);
 }
 
 /* Check icon: gradient background */
@@ -16678,7 +16679,7 @@ function renderPremium() {
           + '<div class="prm-hero-sub">Familink Premium をご利用いただきありがとうございます。<br>すべての機能が使い放題です。</div>'
           + '<div class="prm-hero-already">✓ プレミアム会員</div>'
         : '<div class="prm-hero-title">プレミアムを<br>30日間 無料で体験しよう</div>'
-          + '<div class="prm-hero-sub">家族みんなで、もっと快適にFamilinkを使えます。<br><span style="font-size:12px;color:var(--text-muted);">カード不要・いつでも解除可能。</span></div>'
+          + '<div class="prm-hero-sub">家族みんなで、もっと快適にFamilinkを使えます。</div>'
       )
     + '</div>';
 
@@ -18399,16 +18400,13 @@ function saveBoardSection() {
 /* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
 /* Wave 62: 見る系（_view）と 入れる系（_add）を分けて並べる */
 const HOKU_SUGGESTIONS = [
-  '今日の予定を教えて',
-  '明日の予定を教えて',
-  'タスクを見せて',
-  '今月の家計を教えて',
-  '体調を記録して',
-  '買い物リストを見せて',
-  '準備リストを確認',
-  '予定を追加したい',
-  'タスクを追加したい',
-  '何ができる？',
+  '今日のやることを出して',
+  '○○のタスクを追加して',
+  '今週の予定',
+  '体調管理を出して',
+  '今月の家計を出して',
+  '家族ボードの内容を教えて',
+  '○○を買い物メモに追加して',
 ];
 
 let _hokuMsgs       = [];
@@ -18551,7 +18549,7 @@ async function sendHokuMsg(text) {
             const pi = parseHokuIntent(text, 'text');
             const ADD_INTENTS = ['calendar_add','task_add','budget_add','prep_add','prep_routine_add','health_add','board_post_add','shopping_add','shopping_frequent_add','shopping_purchased','recurring_budget_add'];
             // 参照系 view intent も executeHokuAction で処理（hokuLocalAnswer より正確なデータ表示）
-            const VIEW_INTENTS = ['calendar_view','task_view','budget_view','health_view','prep_view','shopping_view','cashflow_view'];
+            const VIEW_INTENTS = ['calendar_view','task_view','budget_view','health_view','prep_view','shopping_view','cashflow_view','board_view'];
             if(pi && ADD_INTENTS.indexOf(pi.intentType) >= 0
                && (pi.confidence || 0) >= 0.78
                && (!pi.missingFields || pi.missingFields.length === 0)) {
@@ -19283,56 +19281,24 @@ function renderHoku() {
 function renderHokuSuggs() {
   const el = document.getElementById('hoku-suggs');
   if(!el) return;
-  const today = todayStr();
-  const tomorrow = addDays(today, 1);
-  const suggs = [];
-  const short = (s, max) => s && s.length > max ? s.slice(0, max) + '…' : (s || '');
-
-  /* ① 発熱アラート（最優先）*/
-  const feverRecs = (S.health||[]).filter(h => h.date >= addDays(today,-2) && (h.temp||0) >= 38);
-  if(feverRecs.length) {
-    const m = getMem(feverRecs[0].memberId || feverRecs[0].child);
-    // 「体調を記録して」→ detectIntent の create_health に確実にヒット
-    if(m) suggs.push(short(m.name, 5)+'の体調を記録して');
-  }
-
-  /* ② 今日の予定 — hokuLocalAnswer /今日/ にヒット */
-  const todayEvs = (S.events||[]).filter(e => e.date === today).sort((a,b)=>(a.time||'')>(b.time||'')?1:-1);
-  if(todayEvs.length === 1) suggs.push('今日「'+short(todayEvs[0].title, 7)+'」を教えて');
-  else if(todayEvs.length > 1) suggs.push('今日の予定を教えて');
-
-  /* ③ タスク — "未完了" を避け "タスクを見せて" で task_view を確実に呼ぶ */
-  const pendingTasks = (S.tasks||[]).filter(t => t.status !== 'done');
-  if(pendingTasks.length > 0) suggs.push('タスクを見せて（'+pendingTasks.length+'件）');
-
-  /* ④ 明日の準備 — hokuLocalAnswer /明日/ にヒット */
-  const tomorrowEvs = (S.events||[]).filter(e => e.date === tomorrow);
-  const tomorrowPrep = (S.prep||[]).filter(p => p.date === tomorrow && !p.done);
-  if(tomorrowEvs.length) {
-    suggs.push('明日「'+short(tomorrowEvs[0].title, 6)+'」の準備は？');
-  } else if(tomorrowPrep.length) {
-    suggs.push('明日の持ち物を確認');
-  }
-
-  /* ⑤ 買い物リスト — "買い物リストを見せて" → shopping_view にヒット */
-  const shopLeft = (S.shoppingItems||[]).length;
-  if(shopLeft > 0) suggs.push('買い物リストを見せて（'+shopLeft+'件）');
-
-  /* ⑥ 今月の家計 — hokuLocalAnswer /家計/ にヒット */
-  const mo = today.slice(0,7);
-  const moTxs = (S.txs||[]).filter(t => t.date && t.date.startsWith(mo));
-  if(moTxs.length >= 3) {
-    const exp = moTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(t.amount||0),0);
-    suggs.push('今月の家計を教えて');
-  } else if(moTxs.length > 0) suggs.push('今月の家計を教えて');
-
-  /* ⑦ 静的サジェストで補完（重複除去） */
-  const fallback = HOKU_SUGGESTIONS.filter(s => !suggs.some(u => u.slice(0,4) === s.slice(0,4)));
-  while(suggs.length < 4 && fallback.length) suggs.push(fallback.shift());
-
-  el.innerHTML = suggs.slice(0,6).map(s =>
-    `<button class="hoku-sugg" onclick="sendHokuMsg('${H(s)}')">${H(s)}</button>`
-  ).join('');
+  /* 7 固定チップ。○○ を含むものは input に差し込む（送信しない） */
+  const FIXED = [
+    { text: '今日のやることを出して', fill: false },
+    { text: '○○のタスクを追加して',  fill: true  },
+    { text: '今週の予定',             fill: false },
+    { text: '体調管理を出して',       fill: false },
+    { text: '今月の家計を出して',     fill: false },
+    { text: '家族ボードの内容を教えて', fill: false },
+    { text: '○○を買い物メモに追加して', fill: true },
+  ];
+  el.innerHTML = FIXED.map(({ text, fill }) => {
+    const safe = H(text);
+    if (fill) {
+      const val = JSON.stringify(text);
+      return `<button class="hoku-sugg" onclick="(function(){var i=document.getElementById('hoku-input');if(i){i.value=${val};i.focus();}})()">${safe}</button>`;
+    }
+    return `<button class="hoku-sugg" onclick="sendHokuMsg(${JSON.stringify(text)})">${safe}</button>`;
+  }).join('');
 }
 
 function renderHokuMsgs() {
@@ -20839,6 +20805,9 @@ function _hokuDetectViewIntent(text) {
   if(/(買い物|買物|買うもの|ショッピング)/.test(text)) {
     return { type:'shopping_view', entities:{ memberId: memberId }};
   }
+  if(/(家族ボード|ボードの内容|ボードを見せて|ボードを教えて|ボード.*教えて|ボード.*見せて)/.test(text)) {
+    return { type:'board_view', entities:{ memberId: memberId }};
+  }
   if(/(タスク|やること|TODO|todo|to-?do)/i.test(text)) {
     return { type:'task_view', entities:{ memberId: memberId, period: period, date: date }};
   }
@@ -20928,6 +20897,23 @@ function _hokuExecuteView(intent) {
     const body = items.slice(0,5).map(x => '・'+(x.name||'')+(x.qty?' '+x.qty:'')).join(NL);
     const more = items.length>5 ? NL+'…ほか '+(items.length-5)+' 件' : '';
     return { ok:true, message:'買い物リスト '+items.length+' 件。'+NL+body+more+'\n\n[[ACTION_BUTTONS:shopping]]' };
+  }
+  if(t === 'board_view') {
+    const posts = (S.posts||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    const announces = (S.announces||[]).slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    const lines = [];
+    if(announces.length) {
+      lines.push('【お知らせ '+announces.length+' 件】');
+      announces.slice(0,3).forEach(a => lines.push('・'+(a.text||a.content||'(内容なし)').slice(0,30)));
+      if(announces.length>3) lines.push('…ほか '+(announces.length-3)+' 件');
+    }
+    if(posts.length) {
+      lines.push('【投稿 '+posts.length+' 件】');
+      posts.slice(0,3).forEach(p => lines.push('・'+(p.text||p.content||'(内容なし)').slice(0,30)));
+      if(posts.length>3) lines.push('…ほか '+(posts.length-3)+' 件');
+    }
+    if(!lines.length) return { ok:true, message:'家族ボードにはまだ投稿がないよ。\n\n[[ACTION_BUTTONS:board]]' };
+    return { ok:true, message: lines.join(NL)+'\n\n[[ACTION_BUTTONS:board]]' };
   }
   return { ok:false, message:'どこを見る？' };
 }
