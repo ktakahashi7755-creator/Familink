@@ -15884,3 +15884,53 @@ Hoku精度修正・ホーム画面データバグ修正・設定画面ヘッダ�
 ### コミット
 - ハッシュ: `90a19ed`
 - メッセージ: `fix: Hoku精度修正・ホーム画面バグ修正・設定画面ヘッダーUI改善`
+
+---
+
+## 2026-05-29 18:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+QA Playwright 全点検 — 12件FAILを0件に解消
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- qa_full_test.js
+
+### 変更内容
+**app-source/familink.html:**
+- `s-cal` ヘッダーに戻るボタン追加（`cal-hd` 先頭に `cal-hd-btn aria-label="戻る"` 追加）
+- `s-budget` ヘッダーに戻るボタン追加（`.header` に `header-icon-btn aria-label="戻る"` + スペーサー追加）
+
+**qa_full_test.js:**
+- TEST 2: `s-login` 遷移チェック → ウェルカム画面内のインラインログインフォーム存在チェックに変更（新デザイン対応）
+- TEST 3: button検索ではなく `supaEntryClickGuest()` を直接呼び出す + `S.guideSeen=true` で初回ガイドモーダル抑制
+- TEST 6 (goBack): `_navStack=[]` でスタックリセット後に go→goBack することで確実にホームへ戻る検証
+- TEST 7〜11 + 18: モーダル閉じ確認を `page.isVisible()` から `classList.contains('open')` チェックに変更（opacity:0 要素は isVisible=true のため）
+- TEST 33: `toggleTaskStatus` → `toggleTaskDone`（実際の関数名に修正）
+
+**docs/index.html:**
+- app-source と同期、キャッシュバスター v20260529c → v20260529d
+
+### テスト結果
+- Playwright QA: **83 PASS / 0 FAIL / 1 WARN** (84テスト中)
+- WARN 1件: ゲスト体験ボタンが `<a>` タグのため button検索では不検出（設計上の仕様）
+- JSコンソールエラー: 0件
+- 横スクロール: 全画面なし
+
+### 未確認事項
+- iPhone Safari 実機での s-cal/s-budget 戻るボタンの見た目・操作感
+- 初回ガイドモーダル(m-guide)がホーム初回表示時に正常動作するか
+
+### iPhone確認ポイント
+- カレンダー画面: 戻るボタンが cal-hd ヘッダー左端に表示されるか
+- 家計画面: 戻るボタンがヘッダー左端に表示され、タイトルが中央寄りに見えるか
+
+### 次にやること
+- iPhone Safari 実機確認（cal/budget 戻るボタン UI）
+- main ブランチへの反映・GitHub Pages 更新確認
+- App Store 公開前チェックリスト（docs/app-store-release-checklist.md）
+
+### コミット
+- ハッシュ: （コミット後に記録）
+- メッセージ: `fix: QA全点検 — 12件FAIL解消（戻るボタン追加・テスト修正）`
