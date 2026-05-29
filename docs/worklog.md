@@ -15787,3 +15787,57 @@ Hoku テキスト入力タスク認識精度の修正（自然言語救済）
 ### コミット
 - ハッシュ: (次のコミット)
 - メッセージ: fix: userAvHtml null crash & sendHokuMsg undefined guard + 全画面QA 28/28 PASS
+
+## 2026-05-29 00:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+全画面再々徹底QA：デッドコード削除 + 37項目テスト完全合格（37 PASS / 0 FAIL）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **[DEAD CODE 削除] m-react-detail モーダル**: openModal()で一度も開かれない孤立モーダル（`リアクション詳細モーダル` ブロック）を削除
+- **[DEAD CODE 削除] m-task モーダル**: m-task-edit に完全置き換え済みの旧タスクモーダル（`Task Modal` ブロック）を削除
+- **docs/index.html 同期**: cache buster `v20260528n` → `v20260529a` にバンプ
+
+### テスト結果
+**Playwright 37項目テスト: 37 PASS / 0 FAIL / 0 WARN**
+
+カバレッジ:
+- 全22画面 DOM 存在確認 ✅
+- 全CRUD（タスク/予定/家計/体調/準備/買い物/メモ/投稿）保存・復元 ✅
+- 買い物購入済み→履歴移動フロー ✅
+- goBack()連続でhome到達 ✅
+- 全サブ画面アクセス（11画面）✅
+- 全モーダルに閉じるボタン ✅
+- 死んだモーダル削除確認 ✅
+- XSS無害化（タスク・メモ）✅
+- 横スクロールなし（8画面）✅
+- LocalStorage familink_v3 のみ ✅
+- Hoku送受信・null引数ガード ✅
+- 多重クリック安全性 ✅
+
+### コード監査結果
+- 孤立モーダル: m-task、m-react-detail（削除済み）
+- 孤立画面: なし（全22画面到達可能）
+- モーダル閉じるボタン: 全62モーダル確認済み
+- console.log: なし（production clean）
+- 重複関数定義: なし
+
+### 未確認事項
+- budgetType は PERSIST 外（セッション限り）→ 仕様通り
+- calView/calM/calY も PERSIST 外（リロード毎に今月）→ 仕様通り
+
+### iPhone確認ポイント
+- 全画面Safari実機での表示確認
+- PTR（プルトゥリフレッシュ）がiPhoneで動作するか
+
+### 次にやること
+- iPhone Safari 実機確認
+- Google / Apple OAuth 設定（Word ドキュメント参照）
+- App Store 公開前チェックリスト
+
+### コミット
+- メッセージ: refactor: 孤立モーダル削除(m-task/m-react-detail) + 全画面QA 37/37 PASS

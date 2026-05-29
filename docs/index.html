@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260528n';
+  var V='v20260529a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3786,15 +3786,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- リアクション詳細モーダル -->
-<div id="m-react-detail" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title" id="m-react-label"></div>
-    <div id="m-react-list" style="padding:4px 0 8px;"></div>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-react-detail')">閉じる</button>
-  </div>
-</div>
 
 <!-- ===== BUDGET ===== -->
 <div id="s-budget" class="screen hidden">
@@ -4898,21 +4889,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-event')">キャンセル</button>
     </div>
-  </div>
-</div>
-
-<!-- Task Modal -->
-<div id="m-task" class="modal-backdrop">
-  <div class="modal">
-    <div class="modal-grip"></div>
-    <div class="modal-title">やること管理</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <input class="input" id="task-input" placeholder="タスクを追加…" style="flex:1;height:46px;">
-      <select class="input" id="task-member" style="width:80px;height:46px;padding:0 6px;"></select>
-      <button class="btn btn-primary btn-sm" style="height:46px;" onclick="saveTask()">追加</button>
-    </div>
-    <div id="task-list" style="max-height:58vh;overflow-y:auto;"></div>
-    <button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="closeModal('m-task')">閉じる</button>
   </div>
 </div>
 
