@@ -1693,7 +1693,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .hoku-sugg:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); transform: scale(.93); }
 .hoku-chat {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 16px; display: flex; flex-direction: column; gap: 14px;
 }
 .hoku-row { display: flex; gap: 8px; align-items: flex-end; }
@@ -1726,11 +1726,15 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .hoku-bar {
   flex-shrink: 0;
   padding: 10px 14px;
-  /* Wave 62: タブバー（fixed 68px + 14px 浮き + safe-area）と被らないよう余白を確保 */
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  /* タブバー（fixed 64px + bottom:10px + safe-area）の上に収まるよう余白確保 */
+  padding-bottom: calc(82px + env(safe-area-inset-bottom));
   background: #fff; border-top: 1px solid var(--border-light);
   display: flex; gap: 8px; align-items: flex-end;
   max-width: 100%; box-sizing: border-box;
+}
+/* PC: タブバーは viewport 基準 fixed、#app は overflow:hidden なので適切な余白に */
+@media (min-width: 481px) {
+  .hoku-bar { padding-bottom: 82px; }
 }
 .hoku-input {
   flex: 1; min-height: 44px; max-height: 120px;
