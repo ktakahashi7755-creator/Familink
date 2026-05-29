@@ -1,4 +1,4 @@
-name: Deploy to gh-pages branch
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -7,49 +7,32 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: gh-pages-deploy
+  group: pages-deploy
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          fetch-depth: 0
+          path: docs/
 
-      - name: Deploy docs/ to gh-pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # docs/ をテンポラリに退避
-          cp -r docs /tmp/pages-content
-
-          # gh-pages ブランチに切り替え（存在しない場合は作成）
-          git fetch origin gh-pages || true
-          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
-            git checkout gh-pages
-          else
-            git checkout --orphan gh-pages
-            git rm -rf . > /dev/null 2>&1 || true
-          fi
-
-          # 既存ファイルをクリア（.git は保持）
-          find . -maxdepth 1 -not -name '.git' -not -name '.' | xargs rm -rf
-
-          # docs/ の内容をルートにコピー
-          cp -r /tmp/pages-content/. .
-
-          # 変更があればコミット & プッシュ
-          git add .
-          if ! git diff --staged --quiet; then
-            git commit -m "deploy: sync docs/ from main $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            git push origin gh-pages
-            echo "✅ gh-pages を更新しました"
-          else
-            echo "ℹ️ 変更なし、スキップ"
-          fi
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
