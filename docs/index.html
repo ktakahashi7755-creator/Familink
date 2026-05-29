@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529g';
+  var V='v20260529h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -19307,10 +19307,9 @@ function renderHokuSuggs() {
   el.innerHTML = FIXED.map(({ text, fill }) => {
     const safe = H(text);
     if (fill) {
-      const val = JSON.stringify(text);
-      return `<button class="hoku-sugg" onclick="(function(){var i=document.getElementById('hoku-input');if(i){i.value=${val};i.focus();}})()">${safe}</button>`;
+      return `<button class="hoku-sugg" onclick="(function(){var i=document.getElementById('hoku-input');if(i){i.value='${safe}';i.focus();}})()">${safe}</button>`;
     }
-    return `<button class="hoku-sugg" onclick="sendHokuMsg(${JSON.stringify(text)})">${safe}</button>`;
+    return `<button class="hoku-sugg" onclick="sendHokuMsg('${safe}')">${safe}</button>`;
   }).join('');
 }
 

@@ -19294,10 +19294,9 @@ function renderHokuSuggs() {
   el.innerHTML = FIXED.map(({ text, fill }) => {
     const safe = H(text);
     if (fill) {
-      const val = JSON.stringify(text);
-      return `<button class="hoku-sugg" onclick="(function(){var i=document.getElementById('hoku-input');if(i){i.value=${val};i.focus();}})()">${safe}</button>`;
+      return `<button class="hoku-sugg" onclick="(function(){var i=document.getElementById('hoku-input');if(i){i.value='${safe}';i.focus();}})()">${safe}</button>`;
     }
-    return `<button class="hoku-sugg" onclick="sendHokuMsg(${JSON.stringify(text)})">${safe}</button>`;
+    return `<button class="hoku-sugg" onclick="sendHokuMsg('${safe}')">${safe}</button>`;
   }).join('');
 }
 
