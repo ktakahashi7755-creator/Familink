@@ -16091,3 +16091,84 @@ QA総点検・board_view バグ修正・Playwright全84テスト通過確認
 ### コミット
 - ハッシュ: `eaf96e6`
 - メッセージ: `fix: ホーム画面カードの未定義IMGS.bg_*参照を修正（src=undefinedによる404解消）`
+
+## 2026-05-29 23:40  env: 不明  branch: main
+
+### 作業名
+GitHub Pages 404修正・総点検・残タスク洗い出し
+
+### 変更ファイル
+- .github/workflows/pages.yml
+
+### 変更内容
+- **GitHub Pages 404修正**: GitHub Actions の Pages デプロイワークフローを `actions/deploy-pages` 方式に更新（旧: gh-pages ブランチ手動 push 方式）
+- ユーザーが Pages 設定を「GitHub Actions」ソースに変更（Settings → Pages）
+- 初回デプロイトリガー用の空コミットを push
+- **総点検実施**: Playwright 84テスト全 PASS、Hoku 7インテント全 PASS（confidence 0.62-0.88）
+- **XSS確認**: innerHTML 代入箇所の H() エスケープ確認（バックグラウンドエージェント実行中）
+- **app-source ↔ docs 同期**: 差分はSW登録+キャッシュバスターのみ（正常）
+
+### テスト結果
+- Playwright 84テスト全通過（PASS:84 FAIL:0 WARN:0）
+- Hoku インテント 7/7 正常一致（confidence ≥ 0.5 全達成）
+- JSコンソールエラー: 0件
+
+### 未確認事項
+- XSSチェック詳細（バックグラウンドエージェント確認中）
+- GitHub Pages デプロイが実際に完了して URL が 200 を返すか確認
+- task_add の confidence が 0.62 と他より低い（動作はするが B 優先度で改善余地あり）
+- board_post_add が classifyHokuInput に未対応（B 優先度）
+
+### iPhone確認ポイント
+- https://ktakahashi7755-creator.github.io/Familink/ が正常に表示されるか（404が解消されたか）
+- Hoku 画面の7チップをタップ → 正しい回答が返るか（S-04）
+- iPhone SE 幅（375px）での崩れがないか
+
+### 次にやること
+1. XSS チェック結果を確認 → 問題があれば即修正（A-06）
+2. GitHub Pages が正常公開されているか実機で確認（A-05）
+3. App Store メタデータの仕上げ（A-01）→ docs/app-store-metadata.md 更新
+4. 実機検証（A1: iPhone SE/13/15 Plus/Pro Max の4幅 + 音声入力）→ オーナー実施
+5. Supabase Dashboard の Site URL / Redirect URLs 設定（B5）→ オーナー実施
+
+### コミット
+- ハッシュ: `3cb126b`
+- メッセージ: `ci: GitHub Pages ソースを GitHub Actions に変更後の初回デプロイトリガー`
+
+## 2026-05-29 23:50  env: 不明  branch: main
+
+### 作業名
+A-06 XSSチェック対応 — onclick 属性の H() エスケープ漏れ修正（11箇所）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- XSSエージェントが指摘した11箇所の onclick 属性にある変数に H() エスケープを追加
+  - ws.id × 2（ワークスペース切替・編集ボタン）
+  - item.id × 4（タブ設定 移動/表示切替ボタン）
+  - item.type × 1（ウィジェット切替ボタン）
+  - p.id × 5（デモプロファイル 適用/編集/複製/上書き/削除）
+  - monthKey × 2（家計キャッシュフロー 月初残高設定）
+  - d.key × 1（通知設定 切替）
+- 実際のXSS被害リスクはゼロ（全IDは uid()=英数字のみ、または system 定数）だが、CLAUDE.md §13.2 に基づく防御的実装として対応
+- docs/index.html 同期・キャッシュバスター v20260529m → v20260529n に更新
+
+### テスト結果
+- Playwright 84テスト全通過（PASS:84 FAIL:0 WARN:0）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- ワークスペース切替・タブ設定・通知設定が正常動作すること
+
+### 次にやること
+- GitHub Pages デプロイ完了確認（https://ktakahashi7755-creator.github.io/Familink/ の200確認）
+- task_add confidence 改善（B優先度、0.62 → 0.75）
+- App Store メタデータ仕上げ（A-01）
+
+### コミット
+- ハッシュ: `c78c8a2`
+- メッセージ: `fix: onclick属性のH()エスケープ漏れを修正（A-06 XSS対策・防御的実装）`
