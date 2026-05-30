@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260529n';
+  var V='v20260529o';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -9282,15 +9282,10 @@ function renderHome() {
     S.lastActiveDate = _todayStr;
     try { saveS(); } catch(_){}
   }
-  const _streak = S.activeStreak || 1;
-
   const greetEl = document.getElementById('home-greeting');
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
-    const streakBadge = _streak >= 3
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border-radius:10px;padding:2px 7px;margin-left:7px;vertical-align:middle;">🔥${_streak}日</span>`
-      : '';
-    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん${streakBadge}`;
+    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
   }
   // 日付表示なし（削除済み）
   const dateMid = document.getElementById('home-date-mid');
