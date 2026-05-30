@@ -4046,68 +4046,53 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
     <!-- otp モード（既定）：メアドだけ入力して送信ボタンを押す -->
     <div id="supa-auth-otp-wrap">
-      <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-        メールアドレスを入力すると、<b>ログイン用メール</b>をお送りします。<br>
-        メール内の<b>「Sign in」リンク</b>をタップ、または<b>6 桁コード</b>を入力するとログイン完了。パスワード不要です。
+      <p style="font-size:13px;color:var(--text-sub);line-height:1.65;margin:0 0 16px;">
+        メールアドレスに <b>6 桁のログインコード</b> をお送りします。パスワード不要です。
       </p>
       <div class="modal-form" style="gap:4px;">
         <label class="form-label" for="supa-otp-email">メールアドレス</label>
         <input type="email" id="supa-otp-email" class="form-input" placeholder="example@mail.com" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="send">
         <p id="supa-otp-email-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;"></p>
-        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(10,132,255,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
-          コードは数分で届きます。届かない場合は <strong>迷惑メールフォルダ</strong>もご確認ください。
-        </p>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:10px 0 0;">届かない場合は迷惑メールフォルダもご確認ください。</p>
       </div>
       <div class="modal-actions" style="gap:6px;">
-        <button id="supa-otp-send" class="btn btn-primary btn-block" onclick="doSupaSendOtp()">ログインコードを送る</button>
+        <button id="supa-otp-send" class="btn btn-primary btn-block" onclick="doSupaSendOtp()">コードを送る</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('signin')">パスワードでログイン / 新規登録</button>
-        <!-- Wave 209: メール認証で詰まる人の最終エスケープ -->
-        <button class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
+        <button class="btn btn-ghost btn-block" style="font-size:11px;color:var(--text-muted);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
 
     <!-- otp-code モード：送信後、6 桁コード入力 OR Magic Link 貼り付け -->
     <div id="supa-auth-otp-code-wrap" style="display:none;">
-      <div style="text-align:center;padding:10px 8px 4px;">
-        <!-- Wave 214: 📧 絵文字を SVG 封筒に置換 -->
-        <div style="margin-bottom:6px;display:flex;justify-content:center;color:#3B82F6;">
+      <div style="text-align:center;padding:12px 8px 16px;">
+        <div style="margin-bottom:10px;display:flex;justify-content:center;color:#3B82F6;">
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">メールを送信しました</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">メールを送信しました</div>
         <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
-          <span id="supa-otp-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span>
+          <span id="supa-otp-sent-email" style="font-weight:700;color:var(--text);word-break:break-all;"></span><br>
+          メール内の <b>6 桁コード</b> を入力するか、<b>「Sign in」リンク</b> をタップしてください。
         </div>
       </div>
-      <!-- Wave 212: メール内容は Supabase 設定により異なる。両対応を明示 -->
-      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin:14px 0 12px;">
-        <p style="font-size:13px;color:#1E3A8A;line-height:1.7;margin:0 0 6px;font-weight:700;">📩 メールの中身は次のいずれか</p>
-        <ol style="font-size:12px;color:#1E40AF;line-height:1.7;margin:0;padding-left:20px;">
-          <li><b>「Sign in」リンク</b>がある場合 → リンクをタップでログイン</li>
-          <li><b>6 桁の数字コード</b>がある場合 → 下の枠に入力</li>
-          <li><b>リンクと URL の両方</b>がある場合 → どちらでも OK</li>
-        </ol>
-      </div>
       <div class="modal-form" style="gap:4px;">
-        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">6 桁コード または リンクの URL を貼り付け</label>
+        <label class="form-label" for="supa-otp-code">6 桁コード または リンクの URL を貼り付け</label>
         <input type="text" id="supa-otp-code" class="form-input"
-               placeholder="000000 もしくはリンク URL"
+               placeholder="000000"
                inputmode="text" autocomplete="one-time-code"
                maxlength="2000"
                enterkeyhint="go"
-               style="font-size:18px;letter-spacing:4px;text-align:center;font-variant-numeric:tabular-nums;">
+               style="font-size:22px;letter-spacing:6px;text-align:center;font-variant-numeric:tabular-nums;">
         <p id="supa-otp-code-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;"></p>
-        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;">
-          コード / リンクの有効期限は <strong>約 1 時間</strong>。届かない場合は迷惑メールフォルダもご確認ください。
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:10px 0 0;">
+          有効期限は約 1 時間。届かない場合は迷惑メールフォルダもご確認ください。
         </p>
       </div>
       <div class="modal-actions" style="gap:6px;">
         <button id="supa-otp-verify" class="btn btn-primary btn-block" onclick="doSupaVerifyOtp()">ログインする</button>
-        <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コード/リンクを再送する</button>
-        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メアドを変更</button>
-        <!-- Wave 209+212: 何もメール届かない人の最終エスケープ。signupと同様 primary に格上げ -->
-        <button class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:linear-gradient(135deg,#10B981,#059669);border:none;font-weight:700;" onclick="useLocalAndCloseSupa()">📱 メールが届かない場合：ローカルだけで先に始める</button>
-        <p style="font-size:10px;color:#065F46;line-height:1.5;margin:4px 2px 0;text-align:center;">後から設定でクラウド連携できます</p>
+        <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コードを再送する</button>
+        <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メールアドレスを変更</button>
+        <button class="btn btn-ghost btn-block" style="font-size:11px;color:var(--text-muted);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -4128,9 +4113,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
-        <p id="supa-auth-info" style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(10,132,255,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
-          ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。
-        </p>
+        <p id="supa-auth-info" style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:10px 0 0;display:none;"></p>
         <!-- ログイン失敗時の補助導線（最後のエラー後だけ表示） -->
         <div id="supa-auth-error-help" style="display:none;margin-top:10px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 12px;">
           <p style="font-size:12px;color:#7F1D1D;line-height:1.6;margin:0 0 8px;font-weight:600;">うまくログインできない場合：</p>
@@ -4152,12 +4135,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         </button>
         <p id="supa-auth-local-signup-note" style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:6px 2px 14px;text-align:center;display:none;">端末内に作成・メール認証なし・あとでクラウド連携可</p>
         <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
-        <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
+        <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">新規登録はこちら</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
-        <button id="supa-auth-otp-back" class="btn btn-ghost btn-block" style="font-size:12px;color:var(--primary);" onclick="setSupaAuthMode('otp')">← メールでコードを受け取る方法に戻る</button>
-        <!-- Wave 209: メール詰まりの最終エスケープ。Wave 214: signup モードでは「今すぐ作成」と重複するため非表示 -->
-        <button id="supa-auth-use-local-escape" class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
+        <button id="supa-auth-otp-back" class="btn btn-ghost btn-block" style="font-size:12px;color:var(--primary);" onclick="setSupaAuthMode('otp')">← コードでログインに戻る</button>
+        <button id="supa-auth-use-local-escape" class="btn btn-ghost btn-block" style="font-size:11px;color:var(--text-muted);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
     </div>
@@ -5828,9 +5810,10 @@ function setSupaAuthMode(mode) {
 
   // 情報バナーの文言
   const info = document.getElementById('supa-auth-info');
-  if(info) info.innerHTML = isReset
-    ? 'パスワードを忘れた場合のみご利用ください。<br>そのままログインできる場合は「← ログインに戻る」へ。'
-    : 'ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。';
+  if(info) {
+    info.style.display = isReset ? '' : 'none';
+    if(isReset) info.innerHTML = 'パスワードを忘れた場合のみご利用ください。そのままログインできる場合は「← ログインに戻る」へ。';
+  }
 
   // エラーヘルプはモード切替時に閉じる（signin 復帰時は残す）
   if(isUp || isReset) _hideSupaErrorHelp();
