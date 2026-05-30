@@ -10,7 +10,7 @@ if('serviceWorker' in navigator){
 (function(){
   var V='v20260530a';
   var q=location.search;
-  if(q.indexOf('v='+V)>-1)return;
+  if(q.indexOf('v='+V)>-1||q.indexOf('fresh=')>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
 })();
 </script>
