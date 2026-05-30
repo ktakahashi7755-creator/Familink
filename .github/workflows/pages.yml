@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to gh-pages branch
 
 on:
   push:
@@ -7,32 +7,43 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages-deploy
+  group: gh-pages-deploy
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v4
         with:
-          path: docs/
+          fetch-depth: 0
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy docs/ to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp -r docs /tmp/pages-content
+
+          git fetch origin gh-pages || true
+          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . > /dev/null 2>&1 || true
+          fi
+
+          find . -maxdepth 1 -not -name '.git' -not -name '.' | xargs rm -rf
+          cp -r /tmp/pages-content/. .
+
+          git add .
+          if ! git diff --staged --quiet; then
+            git commit -m "deploy: sync docs/ from main $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push origin gh-pages
+            echo "✅ gh-pages を更新しました"
+          else
+            echo "ℹ️ 変更なし、スキップ"
+          fi
