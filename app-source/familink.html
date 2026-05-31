@@ -906,6 +906,12 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   z-index:100;
   opacity:.96;
 }
+.mn-drop-target {
+  background:rgba(10,132,255,.10)!important;
+  outline:2px solid var(--primary);
+  border-radius:12px;
+  transition:background .12s, outline .12s;
+}
 .mn-fab {
   position:fixed;right:20px;bottom:calc(82px + env(safe-area-inset-bottom));
   width:52px;height:52px;border-radius:50%;background:var(--primary);border:none;
@@ -14212,7 +14218,7 @@ function renderMemo() {
    [touchstart 380ms長押し] → 要素がリフト → [touchmove] で DOM 並び替え
    → [touchend] で新順序を S.memoFolders / S.memos に保存
    ─────────────────────────────────────────────────────────── */
-var _mnDrag = { active:false, el:null, type:null, startY:0, timer:null, didDrag:false };
+var _mnDrag = { active:false, el:null, type:null, startY:0, timer:null, didDrag:false, dropTarget:null };
 
 // 長押し検出（touchstart）
 document.addEventListener('touchstart', function(ev) {
@@ -14242,23 +14248,44 @@ function _mnDragMove(ev) {
   var dy = t.clientY - _mnDrag.startY;
   _mnDrag.el.style.transform = 'scale(1.03) translateY('+dy+'px)';
 
-  // 現在のビジュアル中心 Y を取得
+  // ── メモをドラッグ中: フォルダへのドロップ判定 ──
+  if(_mnDrag.type === 'memo') {
+    // pointer-events:none で一時的に透過させ、真下の要素を取得
+    _mnDrag.el.style.pointerEvents = 'none';
+    var below = document.elementFromPoint(t.clientX, t.clientY);
+    _mnDrag.el.style.pointerEvents = '';
+    var folderRow = below && below.closest('.mn-folder-row[data-id]');
+
+    if(folderRow) {
+      // フォルダをハイライト
+      if(_mnDrag.dropTarget && _mnDrag.dropTarget !== folderRow) {
+        _mnDrag.dropTarget.classList.remove('mn-drop-target');
+      }
+      _mnDrag.dropTarget = folderRow;
+      folderRow.classList.add('mn-drop-target');
+      return; // リスト内並び替えはスキップ
+    } else {
+      // フォルダ外に出たらハイライト解除
+      if(_mnDrag.dropTarget) {
+        _mnDrag.dropTarget.classList.remove('mn-drop-target');
+        _mnDrag.dropTarget = null;
+      }
+    }
+  }
+
+  // ── 通常のリスト内並び替え ──
   var rect = _mnDrag.el.getBoundingClientRect();
   var centerY = rect.top + rect.height / 2;
   var container = _mnDrag.el.parentNode;
   var siblings = Array.from(container.children).filter(function(c){ return c !== _mnDrag.el; });
-
-  // どのスロットに入るかを判定
   var insertBefore = null;
   for(var i=0; i<siblings.length; i++) {
     var r = siblings[i].getBoundingClientRect();
     if(centerY < r.top + r.height * 0.5) { insertBefore = siblings[i]; break; }
   }
-  // DOM が変わる場合のみ insertBefore
   var curNext = _mnDrag.el.nextSibling;
   if(insertBefore !== curNext) {
     container.insertBefore(_mnDrag.el, insertBefore || null);
-    // スロット移動後は startY をリセットしてガタつきを防ぐ
     _mnDrag.startY = t.clientY;
     _mnDrag.el.style.transform = 'scale(1.03) translateY(0)';
   }
@@ -14271,19 +14298,40 @@ function _mnDragEnd() {
   if(!_mnDrag.active || !_mnDrag.el) { _mnDrag.active = false; return; }
   var el   = _mnDrag.el;
   var type = _mnDrag.type;
-  // 元のスタイルに戻す（アニメーション付き）
+  // スタイルをリセット
   el.style.transition = 'transform .18s, box-shadow .18s';
   el.style.transform  = '';
   el.style.position   = '';
   el.classList.remove('mn-dragging');
   setTimeout(function(){ if(el) el.style.transition = ''; }, 200);
-  // 新しい並び順を保存
-  var container = el.parentNode;
-  if(container) {
-    var newOrder = Array.from(container.children)
-      .map(function(c){ return c.getAttribute('data-id'); })
-      .filter(Boolean);
-    _mnSaveOrder(type, newOrder);
+
+  // ── メモをフォルダにドロップ ──
+  if(type === 'memo' && _mnDrag.dropTarget) {
+    var folderId = _mnDrag.dropTarget.getAttribute('data-id');
+    var memoId   = el.getAttribute('data-id');
+    _mnDrag.dropTarget.classList.remove('mn-drop-target');
+    _mnDrag.dropTarget = null;
+    var memo = S.memos.find(function(m){ return m.id === memoId; });
+    if(memo && folderId) {
+      memo.folderId = folderId;
+      saveS();
+      showToast('フォルダに移動しました', 'success');
+      renderMemo();
+    }
+  } else {
+    // フォルダハイライト解除
+    if(_mnDrag.dropTarget) {
+      _mnDrag.dropTarget.classList.remove('mn-drop-target');
+      _mnDrag.dropTarget = null;
+    }
+    // リスト内並び替えを保存
+    var container = el.parentNode;
+    if(container) {
+      var newOrder = Array.from(container.children)
+        .map(function(c){ return c.getAttribute('data-id'); })
+        .filter(Boolean);
+      _mnSaveOrder(type, newOrder);
+    }
   }
   _mnDrag.active = false;
   _mnDrag.el     = null;
