@@ -16303,3 +16303,68 @@ App Store 審査対応 — S/A 級品質修正（評価スコア 71→81 目標�
 ### コミット
 - ハッシュ: `517a802`
 - メッセージ: `feat: 家族招待導線をホームバナーとオンボーディングに追加`
+
+---
+
+## 2026-05-31 env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+家族間データ共有の実装（Supabase RPC + クライアント fetch/Realtime 改修）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html (同期済み、cache buster v20260531c)
+
+### 変更内容
+- `FAMILY_SHARED_KEYS` 定数を追加（予定・タスク・家計・写真等、家族間でマージすべき配列キー）
+- `_fetchFromSupabase()` を家族共有対応に改修:
+  - family_id がある場合: Supabase RPC `get_family_data` で全メンバー行を取得
+  - RPC 未作成時は自分の行にフォールバック（後方互換）
+  - 自分の行: SYNC_KEYS 全体に適用（個人設定含む）
+  - 家族の行: FAMILY_SHARED_KEYS の配列のみ id でユニオンマージ
+- `startRealtimeSync()` を家族チャンネル対応に改修:
+  - family_id がある場合: `familink_family_<FAMI-XXXX>` チャンネル + `family_id=eq.` フィルタ
+  - ソロの場合: 従来の `familink_sync_<uid>` チャンネル
+- コメント内 SQL に `get_family_data` RPC 関数の定義を追記
+
+### Supabase ダッシュボードで必要な作業
+SQL Editor で以下を実行:
+```sql
+create or replace function get_family_data(p_family_id text)
+returns setof fl_family_data
+language sql
+security definer
+stable
+as $$
+  select * from fl_family_data
+  where family_id = p_family_id
+    and exists (
+      select 1 from fl_family_data
+      where user_id = auth.uid()
+        and family_id = p_family_id
+    );
+$$;
+```
+
+### テスト結果
+- Playwright 84/84 PASS
+
+### 未確認事項
+- Supabase ダッシュボードで get_family_data RPC 関数を実際に実行したか（要確認）
+- 実機2端末で家族共有の動作確認（要確認）
+
+### iPhone確認ポイント
+- 端末 A でイベントを作成 → 端末 B で自動的に表示されること
+- 家計・タスク・写真アルバムも同様に共有されること
+- 個人設定（プロフィール・ホーム順序）は共有されないこと
+- Realtime 同期ドット（右上）がソロ/家族で正しく表示されること
+
+### 次にやること
+- Supabase SQL Editor で get_family_data を実行（必須）
+- 実機 2 台で家族共有の動作確認
+- 朝の集約リマインダー実装（B 級）
+- Hoku 確認ダイアログ削減（B 級）
+
+### コミット
+- ハッシュ: （コミット後に記入）
+- メッセージ: `feat: 家族間データ共有を実装（Supabase RPC + fetch/Realtime 改修）`

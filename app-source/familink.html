@@ -5388,6 +5388,7 @@ async function supaSignOut() {
    Wave 219 — データ同期エンジン（Supabase fl_family_data）
 
    Supabase SQL（ダッシュボードで一度だけ実行）:
+     -- テーブル作成（初回のみ）
      create table if not exists fl_family_data (
        id         uuid default gen_random_uuid() primary key,
        user_id    uuid references auth.users(id) on delete cascade not null,
@@ -5402,11 +5403,29 @@ async function supaSignOut() {
        using (auth.uid() = user_id)
        with check (auth.uid() = user_id);
 
+     -- 家族共有 RPC（初回 or 家族共有を有効にする際に実行）:
+     create or replace function get_family_data(p_family_id text)
+     returns setof fl_family_data
+     language sql
+     security definer
+     stable
+     as $$
+       select * from fl_family_data
+       where family_id = p_family_id
+         and exists (
+           select 1 from fl_family_data
+           where user_id = auth.uid()
+             and family_id = p_family_id
+         );
+     $$;
+
    同期方針：
    - saveS() 後 1.5s デバウンスで push（書きすぎ防止）
    - ログイン直後に fetch してローカルにマージ
-   - 配列は id でマージ（cloud 優先。ローカル専用 id は保持）
-   - 非配列はクラウド値で上書き（最終書き込み優先）
+   - family_id がある場合は RPC get_family_data で全メンバー分を取得
+   - FAMILY_SHARED_KEYS の配列は id でユニオン（全メンバー分をマージ）
+   - 個人設定（PERSONAL_KEYS）は自分の行のみ適用
+   - Realtime は family_id がある場合、家族チャンネルを購読
    ============================================================ */
 
 const SYNC_KEYS = [
@@ -5420,6 +5439,15 @@ const SYNC_KEYS = [
   'userProfile','isPremiumUser','onboardCompleted','hokuContext',
   'cashflowSettings','demoProfiles','familyId'
 ];
+
+// 家族メンバー間でマージする配列キー（SYNC_KEYS のサブセット）
+// これ以外のキーは自分の行のみ適用（個人設定・プロフィール等）
+const FAMILY_SHARED_KEYS = new Set([
+  'events','tasks','txs','health','posts','announces',
+  'prep','prepRoutines','shoppingItems','shoppingFrequent',
+  'docs','albumPhotos','memos','notifs','recurringTxs',
+  'members','boardItems','boardSections'
+]);
 
 let _syncTimer = null;
 let _isSyncing = false;
@@ -5476,14 +5504,36 @@ async function _fetchFromSupabase() {
   try {
     const uid = S.supaSession && S.supaSession.id;
     if(!uid) return;
-    const { data, error } = await sb
-      .from('fl_family_data')
-      .select('data_key,payload,updated_at')
-      .eq('user_id', uid);
-    if(error) { console.error('sync fetch error:', error.message); return; }
+
+    let data, fetchError;
+    if(S.familyId) {
+      // 家族共有モード: RPC で同じ family_id を持つ全メンバーの行を取得
+      const res = await sb.rpc('get_family_data', { p_family_id: S.familyId });
+      if(res.error) {
+        // RPC 未作成の場合は自分の行にフォールバック
+        console.warn('[family] get_family_data RPC unavailable, fallback to own data:', res.error.message);
+        const fb = await sb.from('fl_family_data').select('user_id,data_key,payload,updated_at').eq('user_id', uid);
+        data = fb.data; fetchError = fb.error;
+      } else {
+        data = res.data; fetchError = res.error;
+      }
+    } else {
+      // ソロモード: 自分の行のみ
+      const res = await sb.from('fl_family_data').select('user_id,data_key,payload,updated_at').eq('user_id', uid);
+      data = res.data; fetchError = res.error;
+    }
+
+    if(fetchError) { console.error('sync fetch error:', fetchError.message); return; }
     if(!data || !data.length) { _pushToSupabase(); return; }
+
+    // 自分の行と家族メンバーの行を分離
+    const ownRows    = data.filter(r => r.user_id === uid);
+    const familyRows = data.filter(r => r.user_id !== uid);
+
     let changed = false;
-    data.forEach(row => {
+
+    // ① 自分の行: SYNC_KEYS 全体に適用（個人設定含む）
+    ownRows.forEach(row => {
       const k = row.data_key;
       if(!SYNC_KEYS.includes(k)) return;
       if(Array.isArray(row.payload) && Array.isArray(S[k])) {
@@ -5495,12 +5545,26 @@ async function _fetchFromSupabase() {
       }
       changed = true;
     });
+
+    // ② 家族メンバーの行: FAMILY_SHARED_KEYS の配列のみ id でユニオン
+    familyRows.forEach(row => {
+      const k = row.data_key;
+      if(!FAMILY_SHARED_KEYS.has(k)) return;
+      if(!Array.isArray(row.payload)) return;
+      const existing    = Array.isArray(S[k]) ? S[k] : [];
+      const existingIds = new Set(existing.map(i => i && i.id).filter(Boolean));
+      const newItems    = row.payload.filter(i => i && i.id && !existingIds.has(i.id));
+      if(newItems.length > 0) {
+        S[k] = [...existing, ...newItems];
+        changed = true;
+      }
+    });
+
     if(changed) {
       saveS();
       try { go(S.screen); } catch(_){}
     }
     _setSyncDot('synced');
-    /* Wave 233: Realtimeチャンネルをまだ開いていなければ開始 */
     if(!_realtimeChannel) {
       try { startRealtimeSync(); } catch(_){}
     }
@@ -5538,19 +5602,29 @@ function startRealtimeSync() {
   stopRealtimeSync();
   const uid = S.supaSession && S.supaSession.id;
   if(!uid) return;
+
+  // 家族がいる場合は family_id チャンネル、ソロは user_id チャンネル
+  const channelId = S.familyId
+    ? 'familink_family_' + S.familyId
+    : 'familink_sync_' + uid.slice(0, 8);
+  const rtFilter = S.familyId
+    ? 'family_id=eq.' + S.familyId
+    : 'user_id=eq.' + uid;
+
   try {
     _realtimeChannel = sb
-      .channel('familink_sync_' + uid.slice(0, 8))
+      .channel(channelId)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'fl_family_data',
+        filter: rtFilter
       }, (payload) => {
-        /* 自分が書いた変更は無視（pushTo直後のechoback） */
+        // 自分が書いた変更は無視（echoback）
         if(payload.new && payload.new.user_id === uid &&
            payload.new.updated_at && _lastPushAt &&
            Math.abs(new Date(payload.new.updated_at) - _lastPushAt) < 3000) return;
-        /* 他のデバイス/メンバーからの変更 → debounce後に再取得 */
+        // 家族メンバー / 別デバイスの変更 → debounce 後に再取得
         clearTimeout(_realtimeDebounce);
         _realtimeDebounce = setTimeout(() => {
           _setSyncDot('syncing');
