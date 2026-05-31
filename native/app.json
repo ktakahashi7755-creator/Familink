@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Familink",
+    "slug": "familink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "familink",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "jp.familink.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "写真の撮影・添付に使用します",
+        "NSPhotoLibraryUsageDescription": "写真の添付・アバター設定に使用します",
+        "NSPhotoLibraryAddUsageDescription": "写真の保存に使用します",
+        "CFBundleDevelopmentRegion": "ja",
+        "UIRequiresFullScreen": true
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "jp.familink.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "写真の添付・アバター設定に使用します",
+          "cameraPermission": "写真の撮影・添付に使用します"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
