@@ -16,7 +16,7 @@ const EVENT_COLORS = ['#5B7FFF', '#FF6B6B', '#4CC9A0', '#FFAB40', '#AB69D8', '#0
 export default function EventEditModal() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, date: preDate } = useLocalSearchParams<{ id?: string; date?: string }>();
   const events = useStore(s => s.events);
   const addEvent = useStore(s => s.addEvent);
   const updateEvent = useStore(s => s.updateEvent);
@@ -26,7 +26,7 @@ export default function EventEditModal() {
   const existing = id ? events.find(e => e.id === id) : undefined;
 
   const [title, setTitle] = useState(existing?.title ?? '');
-  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(existing?.date ?? preDate ?? new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState(existing?.time ?? '');
   const [place, setPlace] = useState(existing?.place ?? '');
   const [note, setNote] = useState(existing?.note ?? '');

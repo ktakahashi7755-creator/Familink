@@ -102,6 +102,12 @@ export default function CalendarScreen() {
                     key={dayIdx}
                     style={styles.dayCell}
                     onPress={() => { if (d) { haptic.selection(); setSelected(dateStr); } }}
+                    onLongPress={() => {
+                      if (d) {
+                        haptic.medium();
+                        router.push(`/modals/event-edit?date=${dateStr}` as any);
+                      }
+                    }}
                     disabled={!d}
                   >
                     <View style={[
@@ -156,7 +162,10 @@ export default function CalendarScreen() {
             <View style={styles.eventList}>
               {selectedEvents.map((e, i) => (
                 <Animated.View key={e.id} entering={FadeInDown.delay(i * 40).springify().damping(18)}>
-                  <TouchableOpacity style={styles.eventCard}>
+                  <TouchableOpacity
+                    style={styles.eventCard}
+                    onPress={() => { haptic.light(); router.push(`/modals/event-edit?id=${e.id}` as any); }}
+                  >
                     <View style={[styles.eventColorBar, { backgroundColor: e.color ?? Colors.primary }]} />
                     <View style={styles.eventContent}>
                       <Text style={styles.eventTitle}>{e.title}</Text>

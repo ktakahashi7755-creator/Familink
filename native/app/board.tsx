@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useStore, useMembers } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
+import { haptic } from '../src/utils/haptics';
 import { Sheet } from '../src/components/ui/Sheet';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
@@ -32,6 +33,7 @@ export default function BoardScreen() {
 
   function handlePost() {
     if (!title.trim() || !myMember) return;
+    haptic.success();
     addAnnounce({ title: title.trim(), body: body || undefined, memberId: myMember.id });
     setTitle('');
     setBody('');
@@ -66,7 +68,11 @@ export default function BoardScreen() {
             const author = members.find(m => m.id === ann.memberId);
             return (
               <Animated.View key={ann.id} entering={FadeInDown.delay(i * 40).springify().damping(18)}>
-                <TouchableOpacity style={styles.card} onLongPress={() => deleteAnnounce(ann.id)}>
+                <TouchableOpacity
+                  style={styles.card}
+                  onLongPress={() => { haptic.warning(); deleteAnnounce(ann.id); }}
+                  activeOpacity={0.8}
+                >
                   {ann.pinned && (
                     <View style={styles.pinnedBadge}>
                       <Ionicons name="pin" size={12} color={Colors.warning} />
