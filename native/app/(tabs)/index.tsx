@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useStore, useMembers, useEvents, useTasks } from '../../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../src/constants/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
+import { haptic } from '../../src/utils/haptics';
 import { formatDate, todayStr } from '../../src/utils/date';
 
 const QUICK_ACTIONS = [
@@ -27,6 +28,13 @@ export default function HomeScreen() {
   const tasks = useTasks();
   const activeStreak = useStore(s => s.activeStreak);
   const isPremium = useStore(s => s.isPremiumUser);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    haptic.light();
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
 
   const today = todayStr();
   const todayEvents = events
@@ -60,6 +68,14 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
       >
         {/* Hoku Card */}
         <Animated.View entering={FadeInDown.delay(50).springify().damping(18)}>
@@ -89,7 +105,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={action.id}
                 style={styles.quickItem}
-                onPress={() => router.push(action.route as any)}
+                onPress={() => { haptic.light(); router.push(action.route as any); }}
               >
                 <View style={[styles.quickIconWrap, { backgroundColor: action.color + '18' }]}>
                   <Ionicons name={action.icon as any} size={22} color={action.color} />
@@ -217,9 +233,13 @@ export default function HomeScreen() {
 
 function TaskRow({ task, index, members }: { task: any; index: number; members: any[] }) {
   const toggleTask = useStore(s => s.toggleTask);
+  const handleToggle = useCallback(() => {
+    if (!task.done) haptic.success(); else haptic.light();
+    toggleTask(task.id);
+  }, [task.done, task.id, toggleTask]);
   return (
     <Animated.View entering={FadeInDown.delay(270 + index * 40).springify().damping(18)}>
-      <TouchableOpacity style={styles.taskRow} onPress={() => toggleTask(task.id)}>
+      <TouchableOpacity style={styles.taskRow} onPress={handleToggle}>
         <View style={[styles.taskCheck, task.done && styles.taskCheckDone]}>
           {task.done && <Ionicons name="checkmark" size={12} color="#fff" />}
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform,
@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useStore, useEvents, useTasks, useShopping } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
+import { TypingIndicator } from '../src/components/ui/TypingIndicator';
+import { haptic } from '../src/utils/haptics';
 import { todayStr } from '../src/utils/date';
 
 type Message = { id: string; role: 'hoku' | 'user'; text: string; time: string };
@@ -17,7 +19,7 @@ const SUGGESTIONS = [
   '今日の予定を教えて',
   '未完了のタスクは？',
   '買い物リストを確認して',
-  '今週どんなことがある？',
+  '使い方を教えて',
 ];
 
 function buildContext(events: any[], tasks: any[], shopping: any[]) {
@@ -40,25 +42,70 @@ function buildContext(events: any[], tasks: any[], shopping: any[]) {
 
 function generateHokuResponse(input: string, context: string): string {
   const lower = input.toLowerCase();
-  if (lower.includes('予定') || lower.includes('スケジュール')) {
+  const hour = new Date().getHours();
+
+  if (lower.match(/おはよ|こんにちは|こんばんは|やあ|ハロー|hello|hi/)) {
+    const greet = hour < 12 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'こんばんは';
+    return `${greet}！🌸 今日もご家族のサポートをお任せください。何かお手伝いできることはありますか？`;
+  }
+
+  if (lower.match(/予定|スケジュール|今日|明日|今週|何がある/)) {
     const evtLine = context.split('\n').find(l => l.startsWith('今日の予定'));
-    return evtLine
-      ? `${evtLine.replace('今日の予定: ', '今日は ')}があります。準備は大丈夫ですか？`
-      : '今日は特に予定が入っていません。ゆっくり過ごせそうですね 🌸';
+    if (evtLine) {
+      const evts = evtLine.replace('今日の予定: ', '');
+      return `今日は ${evts} の予定があります 📅\n余裕を持って準備できそうですか？`;
+    }
+    return '今日は特に予定が入っていないようです。ゆっくり過ごせそうですね 🌸\n新しい予定はカレンダータブから追加できますよ！';
   }
-  if (lower.includes('タスク')) {
+
+  if (lower.match(/タスク|やること|家事|to.?do/)) {
     const taskLine = context.split('\n').find(l => l.startsWith('未完了タスク'));
-    return taskLine
-      ? `${taskLine.replace('未完了タスク: ', '')}が残っています。一つずつ片付けていきましょう ✅`
-      : '未完了のタスクはありません。お疲れさまでした！';
+    if (taskLine) {
+      const tasks = taskLine.replace('未完了タスク: ', '');
+      return `現在 ${tasks} が残っています ✅\n一つずつ片付けていきましょう！`;
+    }
+    return '未完了のタスクはありません 🎉\nすべて片付いているんですね、素晴らしいです！';
   }
-  if (lower.includes('買い物')) {
+
+  if (lower.match(/買い物|買う|スーパー|コンビニ|購入|ショッピング/)) {
     const shopLine = context.split('\n').find(l => l.startsWith('買い物'));
-    return shopLine
-      ? `買い物リストに${shopLine.replace('買い物: ', '')}があります。お買い物のついでに確認してみてください 🛒`
-      : '買い物リストは空です。今日は何か必要なものはありますか？';
+    if (shopLine) {
+      return `買い物リストに ${shopLine.replace('買い物: ', '')} が入っています 🛒\nお出かけの際にチェックしてみてください！`;
+    }
+    return '買い物リストは空です。必要なものがあれば追加しておくと便利ですよ 🛒';
   }
-  return 'ご家族のために、できることがあれば何でも聞いてくださいね 🌸 今日も素敵な一日を！';
+
+  if (lower.match(/体調|健康|熱|薬|病院|子ど|さむい|しんど/)) {
+    return 'お子さんの体調が心配なときは、体調記録タブで記録しておきましょう 🏥\n急な場合は医療機関や #7119 にご相談ください。';
+  }
+
+  if (lower.match(/お金|家計|予算|支出|収入|節約/)) {
+    return '家計管理は「その他」タブから確認できます 💰\n毎日少しずつ記録するとグラフで見える化できますよ！';
+  }
+
+  if (lower.match(/使い方|ヘルプ|操作|方法|機能/)) {
+    return 'Familinkの主な機能です：\n\n📅 カレンダー — 家族の予定を管理\n✅ タスク — 家事・育児を分担\n📝 メモ — 大切なことを保存\n💰 家計管理 — 収支を記録\n🌸 Hoku — いつでもご相談を！\n\n何か詳しく知りたいことはありますか？';
+  }
+
+  if (lower.match(/hoku|ほく|あなた|なに|だれ|誰/)) {
+    return 'わたしはHokuです 🌸\nご家族の日々をサポートする家族AIガイドです。予定・タスク・買い物のことなど、何でも気軽に話しかけてくださいね！';
+  }
+
+  if (lower.match(/ありがとう|助かる|助かった|嬉しい|よかった/)) {
+    return 'お役に立ててよかったです 🌸 いつでも声をかけてくださいね！';
+  }
+
+  if (lower.match(/疲れ|つらい|大変|しんど|つかれ/)) {
+    return 'いつもご家族のために頑張っているんですね 🌸\n無理しすぎず、少し休んでくださいね。Hokuはいつでもここにいます。';
+  }
+
+  const defaults = [
+    'ご家族のために何でも聞いてくださいね 🌸 予定・タスク・買い物など気軽にどうぞ！',
+    'ご家族の毎日が少しでも楽になるよう、全力でサポートします 🌸',
+    '何かお手伝いできることはありますか？今日も素敵な一日になりますように 🌸',
+    'いつもご家族のために頑張っていますね。今日も一緒に頑張りましょう 🌸',
+  ];
+  return defaults[Math.floor(Math.random() * defaults.length)];
 }
 
 export default function HokuScreen() {
@@ -80,37 +127,51 @@ export default function HokuScreen() {
     },
   ]);
   const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
-  function sendMessage(text: string) {
-    if (!text.trim()) return;
+  const sendMessage = useCallback((text: string) => {
+    if (!text.trim() || isTyping) return;
+    haptic.light();
     const now = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text: text.trim(), time: now };
-    const hokuMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'hoku',
-      text: generateHokuResponse(text, context),
-      time: now,
-    };
-    setMessages(prev => [...prev, userMsg, hokuMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-  }
+    setIsTyping(true);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+
+    const delay = 700 + Math.random() * 700;
+    setTimeout(() => {
+      const hokuMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'hoku',
+        text: generateHokuResponse(text, context),
+        time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setIsTyping(false);
+      setMessages(prev => [...prev, hokuMsg]);
+      haptic.selection();
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    }, delay);
+  }, [isTyping, context]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.hokuEmoji}>🌸</Text>
           <View>
             <Text style={styles.headerTitle}>Hoku</Text>
-            <Text style={styles.headerSub}>家族AIガイド</Text>
+            <View style={styles.onlineRow}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>オンライン</Text>
+            </View>
           </View>
         </View>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 32 }} />
       </View>
 
       <KeyboardAvoidingView
@@ -128,11 +189,8 @@ export default function HokuScreen() {
           {messages.map((msg, i) => (
             <Animated.View
               key={msg.id}
-              entering={FadeInDown.delay(i === 0 ? 0 : 50).springify().damping(18)}
-              style={[
-                styles.bubble,
-                msg.role === 'user' ? styles.userBubble : styles.hokububble,
-              ]}
+              entering={FadeInDown.delay(i === 0 ? 0 : 40).springify().damping(20)}
+              style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.hokububble]}
             >
               {msg.role === 'hoku' && <Text style={styles.hokuBubbleEmoji}>🌸</Text>}
               <View style={[
@@ -148,6 +206,12 @@ export default function HokuScreen() {
               </View>
             </Animated.View>
           ))}
+
+          {isTyping && (
+            <Animated.View entering={FadeInDown.springify().damping(20)} style={styles.typingWrap}>
+              <TypingIndicator />
+            </Animated.View>
+          )}
         </ScrollView>
 
         {/* Suggestions */}
@@ -157,13 +221,17 @@ export default function HokuScreen() {
           contentContainerStyle={styles.suggestions}
         >
           {SUGGESTIONS.map(s => (
-            <TouchableOpacity key={s} style={styles.suggestion} onPress={() => sendMessage(s)}>
+            <TouchableOpacity
+              key={s}
+              style={styles.suggestion}
+              onPress={() => sendMessage(s)}
+            >
               <Text style={styles.suggestionText}>{s}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Input */}
+        {/* Input bar */}
         <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
           <TextInput
             style={styles.textInput}
@@ -176,9 +244,9 @@ export default function HokuScreen() {
             multiline
           />
           <TouchableOpacity
-            style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, (!input.trim() || isTyping) && styles.sendBtnDisabled]}
             onPress={() => sendMessage(input)}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
           >
             <Ionicons name="arrow-up" size={18} color="#fff" />
           </TouchableOpacity>
@@ -193,38 +261,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingBottom: Spacing.sm,
     backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.borderLight,
   },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  hokuEmoji: { fontSize: 32 },
+  hokuEmoji: { fontSize: 30 },
   headerTitle: { fontSize: Typography.md, fontWeight: '700', color: Colors.text },
-  headerSub: { fontSize: Typography.xs, color: Colors.textMuted },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.success },
+  onlineText: { fontSize: Typography.xs, color: Colors.success },
   messages: { paddingHorizontal: Spacing.base, paddingTop: Spacing.sm, gap: Spacing.sm },
   bubble: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
   userBubble: { flexDirection: 'row-reverse' },
   hokububble: {},
   hokuBubbleEmoji: { fontSize: 24, marginBottom: 4 },
-  bubbleContent: {
-    maxWidth: '75%', padding: Spacing.sm,
-    borderRadius: Radius.xl,
-  },
+  bubbleContent: { maxWidth: '75%', padding: Spacing.sm, borderRadius: Radius.xl },
   hokuBubbleContent: {
-    backgroundColor: Colors.card,
-    borderBottomLeftRadius: 4,
-    ...Shadows.sm,
+    backgroundColor: Colors.card, borderBottomLeftRadius: 4, ...Shadows.sm,
   },
-  userBubbleContent: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  bubbleText: { fontSize: Typography.base, color: Colors.text, lineHeight: Typography.base * 1.5 },
+  userBubbleContent: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
+  bubbleText: { fontSize: Typography.base, color: Colors.text, lineHeight: Typography.base * 1.55 },
   userBubbleText: { color: '#fff' },
   bubbleTime: { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 4, alignSelf: 'flex-end' },
-  userBubbleTime: { color: 'rgba(255,255,255,0.7)' },
-  suggestions: {
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-  },
+  userBubbleTime: { color: 'rgba(255,255,255,0.65)' },
+  typingWrap: { paddingHorizontal: 0 },
+  suggestions: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, gap: Spacing.sm },
   suggestion: {
     paddingHorizontal: 12, paddingVertical: 7,
     borderRadius: Radius.full,
@@ -234,8 +294,7 @@ const styles = StyleSheet.create({
   suggestionText: { fontSize: Typography.sm, color: Colors.primary },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.base, paddingTop: Spacing.sm,
     backgroundColor: Colors.background,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderLight,
   },
@@ -248,8 +307,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     color: Colors.text,
     maxHeight: 100,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderWidth: 1, borderColor: Colors.borderLight,
   },
   sendBtn: {
     width: 38, height: 38, borderRadius: 19,

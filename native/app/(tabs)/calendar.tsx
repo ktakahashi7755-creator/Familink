@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useEvents, useMembers } from '../../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../src/constants/theme';
+import { haptic } from '../../src/utils/haptics';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { getCalendarDaysForMonth, prevMonthYM, nextMonthYM, todayStr } from '../../src/utils/date';
 
@@ -59,11 +60,11 @@ export default function CalendarScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Month navigation */}
         <View style={styles.monthNav}>
-          <TouchableOpacity onPress={() => setCurrent(prevMonthYM(current.year, current.month))} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => { haptic.light(); setCurrent(prevMonthYM(current.year, current.month)); }} style={styles.navBtn}>
             <Ionicons name="chevron-back" size={20} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
-          <TouchableOpacity onPress={() => setCurrent(nextMonthYM(current.year, current.month))} style={styles.navBtn}>
+          <TouchableOpacity onPress={() => { haptic.light(); setCurrent(nextMonthYM(current.year, current.month)); }} style={styles.navBtn}>
             <Ionicons name="chevron-forward" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
@@ -100,7 +101,7 @@ export default function CalendarScreen() {
                   <TouchableOpacity
                     key={dayIdx}
                     style={styles.dayCell}
-                    onPress={() => d && setSelected(dateStr)}
+                    onPress={() => { if (d) { haptic.selection(); setSelected(dateStr); } }}
                     disabled={!d}
                   >
                     <View style={[
