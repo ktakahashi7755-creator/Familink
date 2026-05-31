@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260530b';
+  var V='v20260531a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1||q.indexOf('fresh=')>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -9267,9 +9267,13 @@ function renderHome() {
   const greetEl = document.getElementById('home-greeting');
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
-    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん`;
+    const streak = S.activeStreak || 1;
+    const streakHtml = streak >= 3
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#F59E0B;background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--r-full);padding:2px 8px;margin-left:8px;vertical-align:middle;">${streak}日連続</span>`
+      : '';
+    greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん${streakHtml}`;
   }
-  // 日付表示なし（削除済み）
+  // 日付表示
   const dateMid = document.getElementById('home-date-mid');
   if(dateMid) {
     const now = new Date();
@@ -10513,7 +10517,7 @@ function setIcsImportStep(step) {
   const subEl   = document.getElementById('ics-modal-sub');
   const T = {
     select:  ['カレンダーを連携する',     'Google・iPhone・Yahooの予定をFamilinkにまとめられます。'],
-    google:  ['Googleカレンダー連携',     '予定をFamilinkにまとめる準備中です。'],
+    google:  ['Googleカレンダー連携',     '予定を Familink に取り込めます（手動インポート対応）。'],
     apple:   ['iPhoneカレンダー連携',     'App Store版で許可制の連携を予定しています。'],
     yahoo:   ['Yahooカレンダー連携',      '書き出しデータでFamilinkにまとめられます。'],
     manual:  ['予定ファイルから取り込む', '外部カレンダーから書き出した予定データを取り込めます。'],
@@ -10530,7 +10534,7 @@ function setIcsImportStep(step) {
 function _icsProviderGuideHtml(step) {
   const cfg = {
     google: {
-      lead: 'Googleカレンダーの予定を Familink にまとめられるよう準備中です。',
+      lead: 'Google カレンダーの予定を Familink に手動で取り込めます。',
       now:  ['Googleカレンダーから書き出した予定を取り込む', '予定ファイル（.ics）で予定を追加する', '取り込み前に予定を確認する'],
       next: ['Google アカウントでログイン', 'カレンダーを選択', '予定を自動取得', 'Familink カレンダーへ反映', '重複を防いで同期'],
       note: '自動同期は、ログイン/認証対応後に追加予定です。Google API キーは安全に管理する必要があるため、現 Web 版では実装しません。'
@@ -13123,7 +13127,7 @@ const LEGAL_PRIVACY = {
     { h:'7. 子どものプライバシー', items:[
       '本アプリは13歳未満の子ども本人による利用を意図していません。保護者が子どもの情報を記録する用途で使用されますが、それらも端末内にのみ保存されます。'] },
     { h:'8. 課金情報', items:[
-      'Familink プレミアム（月額480円予定）は将来提供予定です。課金処理は App Store / Google Play を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
+      'Familink プレミアム（月額480円）は現在30日間無料トライアルとして提供中です。課金処理は App Store / Google Play を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
     { h:'9. データの利用目的', items:[
       '入力データは、予定・タスク・家計・体調等の表示、Hoku の応答、集計表示のためにのみ、端末内で使用されます。外部送信は行いません。'] },
     { h:'10. お問い合わせ', items:[
@@ -13133,17 +13137,17 @@ const LEGAL_PRIVACY = {
     { h:'12. 準拠法', items:[
       '本ポリシーは日本法に準拠し、解釈されます。'] }
   ],
-  foot:'※ この草案は専門家による法務確認前のものです。App Store 公開前にレビューを推奨します。'
+  foot:''
 };
 const LEGAL_TERMS = {
   title: '利用規約',
   updated: '最終更新日：2026-05-16 ／ 事業者：ktakahashi7755-creator（個人開発）',
   sections: [
     { h:'第1条（目的）', items:['本規約は Familink（以下「本アプリ」）の利用条件を定めます。利用者は本規約に同意したものとみなします。'] },
-    { h:'第2条（本アプリの内容）', items:['本アプリは家族間での予定・タスク・体調・家計・準備リスト・家族ボードの管理を支援するツールです。すべてのデータは端末内に保存され、外部サーバには送信されません。'] },
+    { h:'第2条（本アプリの内容）', items:['本アプリは家族間での予定・タスク・体調・家計・準備リスト・家族ボードの管理を支援するツールです。データは原則として端末内に保存されます。クラウド連携を有効にした場合のみ、Supabase サーバに暗号化して保存されます。'] },
     { h:'第3条（利用料金）', items:[
       '基本機能は無料でご利用いただけます。',
-      '一部機能（Familink プレミアム）は将来、月額480円（予定）の有料プランとして提供を予定しています。料金・内容・時期は事前告知のうえ変更する場合があります。'] },
+      '一部機能（Familink プレミアム）は月額480円の有料プランとして提供しています（現在は30日間無料トライアルあり）。料金・内容は事前告知のうえ変更する場合があります。'] },
     { h:'第4条（禁止事項）', items:[
       '・法令または公序良俗に違反する行為',
       '・リバースエンジニアリング、改変、再配布',
@@ -13157,7 +13161,7 @@ const LEGAL_TERMS = {
     { h:'第7条（Hoku の利用）', items:[
       'Hoku は入力文を端末内で分類し保存先や操作を提案する機能です。応答は参考情報であり、専門的助言ではありません。音声入力は端末ブラウザの Web Speech API を利用します。'] },
     { h:'第8条（プレミアム機能）', items:[
-      'プレミアム機能は将来提供予定です。課金は App Store / Google Play を通じて行います。解約は各ストアアカウントの設定から行ってください。'] },
+      'プレミアム機能は現在無料トライアルとして提供中です。正式版では App Store / Google Play の課金に切り替わります。解約はいつでも設定画面から行えます。'] },
     { h:'第9条（サービスの変更・中止）', items:[
       '開発者は事前通知なく本アプリの内容を変更・中止する場合があります。これにより生じた損害について責任を負いません。'] },
     { h:'第10条（免責事項）', items:[
@@ -13169,7 +13173,7 @@ const LEGAL_TERMS = {
     { h:'第13条（お問い合わせ）', items:[
       'GitHub Issues：github.com/ktakahashi7755-creator/Familink/issues'] }
   ],
-  foot:'※ この草案は専門家による法務確認前のものです。App Store 公開前にレビューを推奨します。'
+  foot:''
 };
 function _renderLegal(doc) {
   let h = '<div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;">'+H(doc.updated)+'</div>';
@@ -16635,15 +16639,6 @@ function _refreshNotifBadges() {
    ============================================================ */
 
 
-function devTogglePremium() {
-  S.isPremiumUser = !S.isPremiumUser;
-  saveS();
-  try { renderSettings(); } catch(_){}
-  try { if(S.screen==='s-home') renderHome(); else renderHome(); } catch(_){}
-  try { if(S.screen==='s-hoku') renderHoku(); } catch(_){}
-  try { if(S.screen==='s-premium') renderPremium(); } catch(_){}
-  showToast(S.isPremiumUser ? 'プレミアム ON（開発用）' : '無料プラン（開発用）', 'success');
-}
 
 /* ============================================================
    Wave 200 — Familink Premium Screen
@@ -16972,9 +16967,9 @@ function renderSettings() {
       ${accountSecHtml}
     </div>
 
-    <!-- 2. クラウド連携（ベータ）— Wave 202 -->
+    <!-- 2. クラウド連携 -->
     <div class="settings-section">
-      <div class="settings-title">クラウド連携（ベータ）${isSupaLoggedIn() ? ' <span style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">ログイン中</span>' : (SUPA_OK ? '' : ' <span style="display:inline-block;background:#F3F4F6;color:#6B7280;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">未接続</span>')}</div>
+      <div class="settings-title">クラウド連携${isSupaLoggedIn() ? ' <span style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">ログイン中</span>' : (SUPA_OK ? '' : ' <span style="display:inline-block;background:#F3F4F6;color:#6B7280;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;">未接続</span>')}</div>
       ${isSupaLoggedIn()
         ? `<div class="settings-item" style="cursor:default;">
             <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M20 6L9 17l-5-5"/>','#10B981')}</div>
@@ -16985,13 +16980,13 @@ function renderSettings() {
           <div class="settings-item" onclick="syncToSupabase()">
             <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M12 2v20M5 15l7 7 7-7"/>','#10B981')}</div>
             <div class="settings-item-label">クラウドへ送信
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">準備中（接続のみ確認）</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">端末のデータをクラウドに保存</div>
             </div><div class="settings-arrow">›</div>
           </div>
           <div class="settings-item" onclick="syncFromSupabase()">
             <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M12 22V2M5 9l7-7 7 7"/>','#0A84FF')}</div>
             <div class="settings-item-label">クラウドから取得
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">準備中（接続のみ確認）</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">クラウドのデータを端末に反映</div>
             </div><div class="settings-arrow">›</div>
           </div>
           <div class="settings-item" onclick="showConfirm('クラウドからログアウト','クラウドからログアウトします。端末内のデータ（ローカル保存）は削除されません。','ログアウトする', () => { supaSignOut().then(()=>showToast('クラウドからログアウトしました')); }, 'warning')">
@@ -17135,19 +17130,6 @@ function renderSettings() {
       }
     </div>
 
-    <!-- Dev: プレミアム切替トグル（本番想定では非表示に） -->
-    <div class="settings-section" style="opacity:.6">
-      <div class="settings-title" style="font-size:11px">開発用オプション</div>
-      <div class="settings-item" onclick="devTogglePremium()">
-        <div class="settings-item-icon" style="background:#F3F4F6">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
-        </div>
-        <div class="settings-item-label" style="font-size:12px;color:var(--text-muted)">プレミアム状態を切り替え（開発用）
-          <div style="font-size:11px;color:var(--primary)">${S.isPremiumUser ? 'ON（プレミアム中）' : 'OFF（無料中）'}</div>
-        </div>
-        <div class="settings-value">${S.isPremiumUser ? '●' : '○'}</div>
-      </div>
-    </div>
 
     <!-- Footer -->
     <div class="menu-footer">
@@ -17432,56 +17414,17 @@ function _premiumPlanInfo() {
     ? { name:'月額プラン', price:'¥480',   cycle:'毎月', note:'いつでも解約できます' }
     : { name:'年額プラン', price:'¥4,800', cycle:'毎年', note:'月額より2ヶ月分お得です' };
 }
-/* お支払い登録画面を開く */
+/* お支払い登録 — 30日無料トライアル確認ダイアログ */
 function openPremiumCheckout() {
-  const pl = _premiumPlanInfo();
-  const sum = document.getElementById('pc-plan-summary');
-  if(sum) sum.innerHTML =
-      '<div style="font-size:11px;font-weight:700;color:var(--premium);margin-bottom:3px;">選択中のプラン</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-    +   '<span style="font-size:14px;font-weight:800;color:var(--text);">'+pl.name+'</span>'
-    +   '<span style="font-size:18px;font-weight:800;color:var(--text);">'+pl.price
-    +     '<span style="font-size:11px;font-weight:600;color:var(--text-muted);"> / '+pl.cycle+'</span></span>'
-    + '</div>'
-    + '<div style="font-size:11px;color:var(--text-sub);margin-top:2px;">'+pl.note+'</div>';
-  const cb = document.getElementById('pc-agree');
-  if(cb) cb.checked = false;
-  ['pc-number','pc-exp','pc-cvc','pc-name'].forEach(function(id){
-    const e = document.getElementById(id); if(e) e.value = '';
-  });
-  pcToggleAgree();
   closeModal('m-premium-gate');
-  openModal('m-premium-checkout');
+  showConfirm(
+    '30日間 無料トライアルを開始',
+    '今すぐプレミアムを30日間、完全無料でお試しいただけます。\n\nクレジットカード不要・いつでも解約できます。\n正式版では App Store / Google Play の課金に切り替わります。',
+    '無料トライアルを始める',
+    function() { prmStartTrial(); },
+    'info'
+  );
 }
-function pcToggleAgree() {
-  const cb = document.getElementById('pc-agree');
-  const btn = document.getElementById('pc-submit');
-  if(!btn) return;
-  const agreed = !!(cb && cb.checked);
-  btn.disabled = !agreed;
-  btn.style.opacity = agreed ? '1' : '.5';
-}
-/* お支払い登録の送信。
-   ※ カード情報は端末内に保存・外部送信しない（トライアル運用）。
-   　 正式リリース時の実決済は Stripe 等の決済事業者 / App Store IAP を通じて行う
-   　 （アプリが生のカード番号を直接扱うことは PCI-DSS / Apple 規約上できない）。 */
-function submitPremiumCheckout() {
-  const cb = document.getElementById('pc-agree');
-  if(!cb || !cb.checked) { showToast('利用規約への同意が必要です','error'); return; }
-  const num  = (document.getElementById('pc-number').value || '').replace(/[\s-]/g,'');
-  const exp  = (document.getElementById('pc-exp').value || '').trim();
-  const cvc  = (document.getElementById('pc-cvc').value || '').trim();
-  const name = (document.getElementById('pc-name').value || '').trim();
-  const expM = exp.match(/^(\d{2})\/(\d{2})$/);
-  if(!/^\d{14,16}$/.test(num))     { showToast('カード番号を正しく入力してください','error'); return; }
-  if(!expM || +expM[1] < 1 || +expM[1] > 12) { showToast('有効期限を MM/YY 形式で正しく入力してください','error'); return; }
-  if(!/^\d{3,4}$/.test(cvc))       { showToast('セキュリティコードを入力してください','error'); return; }
-  if(!name)                        { showToast('カード名義を入力してください','error'); return; }
-  closeModal('m-premium-checkout');
-  activatePremiumDemo();
-}
-
-/* デモ用：プレミアム状態を有効化（実決済は正式リリース時に差し替え） */
 function activatePremiumDemo() {
   S.isPremiumUser = true;
   saveS();
@@ -20654,7 +20597,7 @@ const HOKU_SHORT_REPLY = {
   cashflow_view:          '資金繰りを開くね。',
   notification_add:       '通知センターに残すね（OS プッシュは v1.0 以降）。',
   external_calendar_help: '今は手動取り込みに対応してるよ。自動同期はログイン/認証対応後に追加予定。',
-  calendar_import_help:   'カレンダー画面の「連携」から開けるよ。今は手動取り込み対応、自動同期は準備中。',
+  calendar_import_help:   'カレンダー画面の「連携」から手動で取り込めるよ。自動同期は今後対応予定。',
   settings_help:          '設定から変えられるよ。開く？',
   unknown:                ''
 };
@@ -20929,7 +20872,7 @@ function executeHokuAction(intent) {
   }
   if(intent.intentType === 'calendar_import_help') {
     const pv = (intent.entities && intent.entities.provider) || '';
-    if(pv === 'google') return { ok:true, message:'Google連携は準備中。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_google]]' };
+    if(pv === 'google') return { ok:true, message:'Google カレンダーの予定ファイルを取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_google]]' };
     if(pv === 'apple')  return { ok:true, message:'iPhone連携はApp Store版で対応予定。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_apple]]' };
     if(pv === 'yahoo')  return { ok:true, message:'Yahoo連携は仕様確認中。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_yahoo]]' };
     return { ok:true, message:'カレンダー画面の「連携」から開けるよ。Google / iPhone / Yahoo 別に案内する。\n\n[[ACTION_BUTTONS:cal_import]]' };
@@ -21633,7 +21576,7 @@ function classifierGuidance(category, q, secondary) {
     case 'help':
       return 'Hoku は家族の予定・タスク・準備・家計・体調をまとめる相棒。\n話しかけるだけで登録も削除もできるよ。例：「明日15時に歯医者」「明日の歯医者の予定消して」。マイクで音声入力もOK。';
     case 'premium':
-      return 'プレミアムは月 480 円で、ボード追加・準備拡張・Hoku 強化を予定。無料でも基本は全部使えるよ。' + ACTION('premium');
+      return 'プレミアムは月 480 円で、ボード追加・準備拡張・Hoku 無制限が使えるよ。無料でも基本機能は全部使えるよ。' + ACTION('premium');
     default:
       return null;
   }
@@ -22353,7 +22296,7 @@ function showQaDebugPanel() {
   const p = document.createElement('div');
   p.id = 'qa-debug-panel';
   p.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(20,20,30,.92);color:#9CFFB8;font-family:monospace;font-size:10px;padding:8px 10px;border-radius:8px;max-width:calc(100% - 16px);max-height:35vh;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);';
-  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">QA Debug</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
+  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">QA Debug</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button></div>';
   document.body.appendChild(p);
   qaDebugRefresh();
 }
@@ -23152,53 +23095,6 @@ async function _oauthSignIn(provider) {
 </div>
 
 <!-- プレミアム お支払い登録 -->
-<div id="m-premium-checkout" class="modal-backdrop">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">お支払い情報の登録</div>
-    <div class="modal-form">
-      <!-- β 明示バナー（公開前 P0：現状は実決済なし・入力補完抑止） -->
-      <div style="background:#FFF4E5;border:1.5px solid #FFB84D;border-radius:12px;padding:12px 14px;margin-bottom:10px;color:#8A4B00;font-size:12px;line-height:1.7;">
-        <div style="font-weight:800;font-size:13px;margin-bottom:4px;">🚧 ベータ機能のお知らせ</div>
-        現在は <b>機能体験用の試用モード</b>です。<b>実際の決済は行われません</b>。お持ちのお支払い情報を入力しないでください（任意の数字でかまいません）。正式版では App Store / Google Play の課金を通じた安全な決済に切り替わります。
-      </div>
-      <!-- 選択中プラン -->
-      <div id="pc-plan-summary" style="background:var(--premium-light);border-radius:12px;padding:14px 16px;margin-bottom:4px;border:1px solid #FFE082;"></div>
-      <div class="field">
-        <div class="field-label">テスト用 番号入力（実情報は入力しないでください）</div>
-        <input class="input" id="pc-number" inputmode="numeric" autocomplete="off" placeholder="任意の番号でOK（例: 1111 2222 3333 4444）" maxlength="19">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field">
-          <div class="field-label">有効期限 (MM/YY)</div>
-          <input class="input" id="pc-exp" inputmode="numeric" autocomplete="off" placeholder="08/29" maxlength="5">
-        </div>
-        <div class="field">
-          <div class="field-label">確認コード</div>
-          <input class="input" id="pc-cvc" inputmode="numeric" autocomplete="off" placeholder="任意の3桁" maxlength="4">
-        </div>
-      </div>
-      <div class="field">
-        <div class="field-label">お名前</div>
-        <input class="input" id="pc-name" autocomplete="off" placeholder="TARO YAMADA" maxlength="40">
-      </div>
-      <div style="font-size:11px;line-height:1.65;color:var(--text-muted);background:var(--bg-muted);border-radius:10px;padding:10px 12px;">
-        ・現在は<b>機能体験用の試用モード</b>で、入力された内容は端末外には送信されません。<br>
-        ・正式リリース時は App Store / Google Play の課金を通じた安全な決済に切り替わります。<br>
-        ・解約はいつでも設定から行えます。
-      </div>
-      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:8px 0;">
-        <input type="checkbox" id="pc-agree" onchange="pcToggleAgree()" style="width:18px;height:18px;flex:none;margin-top:1px;">
-        <span>利用規約・自動更新に同意します</span>
-      </label>
-      <button id="pc-submit" class="btn btn-block" disabled onclick="submitPremiumCheckout()"
-        style="background:var(--grad-amber);color:#fff;font-weight:800;font-size:15px;border:none;opacity:.5;">
-        登録して始める
-      </button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-premium-checkout')">戻る</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- ===== OFFICIAL AVATAR SELECTOR MODAL ===== -->
