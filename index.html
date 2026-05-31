@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260531a';
+  var V='v20260531b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1||q.indexOf('fresh=')>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3220,6 +3220,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <p class="ob2-desc">Hoku は家族運営をやさしく支える AI ガイドです。「明日の小児科で持ち物を整理したい」「子どもが熱っぽい」など、自然な言葉で話しかけてください。最適な保存先と次の一手をご案内します。</p>
       <div class="ob2-hint">音声入力に対応した機種では、マイクボタンから声で話しかけられます。対応していない場合はキーボードでどうぞ。</div>
       <button class="ob2-btn-primary" onclick="ob2Done()">ホームへ進む</button>
+      <button class="ob2-btn-secondary" onclick="openMyInviteModal()">家族を誘う</button>
       <button class="ob2-btn-back" onclick="ob2Prev()">戻る</button>
     </div>
   </div>
@@ -9248,6 +9249,13 @@ function reseedDefaultDemoProfiles() {
 /* ============================================================
    HOME RENDER
    ============================================================ */
+var _inviteBannerDismissed = false;
+function _dismissInviteBanner() {
+  _inviteBannerDismissed = true;
+  var adBar = document.getElementById('home-ad-bar');
+  if(adBar) adBar.innerHTML = '';
+}
+
 function renderHome() {
   const m = S.user || MEMBERS[0];
   // Wave 104: 初回ホーム表示時に使い方ガイドを 1 度だけ表示
@@ -9447,6 +9455,17 @@ function renderHome() {
         + '<div style="font-size:11px;color:var(--text-sub);">無料でメール登録するだけ。機種変更してもデータが守られます。</div>'
         + '</div>'
         + '<div style="color:var(--primary);font-size:18px;font-weight:700;">›</div>'
+        + '</div>';
+    } else if(isSupaLoggedIn() && (S.members||[]).length <= 1 && !_inviteBannerDismissed) {
+      adBar.innerHTML = '<div style="background:linear-gradient(135deg,#EFF6FF,#F0FDF4);border:1.5px solid #BFDBFE;border-radius:14px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px;">'
+        + '<div style="width:34px;height:34px;border-radius:50%;background:var(--grad-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+        + '</div>'
+        + '<div style="flex:1;cursor:pointer;" onclick="openMyInviteModal()">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text);">家族を招待しよう</div>'
+        + '<div style="font-size:11px;color:var(--text-sub);">招待コードを共有するだけで一緒に使えます</div>'
+        + '</div>'
+        + '<button onclick="_dismissInviteBanner()" style="background:none;border:none;color:var(--text-muted);font-size:20px;line-height:1;padding:4px 6px;cursor:pointer;" aria-label="閉じる">×</button>'
         + '</div>';
     } else {
       adBar.innerHTML = '';
