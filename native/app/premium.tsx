@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useStore } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
 import { Button } from '../src/components/ui/Button';
+import { haptic } from '../src/utils/haptics';
 
 const FREE_FEATURES = [
   '予定共有（月20件まで）',
@@ -130,7 +131,7 @@ export default function PremiumScreen() {
             {trialAvailable && (
               <Button
                 title="30日間無料で試す"
-                onPress={() => { startTrial(); activatePremium(); router.back(); }}
+                onPress={() => { haptic.medium(); startTrial(); activatePremium(); router.back(); }}
                 variant="primary"
                 size="lg"
                 fullWidth
@@ -138,7 +139,7 @@ export default function PremiumScreen() {
             )}
             <Button
               title={trialAvailable ? '今すぐ購入（¥480/月）' : 'プレミアムを購入（¥480/月）'}
-              onPress={() => { activatePremium(); router.back(); }}
+              onPress={() => { haptic.medium(); activatePremium(); router.back(); }}
               variant={trialAvailable ? 'outline' : 'primary'}
               size="lg"
               fullWidth

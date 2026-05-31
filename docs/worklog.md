@@ -16218,3 +16218,44 @@ React Native アプリ全スクリーン実装（Expo SDK 56 + TypeScript）
 ### コミット
 - ハッシュ: `1108b2d`
 - メッセージ: `feat: React Native app 全スクリーン実装（Expo SDK 56 + TypeScript）`
+
+---
+
+## 2026-05-31 00:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+budget / premium / album / settings 画面のハプティクス完全対応・取引削除確認ダイアログ追加
+
+### 変更ファイル
+- native/app/budget.tsx
+- native/app/premium.tsx
+- native/app/album.tsx
+- native/app/settings.tsx
+
+### 変更内容
+- **budget.tsx**: haptic import追加、月ナビ prev/next に haptic.selection()、+ ボタンに haptic.light()、金額入力エラー時 haptic.error()、記録成功時 haptic.success()、収支タイプ切替に haptic.selection()、カテゴリ選択に haptic.selection()、取引削除を直接削除→ haptic.warning() + Alert.alert 確認ダイアログに変更
+- **premium.tsx**: haptic import追加、30日無料・購入ボタンに haptic.medium()
+- **album.tsx**: haptic import追加、+ ボタン・写真追加ボタンに haptic.light()
+- **settings.tsx**: 設定行タップに haptic.light()（前セッションの未コミット分を含む）
+
+### テスト結果
+- npx tsc --noEmit: エラー0件
+- 未実施: 実機ビルド（Expo Go / EAS Build が必要）
+
+### 未確認事項
+- 取引削除の Alert.alert が iOS ネイティブダイアログとして正しく表示されるか
+- budget.tsx の haptic.error() が金額未入力時に呼ばれるか（バリデーションフロー確認）
+
+### iPhone確認ポイント
+- budget 画面の月ナビ haptic がスムーズか
+- premium CTA ボタンの haptic.medium() が適切な強度か
+- 取引削除の確認ダイアログ（Alert.alert）のスタイル
+
+### 次にやること
+- EAS Build / Expo Go で全画面ハプティクスの実機確認
+- 全画面のハプティクス網羅完了につきリリース品質チェック（app-store-release-checklist）
+- TypeScript strict 0エラー維持の確認
+
+### コミット
+- ハッシュ: （コミット後に記載）
+- メッセージ: `feat: budget/premium/album/settings ハプティクス完全対応・取引削除確認ダイアログ追加`

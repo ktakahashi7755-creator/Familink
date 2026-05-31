@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { Sheet } from '../src/components/ui/Sheet';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { formatYen, numberWithCommas } from '../src/utils/text';
+import { haptic } from '../src/utils/haptics';
 
 type TxType = 'income' | 'expense';
 
@@ -68,9 +69,18 @@ export default function BudgetScreen() {
     return map;
   }, [monthTxs]);
 
+  function handleDelete(id: string) {
+    haptic.warning();
+    Alert.alert('取引を削除', 'この取引を削除しますか？', [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: '削除', style: 'destructive', onPress: () => { haptic.heavy(); deleteTx(id); } },
+    ]);
+  }
+
   function handleAdd() {
     const amt = parseInt(amount.replace(/,/g, ''), 10);
-    if (!amt || isNaN(amt)) return;
+    if (!amt || isNaN(amt)) { haptic.error(); return; }
+    haptic.success();
     addTx({
       type: txType,
       amount: amt,
@@ -106,7 +116,7 @@ export default function BudgetScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>家計管理</Text>
-        <TouchableOpacity onPress={() => setShowAdd(true)}>
+        <TouchableOpacity onPress={() => { haptic.light(); setShowAdd(true); }}>
           <Ionicons name="add-circle" size={28} color={Colors.primary} />
         </TouchableOpacity>
       </View>
@@ -115,6 +125,7 @@ export default function BudgetScreen() {
         {/* Month nav */}
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={() => {
+            haptic.selection();
             if (month === 1) { setYear(y => y - 1); setMonth(12); }
             else setMonth(m => m - 1);
           }} style={styles.navBtn}>
@@ -122,6 +133,7 @@ export default function BudgetScreen() {
           </TouchableOpacity>
           <Text style={styles.monthLabel}>{year}年{month}月</Text>
           <TouchableOpacity onPress={() => {
+            haptic.selection();
             if (month === 12) { setYear(y => y + 1); setMonth(1); }
             else setMonth(m => m + 1);
           }} style={styles.navBtn}>
@@ -193,7 +205,7 @@ export default function BudgetScreen() {
                   <TouchableOpacity
                     key={tx.id}
                     style={styles.txRow}
-                    onLongPress={() => deleteTx(tx.id)}
+                    onLongPress={() => handleDelete(tx.id)}
                   >
                     <View style={[styles.txIcon, { backgroundColor: (cat?.color ?? Colors.success) + '20' }]}>
                       <Text style={{ fontSize: 16 }}>
@@ -223,7 +235,7 @@ export default function BudgetScreen() {
               <TouchableOpacity
                 key={t}
                 style={[styles.typeBtn, txType === t && { backgroundColor: t === 'expense' ? Colors.error : Colors.success, borderColor: 'transparent' }]}
-                onPress={() => setTxType(t)}
+                onPress={() => { haptic.selection(); setTxType(t); }}
               >
                 <Text style={[styles.typeBtnText, txType === t && { color: '#fff' }]}>
                   {t === 'expense' ? '支出' : '収入'}
@@ -247,7 +259,7 @@ export default function BudgetScreen() {
                   <TouchableOpacity
                     key={c.id}
                     style={[styles.catChip, category === c.id && { backgroundColor: c.color + '20', borderColor: c.color }]}
-                    onPress={() => setCategory(c.id)}
+                    onPress={() => { haptic.selection(); setCategory(c.id); }}
                   >
                     <Text style={[styles.catChipText, category === c.id && { color: c.color, fontWeight: '600' }]}>
                       {c.label}

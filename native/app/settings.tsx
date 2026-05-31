@@ -141,7 +141,7 @@ export default function SettingsScreen() {
                     styles.settingsRow,
                     ii < section.items.length - 1 && styles.settingsRowBorder,
                   ]}
-                  onPress={item.action}
+                  onPress={() => { haptic.light(); item.action(); }}
                 >
                   <View style={styles.settingsIcon}>
                     <Ionicons name={item.icon as any} size={18} color={Colors.primary} />

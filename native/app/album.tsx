@@ -9,6 +9,7 @@ import { useStore } from '../src/store';
 import { Colors, Typography, Spacing, Radius } from '../src/constants/theme';
 import { Button } from '../src/components/ui/Button';
 import { EmptyState } from '../src/components/ui/EmptyState';
+import { haptic } from '../src/utils/haptics';
 
 export default function AlbumScreen() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function AlbumScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>アルバム</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => haptic.light()}>
           <Ionicons name="add-circle" size={28} color={Colors.primary} />
         </TouchableOpacity>
       </View>
@@ -47,7 +48,7 @@ export default function AlbumScreen() {
         title="写真なし"
         description="家族の大切な写真をここに保存できます"
         actionLabel="写真を追加"
-        onAction={() => {}}
+        onAction={() => haptic.light()}
       />
     </View>
   );
