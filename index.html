@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260531e';
+  var V='v20260531f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1||q.indexOf('fresh=')>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -908,6 +908,17 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .mn-memo-title { font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .mn-memo-preview { font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px; }
 .mn-memo-date { font-size:12px;color:var(--text-muted);flex-shrink:0;padding-top:2px; }
+.mn-drag-handle {
+  display:flex;align-items:center;justify-content:center;
+  width:20px;height:100%;flex-shrink:0;opacity:.35;cursor:grab;padding:0 2px;
+}
+.mn-folder-row.mn-dragging, .mn-memo-row.mn-dragging {
+  box-shadow:0 12px 40px rgba(0,0,0,.22)!important;
+  background:var(--bg-card)!important;
+  border-radius:12px!important;
+  z-index:100;
+  opacity:.96;
+}
 .mn-fab {
   position:fixed;right:20px;bottom:calc(82px + env(safe-area-inset-bottom));
   width:52px;height:52px;border-radius:50%;background:var(--primary);border:none;
@@ -3395,15 +3406,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- メモ：フォルダ操作シート -->
+<!-- メモ：フォルダ操作シート（iOS アクションシートスタイル） -->
 <div id="m-memo-folder-opts" class="modal-backdrop">
   <div class="modal">
     <div class="modal-grip"></div>
-    <div class="modal-title" id="memo-folder-opts-name">フォルダ</div>
-    <div class="modal-form">
-      <button class="btn btn-outline btn-block" onclick="_memoFolderOptsRename()">名前を変更</button>
-      <button class="btn btn-block" onclick="_memoFolderOptsDelete()" style="margin-top:8px;background:#FFF0F0;color:var(--red);border:1px solid #FAD4D4;">フォルダを削除</button>
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-memo-folder-opts')" style="margin-top:6px;">キャンセル</button>
+    <div style="text-align:center;font-size:13px;font-weight:600;color:var(--text-muted);padding:4px 0 14px;" id="memo-folder-opts-name">フォルダ</div>
+    <!-- アクショングループ1 -->
+    <div style="background:var(--bg-muted);border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <button onclick="_memoFolderOptsRename()" style="width:100%;padding:15px 20px;text-align:center;background:none;border:none;border-bottom:.5px solid var(--border);font-size:17px;color:var(--text);cursor:pointer;">名前を変更</button>
+      <button onclick="_memoFolderOptsDelete()" style="width:100%;padding:15px 20px;text-align:center;background:none;border:none;font-size:17px;color:var(--red);cursor:pointer;">削除</button>
+    </div>
+    <!-- キャンセル（独立グループ） -->
+    <div style="background:var(--bg-muted);border-radius:14px;overflow:hidden;">
+      <button onclick="closeModal('m-memo-folder-opts')" style="width:100%;padding:15px 20px;text-align:center;background:none;border:none;font-size:17px;font-weight:600;color:var(--primary);cursor:pointer;">キャンセル</button>
     </div>
   </div>
 </div>
@@ -14139,9 +14154,8 @@ function renderMemo() {
   }
 
   const subFolders = S.memoFolders.filter(function(f){ return (f.parentId||'') === cur; });
-  const memos = wsFilter(S.memos)
-    .filter(function(m){ return (m.folderId||'') === cur; })
-    .sort(function(a,b){ return (b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||''); });
+  // 手動並び替え後の順序を維持（sort しない）
+  const memos = wsFilter(S.memos).filter(function(m){ return (m.folderId||'') === cur; });
 
   if(!subFolders.length && !memos.length) {
     body.innerHTML = _emptyState(_ES_ART_FOLDER,
@@ -14153,22 +14167,23 @@ function renderMemo() {
 
   let h = '';
 
-  // ── フォルダセクション（iPhone Notes スタイル） ──
+  // ── フォルダセクション（iPhone Notes スタイル + 長押し並び替え対応） ──
   if(subFolders.length) {
     if(!cur) h += '<div class="mn-section-label">フォルダ</div>';
-    h += '<div class="mn-folder-list">';
+    h += '<div class="mn-folder-list" id="mn-folder-list">';
     subFolders.forEach(function(f) {
       const cnt = S.memos.filter(function(m){ return (m.folderId||'') === f.id; }).length
                 + S.memoFolders.filter(function(x){ return (x.parentId||'') === f.id; }).length;
       const color = f.color || FOLDER_COLORS[2];
-      h += '<div class="mn-folder-row" onclick="memoOpenFolder(\''+H(f.id)+'\')">'
+      h += '<div class="mn-folder-row" data-id="'+H(f.id)+'" data-mn-drag="folder" onclick="memoOpenFolder(\''+H(f.id)+'\')">'
+        + '<div class="mn-drag-handle" title="長押しで並び替え"><svg width="12" height="16" viewBox="0 0 12 16" fill="none"><circle cx="4" cy="4" r="1.5" fill="var(--border)"/><circle cx="4" cy="8" r="1.5" fill="var(--border)"/><circle cx="4" cy="12" r="1.5" fill="var(--border)"/><circle cx="8" cy="4" r="1.5" fill="var(--border)"/><circle cx="8" cy="8" r="1.5" fill="var(--border)"/><circle cx="8" cy="12" r="1.5" fill="var(--border)"/></svg></div>'
         + '<div class="mn-folder-icon" style="background:'+color+'22;">'
         +   '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
         + '</div>'
         + '<span class="mn-folder-name">'+H(f.name)+'</span>'
         + '<span class="mn-folder-count">'+cnt+'</span>'
         + '<svg width="7" height="12" viewBox="0 0 7 12" fill="none" stroke="var(--text-muted)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 6 6 1 11"/></svg>'
-        + '<button onclick="event.stopPropagation();openMemoFolderOpts(\''+H(f.id)+'\')" aria-label="フォルダ操作" style="background:none;border:none;padding:6px;color:var(--text-muted);cursor:pointer;margin-left:4px;line-height:1;">'+_DOTS_SVG+'</button>'
+        + '<button onclick="event.stopPropagation();openMemoFolderOpts(\''+H(f.id)+'\')" aria-label="フォルダ操作" style="background:none;border:none;padding:6px;color:var(--text-muted);cursor:pointer;margin-left:2px;line-height:1;">'+_DOTS_SVG+'</button>'
         + '</div>';
     });
     h += '</div>';
@@ -14177,13 +14192,13 @@ function renderMemo() {
     }
   }
 
-  // ── メモセクション（iPhone Notes スタイル） ──
+  // ── メモセクション（iPhone Notes スタイル + 長押し並び替え対応） ──
   if(memos.length) {
     if(subFolders.length) h += '<div style="height:18px;"></div>';
     if(!cur && !subFolders.length) {
       h += '<button onclick="openMemoFolderEdit()" style="background:none;border:none;color:var(--primary);font-size:14px;padding:2px 4px 10px;cursor:pointer;display:block;">＋ フォルダを作成</button>';
     }
-    h += '<div class="mn-memo-list">';
+    h += '<div class="mn-memo-list" id="mn-memo-list">';
     memos.forEach(function(m) {
       const titleText = m.title || (m.body||'').split('\n')[0].slice(0,50) || '（無題）';
       const bodyPreview = m.title
@@ -14191,7 +14206,8 @@ function renderMemo() {
         : (m.body||'').split('\n').slice(1).join(' ').trim().slice(0,55) || (m.attachments&&m.attachments.length ? '📎 写真' : '追加テキストなし');
       const d = new Date(m.updatedAt || m.createdAt || Date.now());
       const dateStr = _memoDateLabel(d);
-      h += '<div class="mn-memo-row" onclick="openMemoEdit(\''+H(m.id)+'\')">'
+      h += '<div class="mn-memo-row" data-id="'+H(m.id)+'" data-mn-drag="memo" onclick="openMemoEdit(\''+H(m.id)+'\')">'
+        + '<div class="mn-drag-handle" title="長押しで並び替え"><svg width="12" height="16" viewBox="0 0 12 16" fill="none"><circle cx="4" cy="4" r="1.5" fill="var(--border)"/><circle cx="4" cy="8" r="1.5" fill="var(--border)"/><circle cx="4" cy="12" r="1.5" fill="var(--border)"/><circle cx="8" cy="4" r="1.5" fill="var(--border)"/><circle cx="8" cy="8" r="1.5" fill="var(--border)"/><circle cx="8" cy="12" r="1.5" fill="var(--border)"/></svg></div>'
         + '<div class="mn-memo-content">'
         +   '<div class="mn-memo-title">'+H(titleText)+'</div>'
         +   '<div class="mn-memo-preview">'+H(bodyPreview)+'</div>'
@@ -14203,6 +14219,112 @@ function renderMemo() {
   }
 
   body.innerHTML = h;
+}
+
+/* ── メモリスト 長押しドラッグ並び替え ──────────────────────────
+   [touchstart 380ms長押し] → 要素がリフト → [touchmove] で DOM 並び替え
+   → [touchend] で新順序を S.memoFolders / S.memos に保存
+   ─────────────────────────────────────────────────────────── */
+var _mnDrag = { active:false, el:null, type:null, startY:0, timer:null, didDrag:false };
+
+// 長押し検出（touchstart）
+document.addEventListener('touchstart', function(ev) {
+  var row = ev.target.closest('[data-mn-drag]');
+  if(!row) return;
+  var t = ev.touches[0];
+  _mnDrag.startY = t.clientY;
+  _mnDrag.timer = setTimeout(function() {
+    if(navigator.vibrate) navigator.vibrate(14);
+    _mnDrag.active  = true;
+    _mnDrag.didDrag = true;
+    _mnDrag.el      = row;
+    _mnDrag.type    = row.getAttribute('data-mn-drag');
+    row.classList.add('mn-dragging');
+    row.style.transform = 'scale(1.03)';
+    row.style.transition = 'none';
+    row.style.position = 'relative';
+    document.addEventListener('touchmove', _mnDragMove, { passive:false });
+  }, 380);
+}, { passive:true });
+
+// ドラッグ中（touchmove）
+function _mnDragMove(ev) {
+  if(!_mnDrag.active || !_mnDrag.el) return;
+  ev.preventDefault();
+  var t = ev.touches[0];
+  var dy = t.clientY - _mnDrag.startY;
+  _mnDrag.el.style.transform = 'scale(1.03) translateY('+dy+'px)';
+
+  // 現在のビジュアル中心 Y を取得
+  var rect = _mnDrag.el.getBoundingClientRect();
+  var centerY = rect.top + rect.height / 2;
+  var container = _mnDrag.el.parentNode;
+  var siblings = Array.from(container.children).filter(function(c){ return c !== _mnDrag.el; });
+
+  // どのスロットに入るかを判定
+  var insertBefore = null;
+  for(var i=0; i<siblings.length; i++) {
+    var r = siblings[i].getBoundingClientRect();
+    if(centerY < r.top + r.height * 0.5) { insertBefore = siblings[i]; break; }
+  }
+  // DOM が変わる場合のみ insertBefore
+  var curNext = _mnDrag.el.nextSibling;
+  if(insertBefore !== curNext) {
+    container.insertBefore(_mnDrag.el, insertBefore || null);
+    // スロット移動後は startY をリセットしてガタつきを防ぐ
+    _mnDrag.startY = t.clientY;
+    _mnDrag.el.style.transform = 'scale(1.03) translateY(0)';
+  }
+}
+
+// ドラッグ終了（touchend / touchcancel）
+function _mnDragEnd() {
+  clearTimeout(_mnDrag.timer);
+  document.removeEventListener('touchmove', _mnDragMove);
+  if(!_mnDrag.active || !_mnDrag.el) { _mnDrag.active = false; return; }
+  var el   = _mnDrag.el;
+  var type = _mnDrag.type;
+  // 元のスタイルに戻す（アニメーション付き）
+  el.style.transition = 'transform .18s, box-shadow .18s';
+  el.style.transform  = '';
+  el.style.position   = '';
+  el.classList.remove('mn-dragging');
+  setTimeout(function(){ if(el) el.style.transition = ''; }, 200);
+  // 新しい並び順を保存
+  var container = el.parentNode;
+  if(container) {
+    var newOrder = Array.from(container.children)
+      .map(function(c){ return c.getAttribute('data-id'); })
+      .filter(Boolean);
+    _mnSaveOrder(type, newOrder);
+  }
+  _mnDrag.active = false;
+  _mnDrag.el     = null;
+}
+document.addEventListener('touchend',    _mnDragEnd, { passive:true });
+document.addEventListener('touchcancel', _mnDragEnd, { passive:true });
+
+// ドラッグ後の誤 click を防ぐ（キャプチャフェーズで吸収）
+document.addEventListener('click', function(ev) {
+  if(_mnDrag.didDrag) {
+    ev.stopPropagation();
+    _mnDrag.didDrag = false;
+  }
+}, true);
+
+// 並び順を S に保存
+function _mnSaveOrder(type, ids) {
+  if(type === 'folder') {
+    var cur    = _memoFolder || '';
+    var others = S.memoFolders.filter(function(f){ return (f.parentId||'') !== cur; });
+    var sorted = ids.map(function(id){ return S.memoFolders.find(function(f){ return f.id===id; }); }).filter(Boolean);
+    S.memoFolders = sorted.concat(others);
+  } else {
+    var inView = ids.map(function(id){ return S.memos.find(function(m){ return m.id===id; }); }).filter(Boolean);
+    var rest   = S.memos.filter(function(m){ return ids.indexOf(m.id) === -1; });
+    S.memos = inView.concat(rest);
+  }
+  saveS();
 }
 
 /* ヘッダーボタンのハンドラ */
