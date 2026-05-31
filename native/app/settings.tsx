@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
 import { useStore } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
 import { Avatar } from '../src/components/ui/Avatar';
@@ -23,11 +24,40 @@ export default function SettingsScreen() {
   const isPremium = useStore(s => s.isPremiumUser);
   const [showEdit, setShowEdit] = useState(false);
   const [name, setName] = useState(user?.displayName ?? user?.name ?? '');
+  const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
+
+  async function pickProfilePhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('権限が必要', '写真ライブラリへのアクセス権が必要です');
+      return;
+    }
+    haptic.light();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as ImagePicker.MediaType,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setEditAvatar(result.assets[0].uri);
+      haptic.success();
+    }
+  }
+
+  function openEdit() {
+    setName(user?.displayName ?? user?.name ?? '');
+    setEditAvatar(undefined);
+    setShowEdit(true);
+  }
 
   function handleSaveName() {
     if (name.trim()) {
       haptic.success();
-      setUserProfile({ displayName: name.trim() });
+      setUserProfile({
+        displayName: name.trim(),
+        ...(editAvatar !== undefined ? { avatar: editAvatar } : {}),
+      });
     }
     setShowEdit(false);
   }
@@ -45,7 +75,7 @@ export default function SettingsScreen() {
     {
       title: 'アカウント',
       items: [
-        { icon: 'person-outline', label: 'プロフィールを編集', action: () => setShowEdit(true) },
+        { icon: 'person-outline', label: 'プロフィールを編集', action: () => openEdit() },
         { icon: 'people-outline', label: '家族メンバー', action: () => router.push('/members') },
         { icon: 'star-outline', label: 'プレミアムプラン', action: () => router.push('/premium'), badge: isPremium ? 'Premium' : undefined },
       ],
@@ -85,7 +115,7 @@ export default function SettingsScreen() {
       >
         {/* Profile card */}
         <Animated.View entering={FadeInDown.delay(50).springify().damping(18)}>
-          <TouchableOpacity style={styles.profileCard} onPress={() => setShowEdit(true)}>
+          <TouchableOpacity style={styles.profileCard} onPress={() => openEdit()}>
             <Avatar name={user?.displayName ?? user?.name} color={user?.color ?? Colors.primary} size={56} uri={user?.avatarUrl ?? user?.avatar} />
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.displayName ?? user?.name ?? 'ユーザー'}</Text>
@@ -148,11 +178,23 @@ export default function SettingsScreen() {
 
       <Sheet visible={showEdit} onClose={() => setShowEdit(false)} title="プロフィールを編集">
         <View style={styles.editForm}>
+          <TouchableOpacity style={styles.avatarPicker} onPress={pickProfilePhoto}>
+            <Avatar
+              name={name || user?.displayName || ''}
+              color={user?.color ?? Colors.primary}
+              size={72}
+              uri={editAvatar ?? user?.avatarUrl ?? user?.avatar}
+            />
+            <View style={styles.cameraOverlay}>
+              <Ionicons name="camera-outline" size={16} color="#fff" />
+            </View>
+            <Text style={styles.avatarHint}>写真を変更</Text>
+          </TouchableOpacity>
           <Input
             label="名前"
             value={name}
             onChangeText={setName}
-            autoFocus
+            autoFocus={!editAvatar}
           />
           <Button title="保存" onPress={handleSaveName} variant="primary" size="lg" fullWidth />
         </View>
@@ -198,6 +240,16 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   badgeText: { fontSize: Typography.xs, color: Colors.warning, fontWeight: '700' },
-  editForm: { gap: Spacing.base, paddingBottom: 20 },
+  editForm: { gap: Spacing.base, paddingBottom: 24 },
+  avatarPicker: { alignItems: 'center', gap: 6, paddingVertical: 8 },
+  cameraOverlay: {
+    position: 'absolute', top: 48, left: '50%',
+    marginLeft: 16,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.card,
+  },
+  avatarHint: { fontSize: Typography.xs, color: Colors.primary, fontWeight: '600' },
   version: { textAlign: 'center', fontSize: Typography.xs, color: Colors.textMuted, marginTop: Spacing.xl },
 });

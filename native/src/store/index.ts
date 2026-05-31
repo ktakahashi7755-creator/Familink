@@ -254,9 +254,22 @@ export const useStore = create<FamilinkState>((set, get) => {
       members: get().members.filter(m => m.id !== id),
     }),
 
-    setUserProfile: (profile) => save({
-      userProfile: { ...get().userProfile, ...profile },
-    }),
+    setUserProfile: (profile) => {
+      const user = get().user;
+      const userPatch: Partial<typeof user> = {};
+      if (profile.displayName !== undefined && user) {
+        userPatch.displayName = profile.displayName;
+        userPatch.name = profile.displayName;
+      }
+      if (profile.avatar !== undefined && user) {
+        userPatch.avatar = profile.avatar;
+        userPatch.avatarUrl = profile.avatar;
+      }
+      save({
+        userProfile: { ...get().userProfile, ...profile },
+        ...(user && Object.keys(userPatch).length > 0 ? { user: { ...user, ...userPatch } } : {}),
+      });
+    },
 
     // ─── Events ─────────────────────────────────────────────────────────────
 
