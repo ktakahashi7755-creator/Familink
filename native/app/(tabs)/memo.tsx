@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
 } from 'react-native';
@@ -9,6 +9,10 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { useStore, useMemos, useMemoFolders } from '../../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../src/constants/theme';
 import { EmptyState } from '../../src/components/ui/EmptyState';
+import { Sheet } from '../../src/components/ui/Sheet';
+import { Input } from '../../src/components/ui/Input';
+import { Button } from '../../src/components/ui/Button';
+import { haptic } from '../../src/utils/haptics';
 import type { Memo, MemoFolder } from '../../src/types';
 
 export default function MemoScreen() {
@@ -16,26 +20,38 @@ export default function MemoScreen() {
   const insets = useSafeAreaInsets();
   const memos = useMemos();
   const folders = useMemoFolders();
+  const addMemoFolder = useStore(s => s.addMemoFolder);
+  const deleteFolder = useStore(s => s.deleteMemoFolder);
+  const deleteMemo = useStore(s => s.deleteMemo);
+
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [showFolderCreate, setShowFolderCreate] = useState(false);
+  const [folderName, setFolderName] = useState('');
 
   const rootFolders = folders.filter(f => !f.parentId);
   const currentFolder = currentFolderId ? folders.find(f => f.id === currentFolderId) : null;
   const subFolders = folders.filter(f => f.parentId === currentFolderId);
+
   const folderMemos = useMemo(() => {
     if (query) {
       return memos.filter(m =>
         (m.title ?? '').toLowerCase().includes(query.toLowerCase()) ||
-        m.body?.toLowerCase().includes(query.toLowerCase())
+        m.body?.toLowerCase().includes(query.toLowerCase()),
       );
     }
     return memos.filter(m => (m.folderId ?? null) === currentFolderId);
   }, [memos, currentFolderId, query]);
 
-  const deleteFolder = useStore(s => s.deleteMemoFolder);
-  const deleteMemo = useStore(s => s.deleteMemo);
+  const handleCreateFolder = useCallback(() => {
+    if (!folderName.trim()) return;
+    haptic.success();
+    addMemoFolder({ name: folderName.trim(), parentId: currentFolderId ?? undefined });
+    setFolderName('');
+    setShowFolderCreate(false);
+  }, [folderName, currentFolderId, addMemoFolder]);
 
-  const totalMemos = memos.length;
+  const showingFolders = !query && (currentFolderId ? subFolders : rootFolders);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -43,14 +59,23 @@ export default function MemoScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerLeft}>
           {currentFolder && (
-            <TouchableOpacity onPress={() => setCurrentFolderId(null)} style={styles.backBtn}>
+            <TouchableOpacity onPress={() => { haptic.light(); setCurrentFolderId(null); }} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={20} color={Colors.primary} />
             </TouchableOpacity>
           )}
           <Text style={styles.headerTitle}>{currentFolder?.name ?? 'メモ'}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/modals/memo-edit')}>
+          <TouchableOpacity
+            onPress={() => { haptic.light(); setShowFolderCreate(true); }}
+            hitSlop={8}
+          >
+            <Ionicons name="folder-open-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { haptic.light(); router.push('/modals/memo-edit'); }}
+            hitSlop={8}
+          >
             <Ionicons name="create-outline" size={22} color={Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -68,7 +93,7 @@ export default function MemoScreen() {
           returnKeyType="search"
         />
         {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery('')}>
+          <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}>
             <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         )}
@@ -79,11 +104,11 @@ export default function MemoScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Folders */}
-        {!query && subFolders.length > 0 && (
+        {showingFolders && showingFolders.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>フォルダ</Text>
             <View style={styles.folderList}>
-              {subFolders.map((folder, i) => (
+              {showingFolders.map((folder, i) => (
                 <Animated.View
                   key={folder.id}
                   entering={FadeInDown.delay(i * 30).springify().damping(18)}
@@ -92,31 +117,8 @@ export default function MemoScreen() {
                   <FolderRow
                     folder={folder}
                     memoCount={memos.filter(m => m.folderId === folder.id).length}
-                    onPress={() => setCurrentFolderId(folder.id)}
-                    onDelete={() => deleteFolder(folder.id)}
-                  />
-                </Animated.View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Root folders when at root */}
-        {!query && !currentFolderId && rootFolders.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>フォルダ</Text>
-            <View style={styles.folderList}>
-              {rootFolders.map((folder, i) => (
-                <Animated.View
-                  key={folder.id}
-                  entering={FadeInDown.delay(i * 30).springify().damping(18)}
-                  layout={Layout.springify()}
-                >
-                  <FolderRow
-                    folder={folder}
-                    memoCount={memos.filter(m => m.folderId === folder.id).length}
-                    onPress={() => setCurrentFolderId(folder.id)}
-                    onDelete={() => deleteFolder(folder.id)}
+                    onPress={() => { haptic.light(); setCurrentFolderId(folder.id); }}
+                    onDelete={() => { haptic.warning(); deleteFolder(folder.id); }}
                   />
                 </Animated.View>
               ))}
@@ -144,8 +146,8 @@ export default function MemoScreen() {
                   >
                     <MemoRow
                       memo={memo}
-                      onPress={() => router.push({ pathname: '/modals/memo-edit', params: { id: memo.id } })}
-                      onDelete={() => deleteMemo(memo.id)}
+                      onPress={() => { haptic.light(); router.push({ pathname: '/modals/memo-edit', params: { id: memo.id } }); }}
+                      onDelete={() => { haptic.warning(); deleteMemo(memo.id); }}
                     />
                   </Animated.View>
                 ))}
@@ -155,7 +157,7 @@ export default function MemoScreen() {
         )}
 
         {/* Empty state */}
-        {!query && folderMemos.length === 0 && subFolders.length === 0 && (currentFolderId ? true : rootFolders.length === 0) && (
+        {!query && folderMemos.length === 0 && (showingFolders ? showingFolders.length === 0 : true) && (
           <EmptyState
             icon="📝"
             title="メモなし"
@@ -169,10 +171,35 @@ export default function MemoScreen() {
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, { bottom: 24 + insets.bottom }]}
-        onPress={() => router.push('/modals/memo-edit')}
+        onPress={() => { haptic.medium(); router.push('/modals/memo-edit'); }}
+        activeOpacity={0.85}
       >
         <Ionicons name="add" size={26} color="#fff" />
       </TouchableOpacity>
+
+      {/* Folder creation sheet */}
+      <Sheet
+        visible={showFolderCreate}
+        onClose={() => { setFolderName(''); setShowFolderCreate(false); }}
+        title="新しいフォルダ"
+      >
+        <View style={styles.sheetContent}>
+          <Input
+            label="フォルダ名"
+            placeholder="例：学校・習い事・家計"
+            value={folderName}
+            onChangeText={setFolderName}
+            autoFocus
+          />
+          <Button
+            title="作成する"
+            onPress={handleCreateFolder}
+            variant="primary"
+            size="lg"
+            fullWidth
+          />
+        </View>
+      </Sheet>
     </View>
   );
 }
@@ -238,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.base },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: Typography.xl, fontWeight: '700', color: Colors.text },
   searchWrap: {
@@ -301,4 +328,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  sheetContent: { gap: Spacing.base, paddingBottom: 24 },
 });

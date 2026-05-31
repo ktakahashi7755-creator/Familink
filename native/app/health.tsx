@@ -13,6 +13,7 @@ import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { Avatar } from '../src/components/ui/Avatar';
 import { EmptyState } from '../src/components/ui/EmptyState';
+import { haptic } from '../src/utils/haptics';
 
 const RECORD_TYPES = [
   { id: 'fever', label: '発熱', icon: '🌡️', color: '#FF6B6B' },
@@ -44,6 +45,7 @@ export default function HealthScreen() {
 
   function handleAdd() {
     if (!selectedMember) return;
+    haptic.success();
     addHealth({
       memberId: selectedMember,
       type: recordType,
