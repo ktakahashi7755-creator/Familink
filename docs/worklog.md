@@ -16165,3 +16165,56 @@ QA総点検バグ修正：ストレージ統計漏れ・軽量エクスポート
 ### コミット
 - ハッシュ: `e5f1a99`
 - メッセージ: `fix: 絵文字除去・準備中表現修正・小フォント修正（全ページ総点検）`
+
+## 2026-05-31 18:00  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+React Native アプリ全スクリーン実装（Expo SDK 56 + TypeScript）
+
+### 変更ファイル
+- native/app/_layout.tsx（ルートレイアウト・認証ゲート）
+- native/app/index.tsx（エントリーポイント）
+- native/app/(auth)/_layout.tsx, welcome.tsx, login.tsx
+- native/app/(tabs)/_layout.tsx, index.tsx, calendar.tsx, tasks.tsx, memo.tsx, more.tsx
+- native/app/modals/event-edit.tsx, task-edit.tsx, memo-edit.tsx
+- native/app/hoku.tsx, budget.tsx, health.tsx, shopping.tsx, premium.tsx, settings.tsx, members.tsx, board.tsx, album.tsx
+- native/src/types/index.ts（型定義拡張）
+- native/src/utils/date.ts（getCalendarDaysForMonth追加）
+- native/src/store/storage.ts（MMKV v4 createMMKV API対応）
+- native/package.json（expo-router/entry main + @expo/vector-icons追加）
+- native/tsconfig.json（ignoreDeprecations追加）
+
+### 変更内容
+- Expo Router ファイルベースルーティング実装（auth/tabs/modals）
+- 5タブナビゲーション（ホーム・カレンダー・タスク・メモ・その他）
+- 全12機能スクリーン（予定・タスク・メモ・家計・体調・買い物・Hoku・プレミアム・設定・メンバー・ボード・アルバム）
+- モーダル3種（予定編集・タスク編集・メモ編集）
+- TypeScript型定義整合（User/Member/CalendarEvent/Task/HealthRecord拡張）
+- MMKV v4 API修正（new MMKV() → createMMKV()、.delete() → .remove()）
+- @expo/vector-icons インストール・Ionicons使用
+- Reanimated 4 FadeInDown/spring アニメーション全スクリーン適用
+
+### テスト結果
+- npx tsc --noEmit: エラー0件（完全クリーン）
+- 未実施: 実機ビルド（Expo Go / EAS Build が必要）
+
+### 未確認事項
+- Expo Go または EAS Build での実機動作確認
+- react-native-mmkv v4 は New Architecture 必須（app.json: newArchEnabled: true 設定済み）
+- Reanimated 4 の一部API変更（withSpring damping 等）が動作するか確認が必要
+
+### iPhone確認ポイント
+- セーフエリア（insets.top / insets.bottom）が各画面で正しく適用されているか
+- タブバー高さ（TAB_BAR_HEIGHT=82 + safe area）が適切か
+- キーボード表示時のKeyboardAvoidingView動作
+- Reanimated 4 アニメーションのフレームレート
+
+### 次にやること
+- EAS Build または Expo Go でアプリを起動して実機確認
+- 認証フロー（ウェルカム → ログイン → ホーム）のフルフロー確認
+- 家族メンバー追加 → 予定作成 → 共有の動作確認
+- プレミアム課金フロー確認（β表示あり）
+
+### コミット
+- ハッシュ: `1108b2d`
+- メッセージ: `feat: React Native app 全スクリーン実装（Expo SDK 56 + TypeScript）`
