@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useStore } from '../src/store';
 import { Colors } from '../src/constants/theme';
 import { requestPermission } from '../src/services/notifications';
+import { ErrorBoundary } from '../src/components/ui/ErrorBoundary';
 
 function AuthGate() {
   const router = useRouter();
@@ -25,13 +26,17 @@ function AuthGate() {
   return null;
 }
 
-function NotificationSetup() {
+function AppSetup() {
   const loggedIn = useStore(s => s.loggedIn);
+  const checkStreak = useStore(s => s.checkStreak);
+
   useEffect(() => {
     if (loggedIn) {
+      checkStreak();
       requestPermission();
     }
-  }, [loggedIn]);
+  }, [loggedIn, checkStreak]);
+
   return null;
 }
 
@@ -39,9 +44,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+      <ErrorBoundary>
         <StatusBar style="auto" />
         <AuthGate />
-        <NotificationSetup />
+        <AppSetup />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
@@ -67,6 +73,7 @@ export default function RootLayout() {
           <Stack.Screen name="board" />
           <Stack.Screen name="album" />
         </Stack>
+      </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

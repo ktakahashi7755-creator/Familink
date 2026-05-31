@@ -9,6 +9,7 @@ import { Button } from '../../src/components/ui/Button';
 import { Input } from '../../src/components/ui/Input';
 import { useStore } from '../../src/store';
 import { uid } from '../../src/utils/date';
+import { haptic } from '../../src/utils/haptics';
 import type { User } from '../../src/types';
 
 export default function LoginScreen() {
@@ -32,11 +33,13 @@ export default function LoginScreen() {
     if (!email.trim() || !email.includes('@')) e.email = '有効なメールアドレスを入力してください';
     if (password.length < 6) e.password = 'パスワードは6文字以上で入力してください';
     setErrors(e);
+    if (Object.keys(e).length > 0) haptic.error();
     return Object.keys(e).length === 0;
   }
 
   async function handleSubmit() {
     if (!validate()) return;
+    haptic.medium();
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
     const displayName = name.trim() || email.split('@')[0];
@@ -137,7 +140,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.switchBtn}
-          onPress={() => setIsSignup(!isSignup)}
+          onPress={() => { haptic.light(); setIsSignup(!isSignup); }}
         >
           <Text style={styles.switchText}>
             {isSignup
