@@ -16257,5 +16257,5 @@ budget / premium / album / settings 画面のハプティクス完全対応・�
 - TypeScript strict 0エラー維持の確認
 
 ### コミット
-- ハッシュ: （コミット後に記載）
+- ハッシュ: `0056098`
 - メッセージ: `feat: budget/premium/album/settings ハプティクス完全対応・取引削除確認ダイアログ追加`
