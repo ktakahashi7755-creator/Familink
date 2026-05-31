@@ -16440,3 +16440,52 @@ $$;
 ### コミット
 - ハッシュ: `（コミット後に記入）`
 - メッセージ: `feat: タスク・メモへの画像埋め込み機能を実装`
+
+## 2026-05-31 18:30  env: PC  branch: main
+
+### 作業名
+CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデート
+
+### 変更ファイル
+- CLAUDE.md
+- .claude/skills/familink-core/SKILL.md
+- .claude/skills/familink-cto-architect/SKILL.md
+- .claude/skills/familink-html-engineer/SKILL.md
+- .claude/skills/familink-master-controller/SKILL.md
+- .claude/skills/familink-qa-lead/SKILL.md
+- docs/worklog.md
+
+### 変更内容
+- fix(CLAUDE.md §14.4): 作業場所パスを `C:\Users\ktaka\Familink` → リモート環境 `/home/user/Familink` に修正
+- update(CLAUDE.md §12.1): 「Vanilla JS のみ」→ Supabase CDN（Wave 202 採用済み）を例外として明記
+- add(CLAUDE.md §12.1): 全22画面の screen id リストを追加
+- update(CLAUDE.md §12.2): PERSIST キー数を66超に更新し確認コマンドを追記
+- update(CLAUDE.md §12.3): docs/index.html 同期の具体的コマンド手順を追加
+- add(CLAUDE.md §14.1): 「ゴールが与えられたら完走する」完走思想を追加
+- update(CLAUDE.md §14.2/14.3): 自律OK/停止必須リストを現状に合わせ更新
+- add(CLAUDE.md §14.5): QA自動テスト（qa_full_test.js）の存在と実行手順を明記
+- add(CLAUDE.md §2): 終了プロトコルにQA実行を必須ステップとして追加
+- add(CLAUDE.md §15): CLAUDE.md更新ルール（開発憲法の更新方針）を新設
+- update(familink-core): Supabase/QA現状を反映
+- update(familink-cto-architect): 現行技術スタック（Supabase Wave202/219）を追記
+- update(familink-html-engineer): 作業後QAチェックとdocs同期確認を追加
+- update(familink-master-controller): 作業終了手順にQA実行ステップを追加
+- update(familink-qa-lead): qa_full_test.js の実行手順をスキルに明記
+
+### テスト結果
+- QA 84/84 PASS（ドキュメント変更のみ、HTMLは無変更）
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- なし（ドキュメント更新のみ）
+
+### 次にやること
+- イベント（予定）への写真添付サポート検討
+- ストレージ使用量の可視化（タスク写真を storage-stats に追加）
+- 家族共有バグ修正の実機2端末確認
+
+### コミット
+- ハッシュ: `（コミット後に記入）`
+- メッセージ: `docs: CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデート`
