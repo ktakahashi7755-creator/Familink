@@ -1113,7 +1113,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   margin-bottom: 1px;
 }
 .cal-cell-more {
-  font-size: 9px; color: var(--text-muted);
+  font-size: 11px; color: var(--text-muted);
   font-weight: 700; text-align: right; padding-right: 3px;
   line-height: 1.3;
 }
@@ -4091,7 +4091,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
       <!-- Wave 212: メール内容は Supabase 設定により異なる。両対応を明示 -->
       <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 14px;margin:14px 0 12px;">
-        <p style="font-size:13px;color:#1E3A8A;line-height:1.7;margin:0 0 6px;font-weight:700;">📩 メールの中身は次のいずれか</p>
+        <p style="font-size:13px;color:#1E3A8A;line-height:1.7;margin:0 0 6px;font-weight:700;">メールの中身は次のいずれか</p>
         <ol style="font-size:12px;color:#1E40AF;line-height:1.7;margin:0;padding-left:20px;">
           <li><b>「Sign in」リンク</b>がある場合 → リンクをタップでログイン</li>
           <li><b>6 桁の数字コード</b>がある場合 → 下の枠に入力</li>
@@ -4116,7 +4116,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-otp-resend" class="btn btn-outline btn-block" style="font-size:12px;" onclick="resendSupaOtp()">コード/リンクを再送する</button>
         <button class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('otp')">メアドを変更</button>
         <!-- Wave 209+212: 何もメール届かない人の最終エスケープ。signupと同様 primary に格上げ -->
-        <button class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:linear-gradient(135deg,#10B981,#059669);border:none;font-weight:700;" onclick="useLocalAndCloseSupa()">📱 メールが届かない場合：ローカルだけで先に始める</button>
+        <button class="btn btn-primary btn-block" style="font-size:13px;margin-top:6px;background:linear-gradient(135deg,#10B981,#059669);border:none;font-weight:700;" onclick="useLocalAndCloseSupa()">メールが届かない場合はローカルで始める</button>
         <p style="font-size:10px;color:#065F46;line-height:1.5;margin:4px 2px 0;text-align:center;">後から設定でクラウド連携できます</p>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
       </div>
@@ -4235,7 +4235,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
     <!-- Wave 205: 接続診断リンク（全モードで常時表示） -->
     <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:1px dashed var(--border-light);">
-      <span style="color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;" onclick="openSupaDiag()">🔍 ログインできない場合はこちら（接続診断）</span>
+      <span style="color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;" onclick="openSupaDiag()">ログインできない場合はこちら（接続診断）</span>
     </div>
   </div>
 </div>
@@ -4377,7 +4377,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div class="ws-banner-wrap" id="ws-banner-health"></div>
   <!-- 緊急時案内（常設・安全のため必ず表示） -->
   <div style="margin:6px 14px 0;padding:8px 12px;background:#FFF1F1;border:1px solid #FCC;border-radius:10px;font-size:11.5px;line-height:1.6;color:#8A2A2A;">
-    ⚠ 緊急時は <b>119</b>（救急）／ <b>#7119</b>（救急安心センター）／ かかりつけ医にご連絡ください。Familink の体調記録は診断ではなく、家族内の振り返り用です。
+    緊急時は <b>119</b>（救急）／ <b>#7119</b>（救急安心センター）／ かかりつけ医にご連絡ください。Familink の体調記録は診断ではなく、家族内の振り返り用です。
   </div>
   <div class="scroll-area" id="health-list" style="padding-bottom:calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
@@ -5731,7 +5731,7 @@ function openSupaAuthModal(mode) {
     _setSupaBanner('warn',
       'クラウド未接続',
       '現在クラウド（Supabase）に接続できません。<br>'
-      + '<b>「📱 今すぐ作成（メール認証なし）」</b> なら端末内に即時アカウント作成できます（クラウド機能は後で接続可能）。',
+      + '<b>「今すぐ作成（メール認証なし）」</b> なら端末内に即時アカウント作成できます（クラウド機能は後で接続可能）。',
       []);
   }
   // 自動フォーカス
@@ -9318,7 +9318,7 @@ function renderHome() {
   if(greetEl) {
     const nm = (S.userProfile && S.userProfile.displayName) || m.name;
     const streakBadge = _streak >= 3
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border-radius:10px;padding:2px 7px;margin-left:7px;vertical-align:middle;">🔥${_streak}日</span>`
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border-radius:10px;padding:2px 7px;margin-left:7px;vertical-align:middle;">${_streak}日連続</span>`
       : '';
     greetEl.innerHTML = `${H(greeting())}、<strong>${H(nm)}</strong>さん${streakBadge}`;
   }
@@ -12893,7 +12893,7 @@ function renderBmMemberBtns(selected) {
   ];
   wrap.innerHTML = choices.map(c => `<button type="button" class="te-mem-btn ${selected===c.id?'selected':''}"
     onclick="selectBmMember('${H(c.id)}')">
-    ${c.id==='common' ? `<span class="av" style="background:${H(c.grad)};width:20px;height:20px;font-size:9px;">${H(c.av)}</span>` : avHtml(c.id, 20, 9, "")}
+    ${c.id==='common' ? `<span class="av" style="background:${H(c.grad)};width:20px;height:20px;font-size:11px;">${H(c.av)}</span>` : avHtml(c.id, 20, 10, "")}
     ${H(c.name)}
   </button>`).join('');
 }
@@ -15815,7 +15815,7 @@ function renderPrep() {
         ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
           <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?ICON('check',13):''}</div>
           <div style="flex:1">
-            <div class="prep-txt ${p.done?'done':''}">${H(p.text)}${p.memberId?`<span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-weight:600;">${H(memberNameById(p.memberId))}</span>`:''}${p.source==='routine'?`<span style="font-size:9px;color:#6366F1;background:#EEF2FF;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;">ルーティン</span>`:''}</div>
+            <div class="prep-txt ${p.done?'done':''}">${H(p.text)}${p.memberId?`<span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-weight:600;">${H(memberNameById(p.memberId))}</span>`:''}${p.source==='routine'?`<span style="font-size:11px;color:#6366F1;background:#EEF2FF;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;">ルーティン</span>`:''}</div>
             ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
           </div>
           ${(_prepTab==='today' && !p.done) ? `<button onclick="event.stopPropagation();carryPrepToTomorrow('${H(p.id)}')" title="明日に回す" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;margin-right:4px;">明日に回す</button>` : ''}
@@ -20696,7 +20696,7 @@ const HOKU_SHORT_REPLY = {
   cashflow_view:          '資金繰りを開くね。',
   notification_add:       '通知センターに残すね（OS プッシュは v1.0 以降）。',
   external_calendar_help: '今は手動取り込みに対応してるよ。自動同期はログイン/認証対応後に追加予定。',
-  calendar_import_help:   'カレンダー画面の「連携」から開けるよ。今は手動取り込み対応、自動同期は準備中。',
+  calendar_import_help:   'カレンダー画面の「連携」から開けるよ。今は手動取り込みに対応してるよ。',
   settings_help:          '設定から変えられるよ。開く？',
   unknown:                ''
 };
@@ -20971,7 +20971,7 @@ function executeHokuAction(intent) {
   }
   if(intent.intentType === 'calendar_import_help') {
     const pv = (intent.entities && intent.entities.provider) || '';
-    if(pv === 'google') return { ok:true, message:'Google連携は準備中。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_google]]' };
+    if(pv === 'google') return { ok:true, message:'Google カレンダーの予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_google]]' };
     if(pv === 'apple')  return { ok:true, message:'iPhone連携はApp Store版で対応予定。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_apple]]' };
     if(pv === 'yahoo')  return { ok:true, message:'Yahoo連携は仕様確認中。今は予定ファイルで取り込めるよ。\n\n[[ACTION_BUTTONS:cal_import_yahoo]]' };
     return { ok:true, message:'カレンダー画面の「連携」から開けるよ。Google / iPhone / Yahoo 別に案内する。\n\n[[ACTION_BUTTONS:cal_import]]' };
