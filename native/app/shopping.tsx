@@ -9,6 +9,7 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { useStore, useShopping } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
 import { EmptyState } from '../src/components/ui/EmptyState';
+import { haptic } from '../src/utils/haptics';
 
 export default function ShoppingScreen() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function ShoppingScreen() {
 
   function handleAdd() {
     if (!input.trim()) return;
+    haptic.light();
     addShopping({ name: input.trim(), done: false, quantity: qty ? Number(qty) : undefined });
     setInput('');
     setQty('');
@@ -138,8 +140,12 @@ export default function ShoppingScreen() {
 
 function ShoppingItem({ item, onToggle, onDelete }: { item: any; onToggle: () => void; onDelete: () => void }) {
   return (
-    <TouchableOpacity style={styles.item} onLongPress={onDelete} activeOpacity={0.7}>
-      <TouchableOpacity onPress={onToggle} hitSlop={8}>
+    <TouchableOpacity
+      style={styles.item}
+      onLongPress={() => { haptic.warning(); onDelete(); }}
+      activeOpacity={0.7}
+    >
+      <TouchableOpacity onPress={() => { if (!item.done) haptic.success(); else haptic.light(); onToggle(); }} hitSlop={8}>
         <View style={[styles.check, item.done && styles.checkDone]}>
           {item.done && <Ionicons name="checkmark" size={13} color="#fff" />}
         </View>

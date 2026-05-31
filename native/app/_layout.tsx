@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useStore } from '../src/store';
 import { Colors } from '../src/constants/theme';
+import { requestPermission } from '../src/services/notifications';
 
 function AuthGate() {
   const router = useRouter();
@@ -24,12 +25,23 @@ function AuthGate() {
   return null;
 }
 
+function NotificationSetup() {
+  const loggedIn = useStore(s => s.loggedIn);
+  useEffect(() => {
+    if (loggedIn) {
+      requestPermission();
+    }
+  }, [loggedIn]);
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <AuthGate />
+        <NotificationSetup />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
