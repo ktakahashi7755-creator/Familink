@@ -14714,3 +14714,45 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214c: settings UI — 8→6 sections, dedupe avatar, group notif into 表示, absorb hoku api, promote logout to danger zone + docs sync v20260526h`
+
+## 2026-05-31 21:30  env: iPhone経由  branch: claude/html-rewrite-test-verify-wF0kV
+
+### 作業名
+HTML 総点検 → ランタイム検証で home/設定クラッシュ（userAvHtml の null.trim）を発見・修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 + キャッシュバスター v20260526h → v20260531a）
+
+### 変更内容
+- `userAvHtml()` の null 参照バグを修正：`(u && (u.name||'')).trim()` → `((u && u.name) || '').trim()`
+  - `S.user` が null（未連携 / ログアウト状態）のとき `null.trim()` で TypeError → home / 設定画面の描画がクラッシュしていた
+  - 関数コメント上「未連携時はイニシャル円でフォールバック」が意図だが、そのフォールバック経路自体が壊れていた（S 優先度バグ）
+- 同パターンを全文検索 → 該当はこの 1 箇所のみ
+- docs へ同期、版を v20260531a に bump
+
+### テスト結果（puppeteer / Chromium 131 / iPhone SE 幅 375px・全 PASS）
+- JS 構文チェック: app-source / docs の全インライン script で errors **none**
+- ハンドラ整合性: HTML 属性で呼ばれる 326 関数すべて定義済み（押せないボタンなし）
+- 重複 static ID: `supa-rate-cd` のみ（同一バナーへ排他描画のため実害なし）
+- 横スクロール: 375px で **なし**（horizOverflow=false）
+- 修正前: `go('s-home')` / `go('s-settings')` が throw（null.trim）→ **修正後 全 22 画面 throw ゼロ**
+- モーダル: 全 **77 モーダル**を openModal→ESC で開閉、throw ゼロ
+- 保存ラウンドトリップ: イベント / タスク追加 → reload 後も保持、loggedIn 維持、`notPersistedKeys: []`（全非一時キーが PERSIST に存在＝§12.2 充足）
+- page error / app console error: **ゼロ**（CERT 系はサンドボックスの外部フォント/CDN で無害）
+
+### 未確認事項
+- 実機 iPhone Safari でのキャッシュ更新反映（v20260531a への bump 後）
+- なし（他に検出バグなし）
+
+### iPhone確認ポイント
+- ログアウト直後やデモプロフィール未連携状態でホーム / 設定を開いても白画面化しないか
+- 設定画面右上などのユーザーアバターがイニシャル円で正しく出るか
+
+### 次にやること
+- ユーザー判断：このまま push して LIVE 反映 / 他画面の深掘り点検 / Hoku 改善
+- 次バックアップ枝の作成検討
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ: `fix(home/settings): guard userAvHtml against null S.user to stop render crash + docs sync v20260531a`
