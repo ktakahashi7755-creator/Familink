@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260531c';
+  var V='v20260531d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1||q.indexOf('fresh=')>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -6679,6 +6679,11 @@ function openMyInviteModal() {
   if(!S.familyId) {
     S.familyId = _generateFamilyId();
     saveS();
+    // 初回生成時: Realtime を family_id チャンネルに切り替え
+    if(isSupaLoggedIn()) {
+      stopRealtimeSync();
+      setTimeout(startRealtimeSync, 0);
+    }
   }
   const el = document.getElementById('my-invite-code');
   if(el) el.textContent = S.familyId;
@@ -6716,6 +6721,11 @@ function doSupaInviteSubmit() {
   closeModal('m-supa-auth');
   showToast('家族コードで参加しました！データが同期されます', 'success');
   _enterApp(true);
+  // 家族データを即時取得 & Realtime を family_id チャンネルに切り替え
+  if(isSupaLoggedIn()) {
+    stopRealtimeSync();
+    _fetchFromSupabase().catch(_=>{});
+  }
 }
 
 /* ── 設定画面 / 入口画面の Supabase 関連 UI を再描画 ── */
