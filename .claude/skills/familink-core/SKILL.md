@@ -49,10 +49,12 @@ Familink の世界観と絶対ルールを定義する最上位 Skill。他の�
 - スマホ最優先 / PC でも崩れない
 
 ## 現行構成（重要）
-- シングル HTML / Vanilla JS / CSS
-- LocalStorage 永続化
-- 勝手に React Native / Supabase へ移行しない
-- 認証 / DB / 課金 / LocalStorage 構造 / 大規模リファクタリングは必ず事前確認
+- シングル HTML / Vanilla JS / CSS（`app-source/familink.html`、24,000 行超）
+- LocalStorage 永続化（キー `familink_v3`）
+- Supabase 認証・Realtime 同期は Wave 202/219 で採用済み（anon キーのみ）
+- 勝手に React Native / 新規 CDN 追加 / フレームワーク化しない
+- 認証変更 / 課金本実装 / LocalStorage 構造変更 / 大規模リファクタリングは必ず事前確認
+- QA 自動テスト: `node qa_full_test.js`（84 件）で実装後に必ずチェック
 
 ## Familink での判断基準
 1. 家族共働き世帯のリアルな課題を解いているか

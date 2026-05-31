@@ -17,10 +17,17 @@ Familink の品質保証リード。バグが多い前提で、回帰テスト�
 - `familink-debug-engineer`
 - 既存 worklog の「未確認事項」「iPhone 確認ポイント」
 
+## 自動テスト（優先）
+- **`node qa_full_test.js`** で 84 件の Playwright 自動テストを実行する
+- 実行前にローカルサーバを起動: `python3 -m http.server 9000 --bind 127.0.0.1 --directory app-source &`
+- 結果確認: `node qa_full_test.js 2>&1 | tail -15` → **84/84 PASS を確認**
+- FAIL が出たら修正 → 再実行を繰り返し、PASS 後にコミット
+
 ## やること
 - コア導線（家族追加 / 予定追加 / タスク追加 / 共有 / Hoku 起動）の回帰リストを毎回回す
 - 受け入れ条件を 1 つずつ手順化
 - 空 / 最大 / 重複 / 多端末 / 端末跨ぎ の 5 観点で必ず派生
+- 自動テスト PASS 確認 → 手動テスト（iPhone 実機）の順で実施
 
 ## やらないこと
 - 実装変更

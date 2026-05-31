@@ -29,14 +29,17 @@ description: 親スレッド / バックアップ番号 / 作業ログ / Git / w
 1. `git status`
 2. 変更ファイル一覧
 3. 変更内容要約
-4. テスト結果（未実施なら理由明記）
-5. 未確認事項
-6. iPhone 確認ポイント
-7. 次にやること
-8. `docs/worklog.md` 追記
-9. `.claude/settings.local.json` を除外したうえでコミット
-10. `git rev-parse --short HEAD` でハッシュ取得
-11. 【作業終了報告】を出力
+4. **`node qa_full_test.js` を実行して 84/84 PASS を確認**
+   - サーバ起動: `python3 -m http.server 9000 --bind 127.0.0.1 --directory app-source &`
+   - 実行: `node qa_full_test.js 2>&1 | tail -15`
+5. テスト結果（未実施なら理由明記）
+6. 未確認事項
+7. iPhone 確認ポイント
+8. 次にやること
+9. `docs/worklog.md` 追記
+10. `.claude/settings.local.json` を除外したうえでコミット
+11. `git rev-parse --short HEAD` でハッシュ取得
+12. 【作業終了報告】を出力
 
 ## トリガー語
 - 開始: 「作業開始」「再開」「続き」

@@ -55,14 +55,15 @@
 1. `git status` を確認
 2. 変更ファイルを一覧化
 3. 変更内容を要約
-4. 実施したテスト・lint・ビルドの結果を記録（未実施なら「未実施: 理由」と明記）
-5. 未確認事項を記録
-6. iPhone で確認すべきポイントを記録
-7. 次にやるべきことを記録
-8. `docs/worklog.md` に新規エントリを追記（テンプレートは §5）
-9. 問題がなければコミット（`.claude/settings.local.json` は絶対に含めない）
-10. コミットハッシュを取得（`git rev-parse --short HEAD`）
-11. 作業終了メモを下記形式で報告
+4. **`node qa_full_test.js` を実行し 84/84 PASS を確認**（サーバ起動が必要な場合は §14.5 参照）
+5. 実施したテスト・lint・ビルドの結果を記録（未実施なら「未実施: 理由」と明記）
+6. 未確認事項を記録
+7. iPhone で確認すべきポイントを記録
+8. 次にやるべきことを記録
+9. `docs/worklog.md` に新規エントリを追記（テンプレートは §5）
+10. 問題がなければコミット（`.claude/settings.local.json` は絶対に含めない）
+11. コミットハッシュを取得（`git rev-parse --short HEAD`）
+12. 作業終了メモを下記形式で報告
 
 ### 終了報告フォーマット（厳守）
 
@@ -389,19 +390,34 @@ Claude Code は以下を自律的に検知し、**提案 / 小規模改善** に
 
 ### 12.1 構成の不変条件
 - **単一 HTML 構成を維持**する（複数ファイル分割・SPA フレームワーク化 / React・Vue・Next.js 化はしない）
-- **Vanilla JS / CSS のみ**。外部ライブラリ・npm 依存・外部 CDN・バックエンド追加は禁止（必要時は提案のみで止める）
+- **Vanilla JS / CSS を基本とする**。npm 依存は禁止。新規 CDN 追加は必ず人間確認
+  - 現在許可済み CDN: `@supabase/supabase-js@2`（CDN jsdelivr経由）/ Google Fonts のみ
+  - Supabase は Wave 202 で採用確定。service_role キーは絶対に置かない（anon キーのみ）
 - 本体は `app-source/familink.html`、GitHub Pages 公開用は `docs/index.html`
+- 全 22 画面の screen id: `s-home` / `s-task` / `s-cal` / `s-budget` / `s-board` / `s-health` / `s-prep` / `s-shopping` / `s-hoku` / `s-notif` / `s-settings` / `s-login` / `s-onboard` / `s-ob` / `s-album` / `s-archive` / `s-memo` / `s-ch` / `s-cdetail` / `s-premium` / `s-board-detail` / `s-custom-board`
 
 ### 12.2 データの不変条件
 - LocalStorage の主キー `familink_v3` を破壊・初期化しない
-- 既存の PERSIST 対象キーを壊さない。**新規保存キーを足す場合は PERSIST にも必ず追加**する
+- 既存の PERSIST 配列（現在 66 キー超）を壊さない。**新規保存キーを足す場合は PERSIST 配列にも必ず追加**する
+  - キーの現在数は `grep "const PERSIST" app-source/familink.html` で確認すること
 - 既存の画面 ID・関数名・データ構造を尊重する（大幅変更は要人間確認）
 - 確認なしのデータ削除をしない
+- familyId は Wave 219 で実装済み。Supabase Realtime チャンネル `familink_family_${familyId}` で家族同期
 
 ### 12.3 app-source ⇄ docs 同期義務（必須）
 - `app-source/familink.html` を修正したら、必ず `docs/index.html` に同期する（逆も同様）
-- `docs/index.html` は GitHub Pages 公開用で、先頭に **Service Worker 登録 + キャッシュバスター**スクリプトが付く。本体の正常な差分はこの先頭ブロックのみ。
-- 同期時はキャッシュバスターのバージョン文字列（例 `v20260522h`）をバンプする
+- `docs/index.html` は GitHub Pages 公開用で、先頭 15 行が **Service Worker 登録 + キャッシュバスター**ブロック。本体との差分はこの先頭ブロックのみ
+- **同期コマンド**（毎回このパターンで実施）:
+  ```sh
+  # 1. docs/index.htmlの先頭15行(SW+キャッシュバスター)を取得し、バージョンをバンプ
+  head -16 docs/index.html | sed 's/v20260531h/v20260531i/'  # 末尾文字を1つ進める
+  # 2. 先頭ブロック + app-source本体(4行目以降)を結合
+  { head -16 docs/index.html | sed 's/vXXXX/vYYYY/'; tail -n +4 app-source/familink.html; } > /tmp/new_index.html
+  cp /tmp/new_index.html docs/index.html
+  # 3. 確認
+  grep "var V=" docs/index.html
+  ```
+- バージョン文字列形式: `v{YYYYMMDD}{a-z}` 例 `v20260531h` → 同日更新なら `v20260531i`
 - 「片方だけ修正して同期忘れ」は禁止
 
 ### 12.4 安全な実装姿勢
@@ -460,35 +476,70 @@ Familink は家族情報・子ども情報・体調・家計・写真・書類�
 - 実装 → テスト → 修正 → 再テストを自律ループする
 - commit 直前のみ変更内容・テスト結果・懸念点を報告する
 - ユーザーへの逐一確認は禁止
+- **ゴールが与えられたら完走する**: 途中報告だけで止まらない。調査→実装→テスト→修正→品質確認→完了報告まで一気通貫で完遂する
 
 ### 14.2 確認なしで進めてよい操作
-- `pwd` / `cd` / `dir` / `ls` / `Test-Path` / `Get-Content` / `Select-String`
+- `pwd` / `cd` / `ls` / ファイル検索 / コード読解
 - `git status` / `git branch` / `git fetch` / `git log` / `git diff`
-- `node --check`
+- `node --check` / `node qa_full_test.js`（QA 自動実行）
 - Playwright / puppeteer / スクショ生成
 - `app-source/familink.html` 編集
-- `docs/index.html` 同期
+- `docs/index.html` 同期（§12.3 手順に従う）
 - `docs/worklog.md` 更新
-- CSS / JS / UI 修正
-- レスポンシブ調整
-- console error 修正
-- Supabase Auth 接続
-- ログイン画面実装
+- CSS / JS / UI 修正 / レスポンシブ調整 / console error 修正
+- Supabase Auth 接続 / ログイン画面実装
+- CLAUDE.md 更新（§15 のルールに従う）
+- 不足タスクの自律的な洗い出しと補完
 
 ### 14.3 必ず停止する操作
-- `rm` / `del`
-- `git reset --hard`
-- `git clean`
-- force push
-- 大量削除
-- LocalStorage 構造破壊
-- service_role key 利用
-- 本番 DB 削除
-- 外部課金
+- `rm` / `del` / 大量削除
+- `git reset --hard` / `git clean` / force push
+- LocalStorage 構造破壊 / `familink_v3` 初期化
+- service_role key 利用 / 本番 DB 削除
+- 外部課金 / 認証方式変更
+- Familink の世界観・Hoku 人格を大きく変える変更
 
 ### 14.4 作業場所
-- 正規 repo は `C:\Users\ktaka\Familink`
-- OneDrive 側では作業しない
+- リモート環境（claude.ai/code 等）: `/home/user/Familink`
+- ローカル PC: `C:\Users\ktaka\Familink`（OneDrive 側では作業しない）
 - 正本は `app-source/familink.html`
-- 公開用は最後に `docs/index.html` へ同期する
+- 公開用は最後に `docs/index.html` へ同期する（§12.3 手順）
 - 既存 LocalStorage `familink_v3` は削除禁止
+
+### 14.5 QA 自動テスト（必須）
+- `node qa_full_test.js` で 84 件の自動テストを実行できる（Playwright 使用）
+- **実装・修正後は必ず実行し、84/84 PASS を確認してからコミット**
+- サーバ起動: `python3 -m http.server 9000 --bind 127.0.0.1 --directory app-source &`
+- テスト実行: `node qa_full_test.js 2>&1 | tail -15`
+- FAIL が出た場合は修正 → 再実行を繰り返し、PASS 確認後にコミット
+
+---
+
+## 15. CLAUDE.md 更新ルール
+
+CLAUDE.md は Familink の「開発憲法」である。更新する場合は以下を守ること。
+
+### 更新の原則
+- **全面書き換えは禁止**。改善・統合・補強のみ
+- 更新前に必ず現状コード・既存 Skill・過去 worklog を確認する
+- 良いルールは残し、古いルールのみ更新する
+- 既存の世界観・文体・トーンを変えない
+- 重複を増やさない（同じ内容を複数セクションに書かない）
+- 長文化が目的ではない。**次回 Claude Code が迷わず動ける実務ドキュメント**であることが目的
+
+### 更新してよいこと
+- 古いパス・バージョン・キー数など事実が変わった箇所の修正
+- 新機能・新ルールの追加（既存ルールとの重複がない場合）
+- 曖昧な表現を実装判断に使える具体的記述へ変更
+- 現状コードと矛盾する記述の修正
+
+### 更新してはいけないこと
+- Familink の世界観・プロダクト哲学・北極星の変更
+- 既存の良いルールの削除（削除する場合は worklog に理由を明記）
+- 未確認情報の断定的記述
+- CLAUDE.md をコード置き場にすること（コードは HTML 本体に書く）
+
+### 更新後は必ず
+- `git diff CLAUDE.md` で変更点を確認
+- worklog に更新内容を記録
+- コミットメッセージ例: `docs: CLAUDE.md スキル補強（Supabase/QA/同期手順）`

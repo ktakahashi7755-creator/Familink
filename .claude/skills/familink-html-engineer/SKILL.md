@@ -33,8 +33,10 @@ description: 現行のシングル HTML / Vanilla JS / CSS を安全に実装・
 - 既存の同種実装パターンを 1 つ見つけて踏襲
 
 ## 作業後チェック
+- `node qa_full_test.js` で 84/84 PASS を確認（FAIL は修正してから次に進む）
 - ブラウザで該当画面を開ける
 - console エラーが出ない
+- `docs/index.html` への同期が完了しているか（§12.3 手順）
 - LocalStorage の旧データが残っても読めるか
 
 ## テスト観点
