@@ -1,0 +1,38 @@
+{
+  "name": "familink",
+  "version": "1.0.0",
+  "description": "家族向けアプリ「ファミリンク」のリポジトリ。**家族みんなで子育てをチームにするアプリ**を目指しています。",
+  "main": "qa_full_test.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "sync": "cp app-source/familink.html www/index.html && npx cap sync",
+    "sync:ios": "cp app-source/familink.html www/index.html && npx cap sync ios",
+    "sync:android": "cp app-source/familink.html www/index.html && npx cap sync android",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android",
+    "build": "cp app-source/familink.html www/index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:36613/git/ktakahashi7755-creator/Familink"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
