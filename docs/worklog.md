@@ -8547,7 +8547,7 @@ App Store 公開準備：法務ドキュメントの HTML 化と検証
 - Hoku API デプロイ可否の判断（要オーナー確認）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 80: publish legal docs as HTML + verify release checklist`
 
 ---
@@ -8579,7 +8579,7 @@ App Store 公開準備：法務ドキュメントの HTML 化と検証
 - A1 実機検証 / A2-A3 アイコン・スクリーンショット（要オーナー）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 81: add consolidated remaining-tasks document`
 
 ---
@@ -8632,7 +8632,7 @@ App Store 公開準備の一括前進（アイコン / サポート / 決定ド�
 - A6 Capacitor 実装の可否判断（Apple Developer Program 登録が前提）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 82: app icon, support page, decision docs, verification`
 
 ---
@@ -8669,7 +8669,7 @@ B1: dev ブランチを Pages 配信ブランチ / main へ反映
 - A1 実機検証 / A3 スクリーンショット撮影（要オーナー操作）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 83: record B1 branch sync to worklog`
 
 ---
@@ -8721,7 +8721,7 @@ Hoku 削除エンジン — 全カテゴリ対応・ラフな言い方で会話�
 - 必要なら登録（add）側のラフ理解もさらに強化
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 84: Hoku universal delete engine (all categories, rough input)`
 
 ---
@@ -8777,7 +8777,7 @@ Hoku 意図分類・音声/テキスト精度の強化
 - 必要なら誤分類が出た実例を集めて辞書・スコアを追調整
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 85: improve Hoku intent precision (voice & text)`
 
 ---
@@ -8846,7 +8846,7 @@ HOKU Parser/Evaluator v2 — 中間データ構造・候補・聞き返し・デ
 - 必要なら候補ランキングの重み調整
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 86: HOKU Parser/Evaluator v2 (intermediate data, clarification, debug)`
 
 ---
@@ -8894,7 +8894,7 @@ HOKU 意図分類のさらなる精度追い込み（実入力 30 ケースで�
 - 必要なら誤分類実例を集めて辞書・スコアを追調整
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 87: further Hoku classification precision tuning`
 
 ---
@@ -8957,7 +8957,7 @@ sendHokuMsg を実際に呼ぶ統合テストで重大な統合バグを発見�
 - 必要なら誤分類実例の追加収集と微調整
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 88: Hoku quality sweep — fix chat-delete integration bug`
 
 ---
@@ -9014,7 +9014,7 @@ HOKU エンティティ抽出の精度強化 — タイトル抽出のバグ修�
 - さらなる精度の作り込み
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 89: fix Hoku title extraction (spaceless JP) + サッカー normalize bug`
 
 ---
@@ -9064,7 +9064,7 @@ HOKU 冪等性検証 + 難度の高い日時/金額/タイトル抽出の追い�
 - HOKU 品質はテスト 360+ ケース全 PASS の安定水準に到達
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 90: Hoku idempotency check + hard date/title extraction`
 
 ---
@@ -9110,7 +9110,7 @@ hoku-api（Python）分類器をアプリ本体と同水準の精度に引き上
 - hoku-api をデプロイするならテスト追補
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 91: bring hoku-api classifier to parity with app`
 
 ---
@@ -9158,7 +9158,7 @@ _hokuDetectDelete・normalizeHokuText に投入。
 - 実機での最終確認
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 92: Hoku fuzz test + full verification (all green)`
 
 ---
@@ -9216,7 +9216,7 @@ HOKU 会話応答の品質改善 — 温かく自然な返答に
 - 実機での会話・登録・削除フロー確認
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 93: warmer Hoku conversational replies`
 
 ---
@@ -9266,7 +9266,7 @@ Hoku の作り込みが一段落したため、視野をアプリ全体に広げ
 - 実機での最終確認（コード側の作り込みは安定水準に到達）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 94: full-app screen/modal audit (70/70, no bugs)`
 
 ---
@@ -9300,7 +9300,7 @@ Wave 94 時点の安定状態をバックアップ・保存
 - 実機での最終確認
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 95: backup Wave 94 stable state (backup/023)`
 
 ---
@@ -9352,7 +9352,7 @@ Wave 94 時点の安定状態をバックアップ・保存
 - 必要ならリアクションの SVG 化（要オーナー判断）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 96: replace emoji with monoline SVG icons app-wide`
 
 ---
@@ -9399,7 +9399,7 @@ Wave 94 時点の安定状態をバックアップ・保存
 - 実機での全画面アイコン目視確認
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 97: convert reaction emoji to SVG — zero emoji app-wide`
 
 ---
@@ -9427,7 +9427,7 @@ Wave 97 時点（絵文字完全 SVG 化）の安定状態をバックアップ�
 - 実機での全画面アイコン確認
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 98: backup Wave 97 stable state (backup/024)`
 
 ---
@@ -9467,7 +9467,7 @@ Supabase バックエンド導入の設計書作成（マルチ家族 認証・�
 - Project URL / anon key 共有後、ログイン UI（Phase 4-2）から実装
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 99: Supabase backend design (multi-family auth & isolation)`
 
 ---
@@ -9512,7 +9512,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 100: fix raw ${ICON()} text shown in static HTML`
 
 ---
@@ -9558,7 +9558,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 101: expand profile roles + custom free-text role`
 
 ---
@@ -9605,7 +9605,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 102: remove profile role section entirely`
 
 ---
@@ -9649,7 +9649,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 103: hide floating Hoku on onboarding screen`
 
 ---
@@ -9694,7 +9694,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 104: add how-to-use guide (tutorial)`
 
 ---
@@ -9745,7 +9745,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - IAP 本実装時に解約を OS サブスク管理へ誘導
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 105: add premium cancellation link at guide bottom`
 
 ---
@@ -9777,7 +9777,7 @@ JS テンプレート式 ${ICON(...)} を入れてしまい、評価されず文
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 106: show premium cancellation only to paid members`
 
 ---
@@ -9809,7 +9809,7 @@ Wave 106 時点の安定状態をバックアップ・保存
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 107: backup Wave 106 stable state (backup/025)`
 
 ---
@@ -9858,7 +9858,7 @@ Wave 106 時点の安定状態をバックアップ・保存
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 108: add folders to archive and album`
 
 ---
@@ -9903,7 +9903,7 @@ Wave 106 時点の安定状態をバックアップ・保存
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 109: add confirmation step before premium cancellation`
 
 ---
@@ -9935,7 +9935,7 @@ Wave 109 時点の安定状態をバックアップ・保存
 - Supabase セットアップ（オーナー作業）待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 110: backup Wave 109 stable state (backup/026)`
 
 ---
@@ -9988,7 +9988,7 @@ Wave 109 時点の安定状態をバックアップ・保存
 - 正式リリース時：Stripe / App Store IAP の決済方式を決定（要オーナー確認）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 111: selectable premium plans + payment registration screen`
 
 ---
@@ -10033,7 +10033,7 @@ Wave 109 時点の安定状態をバックアップ・保存
 - Supabase セットアップ待ち
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 112: verify all + fix card expiry month validation`
 
 ---
@@ -10081,7 +10081,7 @@ Wave 113 — 通知オンオフ設定 + サポート（FAQ・お問い合わせ�
 - 正式リリース時の決済方式決定（Stripe / IAP）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 113: notification on/off settings + support (FAQ/contact) + legal & version`
 
 ---
@@ -10134,7 +10134,7 @@ Wave 114 — ローカルアカウント認証（メール/パスワード/再�
 - アルバム / すべての写真 / 最高の瞬間 の空状態を世界最高峰品質に刷新
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 114: local account auth (email/password/recovery/change)`
 
 ---
@@ -10182,7 +10182,7 @@ Wave 115 — 書類 / アルバムの空状態を上質に刷新
 - Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 115: refined empty states for documents & album`
 
 ---
@@ -10230,7 +10230,7 @@ Wave 116 — 書類 / アルバムを色付きフォルダのグリッド階層�
 - Hoku 家計フローの精度改善（日付の聞き返し + マルチターン記録）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 116: colored folder grid hierarchy for documents & album`
 
 ---
@@ -10284,7 +10284,7 @@ Wave 117 — Hoku 家計の理解精度を強化（スクショ基準）
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 117: improve Hoku budget comprehension (item title & category)`
 
 ---
@@ -10332,7 +10332,7 @@ Wave 118 — 書類の写真ビューア + 端末ダウンロード（書類 / �
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 118: document photo viewer + device download for docs & album`
 
 ---
@@ -10371,7 +10371,7 @@ Wave 119 — 画像ビューアが書類編集モーダルの背面に開く不�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 119: fix image viewer opening behind document edit modal`
 
 ---
@@ -10413,7 +10413,7 @@ Wave 120 — 書類のまとめて追加（複数写真から一括作成）
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 120: batch-add documents from multiple photos`
 
 ---
@@ -10455,7 +10455,7 @@ Wave 121 — 「まとめて追加」の発見性を改善（書類・アルバ�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 121: make batch-add discoverable on documents & album`
 
 ---
@@ -10498,7 +10498,7 @@ Wave 124 — プライバシーポリシー / 利用規約をアプリ内モー�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 124: show privacy policy & terms in-app modal`
 
 ---
@@ -10539,7 +10539,7 @@ Wave 126 — 各画面のスクロール余白を統一しタブバーで見切�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 126: unify scroll padding so content clears the floating tab bar`
 
 ---
@@ -10581,7 +10581,7 @@ Wave 127 — カレンダー予定の繰り返しに「毎年」「カスタム�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 127: add yearly & custom recurrence to calendar events`
 
 ---
@@ -10623,7 +10623,7 @@ Wave 128 — カレンダーに日本の祝日を表示・月ビューを見や�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 128: show Japanese holidays on calendar + larger month cells`
 
 ---
@@ -10662,7 +10662,7 @@ Wave 129 — タスクに繰り返し機能を追加
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 129: add recurrence to tasks`
 
 ---
@@ -10698,7 +10698,7 @@ Wave 130 — カレンダー週ビューにも祝日を反映
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 130: show Japanese holidays in calendar week view`
 
 ---
@@ -10738,7 +10738,7 @@ Wave 131 — 全体テスト・検証スイープ + 祝日データを2028年ま
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 131: full QA sweep + extend holidays to 2028`
 
 ---
@@ -10778,7 +10778,7 @@ Wave 132 — アルバムの写真追加をシンプルに（OS標準シート�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 132: album add opens native photo sheet directly`
 
 ---
@@ -10825,7 +10825,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 実機で家族利用を開始し、デモデータ用 JSON のエクスポート（オーナー作業待ち）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 134: seed demo data only once for production use`
 
 ## 2026-05-18 16:00  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
@@ -10867,7 +10867,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 166: multi-select bulk delete for completed tasks`
 
 ## 2026-05-18 16:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
@@ -10906,7 +10906,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 167: retire the legacy memo board type from board creation`
 
 ## 2026-05-18 16:50  env: iPhone経由  branch: claude/familylink-unicorn-product-TzM1F
@@ -10941,7 +10941,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 168: memo attach button shows plus icon only`
 
 ## 2026-05-18 17:05  env: iPhone経由  branch: claude/familylink-unicorn-product-TzM1F
@@ -10983,7 +10983,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 169: fix task bulk-delete bar hidden behind tab bar`
 
 ## 2026-05-18 17:40  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
@@ -11040,7 +11040,7 @@ Wave 134 — 本番運用向け：デモデータの再投入を防止（デー�
 - 優先度 C9: 入力時に共有範囲選択＋鍵アイコン表示
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `wave 170: full-app QA pass + fix Hoku button overlapping header`
 
 ## 2026-05-18 18:30  env: 不明  branch: claude/familylink-unicorn-product-TzM1F
@@ -15932,7 +15932,7 @@ QA Playwright 全点検 — 12件FAILを0件に解消
 - App Store 公開前チェックリスト（docs/app-store-release-checklist.md）
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `fix: QA全点検 — 12件FAIL解消（戻るボタン追加・テスト修正）`
 
 ## 2026-05-29 15:30  env: 不明  branch: claude/latest-version-device-check-652i3
@@ -16163,5 +16163,5 @@ QA総点検バグ修正：ストレージ統計漏れ・軽量エクスポート
 - iPhone 実機テスト
 
 ### コミット
-- ハッシュ: （コミット後に記録）
+- ハッシュ: `e5f1a99`
 - メッセージ: `fix: 絵文字除去・準備中表現修正・小フォント修正（全ページ総点検）`
