@@ -3683,6 +3683,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <div class="field-label">メモ</div>
         <textarea class="input" id="te-memo" rows="2" placeholder="詳細・補足など" maxlength="1000" style="resize:none;line-height:1.6;"></textarea>
       </div>
+      <div class="field" id="te-photo-field">
+        <div class="field-label">写真</div>
+        <input type="file" id="te-photo-file" accept="image/*" style="display:none;" onchange="teOnPhotoPicked(event)">
+        <div id="te-photo-area"></div>
+      </div>
       <div class="field" id="te-status-field" style="display:none;">
         <div class="field-label">ステータス</div>
         <select class="input" id="te-status">
@@ -11383,6 +11388,34 @@ function showIcsFallback(text) {
 
 
 let _tkFilter='all', _tkMember='all';
+var _tePhotoBuf = ''; // '' = 写真なし、base64 = 添付写真
+
+function _renderTePhoto() {
+  var area = document.getElementById('te-photo-area');
+  if(!area) return;
+  if(_tePhotoBuf) {
+    area.innerHTML = '<div style="position:relative;display:inline-block;width:100%;">'
+      + '<img src="' + _tePhotoBuf + '" style="width:100%;max-height:200px;border-radius:10px;object-fit:cover;display:block;border:1px solid var(--border-light);">'
+      + '<button type="button" onclick="_tePhotoBuf=\'\';_renderTePhoto()" aria-label="写真を削除" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;border:2.5px solid var(--bg);font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
+      + '</div>';
+  } else {
+    area.innerHTML = '<button type="button" onclick="document.getElementById(\'te-photo-file\').click()" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px dashed var(--border);border-radius:10px;background:var(--bg-muted);color:var(--text-sub);font-size:13px;cursor:pointer;width:100%;">'
+      + ICON('image',16) + '<span>写真を追加</span></button>';
+  }
+}
+function teOnPhotoPicked(ev) {
+  var file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  downscaleImageFile(file, 1200, 0.82).then(function(dataUrl){
+    _tePhotoBuf = dataUrl || '';
+    _renderTePhoto();
+  });
+  ev.target.value = '';
+}
+function _viewTaskPhoto(id) {
+  var t = (S.tasks||[]).find(function(x){ return x.id===id; });
+  if(t && t.photo) openDocPhoto(t.photo, t.title || 'タスクの写真');
+}
 
 function applyTkFilters(tasks){
   let r=[...tasks];
@@ -11609,8 +11642,9 @@ function tkCardHtml(t){
         ${t.memo?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-top:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}
         ${isDone?`<span style="font-size:10px;color:var(--text-muted);">完了</span>`:''}
       </div>
+      ${t.photo?`<div style="margin-top:8px;" onclick="event.stopPropagation();_viewTaskPhoto('${H(t.id)}')"><img src="${t.photo}" style="width:100%;max-height:200px;object-fit:cover;display:block;border-radius:10px;cursor:zoom-in;opacity:${isDone?.6:1};" loading="lazy"></div>`:''}
     </div>
-    ${t.assignedTo?`${avHtml(mem.id, 26, 10, "flex-shrink:0;opacity:"+(isDone?'.55':'1'))}`:''}
+    ${t.assignedTo?`${avHtml(mem.id, 26, 10, "flex-shrink:0;opacity:"+(isDone?'.55':'1')+"align-self:flex-start;")}`:''}
     ${deleteBtn}
   </div>`;
 }
@@ -11983,8 +12017,9 @@ function openTaskModal(id,defaultStatus){
   document.getElementById('te-member').value=selMember;
   const bw=document.getElementById('te-member-btns');
   bw.innerHTML=[{id:'',name:'未定',grad:'#94A3B8',av:'?'},...MEMBERS].map(m=>`<button type="button" class="te-mem-btn ${m.id===selMember?'selected':''}" onclick="selectTeMember('${H(m.id)}')">${avHtml(m.id, 20, 9)}${H(m.name)}</button>`).join('');
+  _tePhotoBuf = t?.photo || '';
   openModal('m-task-edit');
-  setTimeout(()=>document.getElementById('te-title').focus(),200);
+  setTimeout(function(){ _renderTePhoto(); document.getElementById('te-title').focus(); }, 80);
 }
 function selectTePriority(v){
   document.getElementById('te-priority').value=v;
@@ -12017,12 +12052,12 @@ function saveTaskEdit(){
   }
   if(id){
     const t=(S.tasks||[]).find(t=>t.id===id);
-    if(t){Object.assign(t,{title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:document.getElementById('te-status').value,updatedAt:now});if(t.status==='done'&&!t.completedAt)t.completedAt=now;}
+    if(t){Object.assign(t,{title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:document.getElementById('te-status').value,photo:_tePhotoBuf,updatedAt:now});if(t.status==='done'&&!t.completedAt)t.completedAt=now;}
   }else{
     if(!checkPremiumLimit('tasks')) return;
     S.tasks=S.tasks||[];
     const maxOrder=(S.tasks).reduce((m,t)=>Math.max(m,t.order||0),-1);
-    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',order:0,completedAt:'',createdAt:now,updatedAt:now,workspaceId:curWsId()});
+    S.tasks.unshift({id:uid(),title,memo:document.getElementById('te-memo').value.trim(),assignedTo:document.getElementById('te-member').value,dueDate:document.getElementById('te-due').value,repeat,repeatInterval,repeatUnit,priority:document.getElementById('te-priority').value,category:document.getElementById('te-cat').value,status:'todo',photo:_tePhotoBuf,order:0,completedAt:'',createdAt:now,updatedAt:now,workspaceId:curWsId()});
     S.tasks.forEach((t,i)=>t.order=i);
   }
   saveS();closeModal('m-task-edit');renderTaskScreen();renderHome();
@@ -14194,18 +14229,21 @@ function renderMemo() {
     h += '<div class="mn-memo-list" id="mn-memo-list">';
     memos.forEach(function(m) {
       const titleText = m.title || (m.body||'').split('\n')[0].slice(0,50) || '（無題）';
+      const hasPhoto = m.attachments && m.attachments.length > 0;
       const bodyPreview = m.title
         ? (m.body||'').replace(/\s+/g,' ').trim().slice(0,55)
-        : (m.body||'').split('\n').slice(1).join(' ').trim().slice(0,55) || (m.attachments&&m.attachments.length ? '📎 写真' : '追加テキストなし');
+        : (m.body||'').split('\n').slice(1).join(' ').trim().slice(0,55) || (hasPhoto ? '' : '追加テキストなし');
       const d = new Date(m.updatedAt || m.createdAt || Date.now());
       const dateStr = _memoDateLabel(d);
+      const firstThumb = hasPhoto ? m.attachments[0].dataUrl : '';
       h += '<div class="mn-memo-row" data-id="'+H(m.id)+'" data-mn-drag="memo" onclick="openMemoEdit(\''+H(m.id)+'\')">'
         + '<div class="mn-drag-handle" title="長押しで並び替え"><svg width="12" height="16" viewBox="0 0 12 16" fill="none"><circle cx="4" cy="4" r="1.5" fill="var(--border)"/><circle cx="4" cy="8" r="1.5" fill="var(--border)"/><circle cx="4" cy="12" r="1.5" fill="var(--border)"/><circle cx="8" cy="4" r="1.5" fill="var(--border)"/><circle cx="8" cy="8" r="1.5" fill="var(--border)"/><circle cx="8" cy="12" r="1.5" fill="var(--border)"/></svg></div>'
         + '<div class="mn-memo-content">'
         +   '<div class="mn-memo-title">'+H(titleText)+'</div>'
-        +   '<div class="mn-memo-preview">'+H(bodyPreview)+'</div>'
+        +   (bodyPreview ? '<div class="mn-memo-preview">'+H(bodyPreview)+'</div>' : '')
+        +   (firstThumb ? '<div style="margin-top:6px;border-radius:8px;overflow:hidden;"><img src="'+firstThumb+'" style="width:100%;max-height:120px;object-fit:cover;display:block;" loading="lazy"></div>' : '')
         + '</div>'
-        + '<div class="mn-memo-date">'+H(dateStr)+'</div>'
+        + '<div class="mn-memo-date" style="align-self:flex-start;">'+H(dateStr)+'</div>'
         + '</div>';
     });
     h += '</div>';
