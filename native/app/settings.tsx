@@ -12,6 +12,7 @@ import { Avatar } from '../src/components/ui/Avatar';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { Sheet } from '../src/components/ui/Sheet';
+import { haptic } from '../src/utils/haptics';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -25,15 +26,17 @@ export default function SettingsScreen() {
 
   function handleSaveName() {
     if (name.trim()) {
+      haptic.success();
       setUserProfile({ displayName: name.trim() });
     }
     setShowEdit(false);
   }
 
   function handleLogout() {
+    haptic.warning();
     Alert.alert('ログアウト', 'ログアウトしますか？', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: 'ログアウト', style: 'destructive', onPress: () => { logout(); router.replace('/(auth)/welcome'); } },
+      { text: 'ログアウト', style: 'destructive', onPress: () => { haptic.heavy(); logout(); router.replace('/(auth)/welcome'); } },
     ]);
   }
 

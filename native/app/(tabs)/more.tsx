@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useStore, useMembers } from '../../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../src/constants/theme';
+import { haptic } from '../../src/utils/haptics';
 import { Avatar } from '../../src/components/ui/Avatar';
 
 type FeatureItem = {
@@ -85,7 +86,7 @@ export default function MoreScreen() {
               <Animated.View key={f.id} entering={FadeInDown.delay(120 + i * 30).springify().damping(18)}>
                 <TouchableOpacity
                   style={styles.gridItem}
-                  onPress={() => router.push(f.route as any)}
+                  onPress={() => { haptic.light(); router.push(f.route as any); }}
                 >
                   <View style={[styles.gridIconWrap, { backgroundColor: f.color + '18' }]}>
                     <Text style={styles.gridIcon}>{f.icon}</Text>
@@ -130,7 +131,7 @@ export default function MoreScreen() {
                   styles.settingsRow,
                   i < SETTINGS.length - 1 && styles.settingsRowBorder,
                 ]}
-                onPress={() => router.push(s.route as any)}
+                onPress={() => { haptic.light(); router.push(s.route as any); }}
               >
                 <View style={[styles.settingsIcon, { backgroundColor: s.color + '18' }]}>
                   <Ionicons name={s.icon as any} size={18} color={s.color} />
