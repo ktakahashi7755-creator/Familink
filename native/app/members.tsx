@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
 import { useStore, useMembers } from '../src/store';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../src/constants/theme';
 import { Avatar } from '../src/components/ui/Avatar';
@@ -13,6 +14,7 @@ import { Sheet } from '../src/components/ui/Sheet';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { EmptyState } from '../src/components/ui/EmptyState';
+import { haptic } from '../src/utils/haptics';
 import { uid } from '../src/utils/date';
 
 const MEMBER_COLORS: string[] = [...Colors.memberColors];
@@ -36,37 +38,61 @@ export default function MembersScreen() {
   const [name, setName] = useState('');
   const [role, setRole] = useState<'parent' | 'child' | 'grandparent' | 'other'>('parent');
   const [color, setColor] = useState<string>(MEMBER_COLORS[0] ?? '#5B7FFF');
-
-  const editMember = editId ? members.find(m => m.id === editId) : null;
+  const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
 
   function openAdd() {
+    haptic.light();
     setEditId(null);
     setName('');
     setRole('parent');
     setColor(MEMBER_COLORS[members.length % MEMBER_COLORS.length]);
+    setAvatarUri(undefined);
     setShowAdd(true);
   }
 
   function openEdit(id: string) {
     const m = members.find(mm => mm.id === id);
     if (!m) return;
+    haptic.light();
     setEditId(id);
     setName(m.name);
     setRole(m.role as any ?? 'parent');
     setColor(m.color);
+    setAvatarUri(m.avatarUrl);
     setShowAdd(true);
+  }
+
+  async function pickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('権限が必要', '写真ライブラリへのアクセス権が必要です');
+      return;
+    }
+    haptic.light();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as ImagePicker.MediaType,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      haptic.success();
+    }
   }
 
   function handleSave() {
     if (!name.trim()) return;
+    haptic.success();
     if (editId) {
-      updateMember(editId, { name: name.trim(), role, color });
+      updateMember(editId, { name: name.trim(), role, color, avatarUrl: avatarUri });
     } else {
       addMember({
         id: 'm_' + uid(),
         name: name.trim(),
         role,
         color,
+        avatarUrl: avatarUri,
         createdAt: new Date().toISOString(),
       });
     }
@@ -74,20 +100,25 @@ export default function MembersScreen() {
   }
 
   function handleDelete(id: string) {
+    haptic.warning();
     Alert.alert('メンバーを削除', 'このメンバーを削除しますか？', [
       { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => deleteMember(id) },
+      {
+        text: '削除',
+        style: 'destructive',
+        onPress: () => { haptic.heavy(); deleteMember(id); },
+      },
     ]);
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>家族メンバー</Text>
-        <TouchableOpacity onPress={openAdd}>
+        <TouchableOpacity onPress={openAdd} hitSlop={8}>
           <Ionicons name="person-add" size={22} color={Colors.primary} />
         </TouchableOpacity>
       </View>
@@ -129,14 +160,27 @@ export default function MembersScreen() {
         </ScrollView>
       )}
 
-      <Sheet visible={showAdd} onClose={() => setShowAdd(false)} title={editId ? 'メンバーを編集' : 'メンバーを追加'}>
+      <Sheet
+        visible={showAdd}
+        onClose={() => setShowAdd(false)}
+        title={editId ? 'メンバーを編集' : 'メンバーを追加'}
+      >
         <View style={styles.form}>
+          {/* Avatar picker */}
+          <TouchableOpacity style={styles.avatarPicker} onPress={pickAvatar}>
+            <Avatar name={name || '？'} color={color} size={72} uri={avatarUri} />
+            <View style={styles.cameraOverlay}>
+              <Ionicons name="camera-outline" size={16} color="#fff" />
+            </View>
+            <Text style={styles.avatarHint}>写真を選択</Text>
+          </TouchableOpacity>
+
           <Input
             label="名前"
             placeholder="例：田中 太郎"
             value={name}
             onChangeText={setName}
-            autoFocus
+            autoFocus={!editId}
           />
           <View>
             <Text style={styles.fieldLabel}>役割</Text>
@@ -144,10 +188,10 @@ export default function MembersScreen() {
               {ROLES.map(r => (
                 <TouchableOpacity
                   key={r.id}
-                  style={[styles.roleBtn, role === r.id && { backgroundColor: Colors.primaryLight, borderColor: Colors.primary }]}
-                  onPress={() => setRole(r.id)}
+                  style={[styles.roleBtn, role === r.id && styles.roleBtnActive]}
+                  onPress={() => { haptic.selection(); setRole(r.id); }}
                 >
-                  <Text style={[styles.roleBtnText, role === r.id && { color: Colors.primary, fontWeight: '600' }]}>
+                  <Text style={[styles.roleBtnText, role === r.id && styles.roleBtnTextActive]}>
                     {r.label}
                   </Text>
                 </TouchableOpacity>
@@ -165,17 +209,18 @@ export default function MembersScreen() {
                     { backgroundColor: c },
                     color === c && styles.colorDotSelected,
                   ]}
-                  onPress={() => setColor(c)}
+                  onPress={() => { haptic.selection(); setColor(c); }}
                 />
               ))}
             </View>
           </View>
-          {/* Preview */}
-          <View style={styles.preview}>
-            <Avatar name={name || '？'} color={color} size={52} />
-            <Text style={styles.previewName}>{name || '名前なし'}</Text>
-          </View>
-          <Button title={editId ? '保存' : '追加する'} onPress={handleSave} variant="primary" size="lg" fullWidth />
+          <Button
+            title={editId ? '保存' : '追加する'}
+            onPress={handleSave}
+            variant="primary"
+            size="lg"
+            fullWidth
+          />
         </View>
       </Sheet>
     </View>
@@ -197,7 +242,17 @@ const styles = StyleSheet.create({
   memberInfo: { flex: 1 },
   memberName: { fontSize: Typography.base, fontWeight: '600', color: Colors.text },
   memberRole: { fontSize: Typography.sm, color: Colors.textMuted, marginTop: 2 },
-  form: { gap: Spacing.base, paddingBottom: 20 },
+  form: { gap: Spacing.base, paddingBottom: 24 },
+  avatarPicker: { alignItems: 'center', gap: 6, paddingVertical: 8 },
+  cameraOverlay: {
+    position: 'absolute', top: 48, left: '50%',
+    marginLeft: 16,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.card,
+  },
+  avatarHint: { fontSize: Typography.xs, color: Colors.primary, fontWeight: '600' },
   fieldLabel: { fontSize: Typography.sm, fontWeight: '500', color: Colors.textSub, marginBottom: 8 },
   roleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   roleBtn: {
@@ -205,10 +260,14 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.borderLight,
     backgroundColor: Colors.bgMuted,
   },
+  roleBtnActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
   roleBtnText: { fontSize: Typography.sm, color: Colors.textSub },
+  roleBtnTextActive: { color: Colors.primary, fontWeight: '600' },
   colorRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
   colorDot: { width: 32, height: 32, borderRadius: 16 },
-  colorDotSelected: { borderWidth: 3, borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2 },
-  preview: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
-  previewName: { fontSize: Typography.base, fontWeight: '600', color: Colors.text },
+  colorDotSelected: {
+    borderWidth: 3, borderColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3, shadowRadius: 2,
+  },
 });
