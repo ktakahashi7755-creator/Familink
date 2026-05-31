@@ -4157,10 +4157,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div class="modal-actions">
         <!-- Wave 210+211+214: signup モード時の主推奨。緑色 + 大きめでクラウド版より目立たせる。
              Wave 214: 📱 絵文字を SVG（user-plus）に置換、チェックリスト 3 行を 1 行サブテキストに圧縮 -->
-        <button id="supa-auth-local-signup" class="btn btn-primary btn-block" style="font-size:15px;padding:14px 16px;background:linear-gradient(135deg,#10B981,#059669);border:none;display:none;font-weight:700;" onclick="doSupaLocalSignup()">
-          <svg style="vertical-align:-4px;margin-right:8px;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>今すぐ作成
-        </button>
-        <p id="supa-auth-local-signup-note" style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:6px 2px 14px;text-align:center;display:none;">端末内に作成・メール認証なし・あとでクラウド連携可</p>
+        <button id="supa-auth-local-signup" class="btn btn-primary btn-block" style="font-size:16px;padding:14px 16px;background:#1C1C1E;border:none;border-radius:14px;display:none;font-weight:600;letter-spacing:.2px;" onclick="doSupaLocalSignup()">アカウントを作成</button>
+        <p id="supa-auth-local-signup-note" style="display:none;"></p>
         <button id="supa-auth-submit" class="btn btn-primary btn-block" onclick="doSupaAuthSubmit()">ログインする</button>
         <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
@@ -5770,7 +5768,7 @@ function setSupaAuthMode(mode) {
       (_supaAuthMode === 'sent')        ? '確認メール送信済み' :
       (_supaAuthMode === 'reset-sent')  ? '再設定メール送信済み' :
       (_supaAuthMode === 'reset')       ? 'パスワードを再設定' :
-      (_supaAuthMode === 'signup')      ? 'メールアドレスで新規登録' :
+      (_supaAuthMode === 'signup')      ? '新規登録' :
                                           'メールアドレスでログイン';
   }
   if(!showForm) return;
@@ -5781,11 +5779,12 @@ function setSupaAuthMode(mode) {
   // タイトルは上の共通処理で更新済み
 
   const desc = document.getElementById('supa-auth-desc');
-  if(desc) desc.textContent = isReset
-    ? '登録済みのメールアドレスを入力すると、再設定リンクをお送りします。'
-    : (isUp
-        ? '新規アカウントを作成します。メール認証なしで今すぐ使い始められます。'
-        : '登録済みのメールアドレスとパスワードでログインします。');
+  if(desc) {
+    desc.textContent = isReset
+      ? '登録済みのメールアドレスを入力すると、再設定リンクをお送りします。'
+      : (isUp ? '' : '登録済みのメールアドレスとパスワードでログインします。');
+    desc.style.display = (isUp || !desc.textContent) ? 'none' : '';
+  }
 
   // パスワード欄は signin / signup のみ
   const passLabel = document.getElementById('supa-auth-pass-label');
@@ -5799,18 +5798,15 @@ function setSupaAuthMode(mode) {
   const passInp = document.getElementById('supa-auth-pass');
   if(passInp) passInp.setAttribute('autocomplete', isUp ? 'new-password' : 'current-password');
 
-  // submit ラベル（Wave 211: signup 時はクラウド版を明示）
+  // submit ラベル（signup モードでは非表示）
   const submit = document.getElementById('supa-auth-submit');
   if(submit) {
-    submit.disabled = false;
-    submit.textContent = isReset ? '再設定メールを送る' : (isUp ? 'クラウドにも登録（メール認証あり）' : 'ログインする');
-    // signup モードでは submit ボタンをセカンダリ扱いに（緑が主役）
     if(isUp) {
-      submit.classList.remove('btn-primary');
-      submit.classList.add('btn-outline');
-      submit.style.fontSize = '13px';
-      submit.style.marginTop = '8px';
+      submit.style.display = 'none';
     } else {
+      submit.style.display = '';
+      submit.disabled = false;
+      submit.textContent = isReset ? '再設定メールを送る' : 'ログインする';
       submit.classList.add('btn-primary');
       submit.classList.remove('btn-outline');
       submit.style.fontSize = '';
@@ -5818,29 +5814,34 @@ function setSupaAuthMode(mode) {
     }
   }
   // 補助ボタン制御
-  const toggle = document.getElementById('supa-auth-toggle');
-  const forgot = document.getElementById('supa-auth-forgot');
-  const back   = document.getElementById('supa-auth-back');
-  // Wave 210: ローカル即時作成ボタンは signup モードのみ表示
+  const toggle    = document.getElementById('supa-auth-toggle');
+  const forgot    = document.getElementById('supa-auth-forgot');
+  const back      = document.getElementById('supa-auth-back');
+  const otpBack   = document.getElementById('supa-auth-otp-back');
   const localBtn  = document.getElementById('supa-auth-local-signup');
   const localNote = document.getElementById('supa-auth-local-signup-note');
-  // Wave 214: signup モードでは「ログインせずに使い始める」は緑「今すぐ作成」と重複するため非表示
   const useLocalEscape = document.getElementById('supa-auth-use-local-escape');
-  if(localBtn)  localBtn.style.display  = isUp ? '' : 'none';
-  if(localNote) localNote.style.display = isUp ? '' : 'none';
+  if(localBtn)       localBtn.style.display       = isUp ? '' : 'none';
+  if(localNote)      localNote.style.display      = 'none';
   if(useLocalEscape) useLocalEscape.style.display = isUp ? 'none' : '';
-  if(toggle) toggle.style.display = isReset ? 'none' : '';
-  if(forgot) forgot.style.display = (_supaAuthMode === 'signin') ? '' : 'none';
-  if(back)   back.style.display   = isReset ? '' : 'none';
-  if(toggle) toggle.textContent = isUp
-    ? '登録済みの方はこちら（ログイン）'
-    : 'まだアカウントをお持ちでない方はこちら（新規登録）';
+  if(toggle)         toggle.style.display         = (isReset || isUp) ? 'none' : '';
+  if(otpBack)        otpBack.style.display        = isUp ? 'none' : '';
+  if(forgot)         forgot.style.display         = (_supaAuthMode === 'signin') ? '' : 'none';
+  if(back)           back.style.display           = isReset ? '' : 'none';
+  if(toggle) toggle.textContent = 'まだアカウントをお持ちでない方はこちら（新規登録）';
 
-  // 情報バナーの文言
+  // 情報バナー（signup モードでは非表示）
   const info = document.getElementById('supa-auth-info');
-  if(info) info.innerHTML = isReset
-    ? 'パスワードを忘れた場合のみご利用ください。<br>そのままログインできる場合は「← ログインに戻る」へ。'
-    : 'ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。';
+  if(info) {
+    if(isUp) {
+      info.style.display = 'none';
+    } else {
+      info.style.display = '';
+      info.innerHTML = isReset
+        ? 'パスワードを忘れた場合のみご利用ください。<br>そのままログインできる場合は「← ログインに戻る」へ。'
+        : 'ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。';
+    }
+  }
 
   // エラーヘルプはモード切替時に閉じる（signin 復帰時は残す）
   if(isUp || isReset) _hideSupaErrorHelp();
