@@ -3304,15 +3304,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <div id="m-memo-edit" class="modal-backdrop">
   <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
     <div class="modal-grip"></div>
-    <div class="modal-title" id="memo-edit-title">メモ</div>
-    <div class="modal-form" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-      <input class="input" id="memo-title" placeholder="タイトル" maxlength="80">
-      <textarea class="input" id="memo-body" placeholder="メモを入力…" maxlength="8000" style="flex:1;min-height:220px;resize:none;line-height:1.75;margin-top:8px;"></textarea>
+    <!-- iOS風ヘッダー -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 12px;">
+      <button onclick="closeModal('m-memo-edit')" style="background:none;border:none;color:var(--primary);font-size:15px;padding:6px 4px;cursor:pointer;">キャンセル</button>
+      <div style="font-size:13px;font-weight:600;color:var(--text-muted);" id="memo-edit-title">メモ</div>
+      <button onclick="saveMemoEdit()" style="background:none;border:none;color:var(--primary);font-size:15px;font-weight:700;padding:6px 4px;cursor:pointer;">完了</button>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0;gap:8px;">
+      <!-- ボディを先に（クイック入力） -->
+      <textarea class="input" id="memo-body" placeholder="メモを入力…" maxlength="8000" style="flex:1;min-height:220px;resize:none;line-height:1.8;font-size:16px;"></textarea>
+      <!-- タイトルはオプション -->
+      <input class="input" id="memo-title" placeholder="タイトル（任意）" maxlength="80" style="font-size:16px;">
       <input type="file" id="memo-photo-file" accept="image/*" multiple style="display:none;" onchange="memoOnPhotoPicked(event)">
-      <div id="memo-attach-area" style="margin-top:10px;"></div>
-      <div class="field" style="margin-top:12px;">
-        <div class="field-label">フォルダ</div>
-        <select class="input" id="memo-folder-select"></select>
+      <div id="memo-attach-area"></div>
+      <!-- フォルダ + 写真ボタンを横並び -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <select class="input" id="memo-folder-select" style="flex:1;font-size:16px;"></select>
+        <button type="button" onclick="document.getElementById('memo-photo-file').click()" aria-label="写真を追加" style="width:42px;height:42px;flex:none;border:1.5px solid var(--border);border-radius:10px;background:var(--bg-muted);color:var(--primary);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
       </div>
       <button class="btn btn-primary btn-block btn-lg" style="margin-top:10px;" onclick="saveMemoEdit()">保存する</button>
       <button class="btn btn-ghost btn-block" id="memo-del-btn" onclick="deleteMemo()" style="color:var(--red);display:none;margin-top:6px;">このメモを削除</button>
@@ -3364,7 +3374,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <img id="m-album-view-img" src="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <span style="font-size:11px;opacity:.8;flex:none;">フォルダ</span>
-      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:12px;"></select>
+      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:16px;"></select>
     </div>
   </div>
 </div>
@@ -6995,19 +7005,25 @@ function getStorageStats() {
     totalBytes = v ? new Blob([v]).size : 0;
   } catch(e) {}
   const sumLen = (arr, key) => (arr||[]).reduce((s, x) => s + ((x && x[key] && x[key].length) || 0), 0);
-  const album   = sumLen(S.albumPhotos, 'dataUrl');
-  const docs    = sumLen(S.docs, 'photo');
-  const photos  = Object.values(S.userPhotos || {}).reduce((s, v) => s + ((v && v.length) || 0), 0);
+  const album      = sumLen(S.albumPhotos, 'dataUrl');
+  const docs       = sumLen(S.docs, 'photo');
+  const photos     = Object.values(S.userPhotos || {}).reduce((s, v) => s + ((v && v.length) || 0), 0);
+  const taskPhotos = sumLen(S.tasks, 'photo');
+  const memoPhotos = (S.memos||[]).reduce((s, m) => s + ((m&&m.attachments)||[]).reduce((s2, a) => s2 + ((a&&a.dataUrl&&a.dataUrl.length)||0), 0), 0);
   // 推定上限：iPhone Safari 5MB を保守的に採用（実機は 5–10MB）
   const max = 5 * 1024 * 1024;
   return {
     totalBytes, max,
-    albumBytes: album,
-    docsBytes:  docs,
-    photoBytes: photos,
-    albumCount: (S.albumPhotos||[]).length,
-    docsCount:  (S.docs||[]).filter(d=>d && d.photo).length,
-    photoCount: Object.keys(S.userPhotos||{}).length,
+    albumBytes:     album,
+    docsBytes:      docs,
+    photoBytes:     photos,
+    taskPhotoBytes: taskPhotos,
+    memoPhotoBytes: memoPhotos,
+    albumCount:     (S.albumPhotos||[]).length,
+    docsCount:      (S.docs||[]).filter(d=>d && d.photo).length,
+    photoCount:     Object.keys(S.userPhotos||{}).length,
+    taskPhotoCount: (S.tasks||[]).filter(t=>t && t.photo).length,
+    memoPhotoCount: (S.memos||[]).reduce((s, m) => s + ((m&&m.attachments)||[]).length, 0),
     pct: Math.min(100, Math.round((totalBytes / max) * 100))
   };
 }
@@ -7060,7 +7076,9 @@ function _exportFamilinkInternal(includePhotos) {
       // 写真を含むキーは中身をクリア
       if(k === 'albumPhotos') v = [];
       else if(k === 'userPhotos') v = {};
-      else if(k === 'docs') v = (v||[]).map(d => ({...d, photo:''}));
+      else if(k === 'docs')  v = (v||[]).map(d => ({...d, photo:''}));
+      else if(k === 'tasks') v = (v||[]).map(t => ({...t, photo:''}));
+      else if(k === 'memos') v = (v||[]).map(m => ({...m, attachments:(m.attachments||[]).map(a=>({...a,dataUrl:''}))}));
     }
     payload[k] = (typeof v === 'undefined') ? null : v;
   }
@@ -7158,6 +7176,10 @@ function renderStorageModal() {
         [['delete-docs-photos','すべての書類写真を削除', s.docsCount > 0]])
     + _renderStorageRow('メンバーアバター写真', s.photoBytes, s.photoCount,
         [['delete-avatar-photos','すべてのアバター写真を削除', s.photoCount > 0]])
+    + _renderStorageRow('タスクの写真', s.taskPhotoBytes, s.taskPhotoCount,
+        [['delete-task-photos','すべてのタスク写真を削除', s.taskPhotoCount > 0]])
+    + _renderStorageRow('メモの添付写真', s.memoPhotoBytes, s.memoPhotoCount,
+        [['delete-memo-photos','すべてのメモ添付写真を削除', s.memoPhotoCount > 0]])
     + '<div style="font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.5;">'
     +   '※ 写真は自動的に 1280px / JPEG 画質 0.85 で圧縮されます。<br>'
     +   '※ アルバム・書類本体（タイトル/メモ）は残ります。写真だけが削除されます。<br>'
@@ -7226,6 +7248,26 @@ function storageAction(id) {
       renderStorageModal();
       if(typeof refreshAllAvatarsAcrossScreens === 'function') refreshAllAvatarsAcrossScreens();
       showToast(c+' 件のアバター写真を削除しました','success');
+    }, 'danger');
+  } else if(id === 'delete-task-photos') {
+    const arr = (S.tasks||[]).filter(t=>t && t.photo);
+    if(!arr.length) return;
+    showConfirm('タスク写真を削除', arr.length + ' 件のタスク写真を削除します。タスク自体（タイトル・内容）は残ります。', '削除する', () => {
+      arr.forEach(t => { t.photo = ''; });
+      saveS();
+      renderStorageModal();
+      if(typeof renderTasks === 'function') renderTasks();
+      showToast(arr.length + ' 件のタスク写真を削除しました', 'success');
+    }, 'danger');
+  } else if(id === 'delete-memo-photos') {
+    const count = (S.memos||[]).reduce((s, m) => s + ((m&&m.attachments)||[]).length, 0);
+    if(!count) return;
+    showConfirm('メモの添付写真を削除', count + ' 件のメモ添付写真を削除します。メモ本文は残ります。', '削除する', () => {
+      (S.memos||[]).forEach(m => { m.attachments = []; });
+      saveS();
+      renderStorageModal();
+      if(typeof renderMemo === 'function') renderMemo();
+      showToast(count + ' 件のメモ添付写真を削除しました', 'success');
     }, 'danger');
   }
 }
@@ -23350,7 +23392,7 @@ async function _oauthSignIn(provider) {
       <div style="text-align:center;font-size:11px;color:var(--text-muted);margin:8px 0;">または</div>
       <div class="field">
         <div class="field-label">予定データを貼り付け</div>
-        <textarea class="input" id="ics-text-input" rows="4" placeholder="外部カレンダーからコピーした予定データ" style="font-family:monospace;font-size:11px;"></textarea>
+        <textarea class="input" id="ics-text-input" rows="4" placeholder="外部カレンダーからコピーした予定データ" style="font-family:monospace;font-size:16px;"></textarea>
       </div>
       <button class="btn btn-outline btn-block" onclick="parseIcsAndPreview()" style="margin-bottom:14px;">解析してプレビュー</button>
 
@@ -23486,42 +23528,42 @@ async function _oauthSignIn(provider) {
       <div>
         <label style="font-size:11px;color:var(--text-muted);">登録先</label>
         <select id="vc-cat" onchange="voiceConfirmToggleFields()" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff;"></select>
       </div>
       <div id="vc-row-member">
         <label style="font-size:11px;color:var(--text-muted);">対象メンバー</label>
         <select id="vc-member" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;"></select>
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff;"></select>
       </div>
       <div>
         <label style="font-size:11px;color:var(--text-muted);">タイトル / 内容</label>
         <input id="vc-title" type="text" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-date" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">日付</label>
         <input id="vc-date" type="date" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-time" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">時刻</label>
         <input id="vc-time" type="time" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-amount" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">金額（円）</label>
         <input id="vc-amount" type="number" class="form-input" min="0"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-temp" style="display:none;">
         <label style="font-size:11px;color:var(--text-muted);">体温（℃）</label>
         <input id="vc-temp" type="number" step="0.1" min="34" max="42" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
       <div id="vc-row-note">
         <label style="font-size:11px;color:var(--text-muted);">メモ（任意）</label>
         <input id="vc-note" type="text" class="form-input"
-          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;">
       </div>
     </div>
 

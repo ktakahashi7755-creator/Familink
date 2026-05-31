@@ -16091,3 +16091,43 @@ QA総点検・board_view バグ修正・Playwright全84テスト通過確認
 ### コミット
 - ハッシュ: `eaf96e6`
 - メッセージ: `fix: ホーム画面カードの未定義IMGS.bg_*参照を修正（src=undefinedによる404解消）`
+
+---
+
+## 2026-05-31  env: 不明  branch: claude/latest-version-device-check-652i3
+
+### 作業名
+QA総点検バグ修正：ストレージ統計漏れ・軽量エクスポート写真漏れ・iOS入力ズームバグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+
+### 変更内容
+- **getStorageStats() 修正**：タスク写真（t.photo）とメモ添付写真（m.attachments[].dataUrl）をストレージ統計に追加（計上漏れによる使用量過少表示を解消）
+- **renderStorageModal() 修正**：「タスクの写真」「メモの添付写真」の内訳行と一括削除ボタンを追加
+- **storageAction() 修正**：delete-task-photos / delete-memo-photos の削除ハンドラを追加
+- **_exportFamilinkInternal(false) 修正**：軽量エクスポートでタスク写真・メモ添付写真をクリアするよう修正（従来は albumPhotos/userPhotos/docs のみクリアされていた）
+- **iOS Safari 入力ズーム修正**：font-size < 16px の入力要素13件を 16px に統一（memo-body, memo-title, memo-folder-select, av-folder, ics-text-input, vc-cat, vc-member, vc-title, vc-date, vc-time, vc-amount, vc-temp, vc-note）
+- docs/index.html 同期・キャッシュバスター v20260531h → v20260531i に更新
+- ブランチ切り替え時のマージ競合（メモ編集モーダルの新旧UI）を最新版で解消
+
+### テスト結果
+- Playwright QA全84テスト：84 PASS / 0 FAIL / 0 WARN
+
+### 未確認事項
+- iPhone 実機での iOS ズーム修正確認（Safari で入力フォーカス時にズームインが起きないこと）
+- ストレージ管理画面でタスク写真・メモ写真の内訳が表示されること
+
+### iPhone確認ポイント
+- メモ編集モーダル（m-memo-edit）でフォントサイズが適切か
+- ストレージ管理画面でタスク写真・メモ添付写真の件数と削除ボタンが表示されること
+- 軽量エクスポート後の JSON に task.photo・memo.attachments[].dataUrl が空になっていること
+
+### 次にやること
+- App Store 申請前チェックリスト残項目の対応
+- iPhone 実機テスト（特に iOS ズーム修正の確認）
+
+### コミット
+- ハッシュ: （コミット後に記入）
+- メッセージ: `fix: ストレージ統計漏れ・軽量エクスポート写真漏れ・iOS入力ズームバグを修正`
