@@ -894,17 +894,27 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   width:20px;height:100%;flex-shrink:0;opacity:.35;cursor:grab;padding:0 2px;
 }
 .mn-folder-row.mn-dragging, .mn-memo-row.mn-dragging {
-  box-shadow:0 12px 40px rgba(0,0,0,.22)!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.30)!important;
   background:var(--bg-card)!important;
-  border-radius:12px!important;
-  z-index:100;
-  opacity:.96;
+  border-radius:14px!important;
+  z-index:1000;
+  opacity:.97;
+  transform:scale(1.04)!important;
+}
+.mn-placeholder {
+  background:rgba(10,132,255,.06);
+  border:1.5px dashed rgba(10,132,255,.38);
+  border-radius:12px;
+  flex-shrink:0;
+  pointer-events:none;
+  transition:height .1s;
 }
 .mn-drop-target {
-  background:rgba(10,132,255,.10)!important;
-  outline:2px solid var(--primary);
+  background:rgba(10,132,255,.12)!important;
+  box-shadow:inset 0 0 0 2px var(--primary);
   border-radius:12px;
-  transition:background .12s, outline .12s;
+  transform:scale(1.01);
+  transition:background .1s, transform .1s;
 }
 .mn-fab {
   position:fixed;right:20px;bottom:calc(82px + env(safe-area-inset-bottom));
@@ -14160,53 +14170,93 @@ function renderMemo() {
   body.innerHTML = h;
 }
 
-/* ── メモリスト 長押しドラッグ並び替え ──────────────────────────
-   [touchstart 380ms長押し] → 要素がリフト → [touchmove] で DOM 並び替え
-   → [touchend] で新順序を S.memoFolders / S.memos に保存
+/* ── メモリスト 長押しドラッグ（プレースホルダー方式）────────────────
+   1. 長押し 340ms → 要素を position:fixed でフロート
+   2. プレースホルダー（破線枠）がドロップ先を示す
+   3. メモをフォルダ行へドロップ → folderId 書き換え
+   4. 指を離したらプレースホルダー位置に着地
    ─────────────────────────────────────────────────────────── */
-var _mnDrag = { active:false, el:null, type:null, startY:0, timer:null, didDrag:false, dropTarget:null };
+var _mnDrag = {
+  active:false, el:null, type:null,
+  startX:0, startY:0, offsetY:0,
+  timer:null, didDrag:false,
+  dropTarget:null, placeholder:null
+};
 
-// 長押し検出（touchstart）
 document.addEventListener('touchstart', function(ev) {
   var row = ev.target.closest('[data-mn-drag]');
   if(!row) return;
+  clearTimeout(_mnDrag.timer);
   var t = ev.touches[0];
-  _mnDrag.startY = t.clientY;
+  _mnDrag.startX  = t.clientX;
+  _mnDrag.startY  = t.clientY;
+  var rect        = row.getBoundingClientRect();
+  _mnDrag.offsetY = t.clientY - rect.top;
+
   _mnDrag.timer = setTimeout(function() {
-    if(navigator.vibrate) navigator.vibrate(14);
-    _mnDrag.active  = true;
+    if(navigator.vibrate) navigator.vibrate([12, 8]);
+    _mnDrag.active = true;
     _mnDrag.didDrag = true;
-    _mnDrag.el      = row;
-    _mnDrag.type    = row.getAttribute('data-mn-drag');
+    _mnDrag.el   = row;
+    _mnDrag.type = row.getAttribute('data-mn-drag');
+
+    // プレースホルダーを元位置に挿入
+    var ph = document.createElement('div');
+    ph.className = 'mn-placeholder';
+    ph.style.height = row.offsetHeight + 'px';
+    row.parentNode.insertBefore(ph, row.nextSibling);
+    _mnDrag.placeholder = ph;
+
+    // 要素を fixed でフロート（ピクセル精度で元位置に）
+    var r = row.getBoundingClientRect();
+    row.style.position   = 'fixed';
+    row.style.top        = r.top + 'px';
+    row.style.left       = r.left + 'px';
+    row.style.width      = r.width + 'px';
+    row.style.margin     = '0';
+    row.style.zIndex     = '1000';
+    row.style.transition = 'box-shadow .15s, transform .1s';
+    row.style.borderRadius = '14px';
+    row.style.pointerEvents = 'none';
     row.classList.add('mn-dragging');
-    row.style.transform = 'scale(1.03)';
-    row.style.transition = 'none';
-    row.style.position = 'relative';
+
     document.addEventListener('touchmove', _mnDragMove, { passive:false });
-  }, 380);
+  }, 340);
 }, { passive:true });
 
-// ドラッグ中（touchmove）
+// スクロール意図を検出してタイマーをキャンセル
+document.addEventListener('touchmove', function(ev) {
+  if(_mnDrag.timer && !_mnDrag.active) {
+    var t = ev.touches[0];
+    if(Math.abs(t.clientX - _mnDrag.startX) > 7 ||
+       Math.abs(t.clientY - _mnDrag.startY) > 7) {
+      clearTimeout(_mnDrag.timer);
+      _mnDrag.timer = null;
+    }
+  }
+}, { passive:true });
+
 function _mnDragMove(ev) {
   if(!_mnDrag.active || !_mnDrag.el) return;
   ev.preventDefault();
-  var t = ev.touches[0];
-  var dy = t.clientY - _mnDrag.startY;
-  _mnDrag.el.style.transform = 'scale(1.03) translateY('+dy+'px)';
+  var t  = ev.touches[0];
+  var cx = t.clientX, cy = t.clientY;
 
-  // ── メモをドラッグ中: フォルダへのドロップ判定 ──
+  // フロート要素を指先に追従
+  _mnDrag.el.style.top = (cy - _mnDrag.offsetY) + 'px';
+
+  // ── メモ: フォルダへのドロップ判定 ──
   if(_mnDrag.type === 'memo') {
-    _mnDrag.el.style.pointerEvents = 'none';
-    var below = document.elementFromPoint(t.clientX, t.clientY);
-    _mnDrag.el.style.pointerEvents = '';
-    var folderRow = below && below.closest('.mn-folder-row[data-id]');
-    if(folderRow) {
-      if(_mnDrag.dropTarget && _mnDrag.dropTarget !== folderRow) {
-        _mnDrag.dropTarget.classList.remove('mn-drop-target');
+    var below = document.elementFromPoint(cx, cy);
+    var fRow  = below && below.closest('.mn-folder-row[data-id]');
+    if(fRow) {
+      if(_mnDrag.dropTarget !== fRow) {
+        if(_mnDrag.dropTarget) _mnDrag.dropTarget.classList.remove('mn-drop-target');
+        fRow.classList.add('mn-drop-target');
+        _mnDrag.dropTarget = fRow;
+        if(navigator.vibrate) navigator.vibrate(8);
       }
-      _mnDrag.dropTarget = folderRow;
-      folderRow.classList.add('mn-drop-target');
-      return;
+      return; // プレースホルダー移動はスキップ
     } else {
       if(_mnDrag.dropTarget) {
         _mnDrag.dropTarget.classList.remove('mn-drop-target');
@@ -14215,36 +14265,70 @@ function _mnDragMove(ev) {
     }
   }
 
-  // ── 通常のリスト内並び替え ──
-  var rect = _mnDrag.el.getBoundingClientRect();
-  var centerY = rect.top + rect.height / 2;
-  var container = _mnDrag.el.parentNode;
-  var siblings = Array.from(container.children).filter(function(c){ return c !== _mnDrag.el; });
+  // ── プレースホルダーを移動してドロップ先を示す ──
+  var ph = _mnDrag.placeholder;
+  if(!ph || !ph.parentNode) return;
+  var container = ph.parentNode;
+  var siblings  = Array.from(container.children)
+    .filter(function(c){ return c !== ph; });
   var insertBefore = null;
-  for(var i=0; i<siblings.length; i++) {
+  for(var i = 0; i < siblings.length; i++) {
     var r = siblings[i].getBoundingClientRect();
-    if(centerY < r.top + r.height * 0.5) { insertBefore = siblings[i]; break; }
+    if(cy < r.top + r.height * 0.5) { insertBefore = siblings[i]; break; }
   }
-  var curNext = _mnDrag.el.nextSibling;
-  if(insertBefore !== curNext) {
-    container.insertBefore(_mnDrag.el, insertBefore || null);
-    _mnDrag.startY = t.clientY;
-    _mnDrag.el.style.transform = 'scale(1.03) translateY(0)';
+  if(insertBefore !== ph.nextSibling) {
+    container.insertBefore(ph, insertBefore || null);
   }
 }
 
-// ドラッグ終了（touchend / touchcancel）
 function _mnDragEnd() {
   clearTimeout(_mnDrag.timer);
+  _mnDrag.timer = null;
   document.removeEventListener('touchmove', _mnDragMove);
   if(!_mnDrag.active || !_mnDrag.el) { _mnDrag.active = false; return; }
+
   var el   = _mnDrag.el;
   var type = _mnDrag.type;
-  el.style.transition = 'transform .18s, box-shadow .18s';
-  el.style.transform  = '';
-  el.style.position   = '';
+  var ph   = _mnDrag.placeholder;
+
+  // スタイルをリセット（アニメ付き）
+  el.style.transition  = 'transform .18s, box-shadow .18s, top .15s, left .15s';
+  el.style.transform   = 'scale(1)';
+  el.style.boxShadow   = '';
   el.classList.remove('mn-dragging');
-  setTimeout(function(){ if(el) el.style.transition = ''; }, 200);
+
+  // プレースホルダーの位置に着地させてから DOM を戻す
+  if(ph && ph.parentNode) {
+    var pr = ph.getBoundingClientRect();
+    el.style.top  = pr.top + 'px';
+    el.style.left = pr.left + 'px';
+    setTimeout(function() {
+      el.style.position    = '';
+      el.style.top         = '';
+      el.style.left        = '';
+      el.style.width       = '';
+      el.style.margin      = '';
+      el.style.zIndex      = '';
+      el.style.borderRadius = '';
+      el.style.pointerEvents = '';
+      el.style.transition  = '';
+      el.style.transform   = '';
+      if(ph.parentNode) ph.parentNode.insertBefore(el, ph);
+      if(ph.parentNode) ph.parentNode.removeChild(ph);
+    }, 140);
+  } else {
+    el.style.position    = '';
+    el.style.top         = '';
+    el.style.left        = '';
+    el.style.width       = '';
+    el.style.margin      = '';
+    el.style.zIndex      = '';
+    el.style.borderRadius = '';
+    el.style.pointerEvents = '';
+    el.style.transition  = '';
+    el.style.transform   = '';
+  }
+  _mnDrag.placeholder = null;
 
   // ── メモをフォルダにドロップ ──
   if(type === 'memo' && _mnDrag.dropTarget) {
@@ -14256,22 +14340,21 @@ function _mnDragEnd() {
     if(memo && folderId) {
       memo.folderId = folderId;
       saveS();
-      showToast('フォルダに移動しました', 'success');
-      renderMemo();
+      setTimeout(function(){ showToast('フォルダに移動しました', 'success'); renderMemo(); }, 160);
     }
   } else {
     if(_mnDrag.dropTarget) {
       _mnDrag.dropTarget.classList.remove('mn-drop-target');
       _mnDrag.dropTarget = null;
     }
-    // リスト内並び替えを保存
-    var container = el.parentNode;
-    if(container) {
-      var newOrder = Array.from(container.children)
+    // 並び順を保存（プレースホルダーが着地した後の DOM 順）
+    setTimeout(function() {
+      if(!el.parentNode) return;
+      var newOrder = Array.from(el.parentNode.children)
         .map(function(c){ return c.getAttribute('data-id'); })
         .filter(Boolean);
       _mnSaveOrder(type, newOrder);
-    }
+    }, 150);
   }
   _mnDrag.active = false;
   _mnDrag.el     = null;
