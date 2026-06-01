@@ -14714,3 +14714,47 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214c: settings UI — 8→6 sections, dedupe avatar, group notif into 表示, absorb hoku api, promote logout to danger zone + docs sync v20260526h`
+
+## 2026-06-01 00:30  env: iPhone経由(Web)  branch: claude/familink-handoff-Fb6uH
+
+### 作業名
+総点検（Playwright自動QA）→ ホーム/設定の JSクラッシュ修正（優先度S）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **優先度S バグ修正**：`userAvHtml()`（6953行）の null 参照クラッシュを修正
+  - 旧: `const nm = (u && (u.name||'')).trim();` … `S.user` が null のとき `(u && ...)` が null に評価され `.trim()` で TypeError
+  - 新: `const nm = ((u && u.name) || '').trim();`
+  - 影響：`S.user` が未設定の状態（未ログイン/デモ/初期）で **ホーム(s-home)・設定(s-settings)** を描画すると毎回 `Cannot read properties of null (reading 'trim')` が throw され、refresh が途中で停止していた
+- docs/index.html・index.html のキャッシュバスターを v20260526h → **v20260601a** にバンプ（iOS Safari 強制更新）
+- app-source ⇄ docs 同期維持（差分は先頭 SWブロックのみ・本文乖離なし）
+
+### テスト結果（Playwright / chromium 375x812・390x844）
+- 全画面レンダリング：**19/19 OK**（横スクロール overflow-X ゼロ）
+  - 修正前は s-home / s-settings が pageerror で停止 → 修正後 全画面 ok
+- データ往復（seed→saveS→reload→復元）：events / tasks / memos / user すべて **復元OK**
+- モーダル開閉＋ESC：**8/8 PASS**（event/task/post/profile/storage/guide/faq/hokuApi）
+- pageerror：**0**
+- 同種アンチパターン `(x && (x.y||'')).trim()` の横断検索：**他に該当なし**
+- 実描画スクショ確認：ホーム（挨拶/アバター/各ウィジェット/Hoku 表示OK）、設定（描画OK）
+
+### 未確認事項
+- 残console.error 3件は Supabase 外部CDNの証明書エラー（file://オフライン時のみ／本番HTTPSでは出ない・LocalStorage-onlyへ正常フォールバック）→ 実害なし
+- タップ領域：`home-avatar-btn`(32x32)・`home-mode-btn`(78x31) が iOS推奨44px をやや下回る（軽微A/B・ヘッダ圧縮デザインのため今回は据え置き）
+
+### iPhone確認ポイント
+- ホーム・設定が空白にならず正常表示されるか（修正の主眼）
+- 挨拶文・アバターイニシャルが出るか
+- 設定画面6セクションのスクロールが自然か
+
+### 次にやること
+- ユーザー判断：タップ領域44px化の是非（ヘッダ微調整）/ 他画面のUI磨き込み / Hoku 文言改善
+- 次バックアップ・スナップショット推奨
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `fix(S): userAvHtml null-deref crash on home/settings when S.user unset + cache-buster v20260601a`

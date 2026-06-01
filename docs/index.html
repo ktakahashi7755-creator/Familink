@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260526h';
+  var V='20260601a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -6965,7 +6965,7 @@ function userAvHtml(size=36, fontSize=14, extraStyle='') {
   if(u && u.id && getMem(u.id)) return avHtml(u.id, size, fontSize, extraStyle);
   const sz = typeof size === 'number' ? size+'px' : size;
   const fs = typeof fontSize === 'number' ? fontSize+'px' : fontSize;
-  const nm = (u && (u.name||'')).trim();
+  const nm = ((u && u.name) || '').trim();
   const initial = (u && u.av) || (nm ? nm.charAt(0) : '') || '👤';
   const grad = (u && u.grad) || 'linear-gradient(135deg,#4A90E2,#6FA8DC)';
   return `<div class="av" style="background:${grad};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(initial)}</div>`;
