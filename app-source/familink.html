@@ -8706,7 +8706,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">投稿がありません</div>
     </div>`;
 
@@ -8739,7 +8739,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
@@ -8753,7 +8753,7 @@ function renderHome() {
       <div class="bc-text">${H(e.date.slice(5).replace('-','/'))} ${H(e.title)}</div>
     </div>`).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
@@ -11229,7 +11229,7 @@ function renderBudget() {
   if(!listEl) return;
   if(!filtered.length) {
     listEl.innerHTML = `<div class="empty">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img alt="" src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">記録がありません</div>
       <div class="empty-desc">右下の＋ボタンで追加できます</div>
     </div>`;
@@ -12194,18 +12194,6 @@ const REACT_TYPES = [
   {key:'clap',   label:'拍手',     icon:'sparkle', color:'#FF9B4E'},
 ];
 
-/* 拡張リアクション（＋ボタンで表示） */
-const REACT_MORE = [
-  {key:'fire',   label:'最高',   icon:'flame'},
-  {key:'star',   label:'すごい', icon:'star'},
-  {key:'ok',     label:'了解',   icon:'check'},
-  {key:'eyes',   label:'見てる', icon:'eye'},
-  {key:'muscle', label:'頑張る', icon:'flag'},
-  {key:'think',  label:'考え中', icon:'bulb'},
-  {key:'party',  label:'祝い',   icon:'sparkle'},
-  {key:'care',   label:'心配',   icon:'heart'},
-];
-
 
 /* デモ投稿の追加 */
 function seedAnnounces() {
@@ -12936,7 +12924,7 @@ function _memoCardPreview() {
     .slice(0,3);
   if(!recent.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img src="'+IMGS.sleep+'" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img alt="" src="'+IMGS.sleep+'" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">メモはまだありません</div></div>';
   }
   return recent.map(function(m){
@@ -13089,7 +13077,7 @@ function _renderMemoAttach() {
   let h = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">';
   _memoAttachBuf.forEach(function(att, i){
     h += '<div style="position:relative;width:64px;height:64px;flex:none;">'
-      + '<img src="'+H(att.dataUrl)+'" onclick="openDocPhoto(_memoAttachBuf['+i+'].dataUrl,(document.getElementById(\'memo-title\').value||\'メモの写真\'))" style="width:64px;height:64px;object-fit:cover;border-radius:9px;cursor:zoom-in;border:1px solid var(--border-light);">'
+      + '<img alt="メモの写真" src="'+H(att.dataUrl)+'" onclick="openDocPhoto(_memoAttachBuf['+i+'].dataUrl,(document.getElementById(\'memo-title\').value||\'メモの写真\'))" style="width:64px;height:64px;object-fit:cover;border-radius:9px;cursor:zoom-in;border:1px solid var(--border-light);">'
       + '<button onclick="memoRemoveAttach('+i+')" aria-label="削除" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
       + '</div>';
   });
@@ -14341,7 +14329,7 @@ let _archivePhotoBuf = null;
 /* 書類モーダル内の写真プレビュー（タップ拡大 + 端末保存） */
 function _archivePhotoPreviewHtml() {
   if(!_archivePhotoBuf) return '';
-  return '<img src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
+  return '<img alt="書類の写真" src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
     + '<div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;font-weight:700;">'
     + '<span onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="color:var(--primary);cursor:pointer;">タップで拡大</span>'
     + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">端末に保存</span>'
@@ -14722,7 +14710,7 @@ function renderPrep() {
                 : _prepTab === 'tomorrow' ? '前日のうちに準備しておくと、朝がラクになります。'
                 : '右上の＋ボタンで追加できます';
       html += `<div class="empty" style="padding:42px 24px;text-align:center;">
-        <img src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
+        <img alt="" src="${IMGS.wave}" style="width:60px;height:60px;object-fit:contain">
         <div class="empty-title">${hint}はまだありません</div>
         <div class="empty-desc">${desc}</div>
         <button onclick="openPrepModal()" class="btn btn-primary" style="margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;">＋ ${hint}を追加</button>
@@ -15552,7 +15540,7 @@ function renderNotif() {
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
+      <img alt="" src="${IMGS.sleep}" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">通知はありません</div>
     </div>`;
     return;
@@ -15637,7 +15625,6 @@ function devTogglePremium() {
    ============================================================ */
 function renderPremium() {
   const isPrem = S.isPremiumUser;
-  const H = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
@@ -16519,7 +16506,7 @@ function boardTypeIcon(type, color) {
 function renderBoardCardPreview(b, items, meta) {
   if(!items.length) {
     const iMeta = getIntentMeta(b);
-    return `<div class="empty" style="padding:6px 0 2px;"><img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))"><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タップして「${H(iMeta.addBtn)}」</div></div>`;
+    return `<div class="empty" style="padding:6px 0 2px;"><img alt="" src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))"><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タップして「${H(iMeta.addBtn)}」</div></div>`;
   }
   if(b.type==='prep') {
     const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));

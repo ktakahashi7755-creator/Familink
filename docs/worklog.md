@@ -14892,3 +14892,54 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `chore: remove dead usageMode functions (getUsageMode/isSoloMode/usageModeLabel) + remnant audit + cache-buster v20260601d`
+
+## 2026-06-01 08:40  env: iPhone経由(Web)  branch: claude/familink-handoff-Fb6uH
+
+### 作業名
+完璧化仕上げ：残デッドコード除去＋全画像 alt 付与（a11y）＋エッジケース総当たり
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **デッドコード除去（残骸の最終掃除）**
+  - `renderPremium()` 内のローカル `const H`：本体で一度も使われない死んだ局所変数 → 削除
+  - `REACT_MORE`（拡張リアクション定義）：どこからも参照されず、対応する「＋ボタン」UIも存在しない未配線の残骸 → 削除（実稼働の `REACT_TYPES` は維持）
+  - 機械検査：トップレベル未使用変数 **0**（187→186 で未参照0）／未使用関数 **0**（残2つは自己実行IIFE）
+- **アクセシビリティ改善**：`alt` 欠落の `<img>` 10件すべてに付与
+  - 装飾 Hoku イラスト（IMGS.sleep ×7・IMGS.wave ×1）→ `alt=""`（スクリーンリーダーがスキップ）
+  - ユーザー写真（メモ添付・書類プレビュー）→ `alt="メモの写真" / "書類の写真"`
+- キャッシュバスター v20260601d → **v20260601e**
+
+### テスト結果（Playwright・徹底）
+- 抽出JS全体の構文検証（node --check）：**エラー 0**
+- 全画面 **19/19 描画 OK**・pageerror 0
+- 深いクリックスイープ：可視ボタン **195個 → エラー 0**
+- アクセシビリティ：未ラベルのアイコンボタン/画像 **0**
+- **エッジケース総当たり（全てエラー0・横スクロールなし）**
+  - 空状態（メンバー0・全データ0・ユーザー名空）
+  - 極端な数値（999,999,999 / 0 / 負数 / 小数）
+  - 超長文（500文字）→ 折り返し正常・overflow なし
+- app-source ⇄ docs 本文乖離：0
+
+### 残置（バグ・エラー・残骸ではないと判断）
+- native `confirm()`（Hoku一括登録）：`executeHokuAction` の同期戻り値契約のため機能的に必要。非同期化はコア会話フローを壊すリスク大 → 残置
+- `alert()`（showAlert フォールバック）：showConfirm 不在時のみ発火する防御コード → 残置
+- QAデバッグパネル（`#qa-debug` 起動）：iPhone 実機検証用の意図的ツール → 残置（production 純化はユーザー判断待ち）
+- 「準備中」文言：未実装ベータ機能の正直な表示（§13.4）→ 残置
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- プレミアム画面・各空状態（Hokuイラスト）が従来どおり表示されるか
+- メモ/書類の写真プレビューが正常表示されるか
+
+### 次にやること
+- ユーザー判断：QAパネルの production 除外可否／native confirm の showConfirm 化／フィルターチップ44px化
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `chore: remove remaining dead code (local H, REACT_MORE) + add img alt for a11y + edge-case hardening verified + cache-buster v20260601e`
