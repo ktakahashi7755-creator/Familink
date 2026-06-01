@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260601a';
+  var V='20260601b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -236,7 +236,7 @@ body {
   text-overflow: ellipsis;
 }
 .header-icon-btn {
-  width: 36px; height: 36px; border-radius: var(--r-full);
+  width: 40px; height: 40px; border-radius: var(--r-full);
   background: var(--bg-muted); border: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; color: var(--text-sub);

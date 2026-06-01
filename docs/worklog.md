@@ -14758,3 +14758,42 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `fix(S): userAvHtml null-deref crash on home/settings when S.user unset + cache-buster v20260601a`
+
+## 2026-06-01 06:40  env: iPhone経由(Web)  branch: claude/familink-handoff-Fb6uH
+
+### 作業名
+再総点検（Playwright深掘りQA）＋ タップ領域のプロ品質底上げ
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **タップ領域改善（A）**：全画面共通 `.header-icon-btn` を 36×36 → **40×40px** に拡大（タップ領域 約+24%）
+  - ヘッダー高 56px・中央寄せのため視覚崩れなし（タスク/ボードのヘッダーをスクショ実機相当で確認）
+  - フィルターチップ(29px)/カレンダーピル(27px)/リアクションチップ(24px) は iOS でも一般的な確立済みコンパクトパターンのため意図的に維持
+- キャッシュバスター v20260601a → **v20260601b** にバンプ（CSS更新の強制反映）
+
+### テスト結果（Playwright / chromium）
+- 全画面レンダリング：**19/19 OK**（pageerror 0）
+- **デッドボタン静的＋実行時検査**：onclick等が指す実関数 174個すべて定義済み（undefined ハンドラ 0／検出5件は document.getElementById・el.click・event.preventDefault 等の誤検出）
+- **深いクリックスイープ**：全画面の可視ボタン **195個を実クリック → エラー 0**（破壊系11はスキップ）
+- **横スクロール監査**：320px / 375px ともに全画面 **overflow なし**
+- モーダル開閉＋ESC：8/8 PASS（前回確認）
+- データ往復（保存→リロード→復元）：events/tasks/memos/user OK（前回確認）
+- 残 console.error 3件：Supabase 外部CDNの証明書エラー（file://オフライン時のみ・本番HTTPSでは出ず・LocalStorage-only へ正常フォールバック）→ 実害なし
+
+### 未確認事項
+- なし（機能バグ・JSエラー・デッドボタン・横スクロール いずれもゼロを確認）
+
+### iPhone確認ポイント
+- 各画面ヘッダーの戻る/＋/通知などアイコンボタンが押しやすくなったか（40px）
+- ヘッダーの見た目が詰まりすぎ／間延びしていないか
+
+### 次にやること
+- ユーザー判断：フィルターチップ類も44px化するか（現状は意図的にコンパクト維持）/ 他画面のUI磨き込み / Hoku 文言改善
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `polish: enlarge header icon buttons 36→40px for tap target + re-audit QA (0 bugs) + cache-buster v20260601b`
