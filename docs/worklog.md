@@ -14848,3 +14848,47 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `fix(A): sync active tab highlight across go/goBack via _syncTabActive + deep security/XSS/visual audit (0 bugs) + cache-buster v20260601c`
+
+## 2026-06-01 08:00  env: iPhone経由(Web)  branch: claude/familink-handoff-Fb6uH
+
+### 作業名
+コード残骸の徹底除去（デッドコード掃除）＋ 残骸候補の精査
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **デッドコード除去**：旧 usageMode 系の未使用関数3つを削除
+  - `getUsageMode()` / `isSoloMode()` / `usageModeLabel()` … ワークスペース機能へ移行済みで完全未参照
+  - `openUsageModeModal()` は home-mode-btn から使用中のため**残置**（スペース切替へ委譲）
+  - 機械検査：全722関数 → 719関数。未参照関数は **2つ（hookNav / hookModalForDirty）のみで、いずれも自己実行 IIFE のため正常**＝実デッドコード 0
+- キャッシュバスター v20260601c → **v20260601d**
+
+### 残骸候補の精査結果（除去せず・理由を明記）
+- **「準備中」文言（cloud/招待/外部カレンダー）**：未実装ベータ機能の正直なステータス表示（§13.4 準拠の意図的UX）→ 残置
+- **QAデバッグパネル**（`#qa-debug` でのみ起動）：iPhone 実機検証用の意図的ツール。通常導線からは到達不可・gated。§11「重要機能を消す場合は要確認」に該当 → 残置（production 純化が必要なら別途相談）
+- **native `confirm()` @ Hoku一括登録**：`executeHokuAction` が同期戻り値を返す構造のため confirm が機能的に必要。showConfirm 化は非同期リファクタが必要でリスク大 → 残置（将来のUX磨き込み候補）
+- **`alert()` @ showAlert フォールバック**：`showConfirm` 不在時のみ発火する防御的フォールバック（実際には発火しない）→ 良い実装・残置
+- TODO/FIXME/debugger/console.log：**0**（TODO 一致は Hoku の意図検出キーワードのみ）
+- 重複関数定義・コメントアウトされたコード塊：**0**
+
+### テスト結果（Playwright・回帰）
+- 全画面 **19/19 描画 OK**・pageerror 0
+- 深いクリックスイープ：可視ボタン **195個 → エラー 0**
+- home-mode-btn ハンドラ（openUsageModeModal）維持を確認
+- app-source ⇄ docs 本文乖離：0
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- ホームの「スペース切替」ボタン（home-mode-btn）が従来どおり動作するか
+
+### 次にやること
+- ユーザー判断：QAデバッグパネルを production ビルドから外すか／native confirm の showConfirm 化／フィルターチップ44px化
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `chore: remove dead usageMode functions (getUsageMode/isSoloMode/usageModeLabel) + remnant audit + cache-buster v20260601d`

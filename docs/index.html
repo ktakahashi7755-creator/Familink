@@ -11,7 +11,7 @@ if('serviceWorker' in navigator){
 <script>
 // キャッシュバスター: URLにバージョンがなければ即時リダイレクト
 (function(){
-  var V='20260601c';
+  var V='20260601d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -7796,12 +7796,8 @@ function deleteWorkspace(wsId) {
   );
 }
 
-// 後方互換: 旧 usageMode 関数
-function getUsageMode() {
-  return (S.userProfile && S.userProfile.usageMode === 'solo') ? 'solo' : 'family';
-}
-function isSoloMode() { return getUsageMode() === 'solo'; }
-function usageModeLabel() { return currentWorkspace().name; }
+// 旧 usageMode 系（getUsageMode / isSoloMode / usageModeLabel）はワークスペースへ
+// 移行済みで未使用のため廃止。スペース切替ボタンはワークスペース切替に委譲する。
 function openUsageModeModal() { openWorkspaceSwitcher(); }
 
 // ヘッダー下のワークスペース帯（ws_shared以外のとき表示）
