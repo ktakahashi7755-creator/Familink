@@ -7119,12 +7119,21 @@ function showScreen(id) {
 
 /* Wave 150: 画面遷移スタック。戻るボタンがループせず最終的にホームへ戻る。 */
 let _navStack = [];
+/* タブバーのアクティブ表示を現在画面に同期する。go / goBack / switchTab すべての
+   遷移経路から呼び、どの導線で来てもハイライトが取り残されないようにする。 */
+function _syncTabActive(id) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  const def = TAB_DEFS.find(function(d){ return d.screen===id; });
+  const tid = def ? ('tab-'+def.id) : TAB_MAP[id];
+  if(tid) document.getElementById(tid)?.classList.add('active');
+}
 function _navApply(id) {
   S.prev = S.screen;
   showScreen(id);
   const noTab = ['s-ob', 's-login', 's-onboard', 's-premium'];
   document.getElementById('tabbar').classList.toggle('hidden', noTab.includes(id));
   refresh(id);
+  _syncTabActive(id);
 }
 function go(id) {
   // 現在画面を履歴に積む（同一画面・連続重複は積まない）
@@ -7209,10 +7218,7 @@ function switchTab(id) {
   document.getElementById('tabbar').classList.remove('hidden');
   showScreen(id);
   refresh(id);
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  const def = TAB_DEFS.find(function(d){ return d.screen===id; });
-  const tid = def ? ('tab-'+def.id) : TAB_MAP[id];
-  if(tid) document.getElementById(tid)?.classList.add('active');
+  _syncTabActive(id);
 }
 
 function refresh(id) {

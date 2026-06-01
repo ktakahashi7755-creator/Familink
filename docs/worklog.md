@@ -14797,3 +14797,54 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `polish: enlarge header icon buttons 36→40px for tap target + re-audit QA (0 bugs) + cache-buster v20260601b`
+
+## 2026-06-01 07:20  env: iPhone経由(Web)  branch: claude/familink-handoff-Fb6uH
+
+### 作業名
+徹底総点検（セキュリティ/XSS/全画面ビジュアル/破壊操作/免責表記）＋ タブハイライト同期バグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **タブハイライト同期バグ修正（A）**：`go()`/`goBack()` でタブ画面へ遷移するとアクティブタブが取り残される不具合を修正
+  - 原因：タブの `.active` 付与が `switchTab()` のみで行われ、`_navApply()`（go/goBack 共通）が同期していなかった
+  - 対応：共通ヘルパー `_syncTabActive(id)` を新設し、`_navApply()` と `switchTab()` の両方から呼ぶ（DRY 化）
+  - 検証：`switchTab('s-task')`→`go('s-cal')` で従来 tab-task のまま → 修正後 tab-cal に正しく同期（実描画スクショ確認済み）
+- キャッシュバスター v20260601b → **v20260601c**
+
+### テスト結果（Playwright / chromium・徹底監査）
+- 全画面レンダリング：**19/19 OK**・pageerror 0
+- 深いクリックスイープ：可視ボタン **195個 → エラー 0**（破壊系11スキップ）
+- 横スクロール（320/375px）：全画面 **0**
+- **XSS インジェクション**：`<img onerror>`/`<script>` を全フィールド注入 → スクリプト実行 0・生ノード注入 0（H() エスケープ healthy）
+- **タブ同期**：go/goBack/switchTab すべてで正しいタブがアクティブ
+- app-source ⇄ docs 本文乖離：0
+
+### セキュリティ監査（§13・問題なし）
+- `window.open` の `noopener` 欠落：0／`target=_blank` rel 欠落：0／`eval`・`new Function`：0
+- 課金モーダル：β明示バナー＋全欄 `autocomplete=off`＋「端末外送信なし」明記（§13.5 準拠）
+- 破壊操作：`showConfirm` 48箇所。通知全削除＝danger 二段階確認。`localStorage.clear()` は QA デバッグパネル内のみ（§13.6 準拠）
+- 医療免責（体調・#7119 案内）／金融助言でない旨（家計）／Hoku の AI 提案役免責：いずれも常設表示（§13.3 準拠）
+- App Store 要件：プレミアム画面に「購入を復元・利用規約・プライバシーポリシー」リンクあり
+
+### 誤検出として除外（修正不要を確認）
+- トライアル表記「1ヶ月」(5) vs「30日」(9)：30日は全て体調画面の30日チャート文脈で無関係。トライアルは「1ヶ月」で統一済み
+- 買い物リストがシードで空に見えた件：`wsFilter`＋`status/section` 不足のシード形状が原因。正しい形状の実データは正常表示（実バグでない）
+- ローカル `H`（renderPremium 内・' 非エスケープ）：プレミアム画面はアプリ管理の静的データのみでユーザー入力なし → 実害なし
+
+### 未確認事項
+- なし（機能バグ・JSエラー・デッドボタン・横スクロール・XSS いずれもゼロ）
+
+### iPhone確認ポイント
+- ホーム等のウィジェットからカレンダー/家計などへ移動した際、下部タブのハイライトが移動先と一致するか
+- ヘッダーアイコンボタン（40px）の押しやすさ
+
+### 次にやること
+- ユーザー判断：フィルターチップ類の44px化／空状態イラストの磨き込み／Hoku 文言の更なる調整
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ予定: `fix(A): sync active tab highlight across go/goBack via _syncTabActive + deep security/XSS/visual audit (0 bugs) + cache-buster v20260601c`
