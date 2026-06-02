@@ -224,7 +224,7 @@ body {
   text-overflow: ellipsis;
 }
 .header-icon-btn {
-  width: 34px; height: 34px; border-radius: var(--r-full);
+  width: 40px; height: 40px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.12); border: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 17px; color: var(--text-sub);
@@ -5725,11 +5725,6 @@ let _lastPushAt = null;
    - ログインせずに体験する：既存の _enterApp（ローカル動作のまま）へ
    - 招待コードで参加する：m-supa-invite（スタブ）を開く
    ============================================================ */
-function supaEntryClickLogin() {
-  S.supaEntryChoice = 'supa';
-  saveS();
-  openSupaAuthModal('otp');   // Wave 205: OTP（メールでコード）を既定の入口に
-}
 /* Wave 211: signup モード直行（welcome → ワンクリックで「メール認証不要で作成」緑ボタンに到達） */
 function supaEntryClickSignup() {
   S.supaEntryChoice = 'supa';
@@ -5741,11 +5736,6 @@ function supaEntryClickGuest() {
   saveS();
   // 既存のローカル動作で入る：seedDemo は行われない（一度始めたら再投入されない）
   _enterApp(true);
-}
-function supaEntryClickInvite() {
-  S.supaEntryChoice = 'invite';
-  saveS();
-  openSupaInviteModal();
 }
 
 /* Wave 209: メール認証で詰まった人の最終エスケープ。
@@ -7653,12 +7643,21 @@ function showScreen(id) {
 
 /* Wave 150: 画面遷移スタック。戻るボタンがループせず最終的にホームへ戻る。 */
 let _navStack = [];
+/* タブバーのアクティブ表示を現在画面に同期する。go / goBack / switchTab すべての
+   遷移経路から呼び、どの導線で来てもハイライトが取り残されないようにする。 */
+function _syncTabActive(id) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  const def = TAB_DEFS.find(function(d){ return d.screen===id; });
+  const tid = def ? ('tab-'+def.id) : TAB_MAP[id];
+  if(tid) document.getElementById(tid)?.classList.add('active');
+}
 function _navApply(id) {
   S.prev = S.screen;
   showScreen(id);
   const noTab = ['s-ob', 's-login', 's-onboard', 's-premium'];
   document.getElementById('tabbar').classList.toggle('hidden', noTab.includes(id));
   refresh(id);
+  _syncTabActive(id);
 }
 function go(id) {
   // 現在画面を履歴に積む（同一画面・連続重複は積まない）
@@ -7743,10 +7742,7 @@ function switchTab(id) {
   document.getElementById('tabbar').classList.remove('hidden');
   showScreen(id);
   refresh(id);
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  const def = TAB_DEFS.find(function(d){ return d.screen===id; });
-  const tid = def ? ('tab-'+def.id) : TAB_MAP[id];
-  if(tid) document.getElementById(tid)?.classList.add('active');
+  _syncTabActive(id);
 }
 
 function refresh(id) {
@@ -8313,12 +8309,8 @@ function deleteWorkspace(wsId) {
   );
 }
 
-// 後方互換: 旧 usageMode 関数
-function getUsageMode() {
-  return (S.userProfile && S.userProfile.usageMode === 'solo') ? 'solo' : 'family';
-}
-function isSoloMode() { return getUsageMode() === 'solo'; }
-function usageModeLabel() { return currentWorkspace().name; }
+// 旧 usageMode 系（getUsageMode / isSoloMode / usageModeLabel）はワークスペースへ
+// 移行済みで未使用のため廃止。スペース切替ボタンはワークスペース切替に委譲する。
 function openUsageModeModal() { openWorkspaceSwitcher(); }
 
 // ヘッダー下のワークスペース帯（ws_shared以外のとき表示）
@@ -9490,7 +9482,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-top:6px;">まだ投稿がありません</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.5;">家族の出来事をシェアしてみよう</div>
     </div>`;
@@ -9524,7 +9516,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
@@ -9542,7 +9534,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
@@ -11409,7 +11401,7 @@ function _renderTePhoto() {
   if(!area) return;
   if(_tePhotoBuf) {
     area.innerHTML = '<div style="position:relative;display:inline-block;width:100%;">'
-      + '<img src="' + _tePhotoBuf + '" style="width:100%;max-height:200px;border-radius:10px;object-fit:cover;display:block;border:1px solid var(--border-light);">'
+      + '<img alt="タスクの写真" src="' + _tePhotoBuf + '" style="width:100%;max-height:200px;border-radius:10px;object-fit:cover;display:block;border:1px solid var(--border-light);">'
       + '<button type="button" onclick="_tePhotoBuf=\'\';_renderTePhoto()" aria-label="写真を削除" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;border:2.5px solid var(--bg);font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
       + '</div>';
   } else {
@@ -11656,7 +11648,7 @@ function tkCardHtml(t){
         ${t.memo?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-top:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}
         ${isDone?`<span style="font-size:10px;color:var(--text-muted);">完了</span>`:''}
       </div>
-      ${t.photo?`<div style="margin-top:8px;" onclick="event.stopPropagation();_viewTaskPhoto('${H(t.id)}')"><img src="${t.photo}" style="width:100%;max-height:200px;object-fit:cover;display:block;border-radius:10px;cursor:zoom-in;opacity:${isDone?.6:1};" loading="lazy"></div>`:''}
+      ${t.photo?`<div style="margin-top:8px;" onclick="event.stopPropagation();_viewTaskPhoto('${H(t.id)}')"><img alt="タスクの写真" src="${t.photo}" style="width:100%;max-height:200px;object-fit:cover;display:block;border-radius:10px;cursor:zoom-in;opacity:${isDone?.6:1};" loading="lazy"></div>`:''}
     </div>
     ${t.assignedTo?`${avHtml(mem.id, 26, 10, "flex-shrink:0;opacity:"+(isDone?'.55':'1')+"align-self:flex-start;")}`:''}
     ${deleteBtn}
@@ -12087,7 +12079,6 @@ function deleteTaskFromModal(){
   },'');
 }
 
-function saveTask(){saveTaskEdit();}
 
 /* ============================================================
    BUDGET
@@ -12329,7 +12320,7 @@ function renderBudget() {
   if(!listEl) return;
   if(!filtered.length) {
     listEl.innerHTML = `<div class="empty">
-      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
+      <img alt="" src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">記録がありません</div>
       <div class="empty-desc">右下の＋ボタンで追加できます</div>
     </div>`;
@@ -13414,17 +13405,6 @@ const REACT_TYPES = [
   {key:'clap',   label:'拍手',     icon:'sparkle', color:'#FF9B4E'},
 ];
 
-/* 拡張リアクション（＋ボタンで表示） */
-const REACT_MORE = [
-  {key:'fire',   label:'最高',   icon:'flame'},
-  {key:'star',   label:'すごい', icon:'star'},
-  {key:'ok',     label:'了解',   icon:'check'},
-  {key:'eyes',   label:'見てる', icon:'eye'},
-  {key:'muscle', label:'頑張る', icon:'flag'},
-  {key:'think',  label:'考え中', icon:'bulb'},
-  {key:'party',  label:'祝い',   icon:'sparkle'},
-  {key:'care',   label:'心配',   icon:'heart'},
-];
 
 
 /* デモ投稿の追加 */
@@ -14156,7 +14136,7 @@ function _memoCardPreview() {
     .slice(0,3);
   if(!recent.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img src="'+IMGS.sleep+'" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img alt="" src="'+IMGS.sleep+'" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">メモはまだありません</div></div>';
   }
   return recent.map(function(m){
@@ -14173,7 +14153,7 @@ function _archiveCardPreview() {
   }).slice(0,3);
   if(!docs.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img alt="" src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">書類はまだありません</div></div>';
   }
   return docs.map(function(d){
@@ -14189,7 +14169,7 @@ function _albumCardPreview() {
   }).slice(0,4);
   if(!photos.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img alt="" src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">写真はまだありません</div></div>';
   }
   return '<div style="display:flex;gap:5px;padding:2px 0;">'
@@ -14290,7 +14270,7 @@ function renderMemo() {
         + '<div class="mn-memo-content">'
         +   '<div class="mn-memo-title">'+H(titleText)+'</div>'
         +   (bodyPreview ? '<div class="mn-memo-preview">'+H(bodyPreview)+'</div>' : '')
-        +   (firstThumb ? '<div style="margin-top:6px;border-radius:8px;overflow:hidden;"><img src="'+firstThumb+'" style="width:100%;max-height:120px;object-fit:cover;display:block;" loading="lazy"></div>' : '')
+        +   (firstThumb ? '<div style="margin-top:6px;border-radius:8px;overflow:hidden;"><img alt="" src="'+firstThumb+'" style="width:100%;max-height:120px;object-fit:cover;display:block;" loading="lazy"></div>' : '')
         + '</div>'
         + '<div class="mn-memo-date" style="align-self:flex-start;">'+H(dateStr)+'</div>'
         + '</div>';
@@ -14457,7 +14437,6 @@ function _memoHeaderOpts() {
   if(_memoFolder) { openMemoFolderOpts(_memoFolder); } else { openMemoFolderEdit(); }
 }
 
-function openMemoAddSheet() { _ensureMemo(); openMemoEdit(); }
 /* ── フォルダ ── */
 function openMemoFolderEdit(id) {
   _ensureMemo();
@@ -14552,7 +14531,7 @@ function _renderMemoAttach() {
   let h = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">';
   _memoAttachBuf.forEach(function(att, i){
     h += '<div style="position:relative;width:64px;height:64px;flex:none;">'
-      + '<img src="'+H(att.dataUrl)+'" onclick="openDocPhoto(_memoAttachBuf['+i+'].dataUrl,(document.getElementById(\'memo-title\').value||\'メモの写真\'))" style="width:64px;height:64px;object-fit:cover;border-radius:9px;cursor:zoom-in;border:1px solid var(--border-light);">'
+      + '<img alt="メモの写真" src="'+H(att.dataUrl)+'" onclick="openDocPhoto(_memoAttachBuf['+i+'].dataUrl,(document.getElementById(\'memo-title\').value||\'メモの写真\'))" style="width:64px;height:64px;object-fit:cover;border-radius:9px;cursor:zoom-in;border:1px solid var(--border-light);">'
       + '<button onclick="memoRemoveAttach('+i+')" aria-label="削除" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>'
       + '</div>';
   });
@@ -14621,13 +14600,6 @@ function deleteMemo() {
     _memoEditId = null;
     renderMemo();
     showToast('メモを削除しました');
-  }, 'danger');
-}
-function deleteMemoById(id) {
-  showConfirm('メモを削除', 'このメモを削除しますか？', '削除する', () => {
-    S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
-    saveS();
-    renderMemo();
   }, 'danger');
 }
 
@@ -15809,7 +15781,7 @@ let _archivePhotoBuf = null;
 /* 書類モーダル内の写真プレビュー（タップ拡大 + 端末保存） */
 function _archivePhotoPreviewHtml() {
   if(!_archivePhotoBuf) return '';
-  return '<img src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
+  return '<img alt="書類の写真" src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
     + '<div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;font-weight:700;">'
     + '<span onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="color:var(--primary);cursor:pointer;">タップで拡大</span>'
     + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">端末に保存</span>'
@@ -17020,7 +16992,7 @@ function renderNotif() {
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
+      <img alt="" src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">通知はありません</div>
     </div>`;
     return;
@@ -17319,9 +17291,6 @@ function prmStartTrial() {
   try { renderPremium(); } catch(_){}
 }
 
-function prmStartPremium() {
-  prmStartTrial();
-}
 function prmRestorePurchase() {
   showAlert('開発中のお知らせ',
     '現在、App Store課金連携は開発中です。\n購入の復元は正式リリース後にご利用いただけます。');
@@ -18043,7 +18012,7 @@ function boardTypeIcon(type, color) {
 function renderBoardCardPreview(b, items, meta) {
   if(!items.length) {
     const iMeta = getIntentMeta(b);
-    return `<div class="empty" style="padding:6px 0 2px;"><img src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))"><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タップして「${H(iMeta.addBtn)}」</div></div>`;
+    return `<div class="empty" style="padding:6px 0 2px;"><img alt="" src="${IMGS.sleep}" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))"><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タップして「${H(iMeta.addBtn)}」</div></div>`;
   }
   if(b.type==='prep') {
     const sections = (S.boardSections||[]).filter(s=>s.boardId===b.id).sort((a,c)=>(a.order||0)-(c.order||0));
@@ -18757,15 +18726,6 @@ function saveBoardSection() {
 
 /* ── サジェスト質問（常時表示。家族の実利用シーンを意識） ── */
 /* Wave 62: 見る系（_view）と 入れる系（_add）を分けて並べる */
-const HOKU_SUGGESTIONS = [
-  '今日のやることを出して',
-  '○○のタスクを追加して',
-  '今週の予定',
-  '体調管理を出して',
-  '今月の家計を出して',
-  '家族ボードの内容を教えて',
-  '○○を買い物メモに追加して',
-];
 
 let _hokuMsgs       = [];
 let _hokuBusy       = false;
