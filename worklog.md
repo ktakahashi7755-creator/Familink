@@ -16586,3 +16586,29 @@ CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `chore: dead-code sweep + tab-sync fix + a11y(img alt) + tap target (main audit)`
+
+## 2026-06-02 01:30  env: iPhone経由(Web)  branch: claude/perfect-state（main 起点）
+
+### 作業名
+完璧化：app⇔docs 乖離の根本解消 ＋ 残デッドコード除去 ＋ タップ領域改善
+
+### 変更内容
+- **A-1 app⇔docs 乖離(902行)を根本解消**：deploy系コミットが docs のみ編集していたため docs が新しいと判明。docs を正本として app-source をミラー化（公開中docsは無変更＝リスク0）。**両ファイル本文差分 0**を達成。今後は app-source 編集→docs 再生成のクリーン同期が可能に。
+- **デッドコード除去**：`showAlert`（統合後デッド）＋ ウィジェット設定UI一式（openWidgetSettings / renderWidgetSettingsModal / toggleWidgetItem / getWidgetItems / WIDGET_ITEM_DEFAULTS / m-widget-settings モーダル）を削除。※「近日対応予定」の非機能プレースホルダで自己完結。S.widgetItems は PERSIST に残置（データ互換）。
+- 機械検査：関数 758→753、未使用は4のみ（openDataShareModal/openHokuApiModal=意図的retain、hookNav/hookModalForDirty=IIFE）。未使用変数0。
+- **タップ領域**：`.tk-filter-btn` padding 5→8px（高さ29→35px）。フィルターチップを押しやすく（実描画確認・横スクロール無し）。
+- キャッシュバスター v20260601g → **v20260601h**。
+
+### retain（理由明記）
+- `openDataShareModal`（データ書き出し/読み込み）：データ保護上の価値ある機能コードのため capability を残置（メニュー導線のみ削除済み）。
+- `openHokuApiModal`：callHokuApi フローと絡むため残置。
+
+### テスト結果（app-source / docs 両方・body diff 0）
+- 構文 OK・全画面 19/19・クリック 0エラー・タブ同期OK・a11y 0・XSS 0・エッジ 0・横スクロール(320/375) 0
+
+### 次にやること
+- 家族ボードの並び替えをプロUX化（次タスク）。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `refactor: resolve app/docs drift + remove dead widget UI + tap target`
