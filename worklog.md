@@ -16612,3 +16612,26 @@ CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `refactor: resolve app/docs drift + remove dead widget UI + tap target`
+
+## 2026-06-02 02:30  env: iPhone経由(Web)  branch: claude/perfect-state
+
+### 作業名
+家族ボードのドラッグ並び替え機能（iOS風 並び替えモード）
+
+### 変更内容
+- **家族ボード並び替え（プロUX）**：ヘッダーに「並び替え」ボタンを追加。タップで並び替えモードへ。
+  - モード中：投稿を簡易行（ドラッグハンドル＋タイトル＋ピン★）で表示し、実績ある `_mnDrag`（メモと同じ長押しドラッグ）を `data-mn-drag="board"` で流用してドラッグ並び替え。
+  - `_mnSaveOrder` に `board` 分岐を追加し `S.announces` 配列順を更新・永続化。
+  - renderBoard を「配列順を尊重（ピン留めは上に集約）」へ変更。新規投稿は unshift で先頭のため既定表示は不変。
+  - モード中は投稿追加ボタンを隠し、ボタンは「完了」表示。`switchTab('s-board')` 入場時にモード自動解除。投稿2件以上でのみボタン表示。
+  - CSS：board-reorder-hint / row / handle / active ボタン。
+- キャッシュバスター v20260601h → **v20260601i**。
+
+### テスト結果（app-source / docs 両方・body diff 0）
+- 並び替え：通常表示(ピン上)→モード(フラット行)→ドラッグ保存→終了(ピン上復帰)→リロード後も順序保持・モード自動リセット。**エラー0**
+- 全画面 19/19・クリック 0エラー・タブ同期・a11y 0・XSS 0・エッジ 0・横スクロール(320/375) 0
+- 実描画スクショでモードUIをプロ品質と確認
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: drag-to-reorder for family board (iOS-style reorder mode)`
