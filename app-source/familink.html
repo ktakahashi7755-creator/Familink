@@ -975,7 +975,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .bc-quick-input:focus { border-color:var(--primary); background:#fff; }
 .bc-quick-btn {
-  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
   background:var(--primary); color:#fff; border:none; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
 }
@@ -1901,7 +1901,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .tk-mem-av-btn:active .av { transform:scale(.88); }
 /* ＋ボタン */
 .tk-add-mem-btn {
-  width:30px; height:30px; border-radius:50%;
+  width:36px; height:36px; border-radius:50%;
   border:1.5px dashed var(--border); background:var(--bg-muted);
   display:flex; align-items:center; justify-content:center;
   color:var(--text-muted); cursor:pointer; flex-shrink:0;
@@ -2118,7 +2118,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .post-title { font-size:14px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:1px; }
 .post-meta  { font-size:11px;color:var(--text-muted); }
 .post-card-menu {
-  flex-shrink:0; width:30px; height:30px; padding:0;
+  flex-shrink:0; width:36px; height:36px; padding:0;
   background:transparent; border:none; border-radius:8px;
   color:var(--text-muted); cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -3760,10 +3760,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <!-- Wave 26：音声サンプルコマンド（短文ガイド）-->
   <div id="hoku-voice-hints" style="font-size:11px;line-height:1.6;color:var(--text-sub);padding:10px 14px 4px;background:linear-gradient(180deg,#fff 0%,rgba(10,132,255,.04) 100%);border-top:1px solid var(--border-light);">
     <div style="font-weight:700;color:var(--text);margin-bottom:4px;">短く話すと正確です</div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px 10px;">
-      <span>・明日 太郎 体操服 準備</span>
-      <span>・金曜18時 花子 スイミング</span>
-      <span>・健太 37.8度 咳あり</span>
+    <div id="hoku-voice-hint-list" style="display:flex;flex-wrap:wrap;gap:4px 10px;">
+      <span>・明日 体操服 準備</span>
+      <span>・金曜18時 スイミング</span>
+      <span>・37.8度 咳あり</span>
       <span>・スーパー 食費 3200円</span>
     </div>
   </div>
@@ -19657,6 +19657,18 @@ function openHoku() { go('s-hoku'); renderHoku(); }
 
 function renderHoku() {
   renderHokuSuggs(); renderHokuMsgs(); hokuVoiceInit();
+  // Wave 26: 音声サンプルを実際の家族名でパーソナライズ（使い方が伝わりやすく）
+  var hintList = document.getElementById('hoku-voice-hint-list');
+  if(hintList) {
+    var nm = (MEMBERS||[]).map(function(m){ return m && m.name; }).filter(Boolean);
+    var n1 = nm[0] || '太郎', n2 = nm[1] || nm[0] || '花子', n3 = nm[2] || nm[0] || '健太';
+    hintList.innerHTML = [
+      '・明日 '+n1+' 体操服 準備',
+      '・金曜18時 '+n2+' スイミング',
+      '・'+n3+' 37.8度 咳あり',
+      '・スーパー 食費 3200円'
+    ].map(function(s){ return '<span>'+H(s)+'</span>'; }).join('');
+  }
   // Daily usage bar for free users
   var bar = document.getElementById('hoku-usage-bar');
   if(bar) {
