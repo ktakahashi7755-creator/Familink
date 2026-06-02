@@ -1944,9 +1944,9 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   padding:6px 0 0; margin-top:6px;
 }
 .react-quick-btn {
-  display:inline-flex; align-items:center; gap:3px;
-  min-width:24px; height:24px; padding:0 4px;
-  border:none; border-radius:6px;
+  display:inline-flex; align-items:center; justify-content:center; gap:3px;
+  min-width:32px; height:32px; padding:0 7px;
+  border:none; border-radius:8px;
   background:transparent; cursor:pointer; transition:background .12s, transform .12s;
   -webkit-tap-highlight-color:transparent; line-height:1;
   opacity:.55;
@@ -5541,15 +5541,31 @@ function _scheduleSyncToSupabase() {
   _syncTimer = setTimeout(_pushToSupabase, 1500);
 }
 
+/* 同期用の配列マージ：同一 id は updatedAt/createdAt の新しい方を採用する
+   per-item last-write-wins。タイムスタンプが無い項目はクラウド側を優先（従来挙動）。
+   ローカルにしか無い項目は保持する。 */
+function _mergeSyncArray(localArr, cloudArr) {
+  const ts = x => (x && (Date.parse(x.updatedAt || x.updated_at || x.createdAt || x.created_at) || 0)) || 0;
+  const byId = new Map();
+  (cloudArr || []).forEach(it => { if(it && it.id != null) byId.set(it.id, it); });
+  (localArr || []).forEach(it => {
+    if(!it || it.id == null) return;
+    const cur = byId.get(it.id);
+    if(!cur || ts(it) > ts(cur)) byId.set(it.id, it); // ローカルのみ or ローカルが新しい
+  });
+  return Array.from(byId.values());
+}
+
 async function _pushToSupabase() {
   _lastPushAt = new Date();
-  if(_isSyncing || !isSupaLoggedIn()) return;
+  if(_isSyncing || !isSupaLoggedIn()) return { ok:false };
   const sb = getSupabase();
-  if(!sb) return;
+  if(!sb) return { ok:false };
   _isSyncing = true;
+  let ok = true;
   try {
     const uid = S.supaSession && S.supaSession.id;
-    if(!uid) return;
+    if(!uid) { return { ok:false }; }
     const now = new Date().toISOString();
     const rows = SYNC_KEYS.map(key => ({
       user_id: uid,
@@ -5559,18 +5575,28 @@ async function _pushToSupabase() {
       updated_at: now
     }));
     for(let i = 0; i < rows.length; i += 20) {
-      const { error } = await sb.from('fl_family_data').upsert(rows.slice(i, i + 20), {
-        onConflict: 'user_id,data_key', ignoreDuplicates: false
-      });
-      if(error) { console.error('sync push error:', error.message); break; }
+      const batch = rows.slice(i, i + 20);
+      let lastErr = null;
+      // 一時的なネットワーク障害に備えて指数バックオフで最大3回リトライ
+      for(let attempt = 0; attempt < 3; attempt++) {
+        const { error } = await sb.from('fl_family_data').upsert(batch, {
+          onConflict: 'user_id,data_key', ignoreDuplicates: false
+        });
+        if(!error) { lastErr = null; break; }
+        lastErr = error;
+        await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+      }
+      if(lastErr) { console.error('sync push error:', lastErr.message); ok = false; break; }
     }
-    _setSyncDot('synced');
+    _setSyncDot(ok ? 'synced' : 'error');
   } catch(e) {
     console.error('_pushToSupabase:', e && e.message);
     _setSyncDot('error');
+    ok = false;
   } finally {
     _isSyncing = false;
   }
+  return { ok };
 }
 
 async function _fetchFromSupabase() {
@@ -5591,9 +5617,8 @@ async function _fetchFromSupabase() {
       const k = row.data_key;
       if(!SYNC_KEYS.includes(k)) return;
       if(Array.isArray(row.payload) && Array.isArray(S[k])) {
-        const cloudIds = new Set(row.payload.map(i => i && i.id).filter(Boolean));
-        const localOnly = S[k].filter(i => i && i.id && !cloudIds.has(i.id));
-        S[k] = [...row.payload, ...localOnly];
+        // per-item last-write-wins（updatedAt が新しい方を採用・ローカルのみは保持）
+        S[k] = _mergeSyncArray(S[k], row.payload);
       } else if(row.payload !== null && row.payload !== undefined) {
         S[k] = row.payload;
       }
@@ -5618,9 +5643,10 @@ async function _fetchFromSupabase() {
 
 async function syncToSupabase() {
   if(!isSupaLoggedIn()) { showToast('クラウドへの送信にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
-  await _pushToSupabase();
-  showToast('クラウドに保存しました','success');
-  return { ok:true };
+  const r = await _pushToSupabase();
+  if(r && r.ok) { showToast('クラウドに保存しました','success'); }
+  else { showToast('クラウドへの保存に失敗しました。通信環境をご確認のうえ再度お試しください','error'); }
+  return r || { ok:false };
 }
 async function syncFromSupabase() {
   if(!isSupaLoggedIn()) { showToast('クラウドからの取得にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
@@ -7045,7 +7071,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
 
 function saveS() {
   const d = {};
@@ -17051,7 +17077,11 @@ function _refreshNotifBadges() {
 
 
 function devTogglePremium() {
-  S.isPremiumUser = !S.isPremiumUser;
+  // 開発用: 課金済みフラグをトグル（トライアルとは独立）。_refreshTrialStatus で
+  // isPremiumUser を再計算する。
+  S.premiumPaid = !S.premiumPaid;
+  if(S.premiumPaid) S.trialStartedAt = null;
+  _refreshTrialStatus();
   saveS();
   try { renderSettings(); } catch(_){}
   try { if(S.screen==='s-home') renderHome(); else renderHome(); } catch(_){}
@@ -17262,17 +17292,31 @@ function isInTrial() {
   return !S.isPremiumUser && _trialDaysLeft() > 0;
 }
 
+/* プレミアム状態を「課金済み(premiumPaid)」と「トライアル(trialStartedAt+30日)」から
+   都度再計算し、S.isPremiumUser（アプリ全体のゲート判定）に反映する。
+   トライアル満了時は確実に無料へ戻す（旧実装は isPremiumUser=true で早期 return し
+   満了が永久に検出されない不具合があった）。 */
 function _refreshTrialStatus() {
-  if(S.isPremiumUser) return; // 本物の課金ユーザーは触らない
+  // 移行: premiumPaid 未定義の既存ユーザーを判定（トライアル中でないのに premium=
+  //       旧 activatePremiumDemo / dev トグルで課金扱いされた人 → 課金済みとして保全）
+  if(S.premiumPaid === undefined || S.premiumPaid === null) {
+    S.premiumPaid = (S.isPremiumUser && !S.trialStartedAt) ? true : false;
+  }
+  // 課金済みは常にプレミアム
+  if(S.premiumPaid) { S.isPremiumUser = true; return; }
+  // トライアル判定
   if(S.trialStartedAt) {
-    const left = _trialDaysLeft();
-    if(left > 0) {
-      S.isPremiumUser = true; // トライアル中は premium として扱う
+    if(_trialDaysLeft() > 0) {
+      S.isPremiumUser = true;            // トライアル中
     } else {
-      S.isPremiumUser = false; // トライアル終了
+      const was = S.isPremiumUser;
+      S.isPremiumUser = false;           // トライアル満了 → 無料へ
       S.trialStartedAt = null;
       saveS();
+      if(was) { try { showToast('無料トライアルが終了しました。引き続き無料プランでご利用いただけます。', 'info'); } catch(_){} }
     }
+  } else {
+    S.isPremiumUser = false;             // 課金なし・トライアルなし → 無料
   }
 }
 
@@ -17845,9 +17889,12 @@ function submitPremiumCheckout() {
   activatePremiumDemo();
 }
 
-/* デモ用：プレミアム状態を有効化（実決済は正式リリース時に差し替え） */
+/* デモ用：プレミアム状態を有効化（実決済は正式リリース時に差し替え）。
+   premiumPaid=true として「課金済み」扱いにし、トライアル満了の影響を受けないようにする。 */
 function activatePremiumDemo() {
+  S.premiumPaid = true;
   S.isPremiumUser = true;
+  S.trialStartedAt = null;
   saveS();
   closePremiumGate();
   try { renderAvatarGrid(); } catch(_){}
@@ -21326,23 +21373,30 @@ function executeHokuAction(intent) {
     const dowMap = ['sun','mon','tue','wed','thu','fri','sat'];
     const dow = dowMap[intent.entities.weekday];
     const dayLabel = PREP_DAY_LABELS_JA[dow] || '';
-    if(!confirm(memName+'の'+dayLabel+'曜ルーティンとして '+items.length+' 件を登録しますか？\n・'+items.join('\n・'))) {
-      return { ok:true, message:'登録をキャンセルしました。' };
-    }
-    let added = 0;
-    for(const t of items) {
-      const cat = _hokuGuessPrepCategory(t) || 'その他';
-      const subj = (intent.entities.subject || '');
-      addPrepRoutine({
-        memberId: memberId, dayOfWeek: dow, title: t,
-        category: cat, subject: subj, quantity: '',
-        showTiming: 'previous_day_and_today', enabled: true, repeat: true
-      });
-      added++;
-    }
-    showToast(added+' 件のルーティンを追加しました','success');
-    if(typeof renderPrep === 'function') renderPrep();
-    return { ok:true, message: added+' 件を毎週'+dayLabel+'曜の'+memName+'のルーティンとして登録しました。\n\n[[ACTION_BUTTONS:prep]]' };
+    const subj = (intent.entities.subject || '');
+    // native confirm を廃止しアプリ標準の確認モーダル（showConfirm）へ統一。
+    // executeHokuAction は同期で案内を返し、確認後に登録＋完了通知を行う。
+    showConfirm(
+      memName+'の'+dayLabel+'曜ルーティン',
+      items.length+' 件を毎週'+dayLabel+'曜のルーティンに登録します：'+items.join('、'),
+      '登録する',
+      function() {
+        let added = 0;
+        for(const t of items) {
+          const cat = _hokuGuessPrepCategory(t) || 'その他';
+          addPrepRoutine({
+            memberId: memberId, dayOfWeek: dow, title: t,
+            category: cat, subject: subj, quantity: '',
+            showTiming: 'previous_day_and_today', enabled: true, repeat: true
+          });
+          added++;
+        }
+        showToast(added+' 件のルーティンを追加しました','success');
+        if(typeof renderPrep === 'function' && S.screen === 's-prep') renderPrep();
+      },
+      'info'
+    );
+    return { ok:true, message: memName+'の'+dayLabel+'曜ルーティンとして '+items.length+' 件、確認画面を出したよ。よければ「登録する」を押してね。\n・'+items.join('\n・') };
   }
 
   // 保存系 → 既存の m-voice-confirm を再利用（_voiceParsed をセットして開く）

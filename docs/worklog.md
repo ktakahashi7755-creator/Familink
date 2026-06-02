@@ -16661,3 +16661,34 @@ CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `improve: restore data backup into storage modal + enlarge tap targets`
+
+## 2026-06-02 05:00  env: iPhone経由(Web)  branch: claude/impl-bc（main 起点）
+
+### 作業名
+B/C 項目の実装：リアクションチップ・Hoku確認UI・トライアル満了・同期堅牢化
+
+### 変更内容
+- **B1 リアクションチップ底上げ**：`.react-quick-btn` 24→32px（min-width/height/padding/radius調整）。
+- **B2 Hoku一括登録の確認UI**：native `confirm()` を廃止しアプリ標準 `showConfirm` に統一。`executeHokuAction` は同期で案内を返し、確認後に登録＋完了トーストを行う非同期フローへ。
+- **C1 トライアル満了ロジック（重大バグ修正）**：`_refreshTrialStatus()` 冒頭の `if(isPremiumUser) return` により**トライアルが永久に切れない**不具合を修正。課金とトライアルを区別する `premiumPaid` フラグを新設（PERSIST追加）。満了時に確実に無料へ降格・通知。既存ユーザーは安全に移行（課金扱いの premium は保全／トライアルは満了判定）。`activatePremiumDemo`/`devTogglePremium` も premiumPaid ベースに更新。
+- **C4 Supabase同期の堅牢化**：
+  - push 失敗時に誤って'synced'表示するバグ修正＋指数バックオフで最大3回リトライ。`_pushToSupabase` が `{ok}` を返却。
+  - `syncToSupabase` 失敗時にエラートースト。
+  - 配列マージを per-item last-write-wins（`_mergeSyncArray`：updatedAt が新しい方を採用・ローカルのみ保持）に改善し、家族間同期での編集消失を防止。
+- キャッシュバスター v20260601j → **v20260601k**。
+
+### 実装不可（現アーキテクチャの制約・要アーキ判断）
+- **C1 実決済**：App Store IAP（ネイティブ）or Stripe（バックエンド＋PCI）必須。単一HTMLからは不可。→ 状態管理（トライアル/ゲート）は本番対応化済み。
+- **C2 iPhoneウィジェット**：iOS WidgetKit（ネイティブ専用）。Web/PWAでは実装不可。
+- **C3 外部カレンダー自動同期**：Google等の ics URL は CORS でブラウザ直 fetch 不可＝プロキシ（バックエンド）必須。現状は手動 ics 取込で対応。
+
+### テスト結果（app-source / docs 両方・body diff 0）
+- 構文OK・全画面19/19・クリック0エラー・横スクロール0・a11y0・エッジ0
+- **C1 トライアル**：fresh無料/開始30日/15日継続/40日満了で無料降格/移行で課金保全/購入は満了影響なし/dev toggle 全パス（6+ケース・エラー0）
+- **B2 Hoku**：native confirm 発火せず・showConfirm が開く・エラー0
+- **C4 マージ**：per-item LWW 正常（ローカル新/クラウド新/片側のみ）・push リトライ
+- 家族ボード並び替え0エラー（回帰）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: trial expiry lifecycle + sync hardening + Hoku confirm UI + reaction tap targets (B/C)`
