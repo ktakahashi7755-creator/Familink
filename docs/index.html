@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260601g';
+  var V='v20260601h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -2173,7 +2173,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
 .tk-filter-btn {
   flex-shrink:0; border:none; border-radius:var(--r-full);
-  padding:5px 13px; font-size:12px; font-weight:600;
+  padding:8px 14px; font-size:12px; font-weight:600;
   background:var(--bg-card); color:var(--text-muted);
   border:1.5px solid var(--border-light); cursor:pointer;
   transition:var(--t-spring); white-space:nowrap;
@@ -4429,18 +4429,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- ===== ウィジェット設定 ===== -->
-<div id="m-widget-settings" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">ウィジェット設定</div>
-    <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">ホーム画面ウィジェットに表示する情報を選択します。</p>
-    <div id="widget-settings-body"></div>
-    <div class="modal-actions" style="margin-top:14px;">
-      <button class="btn btn-ghost btn-block" onclick="closeModal('m-widget-settings')">閉じる</button>
-    </div>
-  </div>
-</div>
 
 <!-- ===== HEALTH ===== -->
 <div id="s-health" class="screen hidden">
@@ -8452,54 +8440,6 @@ function toggleTabItemInConfig(id) {
   showToast(item.vis ? H(def.label)+' タブを表示しました' : H(def.label)+' タブを非表示にしました');
 }
 
-/* ── ウィジェット設定 ── */
-const WIDGET_ITEM_DEFAULTS = [
-  { type:'events',  label:'今日の予定',  enabled:true  },
-  { type:'tasks',   label:'タスク',      enabled:true  },
-  { type:'board',   label:'家族ボード',  enabled:true  },
-  { type:'budget',  label:'家計メモ',    enabled:false },
-];
-function getWidgetItems() {
-  if(!S.widgetItems || !Array.isArray(S.widgetItems) || !S.widgetItems.length) {
-    return WIDGET_ITEM_DEFAULTS.map(function(d){ return Object.assign({},d); });
-  }
-  return WIDGET_ITEM_DEFAULTS.map(function(d){
-    const saved = S.widgetItems.find(function(w){ return w && w.type===d.type; });
-    return saved ? Object.assign({},saved) : Object.assign({},d);
-  });
-}
-function openWidgetSettings() {
-  renderWidgetSettingsModal();
-  openModal('m-widget-settings');
-}
-function renderWidgetSettingsModal() {
-  const body = document.getElementById('widget-settings-body');
-  if(!body) return;
-  const items = getWidgetItems();
-  body.innerHTML = items.map(function(item){
-    const visTgl = item.enabled
-      ? '<svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="var(--primary)"/><circle cx="17" cy="12" r="3.5" fill="#fff"/></svg>'
-      : '<svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="var(--border)"/><circle cx="7" cy="12" r="3.5" fill="#fff"/></svg>';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border-light);">'
-      + '<div style="flex:1;">'
-      + '<div style="font-size:14px;font-weight:600;color:var(--text);">' + H(item.label) + '</div>'
-      + '</div>'
-      + '<button onclick="toggleWidgetItem(\'' + item.type + '\')" style="background:none;border:none;cursor:pointer;padding:4px;">' + visTgl + '</button>'
-      + '</div>';
-  }).join('')
-  + '<div style="margin-top:16px;padding:12px 14px;background:var(--bg-muted);border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.7;">'
-  + 'iPhoneのホーム画面ウィジェットに追加するとここで選択した情報が表示されます。（ウィジェット機能は近日対応予定）'
-  + '</div>';
-}
-function toggleWidgetItem(type) {
-  let items = getWidgetItems();
-  const item = items.find(function(w){ return w.type===type; });
-  if(item) item.enabled = !item.enabled;
-  S.widgetItems = items;
-  saveS();
-  renderWidgetSettingsModal();
-  showToast(item && item.enabled ? '表示に設定しました' : '非表示に設定しました');
-}
 
 /* プロフィール編集（Wave 21A） */
 function openProfileEdit() {
@@ -17283,13 +17223,6 @@ function prmStartTrial() {
 
 function prmRestorePurchase() {
   showToast('ご購入情報が見つかりませんでした。プレミアムご登録済みのアカウントでお試しください。', 'info');
-}
-function showAlert(title, msg) {
-  if(typeof showConfirm === 'function') {
-    showConfirm(title, msg, 'OK', function(){}, 'info');
-  } else {
-    alert(title + '\n' + msg);
-  }
 }
 
 function renderSettings() {
