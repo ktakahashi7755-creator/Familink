@@ -16489,3 +16489,53 @@ CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデー
 ### コミット
 - ハッシュ: `（コミット後に記入）`
 - メッセージ: `docs: CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデート`
+
+## 2026-06-01 21:00  env: iPhone経由(Web)  branch: claude/settings-menu-cleanup（main 起点）
+
+### 作業名
+設定・メニューの項目整理 — 4項目削除 ＋ 書類保管庫/アルバムをホームへ昇格
+
+### 重要な前提
+- 引き継ぎブランチ(claude/familink-handoff-Fb6uH)が main より古い stale fork と判明したため、本作業は **origin/main を起点に新ブランチ claude/settings-menu-cleanup を切って実施**。
+- main では docs/index.html と app-source/familink.html が約900行（主にCSS）乖離していた（既存問題）。再生成不可のため両ファイルに同一編集を個別適用。
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html
+- index.html
+
+### 変更内容
+- **設定・メニューから削除（4項目）**：メールでログイン / ウィジェット設定 / データのバックアップ / Hoku API 連携（実験的）
+- **ホーム（メインボード）へ昇格（2項目）**：書類保管庫 / アルバム
+  - `HO_FIXED` に `b_archive` `b_album` を追加（既存ユーザーは hoInitOrder により末尾へ自動追加）
+  - `hoRenderCard` に2カードの描画を追加（書類=最近の書類タイトル3件、アルバム=最近の写真サムネ4枚、各々空状態あり）
+  - `hoCardClick` に `b_archive→s-archive` / `b_album→s-album` を追加
+  - プレビュー関数 `_archiveCardPreview()` / `_albumCardPreview()` を新設
+  - 設定の「データ・保管」からは書類保管庫/アルバムを削除（ホームへ移動したため）
+- キャッシュバスター：docs v20260531n → **v20260601f** / root index.html 20260527a → 20260601f
+
+### テスト結果（Playwright・app-source と docs 両方）
+- 構文検証（node --check）：エラー 0
+- ホームに書類保管庫・アルバムのカードが表示され、タップで各画面へ遷移：OK
+- 設定から4項目＋書類/アルバムが消滅（全 false）：OK
+- 全画面 19/19 描画・クリックスイープ（docs 190 / app-source 195）→ エラー 0
+- 実描画スクショ：ホーム2カード・整理後の設定を目視確認
+
+### 未確認事項 / 要判断
+- **「メールでログイン」削除**：設定からのクラウドログイン導線が消える。ゲスト向けホームバナー(openSupaAuthModal)は残存するが、非ゲストのログイン入口が設定から消える点は要確認。
+- **「データのバックアップ」削除**：書き出し/読み込みの唯一の導線が消える（§13.1 データ保護観点で要確認）。関数 openDataShareModal は残置のため再リンクは容易。
+- これらは明示指示に従って実施。必要なら別の場所へ導線を残せる。
+- **app-source ⇄ docs の既存乖離（約900行）**：本作業の変更箇所は同期済みだが、根本の同期ズレは別途要対応。
+
+### iPhone確認ポイント
+- ホーム下部に「書類保管庫」「アルバム」カードが出るか・タップで開くか
+- アルバムカードの写真サムネ表示
+- 設定画面から4項目が消えてスッキリしたか
+
+### 次にやること
+- ユーザー確認 → 問題なければ main へマージして公開デプロイ
+- 削除した「ログイン/バックアップ」導線の扱いを相談
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: declutter settings menu (remove 4 items) + promote 書類保管庫/アルバム to home board`
