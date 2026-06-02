@@ -16539,3 +16539,50 @@ CLAUDE.md と主要 Skill を現状コードに合わせて精密アップデー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: declutter settings menu (remove 4 items) + promote 書類保管庫/アルバム to home board`
+
+## 2026-06-02 00:40  env: iPhone経由(Web)  branch: claude/full-audit-cleanup（main 起点）
+
+### 作業名
+全ページ総点検 ＋ デッドコード一掃 ＋ タブ同期バグ修正 ＋ a11y/タップ領域改善（main 最新へ適用）
+
+### 前提
+- backup/034-settings-cleanup-home-cards を作成済み（13893ad のスナップショット）。
+- 本作業は main 起点の claude/full-audit-cleanup で実施。app⇔docs 既存乖離のため両ファイルへ同一編集。
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / index.html
+
+### 変更内容
+- **バグ修正（A）**：タブハイライト同期バグ。`go()`/`goBack()` でタブ画面へ遷移するとアクティブタブが取り残される問題を `_syncTabActive()` 新設で解消（main に存在したバグ）。
+- **デッドコード除去（両ファイル対称）**：
+  - 関数8：getUsageMode / isSoloMode / usageModeLabel（旧usageMode）/ saveTask / openMemoAddSheet / deleteMemoById / prmStartPremium / supaEntryClickLogin / supaEntryClickInvite
+  - 定数2：REACT_MORE / HOKU_SUGGESTIONS
+  - 機械検査：関数 768→760、トップレベル変数 未使用 0。
+- **a11y**：alt 欠落 `<img>` 7件に付与（装飾Hoku/サムネは `alt=""`、写真は意味付き）。
+- **タップ領域**：`.header-icon-btn` 34→40px（ヘッダー高52pxで崩れなし・実描画確認）。
+- キャッシュバスター v20260601f → **v20260601g**。
+
+### 残置（理由明記）
+- openDataShareModal / openWidgetSettings / openHokuApiModal：今回の設定メニュー整理で孤立したが、機能本体（モーダル）を持つため即削除せず。改善リストで「完全削除 or 別導線で復活」を提案。
+- _premiumPlanInfo / activatePremiumDemo：docs では使用中（app⇔docs 乖離）。要同期整理。
+- hookNav / hookModalForDirty：自己実行 IIFE（正常）。
+
+### テスト結果（app-source / docs 両方）
+- 構文（node --check）：両方 OK
+- 全画面 19/19 描画・pageerror 0
+- 深いクリックスイープ：エラー 0
+- タブ同期：go('s-cal') で tab-cal に正しく同期（修正確認）
+- a11y：未ラベル 0
+- XSS実行 0 / エッジ（空・極端数値・長文）エラー 0・横スクロール 0
+
+### 未確認事項 / 改善候補
+- app⇔docs の約900行（CSS中心）乖離は未解消（根本対応が必要）。
+- 孤立3関数の最終処遇（削除 or 復活）。
+
+### 次にやること
+- ユーザー確認 → main マージ＆デプロイ。
+- 評価結果に基づく残改善（別途リスト化）。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `chore: dead-code sweep + tab-sync fix + a11y(img alt) + tap target (main audit)`
