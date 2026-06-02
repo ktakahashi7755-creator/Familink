@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260601i';
+  var V='v20260601j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1122,7 +1122,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .cal-hd-btn {
-  width: 30px; height: 30px; border-radius: var(--r-full);
+  width: 36px; height: 36px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.10); border: none;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-sub); cursor: pointer; transition: var(--t);
@@ -1134,7 +1134,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   min-width: 96px; text-align: center; letter-spacing: -0.3px;
 }
 .cal-today-pill {
-  padding: 5px 12px; border-radius: var(--r-full);
+  padding: 7px 13px; border-radius: var(--r-full);
   background: rgba(10,132,255,0.1); border: none;
   color: var(--primary); font-size: 12px; font-weight: 600;
   cursor: pointer; transition: var(--t); flex-shrink: 0;
@@ -1148,7 +1148,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex-shrink: 0;
 }
 .cal-vtab {
-  flex: 1; height: 28px; border: none;
+  flex: 1; height: 34px; border: none;
   border-radius: var(--r-full); background: rgba(118,118,128,0.10);
   font-size: 12px; font-weight: 600; color: var(--text-muted);
   cursor: pointer; transition: var(--t);
@@ -2346,7 +2346,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .member-row .mr-role.parent { background:var(--primary-light); color:var(--primary); }
 .member-row .mr-role.child  { background:var(--status-warn-bg); color:var(--status-warn-text); }
 .member-row .mr-actions { display:flex; gap:4px; }
-.member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 10px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
+.member-row .mr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:7px 13px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
 .member-row .mr-actions button:hover { color:var(--primary); border-color:var(--primary); }
 .member-row .mr-actions .mr-del:hover { color:var(--red); border-color:var(--red); }
 .me-role-btn { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-size:13px; font-weight:700; cursor:pointer; color:var(--text-muted); transition:var(--t-spring); }
@@ -7239,6 +7239,11 @@ function renderStorageModal() {
   const warn = s.pct >= 90 ? 'danger' : (s.pct >= 70 ? 'warn' : '');
   const barColor = s.pct >= 90 ? '#DC2626' : (s.pct >= 70 ? '#F59E0B' : '#0A84FF');
   body.innerHTML = ''
+    + '<div onclick="closeModal(\'m-storage\');openDataShareModal();" style="display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,#ECFDF5,#EBF4FF);border:1px solid #C9EBDD;border-radius:14px;padding:13px 14px;margin-bottom:12px;cursor:pointer;">'
+    +   '<div style="width:36px;height:36px;border-radius:10px;background:#10B981;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>'
+    +   '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--text);">データのバックアップ</div><div style="font-size:11px;color:var(--text-sub);">書き出し / 読み込み・機種変更前の保管に</div></div>'
+    +   '<div style="color:var(--text-muted);font-size:18px;font-weight:700;flex-shrink:0;">›</div>'
+    + '</div>'
     + '<div style="background:var(--bg-muted);border-radius:14px;padding:14px;margin-bottom:12px;">'
     +   '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'
     +     '<span style="font-size:12px;color:var(--text-muted);font-weight:600;">使用中 / 上限</span>'
