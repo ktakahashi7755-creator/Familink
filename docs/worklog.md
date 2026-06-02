@@ -16692,3 +16692,35 @@ B/C 項目の実装：リアクションチップ・Hoku確認UI・トライア�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: trial expiry lifecycle + sync hardening + Hoku confirm UI + reaction tap targets (B/C)`
+
+## 2026-06-02 05:30  env: iPhone経由(Web)  branch: claude/native-plan
+
+### 作業名
+ネイティブ化（実決済/ウィジェット/自動同期）の実行手順書を作成
+
+### 経緯
+- C項目（実決済・iPhoneウィジェット・カレンダー自動同期）は現アーキテクチャ（単一HTML・バックエンドなし）では物理的に実装不可（Mac/Xcode/Apple Developerアカウント/バックエンドデプロイ権限が本環境に無い）。
+- Web側の課金プロダクト機能（フリーミアム・ゲーティング・トライアル満了ロジック）は完成済みと確認。残るのは「実際のお金の処理」のみで、これはネイティブIAP/バックエンドが必須。
+- 「おすすめな方で進める」の最も誠実で価値ある形＝**Mac環境でそのまま実行できる具体的設計図**を作成。
+
+### 変更ファイル
+- docs/native-wrapper-plan.md（新規）
+- docs/worklog.md
+
+### 変更内容
+- **推奨**：Capacitor で既存HTMLをWKWebViewラッパー化（React Native全面移行は見送り）。
+- Phase 1 Capacitorラッパー（App Store/TestFlight配信）→ Phase 2 IAP（月額480円・StoreKit）→ Phase 3 ウィジェット（WidgetKit）→ Phase 4 カレンダー自動同期（Edge Functionプロキシ）の段階計画。
+- Web側のIAP統合点が既に準備済みであることを明記（activatePremiumDemo / S.premiumPaid / checkPremiumLimit）。IAP連携は数行の差し替えで済む設計。
+- 事前準備（Apple Developer $99/年・Mac・Xcode）、各フェーズの手順・コマンド・コード差し替え例・完了条件・やってはいけないことを具体化。
+
+### 重要：本環境での実行可否
+- **不可**：ネイティブiOSのビルド・実機テスト・App Store申請・バックエンドデプロイ（Linuxコンテナ・Mac/Apple/デプロイ権限なし）。
+- Capacitor導入は npm を伴い §12.1（npm禁止・単一HTML維持）と衝突するため、**実行はユーザーの明示承認＋Mac環境が必要**。本コミットは手順書（ドキュメント）のみ。
+
+### 次にやること
+- ユーザー判断：ネイティブ化に踏み切るか（§10.2 アーキ承認）。踏み切る場合は Mac 環境で Phase 1 から実行。
+- Web版の継続改善は現アーキ内で随時可能。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `docs: ネイティブ化(IAP/ウィジェット/自動同期)の実行手順書を追加`
