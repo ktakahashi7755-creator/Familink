@@ -16749,3 +16749,42 @@ Web版の改善継続：操作ボタンのタップ領域完成＋Hokuコマン�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `polish: finalize tap targets + personalize Hoku command hints`
+
+## 2026-06-02 06:40  env: iPhone経由(Web)  branch: claude/fix-family-sync（main 起点）
+
+### 作業名
+家族間データ共有が動かない問題の原因究明と修正
+
+### 原因（2点の根本欠陥）
+1. アプリ側：`_fetchFromSupabase` が `.eq('user_id', 自分)` で**自分の行しか取得していなかった**（家族の別ユーザー行を取りに行っていない）。
+2. DB側：RLS が `auth.uid()=user_id`＝**自分の行しか読めない**。仮に家族分を要求してもDBがブロック。
+- 補足：招待参加が familyId をローカル保存するだけで push/fetch を起こさず、Realtime も自分分の再取得で無意味だった。
+- 結果：同一アカウントの多端末同期は動くが、別アカウント＝家族間共有は設計上成立していなかった。
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / index.html
+- docs/family-sync-fix.md（新規・原因/修正/必要SQL/手順）
+
+### 変更内容（アプリ側・実装済み）
+- `familyId` がある場合 `.eq('family_id', familyId)` で**家族全員分を取得**し data_key ごとにマージ。
+- `FAMILY_SHARED_KEYS` を新設し**共有キー（予定/タスク/家計/体調/ボード/持ち物/メモ/メンバー等）と個人キー（タブ/ホーム並び/プロフィール/プレミアム/通知/アバター/Hoku文脈等）を分離**。共有キーのみ家族マージ、個人キーは自分の行のみ採用。
+- per-item LWW マージ（`_mergeSyncArray`）で編集消失を防止。
+- 招待参加(`doSupaInviteSubmit`)・コード発行(`openMyInviteModal`)で push→fetch を起こし family_id を付与・家族分取得。未ログイン時は案内。
+- 単独利用（familyId なし）は従来どおり（多端末同期は不変）。
+- キャッシュバスター v20260601l → **v20260601m**。
+
+### ⚠️ ユーザー側で必要な作業（これをしないと動かない）
+- **Supabase で RLS を更新する SQL を1回実行**（family_read 許可・SECURITY DEFINER 関数で自己参照RLS再帰回避）。コード内コメント＋ docs/family-sync-fix.md に記載。
+- 家族双方が**同じ家族コードでクラウドにログイン**する必要（ゲスト同士は不可）。
+
+### テスト結果
+- 構文OK・全画面19/19(app/docs)・クリック0エラー・エッジ0・body diff 0
+- 家族マージのロジック検証：共有キー(events)は家族A+Bをマージ／個人キー(tabConfig)は自分の行のみ採用、を確認
+- ※ Supabase実バックエンド＋2端末でのE2Eはこの環境では実施不可。RLS適用後にユーザー実機テスト推奨（手順は docs/family-sync-fix.md §5）。
+
+### 次にやること
+- ユーザー：上記SQLをSupabaseで実行 → 2端末でテスト → 結果フィードバック。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `fix: 家族間データ共有（family_id 取得・共有/個人キー分離・参加時同期）+ 必要RLS文書化`

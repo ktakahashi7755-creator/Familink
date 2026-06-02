@@ -5502,9 +5502,25 @@ async function supaSignOut() {
        unique(user_id, data_key)
      );
      alter table fl_family_data enable row level security;
-     create policy "users_own_data" on fl_family_data
-       using (auth.uid() = user_id)
-       with check (auth.uid() = user_id);
+
+     -- 家族間共有のための RLS（Supabaseダッシュボードで実行）:
+     -- 読み取りは「自分の行」or「自分と同じ family_id の行（=家族）」を許可。
+     -- 書き込みは常に自分の行のみ。自己参照RLSの再帰を避けるため SECURITY DEFINER 関数を使う。
+     create or replace function fl_my_family_ids()
+       returns setof text language sql security definer stable as $$
+         select distinct family_id from fl_family_data
+         where user_id = auth.uid() and family_id is not null
+       $$;
+     drop policy if exists "users_own_data" on fl_family_data;
+     create policy "family_read" on fl_family_data for select
+       using (auth.uid() = user_id or family_id in (select fl_my_family_ids()));
+     create policy "own_insert" on fl_family_data for insert with check (auth.uid() = user_id);
+     create policy "own_update" on fl_family_data for update
+       using (auth.uid() = user_id) with check (auth.uid() = user_id);
+     create policy "own_delete" on fl_family_data for delete using (auth.uid() = user_id);
+
+   ※ この RLS を未適用だと「自分の行」しか読めず、家族間共有は動かない（多端末・同一
+     アカウント同期のみ動作）。アプリ側は family_id で家族全員分を取得しマージする。
 
    同期方針：
    - saveS() 後 1.5s デバウンスで push（書きすぎ防止）
@@ -5523,6 +5539,17 @@ const SYNC_KEYS = [
   'userPhotos','userAvatars','userAvatarType',
   'userProfile','isPremiumUser','onboardCompleted','hokuContext',
   'cashflowSettings','demoProfiles','familyId'
+];
+
+/* 家族で共有するキー（家族参加中は全メンバー分をマージ）。
+   これ以外（端末/本人固有：tabConfig / homeOrder / userProfile / isPremiumUser /
+   通知 / アバター / Hoku 文脈 等）は他メンバーの値で上書きせず、自分の行のみ採用する。 */
+const FAMILY_SHARED_KEYS = [
+  'events','tasks','txs','health','posts','announces',
+  'prep','prepRoutines','folders','docs','albumPhotos',
+  'shoppingItems','shoppingFrequent','members',
+  'customBoards','boardItems','boardSections',
+  'recurringTxs','memos','memoFolders','workspaces'
 ];
 
 let _syncTimer = null;
@@ -5606,21 +5633,39 @@ async function _fetchFromSupabase() {
   try {
     const uid = S.supaSession && S.supaSession.id;
     if(!uid) return;
-    const { data, error } = await sb
-      .from('fl_family_data')
-      .select('data_key,payload,updated_at')
-      .eq('user_id', uid);
-    if(error) { console.error('sync fetch error:', error.message); return; }
+    // 家族参加中（familyId あり）は family_id で家族全員分を取得し共有キーをマージ。
+    // 単独利用（familyId なし）は従来どおり自分の user_id 分のみ取得。
+    let q = sb.from('fl_family_data').select('user_id,data_key,payload,updated_at');
+    q = S.familyId ? q.eq('family_id', S.familyId) : q.eq('user_id', uid);
+    const { data, error } = await q;
+    if(error) { console.error('sync fetch error:', error.message); _setSyncDot('error'); return; }
     if(!data || !data.length) { _pushToSupabase(); return; }
-    let changed = false;
+    // data_key ごとに（複数メンバーの行を）グループ化
+    const byKey = {};
     data.forEach(row => {
-      const k = row.data_key;
-      if(!SYNC_KEYS.includes(k)) return;
-      if(Array.isArray(row.payload) && Array.isArray(S[k])) {
-        // per-item last-write-wins（updatedAt が新しい方を採用・ローカルのみは保持）
-        S[k] = _mergeSyncArray(S[k], row.payload);
-      } else if(row.payload !== null && row.payload !== undefined) {
-        S[k] = row.payload;
+      if(!SYNC_KEYS.includes(row.data_key)) return;
+      (byKey[row.data_key] = byKey[row.data_key] || []).push(row);
+    });
+    let changed = false;
+    Object.keys(byKey).forEach(k => {
+      let rows = byKey[k];
+      const shared = FAMILY_SHARED_KEYS.includes(k);
+      if(!shared) {
+        // 個人固有キー：自分の行のみ採用（他メンバーの設定で上書きしない）
+        rows = rows.filter(r => r.user_id === uid);
+        if(!rows.length) return;
+      }
+      rows = rows.slice().sort((a,b) => (a.updated_at||'').localeCompare(b.updated_at||'')); // 古→新
+      const anyArray = Array.isArray(S[k]) || rows.some(r => Array.isArray(r.payload));
+      if(anyArray) {
+        // 配列：ローカル + 全メンバーの payload を per-item last-write-wins でマージ
+        let merged = Array.isArray(S[k]) ? S[k] : [];
+        rows.forEach(r => { if(Array.isArray(r.payload)) merged = _mergeSyncArray(merged, r.payload); });
+        S[k] = merged;
+      } else {
+        // 非配列：最新 updated_at の値で上書き
+        const latest = rows[rows.length - 1];
+        if(latest && latest.payload !== null && latest.payload !== undefined) S[k] = latest.payload;
       }
       changed = true;
     });
@@ -6715,6 +6760,8 @@ function openMyInviteModal() {
   if(!S.familyId) {
     S.familyId = _generateFamilyId();
     saveS();
+    // 自分のデータに family_id を付与してクラウドへ反映（家族が取得できるように）
+    if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
   }
   const el = document.getElementById('my-invite-code');
   if(el) el.textContent = S.familyId;
@@ -6750,7 +6797,13 @@ function doSupaInviteSubmit() {
   saveS();
   closeModal('m-supa-invite');
   closeModal('m-supa-auth');
-  showToast('家族コードで参加しました！データが同期されます', 'success');
+  if(isSupaLoggedIn()) {
+    showToast('家族コードで参加しました！データを同期します', 'success');
+    // 自分のデータに family_id を付与（push）→ 家族全員分を取得（fetch）
+    _pushToSupabase().then(function(){ return _fetchFromSupabase(); }).catch(function(){});
+  } else {
+    showToast('家族コードを保存しました。クラウドにログインすると家族と同期されます', 'info');
+  }
   _enterApp(true);
 }
 
