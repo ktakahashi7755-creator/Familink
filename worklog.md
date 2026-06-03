@@ -17074,3 +17074,47 @@ Hokuログインボーナス / ファミコイン基盤 / 動くHokuアニメー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: ログインボーナス強化(Hoku画像/カレンダー印/トップのファミコイン表示)`
+
+## 2026-06-03 13:30  env: iPhone経由(Web)  branch: claude/famicoin-shop（main 起点）
+
+### 作業名
+ファミコインショップの構築（Hokuチケット／限定アバター）
+
+### 変更ファイル
+- app-source/familink.html（本体）
+- docs/index.html（同期・キャッシュバスター v20260603j → v20260603k）
+- index.html（ルートリダイレクトのバージョン j → k）
+- docs/worklog.md
+
+### 変更内容
+- **ショップ基盤**：`SHOP_ITEMS` カタログ（Hokuチケット2種＋限定アバター8種）、`openShop()`/`renderShop()`/`buyShopItem()`、`_ensureShop()`/`isShopOwned()` を新設。`S.shop={owned:[]}` を default に追加し PERSIST にも `'shop'` を追加。
+- **Hokuチケット（消費型・当日限定）**：`_hokuDailyLimit()`（5 + 当日のbonus）と `addHokuUses(n)` を新設。+3回(30コイン)/+10回(90コイン)。Hoku画面の残数表示・送信時の上限チェックを動的上限に統一し、上限到達時はショップ導線を提示。
+- **限定アバター（恒久）**：購入で `S.shop.owned` に追加。アバター選択のプレミアム判定2箇所に `isShopOwned('av:'+id)` を追加し、購入済みは無料プランでも選択可能に。
+- **コイン入口**：ホームのコインピルのタップ `showCoinsInfo()` を `openShop()` に変更。
+- m-shop モーダル（ボトムシート）＋専用CSS（残高ピル/チケット行/アバターグリッド3列）を追加。
+
+### 修正したバグ
+- **id衝突**：モーダルの本体 `id="shop-body"` が買い物リスト画面(s-shopping)の `id="shop-body"` と重複し、`getElementById('shop-body')` が隠れた買い物画面コンテナを返していたため、ショップ本体が空表示だった。モーダル側を `famishop-body`/`famishop-balance` にリネームして解消（renderShop も追従）。
+- **自動表示モーダルのハプティクス**：ログインボーナス自動表示時の `navigator.vibrate` がユーザー操作前でブラウザにブロックされ QA でコンソールエラー化。初回操作検知フラグ `_userGestured` を導入し、操作後のみ振動するよう変更（iOS Safari は元々 vibrate 非対応のため実機影響なし）。
+
+### テスト結果（Playwright・app/docs両方）
+- `node qa_full_test.js` → **84/84 PASS**（vibrate エラー解消）
+- ショップ機能：開く→Hoku2行＋アバター8枚表示、Hoku+3で上限5→8、コイン200→170→90、アバター購入で owned=true かつ無料プランで使用可、JSエラー0
+- 視覚確認：残高ピル/チケット行/アバターグリッドが正しく描画（id衝突修正後 body高 0→811）
+- docs(deploy)側 iPhone SE幅320pxで横スクロール0・本体描画OK
+- **app⇔docs md5一致**（0b7537ec…・SWブロック除去後）
+
+### 既存破壊なし
+- 既存LocalStorage破壊なし（shop 追加のみ・PERSIST追記）・既存画面維持・JSエラー0
+
+### iPhone確認ポイント
+- ホームのコインピルをタップ→ショップが開くか
+- Hokuチケット購入後、Hoku画面の残数が増えるか（当日中のみ）
+- 限定アバター購入後、アバター変更画面で無料でも選べるか
+
+### 次にやること
+- ショップに「コインの貯め方」ヘルプ導線（任意）／将来：プレミアム会員向けショップ割引やコイン消費アイテムの拡充
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: ファミコインショップ(Hokuチケット/限定アバター)+id衝突・自動振動の修正`
