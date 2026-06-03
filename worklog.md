@@ -16871,3 +16871,35 @@ Hoku の OpenAI/外部AI 連携：アプリ側の準備
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: Hoku OpenAI連携のアプリ側準備（設定UI再追加/シークレット/接続テスト）`
+
+## 2026-06-03 07:00  env: iPhone経由(Web)  branch: claude/hoku-chat（main 起点）
+
+### 作業名
+会話できる Hoku（OpenAI 会話モード）のアプリ側実装
+
+### 変更内容
+- **会話モード**：設定「Hoku を AI で賢くする」に**会話モードのトグル＋プライバシー同意**を追加。ON 時、Hoku 送信は `{hokuApiUrl}/api/hoku/chat` へ `{text, context, history}` を POST し、自然文 `reply` を表示。
+- **`_hokuChatContext()`**：家族の概要（予定/タスク/買い物/今日の体調メモ/メンバー名）を生成。**家計の金額は送らない**（§13 プライバシー配慮）。history は直近6発話のみ。
+- **`callHokuChat()`**：12秒タイムアウト・`x-hoku-key` ヘッダ対応・失敗時 null。
+- **`_hokuTryChat()`**：自然文 reply を返し、登録系 intent（`*_add`）のみ既存の確認フロー（executeHokuAction）へ橋渡し（**AIにDB操作はさせない＝安全**）。
+- **`sendHokuMsg` 改修**：会話モード有効時はチャット優先、未確定（失敗/無効）なら従来ローカルフローへ完全フォールバック（`if(reply===undefined)` でラップ。`ctxIntent` はホイストしてスコープ維持）。
+- `S.hokuChatMode` 新設（既定 OFF・オプトイン）＋ PERSIST。URL 未設定時は会話モード無効。
+- docs/hoku-openai-plan.md §6 に chat 用 Edge Function コード・プライバシー・コストを追記。
+- キャッシュバスター v20260603b → **v20260603c**。
+
+### テスト結果（fetch override / app/docs 両方・body diff0）
+- 構文OK・全画面19/19・クリック0・a11y0・エッジ0
+- 会話E2E：context生成（予定「保育園 遠足（そうた）」/タスク「体操服を洗う」等・家計金額なし）→ `/api/hoku/chat` へPOST・x-hoku-key送信・自然文表示・**失敗時ローカルフォールバック**を確認
+- トグル：URLあり+ON→有効／URL消去+ON→自動で無効、を確認
+- デッド関数 2（IIFEのみ）
+
+### 安全・プライバシー
+- 会話モードは**オプトイン（既定OFF）**。ON時に「概要が送信される/家計金額は送らない/登録は確認画面」を明示。
+- データ操作は引き続き確認フロー（即保存しない）。
+
+### 次にやること
+- ユーザー：Edge Function に `/chat` 分岐を追加してデプロイ（docs §6）→ 設定で会話モードON。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: 会話できるHoku（OpenAI会話モード・文脈/プライバシー配慮/確認フロー維持）`

@@ -179,21 +179,85 @@ Deno.serve(async (req) => {
 
 ---
 
-## 6. （発展）会話するHokuにしたい場合
+## 6. 会話するHoku（✅ アプリ側 実装済み）
 
-意図分類ではなく「自然な会話文」も生成したい場合：
-- Edge Function で `intent` に加えて `reply`（自然文）も返す。
-- アプリの `callHokuApi` 消費部（家族の予定/タスク文脈を `text` に同梱）を少し拡張。
-- コストは出力トークンが増える分 1回 $0.0003〜0.0006 程度（それでも安い）。
-- ただし**データ操作は引き続きローカル実行**を維持（AIにDB操作を任せない＝安全）。
+「自然な会話文」で返す**会話モード**をアプリに実装済み。設定 →「Hoku を AI で賢くする」
+→ **会話モード** を ON にすると有効（要・下記の `chat` エンドポイントをデプロイ）。
+
+### アプリの動作（実装済み）
+- 設定で `会話モード` ON のとき、Hoku 送信時に `{hokuApiUrl}/api/hoku/chat` へ
+  `{ text, context, history }` を POST し、`{ reply, intent? }` を受け取り**自然文を表示**。
+- `context` ＝ `_hokuChatContext()` が作る家族の概要：**予定・タスク・買い物・今日の体調メモ・メンバー名**。
+  - **家計の金額は送りません**（プライバシー配慮）。`history` は直近6発話のみ。
+- 返答に登録系 `intent`（`*_add`）が含まれる場合のみ、**既存の確認フロー**に橋渡し（AIにDB操作はさせない＝安全。必ず確認画面）。
+- API 失敗/タイムアウト(12秒)時は**自動でローカル判定にフォールバック**。
+- **オプトイン**：会話モードは既定 OFF。ON 時に「概要が送信される／家計金額は送らない」と明示。
+
+### chat 用 Edge Function（`supabase/functions/hoku/index.ts` に追記）
+既存の `hoku` 関数に、パスで分岐して `chat` を足すのが簡単：
+
+```typescript
+// ... 既存の意図分類(§3)はそのまま。リクエストパスで分岐 ...
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const url = new URL(req.url);
+  const json = (o: unknown) =>
+    new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+
+  // 会話モード
+  if (url.pathname.endsWith("/chat")) {
+    try {
+      const { text, context, history } = await req.json();
+      const sys = `あなたは家族向けアプリ Familink のやさしいガイド役 Hoku です。
+3児パパ・ママを支える温かく簡潔な相棒。返答は2〜3文・敬語すぎず親しみやすく。
+渡された context（家族の予定/タスク/買い物/今日の体調/メンバー名）を踏まえて答える。
+予定やタスクの「追加」を頼まれたら、reply に一言添えつつ intent を返す（実際の保存はアプリが確認画面で行う）。
+必ず次のJSONのみ：{"reply":"<自然文>","intent":"<${INTENTS.join("|")}>","confidence":<0-1>}
+質問や雑談は intent を "unknown" にする。`;
+      const messages = [
+        { role: "system", content: sys },
+        { role: "system", content: "context: " + JSON.stringify(context ?? {}) },
+        ...((history ?? []) as Array<{role:string;content:string}>).map(m => ({
+          role: m.role === "assistant" ? "assistant" : "user", content: String(m.content).slice(0, 500),
+        })),
+        { role: "user", content: String(text ?? "") },
+      ];
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.5, max_tokens: 200,
+          response_format: { type: "json_object" }, messages }),
+      });
+      const data = await r.json();
+      let out = { reply: "ごめん、うまく聞き取れなかった。もう一度お願い。", intent: "unknown", confidence: 0 };
+      try { out = JSON.parse(data.choices[0].message.content); } catch (_) {}
+      if (!INTENTS.includes(out.intent)) out.intent = "unknown";
+      return json(out);
+    } catch (_) {
+      return json({ reply: "（接続できませんでした）", intent: "unknown", confidence: 0 });
+    }
+  }
+
+  // ...（既存：意図分類 /intent はそのまま）...
+});
+```
+> ※ アプリは `{hokuApiUrl}/api/hoku/chat` に POST します（関数はパス末尾 `/chat` で会話分岐）。
+> 共有シークレットを使う場合は、関数側で `req.headers.get("x-hoku-key")` を検証してください。
+
+### 会話モードのコスト
+- 1回 ≒ 入力 300〜600 + 出力 60〜150 トークン ≒ **約 $0.0002〜0.0005／回**（gpt-4o-mini）。
+- 1家族（1日30回）＝**月 約10〜20円**。意図分類のみより少し高いが依然として激安。
+- もっと賢くしたいときだけ `model` を `gpt-4o` 等に上げる（コストは約15〜40倍だがそれでも家族利用なら月数百円規模）。
 
 ---
 
-## 7. アプリ側の改修まとめ（必要なら対応します）
+## 7. アプリ側の対応状況
 
-- **A. URL設定UIの復活**：`openHokuApiModal`（実装済み・現在メニュー未リンク）を設定に再追加 → ユーザーがURLを入れられる。
-- **B. ハードコード有効化**：`hokuApiUrl` の既定値に関数URLを設定 → 全員で有効。
-- **C. 共有シークレット対応**：`callHokuApi` にヘッダ追加（§5の保護を使う場合）。
+- ✅ **A. URL設定UI**：設定 →「Hoku を AI で賢くする」で URL を入力可能（再リンク済み）。
+- ✅ **C. 共有シークレット**：`callHokuApi` / `callHokuChat` が `x-hoku-key` を送信（設定欄あり）。
+- ✅ **会話モード**：トグル＋プライバシー同意＋確認フロー連携を実装。
+- ✅ **接続テスト**：設定画面の「接続テスト」で疎通確認。
+- B. ハードコード有効化（全員一律ON）は未対応（必要なら `hokuApiUrl` 既定値に設定）。
 
-> いずれもアプリ本体の小改修で対応可能。ご希望があれば実装します
-> （バックエンドのデプロイだけは Supabase CLI が使えるMac/PC環境で行ってください）。
+> **残りはバックエンドのデプロイのみ**（Supabase CLI が使える Mac/PC で §2・§6 のコードを deploy）。
+> デプロイ後、アプリの設定で URL を入れ「接続テスト」→「保存」、会話モードを ON にすれば完了。
