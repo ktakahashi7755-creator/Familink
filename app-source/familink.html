@@ -752,6 +752,18 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   transition:var(--t-spring);
 }
 .home-bell:active { transform:scale(.90); opacity:.7; }
+.home-coins {
+  display:flex; align-items:center; gap:4px; flex-shrink:0;
+  background:linear-gradient(135deg,#FFF3D6,#FFE7C2);
+  border:1px solid #FFD98A; border-radius:var(--r-full);
+  padding:5px 11px 5px 8px; font-size:12.5px; font-weight:800;
+  color:#B5790A; font-variant-numeric:tabular-nums; cursor:pointer;
+  transition:var(--t-spring); margin-right:2px;
+}
+.home-coins:active { transform:scale(.93); }
+.home-coins .home-coins-ic { display:flex; line-height:0; }
+.home-coins.bump { animation: coinBump .5s ease; }
+@keyframes coinBump { 0%,100%{transform:scale(1);} 40%{transform:scale(1.18);} }
 .home-mode-btn {
   display:flex; align-items:center; gap:5px;
   background:rgba(118,118,128,0.12); border:none;
@@ -1166,12 +1178,20 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   border-left: 0.5px solid rgba(60,60,67,0.10);
 }
 .cal-cell {
+  position: relative;
   border-right: 0.5px solid rgba(60,60,67,0.10);
   border-bottom: 0.5px solid rgba(60,60,67,0.10);
   cursor: pointer; overflow: hidden;
   padding: 1px 1px 1px 2px;
   display: flex; flex-direction: column;
   gap: 1px; transition: background .1s;
+}
+/* Wave 250: ログインボーナスを受け取った日の印（金色ドット） */
+.cal-cell.cal-login::after {
+  content: ''; position: absolute; top: 3px; right: 3px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: radial-gradient(circle, #FFDE82 0%, #E8A12C 75%);
+  box-shadow: 0 0 3px rgba(232,161,44,.6);
 }
 .cal-cell:active { background: rgba(10,132,255,0.06); }
 .cal-cell.cal-other { background: #FAFAFA; }
@@ -3344,6 +3364,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="home-mode-btn" id="home-mode-btn" onclick="openUsageModeModal()" aria-label="スペースを切り替え">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span id="home-mode-label">共有用</span>
+    </button>
+    <!-- Wave 250: ファミコイン残高 -->
+    <button class="home-coins" id="home-coins-btn" onclick="showCoinsInfo()" aria-label="ファミコイン残高" title="ファミコイン">
+      <span class="home-coins-ic" id="home-coins-ic"></span>
+      <span id="home-coins-count">0</span>
     </button>
     <!-- Wave 222: クラウド同期インジケーター -->
     <span id="sync-status-dot" class="sync-dot offline" title="クラウド同期" style="margin-right:2px;cursor:pointer;" onclick="isSupaLoggedIn()?showToast('クラウド同期状態：'+(S.trialStartedAt||S.isPremiumUser?'プレミアム':'無料')+'プラン','info'):showToast('クラウドにログインすると同期が有効になります','info')"></span>
@@ -7204,7 +7229,7 @@ let S = {
   familyId: null,                // Wave 219: 家族グループID（将来の招待・多端末同期で使用）
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
   // Wave 250: Hoku ログインボーナス / ファミコイン（毎日開きたくなる習慣化）
-  loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false },
+  loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
 };
 
 const APP_VERSION = 'v1.4.0';
@@ -9562,6 +9587,8 @@ function renderHome() {
     avatarBtn.style.cssText = 'background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;';
   }
 
+  try { _updateHomeCoins(); } catch(_){}  // Wave 250: ファミコイン残高表示
+
   const grid = document.getElementById('home-grid');
   if(!grid) return;
 
@@ -10060,7 +10087,8 @@ function renderCalMonth() {
     }).join('');
     const more=dayEvs.length>MAX?`<div class="cal-cell-more">+${dayEvs.length-MAX}</div>`:'';
 
-    cells.push(`<div class="cal-cell ${isToday?'cal-today':''} ${isSel?'cal-sel':''} ${isSun?'cal-sun':''} ${isSat?'cal-sat':''} ${hol?'cal-holiday':''}"
+    const loginCls = isLoginBonusDate(ds) ? 'cal-login' : '';
+    cells.push(`<div class="cal-cell ${isToday?'cal-today':''} ${isSel?'cal-sel':''} ${isSun?'cal-sun':''} ${isSat?'cal-sat':''} ${hol?'cal-holiday':''} ${loginCls}"
       style="height:${cellH}px" onclick="selCalDay('${ds}')">
       <div class="cal-cell-num">${d}</div>${holLine}${pills}${more}
     </div>`);
@@ -17479,7 +17507,7 @@ function prmStartTrial() {
    ============================================================ */
 function _ensureLoginBonus() {
   if(!S.loginBonus || typeof S.loginBonus !== 'object') {
-    S.loginBonus = { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false };
+    S.loginBonus = { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] };
   }
   const lb = S.loginBonus;
   if(typeof lb.coins   !== 'number')  lb.coins   = 0;
@@ -17487,7 +17515,16 @@ function _ensureLoginBonus() {
   if(typeof lb.enabled !== 'boolean') lb.enabled = true;
   if(typeof lb.badge30 !== 'boolean') lb.badge30 = false;
   if(typeof lb.lastClaimDate !== 'string') lb.lastClaimDate = '';
+  if(!Array.isArray(lb.dates)) lb.dates = [];
   return lb;
+}
+/* ログインボーナス用 Hoku 画像。差し替えたい場合はここを別の data URI に変えるだけ。
+   （現在は既存の公式 Hoku キャラクターを使用） */
+const BONUS_HOKU_IMG = (typeof IMGS !== 'undefined' && (IMGS.hoku || IMGS.happy)) || '';
+/* ある日付にログインボーナスを受け取ったか（カレンダーの印に使用） */
+function isLoginBonusDate(dateStr) {
+  const lb = _ensureLoginBonus();
+  return lb.dates.indexOf(dateStr) >= 0;
 }
 /* ファミコイン残高 API（将来のショップが使う土台） */
 function getFamiCoins() { return _ensureLoginBonus().coins; }
@@ -17527,10 +17564,16 @@ function checkLoginBonus() {
     coins += 30;  bonusLabel = '3日連続ボーナス +30';
   }
   lb.coins = Math.max(0, lb.coins + coins);
+  // ログイン日を記録（カレンダーの印用。直近400日に上限）
+  if(lb.dates.indexOf(today) < 0) {
+    lb.dates.push(today);
+    if(lb.dates.length > 400) lb.dates = lb.dates.slice(-400);
+  }
   try { saveS(); } catch(_){}
 
   _loginBonusPending = { coins: coins, streak: lb.streak, total: lb.coins, bonusLabel: bonusLabel, badge: badge };
   _openLoginBonusModal();
+  try { if(S.screen === 's-home') renderHome(); } catch(_){}  // トップのコイン数を即更新
 }
 
 function _openLoginBonusModal() {
@@ -17540,8 +17583,8 @@ function _openLoginBonusModal() {
   if(!body) return;
   const hourGreet = (function(){ const h = new Date().getHours(); return h < 11 ? 'おはようございます' : (h < 17 ? 'こんにちは' : 'こんばんは'); })();
   body.innerHTML =
-      '<div class="hoku-character happy" style="margin:4px auto 10px;width:104px;height:104px;">'
-    +   '<img src="'+(IMGS.happy||IMGS.hoku)+'" alt="Hoku" style="width:104px;height:104px;object-fit:contain;">'
+      '<div class="hoku-character happy" style="margin:4px auto 12px;width:120px;height:120px;">'
+    +   '<img src="'+(BONUS_HOKU_IMG||IMGS.hoku||IMGS.happy)+'" alt="Hoku" style="width:120px;height:120px;object-fit:contain;">'
     + '</div>'
     + '<div style="font-size:17px;font-weight:800;color:var(--text);line-height:1.5;">'+H(hourGreet)+' 🌱</div>'
     + '<div style="font-size:13px;color:var(--text-sub);line-height:1.7;margin:4px 0 14px;">今日も家族時間を大切にしましょう。</div>'
@@ -17564,6 +17607,23 @@ function _openLoginBonusModal() {
   try { if(navigator.vibrate) navigator.vibrate([10,40,10]); } catch(_){}
 }
 function closeLoginBonus() { _loginBonusPending = null; closeModal('m-login-bonus'); }
+
+/* ホームヘッダーのファミコイン残高を更新（アイコン＋枚数） */
+function _updateHomeCoins() {
+  const ic = document.getElementById('home-coins-ic');
+  if(ic && !ic.firstChild) ic.innerHTML = _famiCoinIcon(15);
+  const c = document.getElementById('home-coins-count');
+  if(c) c.textContent = String(getFamiCoins());
+}
+/* コインのタップ：残高と使い道の案内（将来のショップ入口） */
+function showCoinsInfo() {
+  const lb = _ensureLoginBonus();
+  showConfirm(
+    'ファミコイン',
+    '保有 ' + lb.coins + ' ファミコイン\n連続ログイン ' + lb.streak + ' 日\n\n毎朝ログインで貯まります。今後、Hokuの追加利用や限定アバター・背景などと交換できるようになります。',
+    'OK', function(){}, 'info'
+  );
+}
 
 /* 設定：ログインボーナスの ON/OFF（OFF でも内部データは消さない） */
 function toggleLoginBonus() {
