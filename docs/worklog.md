@@ -16845,3 +16845,29 @@ Web版の改善継続：操作ボタンのタップ領域完成＋Hokuコマン�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: マルチ端末リアルタイム同期の堅牢化（自己回復/復帰時復旧/再接続）`
+
+## 2026-06-03 06:00  env: iPhone経由(Web)  branch: claude/hoku-api-prep（main 起点）
+
+### 作業名
+Hoku の OpenAI/外部AI 連携：アプリ側の準備
+
+### 変更内容
+- **設定メニューに「Hoku を AI で賢くする（OpenAI 連携）」を再追加**（ヘルプ・アプリ情報セクション。ON/OFF 表示付き）。`openHokuApiModal` がデッド解消。
+- **連携モーダルを刷新**：OpenAI 連携の説明・エンドポイントURL欄・**共有シークレット欄（任意・§5保護用）**・**接続テストボタン**・「APIキーは端末でなくサーバに置く」注記・docs/hoku-openai-plan.md 参照。
+- **`callHokuApi` に共有シークレットヘッダ対応**：`S.hokuApiKey` 設定時のみ `x-hoku-key` を送信（未設定時は送らない）。
+- **`testHokuApi()` 新設**：入力中のURL/シークレットで実際に1回呼び、成功(intent表示)/失敗を表示。テスト後は元の値に戻し、保存は「保存」ボタンで確定。
+- `S.hokuApiKey` を新設し PERSIST に追加。
+- キャッシュバスター v20260603a → **v20260603b**。
+
+### 検証
+- 構文OK(app/docs)・全画面19/19・クリック0・a11y0・エッジ0・body diff0
+- callHokuApi：URL=`{base}/api/hoku/intent`・シークレット時のみ x-hoku-key 送信・未設定時は送らない・応答intentパース、を fetch override で確認
+- 設定エントリ表示・モーダル各欄・接続テスト（未デプロイ時は失敗表示でフォールバック）を確認
+- デッド関数 2（IIFEのみ。孤立関数ゼロに）
+
+### 次にやること
+- ユーザー：Mac/PCで Edge Function をデプロイ（docs/hoku-openai-plan.md）→ 設定でURL（＋任意でシークレット）を入力→接続テスト→保存。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: Hoku OpenAI連携のアプリ側準備（設定UI再追加/シークレット/接続テスト）`

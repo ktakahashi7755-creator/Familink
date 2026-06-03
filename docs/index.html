@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603a';
+  var V='v20260603b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -7155,6 +7155,7 @@ let S = {
   },
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
+  hokuApiKey: '',       // Hoku API 簡易保護用の共有シークレット（任意。x-hoku-key ヘッダで送る）
   hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
   tabConfig: null,   // タブカスタマイズ: [{id,vis}] | null=デフォルト5タブ
   widgetItems: null, // ウィジェット設定: [{type,label,enabled}] | null=デフォルト
@@ -7174,7 +7175,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
 
 function saveS() {
   const d = {};
@@ -17626,6 +17627,13 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>','#0A84FF')}</div>
         <div class="settings-item-label">利用規約</div><div class="settings-arrow">›</div>
       </div>
+      <div class="settings-item" onclick="openHokuApiModal()">
+        <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
+        <div class="settings-item-label">Hoku を AI で賢くする
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">OpenAI 等の API 連携（任意）</div>
+        </div>
+        <div class="settings-value">${(S.hokuApiUrl?'ON':'OFF')}</div><div class="settings-arrow">›</div>
+      </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
         <div class="settings-item-label">バージョン</div>
@@ -18926,9 +18934,12 @@ async function callHokuApi(text) {
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch(e){} }, 3000) : null;
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    const secret = (typeof S !== 'undefined' && S.hokuApiKey || '').trim();
+    if(secret) headers['x-hoku-key'] = secret;   // §5: 簡易保護（任意）
     const res = await fetch(base.replace(/\/+$/,'') + '/api/hoku/intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({ text: text }),
       signal: ctrl ? ctrl.signal : undefined
     });
@@ -18948,6 +18959,10 @@ async function callHokuApi(text) {
 function openHokuApiModal() {
   const inp = document.getElementById('hoku-api-url-input');
   if(inp) inp.value = (S.hokuApiUrl || '');
+  const keyInp = document.getElementById('hoku-api-key-input');
+  if(keyInp) keyInp.value = (S.hokuApiKey || '');
+  const res = document.getElementById('hoku-api-test-result');
+  if(res) res.textContent = '';
   openModal('m-hoku-api');
 }
 function saveHokuApiUrl() {
@@ -18957,11 +18972,38 @@ function saveHokuApiUrl() {
     showToast('URL は http(s):// で始めてください','error');
     return;
   }
+  const keyInp = document.getElementById('hoku-api-key-input');
   S.hokuApiUrl = url;
+  S.hokuApiKey = (keyInp && keyInp.value || '').trim();
   saveS();
   closeModal('m-hoku-api');
-  showToast(url ? 'Hoku API 連携を有効にしました' : 'ローカル判定に戻しました');
+  showToast(url ? 'Hoku の AI 連携を有効にしました' : 'ローカル判定に戻しました');
   if(typeof renderSettings === 'function') renderSettings();
+}
+/* 接続テスト：入力中の URL/シークレットで実際に1回呼び、結果を表示する。
+   保存前の検証用。S を一時的に使うため、テスト後に元の値へ戻す。 */
+async function testHokuApi() {
+  const res = document.getElementById('hoku-api-test-result');
+  const url = (document.getElementById('hoku-api-url-input')||{}).value || '';
+  const key = (document.getElementById('hoku-api-key-input')||{}).value || '';
+  const u = url.trim().replace(/\/+$/, '');
+  if(!u) { if(res){ res.style.color='var(--red)'; res.textContent='URL を入力してください。'; } return; }
+  if(!/^https?:\/\//i.test(u)) { if(res){ res.style.color='var(--red)'; res.textContent='URL は http(s):// で始めてください。'; } return; }
+  if(res){ res.style.color='var(--text-muted)'; res.textContent='接続テスト中…'; }
+  const prevUrl = S.hokuApiUrl, prevKey = S.hokuApiKey;
+  S.hokuApiUrl = u; S.hokuApiKey = key.trim();
+  try {
+    const r = await callHokuApi('明日の予定を見せて');
+    if(r && typeof r.intent === 'string') {
+      if(res){ res.style.color='var(--green)'; res.textContent='✓ 接続成功（intent: '+H(r.intent)+'）。保存を押すと有効になります。'; }
+    } else {
+      if(res){ res.style.color='var(--red)'; res.textContent='✕ 応答が不正、またはタイムアウトしました。URL とサーバ側の実装をご確認ください（自動でローカル判定に戻ります）。'; }
+    }
+  } catch(e) {
+    if(res){ res.style.color='var(--red)'; res.textContent='✕ 接続に失敗しました：'+H((e&&e.message)||'unknown'); }
+  } finally {
+    S.hokuApiUrl = prevUrl; S.hokuApiKey = prevKey; // 保存は「保存」ボタンで確定
+  }
 }
 
 async function sendHokuMsg(text) {
@@ -23893,25 +23935,36 @@ async function _oauthSignIn(provider) {
 <div id="m-hoku-api" class="modal-backdrop hidden">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="modal-grip"></div>
-    <div class="modal-title">Hoku API 連携（実験的）</div>
+    <div class="modal-title">Hoku を AI で賢くする（OpenAI 連携）</div>
     <div style="font-size:13px;color:var(--text-sub);line-height:1.75;margin-bottom:12px;">
-      Hoku の意図判定を、外部の Hoku API（高精度）に切り替えられます。<br>
+      Hoku の意図判定を、外部 AI（OpenAI 等）のエンドポイントに切り替えて精度を上げられます。<br>
       <b>URL を空にすると、これまで通り端末内のローカル判定で動きます。</b>
     </div>
     <div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:9px 11px;border-radius:8px;line-height:1.6;margin-bottom:14px;">
       ・API が応答しない時は自動でローカル判定にフォールバックします<br>
       ・保存前の確認モーダルは API 経由でも必ず表示されます<br>
-      ・設計: docs/hoku-ai-assistant-plan.md
+      ・APIキーは端末に保存せず、サーバ（Supabase Edge Function 等）側に置いてください<br>
+      ・導入手順と金額: docs/hoku-openai-plan.md
     </div>
     <div class="field">
-      <div class="field-label">Hoku API のベース URL</div>
+      <div class="field-label">エンドポイントのベース URL</div>
       <input type="url" class="input" id="hoku-api-url-input"
-        placeholder="例: https://your-hoku-api.example.com" inputmode="url"
-        style="font-size:13px;">
+        placeholder="例: https://xxxx.supabase.co/functions/v1/hoku" inputmode="url"
+        autocomplete="off" style="font-size:13px;">
       <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
         末尾の / は不要。空欄で保存するとローカル判定に戻ります。
       </div>
     </div>
+    <div class="field">
+      <div class="field-label">共有シークレット（任意・簡易保護用）</div>
+      <input type="text" class="input" id="hoku-api-key-input"
+        placeholder="サーバ側と同じ合言葉（x-hoku-key）" autocomplete="off" style="font-size:13px;">
+      <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
+        ※ これは OpenAI のAPIキーではありません。設定すると x-hoku-key ヘッダで送信します。
+      </div>
+    </div>
+    <div id="hoku-api-test-result" style="font-size:12px;line-height:1.6;margin:2px 0 10px;"></div>
+    <button class="btn btn-ghost btn-block" onclick="testHokuApi()" style="margin-bottom:8px;">接続テスト</button>
     <button class="btn btn-primary btn-block" onclick="saveHokuApiUrl()" style="margin-bottom:8px;">保存</button>
     <button class="btn btn-ghost btn-block" onclick="closeModal('m-hoku-api')">閉じる</button>
   </div>
