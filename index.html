@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603f';
+  var V='v20260603g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -20134,6 +20134,8 @@ let _hokuRecSupportChecked = false;
 let _hokuRecStartTimer = null;
 let _hokuVoiceInterim = '';   // 認識中のライブ文字起こし（interim）保持
 let _hokuVoiceSpoke = false;  // この聞き取りセッションで onspeechstart が来たか
+let _hokuVoiceManualStop = false;  // ユーザーがマイク再押下で停止したか
+let _hokuVoiceFinalHandled = false; // このセッションで final 結果を処理済みか
 
 function hokuVoiceSupport() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -20197,14 +20199,17 @@ function hokuVoiceToggle() {
     _hokuVoiceFocusInput();
     return;
   }
-  // 既に聞き取り中なら停止
+  // 既に聞き取り中なら停止（暫定テキストは onend で活かす＝消さない）
   if(_hokuRecListening && _hokuRec) {
+    _hokuVoiceManualStop = true;
     try { _hokuRec.stop(); } catch(e) {}
     return;
   }
   let started = false;
   _hokuVoiceInterim = '';
   _hokuVoiceSpoke = false;
+  _hokuVoiceManualStop = false;
+  _hokuVoiceFinalHandled = false;
   try {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     _hokuRec = new SR();
@@ -20248,6 +20253,7 @@ function hokuVoiceToggle() {
         hokuVoiceShowStatus('聞き取り中：「' + interim + '」','listening');
       }
       if(finalText) {
+        _hokuVoiceFinalHandled = true;   // final を処理済み（onend での暫定テキスト救済は不要）
         // 候補配列を smart ハンドラへ：第1候補が弱い時に第2/第3を試して最良を採用
         const cands = finalAlts.length ? finalAlts : [finalText];
         try { hokuHandleVoiceCandidates(cands); }
@@ -20294,8 +20300,15 @@ function hokuVoiceToggle() {
     _hokuRec.onend = function() {
       _hokuRecListening = false;
       hokuMicSetState('idle');
+      const pendingInterim = (_hokuVoiceInterim || '').trim();
       _hokuVoiceInterim = '';
       if(_hokuRecStartTimer) { clearTimeout(_hokuRecStartTimer); _hokuRecStartTimer = null; }
+      // マイク再押下で停止した際、final が来ず暫定テキストだけ残った場合は
+      // それを最終として活かす（聞き取った文章を消さない）。
+      if(_hokuVoiceManualStop && !_hokuVoiceFinalHandled && pendingInterim) {
+        try { hokuHandleVoiceText(pendingInterim); } catch(e) {}
+      }
+      _hokuVoiceManualStop = false;
     };
 
     _hokuRec.start();
@@ -21930,6 +21943,30 @@ function hokuHandleVoiceText(text) {
     return;
   }
   hokuVoiceSetPhase('thinking');
+  // 会話モード：音声もテキストと同じ AI 高精度抽出を通す（クリーンな title / 日付 / 時刻）。
+  // 登録系 intent が取れれば AI エンティティで確認モーダルを開く。
+  // それ以外（会話的・分類不可）/ 失敗 / タイムアウトはローカル解析にフォールバック。
+  if(S.hokuChatMode && S.hokuApiUrl && typeof callHokuChat === 'function') {
+    const _local = function() {
+      _voiceParsed = parseVoiceIntent(text);
+      hokuVoiceSetPhase('confirming');
+      voiceConfirmRender();
+      openModal('m-voice-confirm');
+    };
+    callHokuChat(text).then(function(chat) {
+      if(chat && chat.intent && chat.intent !== 'unknown' &&
+         typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
+         /_add$/.test(chat.intent) && chat.entities) {
+        try {
+          const li = _hokuIntentFromAI(chat.intent, chat.entities, text);
+          executeHokuAction(li);  // AI エンティティで確認モーダルを開く
+        } catch(_) { _local(); }
+      } else {
+        _local();
+      }
+    }).catch(_local);
+    return;
+  }
   _voiceParsed = parseVoiceIntent(text);
   hokuVoiceSetPhase('confirming');
   voiceConfirmRender();
@@ -21942,6 +21979,11 @@ function hokuHandleVoiceText(text) {
 function hokuHandleVoiceCandidates(candidates) {
   candidates = (candidates||[]).map(t => String(t||'').trim()).filter(Boolean);
   if(!candidates.length) { hokuVoiceSetPhase('error'); return; }
+  // 会話モード：AI が生テキストから高精度抽出するため、最有力候補を AI 経路へ委譲
+  if(S.hokuChatMode && S.hokuApiUrl && typeof callHokuChat === 'function') {
+    hokuHandleVoiceText(candidates[0]);
+    return;
+  }
   hokuVoiceSetPhase('thinking');
   // 各候補を parse
   const parses = [];
