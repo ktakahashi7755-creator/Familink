@@ -17004,3 +17004,23 @@ Hoku 音声：聞き取り文消失バグの修正 ＋ 音声のAI高精度抽�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `fix+feat: 音声の聞き取り文消失を修正＋音声をAI高精度抽出に対応`
+
+## 2026-06-03 10:30  env: iPhone経由(Web)  branch: claude/task-mic-remove（main 起点）
+
+### 作業名
+やること画面のマイクボタンを削除（不要のため）
+
+### 変更内容
+- s-task ヘッダーのマイクボタン（`tk-mic-btn`）を削除。
+- 連動して未使用化した音声タスク機能一式を除去：`taskVoiceToggle` / `tkMicSetState` / `handleTaskVoiceText` / `_tkRec` / `_tkRecListening`（Wave 53 ブロック）。
+- 未使用になった CSS（`#tk-mic-btn.listening` / `.unsupported` / `@keyframes pulseMic`）も除去。
+- キャッシュバスター v20260603g → **v20260603h**。
+
+### テスト結果（app/docs・body diff0）
+- 構文OK・残存参照0・全画面19/19・クリック0・デッド関数2（IIFEのみ・新規デッドなし）
+- やること画面ヘッダーが「戻る／やること／＋」のみ（マイク無し）を実描画で確認
+- Hoku画面の音声入力（mic）には影響なし（別実装）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `chore: やること画面のマイクボタンと未使用の音声タスク機能を削除`
