@@ -18957,7 +18957,16 @@ function _hokuChatContext() {
     const health = (S.health||[]).filter(h=>h && h.date>=td)
       .map(h=>`${nm(h.memberId||h.child)} ${h.temp?h.temp+'℃':''}${h.symptom?(' '+h.symptom):''}`.trim()).filter(Boolean);
     const mem = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&m.name).filter(Boolean);
-    return { today: td, members: mem, upcomingEvents: ev, pendingTasks: tk, shoppingList: shop, todayHealth: health };
+    const now = new Date();
+    const dow = ['日','月','火','水','木','金','土'][now.getDay()];
+    return {
+      today: td,
+      weekday: dow,                                   // 「今週末」「月曜」等の解決用
+      now: String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
+      members: mem,
+      budgetCategories: ['食費','日用品','医療費','教育費','交通費','娯楽費','衣類','住居費','水道光熱費','通信費','保険','その他'],
+      upcomingEvents: ev, pendingTasks: tk, shoppingList: shop, todayHealth: health
+    };
   } catch(_) { return {}; }
 }
 
@@ -18995,13 +19004,30 @@ async function callHokuChat(text) {
    （「せいやとの飲み」等）を回避し精度を上げる。member は名前→ID に解決。 */
 function _hokuIntentFromAI(intentType, e, rawText) {
   e = e || {};
+  const norm = (s) => (s==null?'':String(s)).trim();
+  // member：AIの名前→ID。無ければ rawText から解決（防御）。
   let memberId = null;
   if(e.member) {
-    const want = String(e.member).trim();
+    const want = norm(e.member);
     const list = (typeof MEMBERS!=='undefined'?MEMBERS:[]);
     const m = list.find(x => x && x.name === want)
            || list.find(x => x && x.name && (x.name.indexOf(want)>=0 || want.indexOf(x.name)>=0));
     memberId = m ? m.id : null;
+  }
+  if(!memberId && typeof voiceResolveMember === 'function') {
+    try { memberId = voiceResolveMember(rawText) || null; } catch(_){}
+  }
+  // date：ISO ならそのまま。違えば AI値→rawText の順で既存リゾルバ解決（防御）。
+  const isISO = (s) => /^\d{4}-\d{2}-\d{2}$/.test(norm(s));
+  let date = isISO(e.date) ? norm(e.date) : null;
+  if(!date && typeof voiceResolveDate === 'function') {
+    try { date = (e.date ? voiceResolveDate(norm(e.date)) : null) || voiceResolveDate(rawText) || null; } catch(_){}
+  }
+  // time：HH:MM(24h) に正規化。違えば AI値→rawText から解決（防御）。
+  const normTime = (s) => { const m = norm(s).match(/^(\d{1,2}):(\d{2})$/); if(!m) return null; const h = Math.min(23, +m[1]); return String(h).padStart(2,'0')+':'+m[2]; };
+  let time = normTime(e.time);
+  if(!time && typeof voiceResolveTime === 'function') {
+    try { time = (e.time ? voiceResolveTime(norm(e.time)) : null) || voiceResolveTime(rawText) || null; } catch(_){}
   }
   const toAmount = (v) => {
     if(typeof v === 'number') return v;
@@ -19009,7 +19035,6 @@ function _hokuIntentFromAI(intentType, e, rawText) {
     const n = parseInt(String(v).replace(/[^0-9]/g,''),10);
     return isNaN(n) ? null : n;
   };
-  const norm = (s) => (s==null?'':String(s)).trim();
   return {
     intentType: intentType,
     rawText: rawText,
@@ -19018,8 +19043,8 @@ function _hokuIntentFromAI(intentType, e, rawText) {
     secondary: null, score: 1, missingFields: [],
     entities: {
       title:       norm(e.title),
-      date:        norm(e.date) || null,            // AI が YYYY-MM-DD で解決
-      time:        norm(e.time) || null,            // AI が HH:MM(24h) で解決
+      date:        date,
+      time:        time,
       memberId:    memberId,
       amount:      toAmount(e.amount),
       temperature: norm(e.temperature) || null,
