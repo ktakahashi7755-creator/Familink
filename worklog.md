@@ -17280,3 +17280,28 @@ Hokuログインボーナス / ファミコイン基盤 / 動くHokuアニメー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `polish(a11y): 淡色テキストのコントラストをAA水準へ改善(--text-muted 0.45→0.62)`
+
+## 2026-06-03 16:30  env: iPhone経由(Web)  branch: claude/famicoin-shop（main 起点）
+
+### 作業名
+iOS入力体験＋プレースホルダ視認性の磨き込み
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html（同期 v20260603q→r）/ index.html / docs/worklog.md
+
+### 変更内容
+- **iOS フォーカス時ズーム抑制**：iPhone SE幅(≤375px)のメディアクエリで `.ob2-input` が font-size:15px になり、フォーカス時にSafariが自動ズームしていた。**16px** に修正（基本値は元から16px）。
+- **プレースホルダ視認性の整理**：直前の --text-muted 0.45→0.62 強化に伴い、`.form-input::placeholder` がそのトークンを参照して濃くなり「入力済みテキスト」に見えかける副作用があったため、プレースホルダ専用に `rgba(60,60,67,0.45)` を明示（本文より淡くヒントとして読める重みに分離）。ログインの `.ob2-input::placeholder` も 0.35→0.45 に揃え、薄すぎを解消。
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- iPhone SE(320px)で .ob2-input の算出 font-size=16px を確認（ズーム抑制）
+- ログイン目視：プレースホルダがヒントとして自然に読める／入力済みと誤認しない
+- app⇔docs md5一致
+
+### 次にやること
+- 将来：必要に応じ個別の小文字昇格・行間調整
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `polish(ios/a11y): SE幅の入力ズーム抑制とプレースホルダ視認性の整理`
