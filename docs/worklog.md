@@ -17196,3 +17196,29 @@ Hokuログインボーナス / ファミコイン基盤 / 動くHokuアニメー
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `fix: Hoku利用枠を防御的にクランプ＋ショップ後の全体監査(エラー0確認)`
+
+## 2026-06-03 15:10  env: iPhone経由(Web)  branch: claude/famicoin-shop（main 起点）
+
+### 作業名
+ファミコイン関連UIのアクセシビリティ強化（プロ品質仕上げ）
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html（同期 v20260603n→o）/ index.html / docs/worklog.md
+
+### 変更内容
+- ホームのコインピル：onclickがショップ起動に変わったのに aria-label が「ファミコイン残高」のままだったため「ファミコインショップを開く」に修正。内側アイコンに aria-hidden を付与。
+- m-shop モーダルに role="dialog" / aria-modal="true" / aria-label を付与。
+- ショップの購入ボタン（アイコン＋数字のみ）に説明的な aria-label を生成（例「Hoku 追加 +3回を30ファミコインで交換」「アバター『男の子（キャップ）』を60ファミコインで交換」）。
+- プレミアム導線カード（div＋onclick）を role="button" / tabindex="0" / aria-label 化し、Enter・Space キーで起動できるよう onkeydown を追加（キーボード操作対応）。
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- Playwright: 各 aria-label・role 付与を確認／プレミアムカードを Enter で起動→screen='s-premium'／JSエラー0
+- app⇔docs md5一致
+
+### 次にやること
+- 将来：他のアイコンのみボタンの aria 一斉点検（任意）／コイン消費アイテム拡充
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `a11y: ファミコイン/ショップUIのラベル・role・キーボード操作を整備`
