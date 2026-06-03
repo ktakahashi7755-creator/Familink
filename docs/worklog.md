@@ -16984,3 +16984,23 @@ Hoku：処理中に送ったメッセージが表示されない不具合の修�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `fix: Hoku処理中に送ったメッセージが消失する不具合をキューで修正`
+
+## 2026-06-03 10:00  env: iPhone経由(Web)  branch: claude/hoku-voice（main 起点）
+
+### 作業名
+Hoku 音声：聞き取り文消失バグの修正 ＋ 音声のAI高精度抽出対応
+
+### 変更内容
+- **バグ修正：マイク再押下で聞き取り文が消える**。停止時に final が来ず暫定テキスト(interim)だけ残る場合（iOS Safari 等）、それを破棄せず最終として処理。`_hokuVoiceManualStop`/`_hokuVoiceFinalHandled` を追加し、onend で「手動停止 & final未処理 & 暫定あり」なら `hokuHandleVoiceText(interim)` で活かす。
+- **精度向上：音声もAI抽出経由に**。会話モード有効時、`hokuHandleVoiceText`/`hokuHandleVoiceCandidates` が `callHokuChat` で生テキストから高精度抽出（クリーンtitle/絶対日付/時刻/メンバー）→ `_hokuIntentFromAI` で確認モーダルへ。失敗/分類不可はローカル `parseVoiceIntent` にフォールバック。→ 音声入力がテキストチャットと同じ精度に。
+- キャッシュバスター v20260603f → **v20260603g**。
+
+### テスト結果（FakeSR モック / app/docs・body diff0）
+- マイク再押下：暫定「せいやと飲み」が破棄されず `hokuHandleVoiceText` で処理されることを確認
+- 音声+AI（会話モード）：「カレンダーにせいやとの飲み追加して」→ 確認モーダルに title「せいやとの飲み」・日付2026-06-04・時刻19:00（高精度）
+- 音声ローカル（会話モードOFF）：「明日10時 歯医者」→ title「歯医者」正常
+- メッセージキュー/単一表示/全画面19/19/クリック0/a11y0/エッジ0/デッド2(IIFE)
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `fix+feat: 音声の聞き取り文消失を修正＋音声をAI高精度抽出に対応`
