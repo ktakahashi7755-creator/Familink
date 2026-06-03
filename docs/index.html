@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603j';
+  var V='v20260603k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -777,6 +777,43 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .home-coins .home-coins-ic { display:flex; line-height:0; }
 .home-coins.bump { animation: coinBump .5s ease; }
 @keyframes coinBump { 0%,100%{transform:scale(1);} 40%{transform:scale(1.18);} }
+/* Wave 251: ファミコイン ショップ */
+.shop-balance {
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#FFF7E0,#FFF0F3);
+  border:1px solid #FFE1B0; border-radius:14px; padding:12px;
+  margin:2px 0 16px;
+}
+.shop-cat-title { font-size:12.5px; font-weight:800; color:var(--text-sub); letter-spacing:.3px; margin:6px 2px 8px; }
+.shop-row {
+  display:flex; align-items:center; gap:11px;
+  background:var(--bg-card); border:1px solid var(--border-light);
+  border-radius:14px; padding:12px; margin-bottom:8px;
+}
+.shop-row-ic { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#C8A35C; flex:none; }
+.shop-row-main { flex:1; min-width:0; }
+.shop-row-label { font-size:14px; font-weight:700; color:var(--text); }
+.shop-row-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.shop-buy {
+  display:inline-flex; align-items:center; gap:4px; flex:none;
+  background:linear-gradient(135deg,#FFD66B,#F2A93B); color:#7A4E00;
+  border:none; border-radius:var(--r-full); padding:8px 14px;
+  font-size:13px; font-weight:800; cursor:pointer; transition:var(--t-spring);
+  font-variant-numeric:tabular-nums;
+}
+.shop-buy:active { transform:scale(.93); }
+.shop-buy.disabled { background:var(--bg-muted); color:var(--text-muted); cursor:default; opacity:.7; }
+.shop-av-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.shop-av-card {
+  background:var(--bg-card); border:1px solid var(--border-light);
+  border-radius:14px; padding:10px 8px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.shop-av-img { width:58px; height:58px; border-radius:50%; overflow:hidden; background:var(--bg-muted); }
+.shop-av-img img { width:100%; height:100%; object-fit:cover; }
+.shop-av-label { font-size:11px; font-weight:600; color:var(--text); line-height:1.3; min-height:28px; display:flex; align-items:center; }
+.shop-av-card .shop-buy { padding:6px 10px; font-size:12px; }
+.shop-av-owned { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:#22A06B; }
 .home-mode-btn {
   display:flex; align-items:center; gap:5px;
   background:rgba(118,118,128,0.12); border:none;
@@ -5342,6 +5379,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- ===== Wave 251: ファミコイン ショップ ===== -->
+<div id="m-shop" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-grip"></div>
+    <div class="modal-title">ファミコイン ショップ</div>
+    <div id="famishop-balance" class="shop-balance"></div>
+    <div id="famishop-body"></div>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-shop')" style="margin-top:14px;">閉じる</button>
+  </div>
+</div>
+
 <!-- ===== TAB BAR — Floating Dock (dynamic via renderTabBar) ===== -->
 <nav id="tabbar" class="hidden"></nav>
 
@@ -7243,10 +7291,12 @@ let S = {
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
   // Wave 250: Hoku ログインボーナス / ファミコイン（毎日開きたくなる習慣化）
   loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
+  // Wave 251: ファミコイン ショップ（保有した装飾アイテムのID）
+  shop: { owned: [] },
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop'];
 
 function saveS() {
   const d = {};
@@ -17617,7 +17667,8 @@ function _openLoginBonusModal() {
     + '</div>'
     + (d.badge ? '<div style="margin-top:10px;font-size:13px;font-weight:800;color:#9B7EDE;">🎖 30日連続バッジ</div>' : '');
   openModal('m-login-bonus');
-  try { if(navigator.vibrate) navigator.vibrate([10,40,10]); } catch(_){}
+  // 自動表示時はユーザー操作前のため振動は出さない（ブラウザがブロックする）。操作後のみ祝福ハプティクス。
+  try { if(_userGestured && navigator.vibrate) navigator.vibrate([10,40,10]); } catch(_){}
 }
 function closeLoginBonus() { _loginBonusPending = null; closeModal('m-login-bonus'); }
 
@@ -17629,13 +17680,117 @@ function _updateHomeCoins() {
   if(c) c.textContent = String(getFamiCoins());
 }
 /* コインのタップ：残高と使い道の案内（将来のショップ入口） */
-function showCoinsInfo() {
+function showCoinsInfo() { openShop(); }
+
+/* ============================================================
+   Wave 251 — ファミコイン ショップ
+   ・Hokuチケット（消費：今日のHoku利用回数を増やす＝実効果）
+   ・限定アバター（保有：購入で無料ユーザーも該当アバターを使用可能に）
+   ・拡張しやすいカタログ駆動。owned で保有を管理
+   ============================================================ */
+const SHOP_ITEMS = [
+  // Hokuチケット（消費・今日だけ）
+  { id:'hoku_3',  cat:'hoku', label:'Hoku 追加 +3回',  desc:'今日のHoku利用回数を3回増やす',  cost:30,  amount:3  },
+  { id:'hoku_10', cat:'hoku', label:'Hoku 追加 +10回', desc:'今日のHoku利用回数を10回増やす', cost:90,  amount:10 },
+  // 限定アバター（保有・恒久。購入すると無料プランでも使用可能に）
+  { id:'av:flp_boy_cap',      cat:'avatar', avatarId:'flp_boy_cap',      cost:60 },
+  { id:'av:flp_girl_pigtail', cat:'avatar', avatarId:'flp_girl_pigtail', cost:60 },
+  { id:'av:flp_boy_glasses',  cat:'avatar', avatarId:'flp_boy_glasses',  cost:60 },
+  { id:'av:flp_girl_band',    cat:'avatar', avatarId:'flp_girl_band',    cost:60 },
+  { id:'av:flp_man',          cat:'avatar', avatarId:'flp_man',          cost:80 },
+  { id:'av:flp_woman',        cat:'avatar', avatarId:'flp_woman',        cost:80 },
+  { id:'av:flp_grandpa',      cat:'avatar', avatarId:'flp_grandpa',      cost:80 },
+  { id:'av:flp_grandma',      cat:'avatar', avatarId:'flp_grandma',      cost:80 },
+];
+
+function _ensureShop() {
+  if(!S.shop || typeof S.shop !== 'object') S.shop = { owned: [] };
+  if(!Array.isArray(S.shop.owned)) S.shop.owned = [];
+  return S.shop;
+}
+function isShopOwned(id) { return _ensureShop().owned.indexOf(id) >= 0; }
+
+/* 今日の Hoku 利用上限（基本5 + 当日購入ボーナス） */
+function _hokuDailyLimit() {
+  const today = new Date().toISOString().slice(0,10);
+  const du = S.hokuDailyUsage;
+  const bonus = (du && du.date === today && typeof du.bonus === 'number') ? du.bonus : 0;
+  return 5 + bonus;
+}
+/* 今日の Hoku 利用枠を増やす（ショップ購入で使用） */
+function addHokuUses(n) {
+  const today = new Date().toISOString().slice(0,10);
+  if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) S.hokuDailyUsage = { date: today, count: 0, bonus: 0 };
+  if(typeof S.hokuDailyUsage.bonus !== 'number') S.hokuDailyUsage.bonus = 0;
+  S.hokuDailyUsage.bonus += (parseInt(n,10) || 0);
+  try { saveS(); } catch(_){}
+}
+
+function openShop() { renderShop(); openModal('m-shop'); }
+
+function renderShop() {
+  _ensureShop(); _ensureLoginBonus();
+  const coins = getFamiCoins();
+  const bal = document.getElementById('famishop-balance');
+  if(bal) bal.innerHTML = _famiCoinIcon(20) + '<span style="font-size:20px;font-weight:900;color:#B5790A;margin:0 4px;">' + coins + '</span><span style="font-size:13px;font-weight:700;color:#B5790A;">ファミコイン</span>';
+  const body = document.getElementById('famishop-body');
+  if(!body) return;
+
+  const hokuItems = SHOP_ITEMS.filter(i => i.cat === 'hoku');
+  const avItems   = SHOP_ITEMS.filter(i => i.cat === 'avatar');
+
+  const hokuHtml = hokuItems.map(function(i){
+    const can = coins >= i.cost;
+    return '<div class="shop-row">'
+      + '<div class="shop-row-ic" style="background:#FAF1DC;">'+ICON('clock',20)+'</div>'
+      + '<div class="shop-row-main"><div class="shop-row-label">'+H(i.label)+'</div><div class="shop-row-desc">'+H(i.desc)+'</div></div>'
+      + '<button class="shop-buy'+(can?'':' disabled')+'" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(13)+' '+i.cost+'</button>'
+      + '</div>';
+  }).join('');
+
+  const avHtml = avItems.map(function(i){
+    const def = AVATARS_ALL.find(a => a.id === i.avatarId) || {};
+    const owned = isShopOwned(i.id);
+    const can = coins >= i.cost;
+    return '<div class="shop-av-card">'
+      + '<div class="shop-av-img"><img src="'+(def.src||'')+'" alt="'+H(def.label||'')+'"></div>'
+      + '<div class="shop-av-label">'+H(def.label||'アバター')+'</div>'
+      + (owned
+          ? '<div class="shop-av-owned">'+ICON('check',13)+' 所持済み</div>'
+          : '<button class="shop-buy'+(can?'':' disabled')+'" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(12)+' '+i.cost+'</button>')
+      + '</div>';
+  }).join('');
+
+  const usedToday = (S.hokuDailyUsage && S.hokuDailyUsage.date === todayStr()) ? S.hokuDailyUsage.count : 0;
+  const hokuLeft = Math.max(0, _hokuDailyLimit() - usedToday);
+  body.innerHTML =
+      '<div class="shop-cat-title">Hokuチケット（今日だけ・残り '+hokuLeft+'回）</div>'
+    + hokuHtml
+    + '<div class="shop-cat-title" style="margin-top:16px;">限定アバター（購入すると無料プランでも使えます）</div>'
+    + '<div class="shop-av-grid">' + avHtml + '</div>'
+    + '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:14px;padding:0 2px;">※ Hokuチケットは当日中のみ有効です。アバターは購入すると恒久的に使えます（アバター変更画面から選択）。</div>';
+}
+
+function buyShopItem(id) {
+  const item = SHOP_ITEMS.find(x => x.id === id);
+  if(!item) return;
   const lb = _ensureLoginBonus();
-  showConfirm(
-    'ファミコイン',
-    '保有 ' + lb.coins + ' ファミコイン\n連続ログイン ' + lb.streak + ' 日\n\n毎朝ログインで貯まります。今後、Hokuの追加利用や限定アバター・背景などと交換できるようになります。',
-    'OK', function(){}, 'info'
-  );
+  if(item.cat === 'avatar' && isShopOwned(id)) { showToast('すでに所持しています', 'info'); return; }
+  if(lb.coins < item.cost) { showToast('ファミコインが足りません', 'error'); return; }
+  const def = item.cat === 'avatar' ? (AVATARS_ALL.find(a => a.id === item.avatarId) || {}) : null;
+  const label = item.cat === 'avatar' ? (def.label || 'アバター') : item.label;
+  showConfirm('交換しますか？', label + '\n' + item.cost + ' ファミコイン（保有 ' + lb.coins + '）', '交換する', function(){
+    if(lb.coins < item.cost) { showToast('ファミコインが足りません', 'error'); return; }
+    lb.coins -= item.cost;
+    if(item.cat === 'hoku') { addHokuUses(item.amount); }
+    else if(item.cat === 'avatar') { _ensureShop().owned.push(item.id); }
+    try { saveS(); } catch(_){}
+    try { _updateHomeCoins(); } catch(_){}
+    try { if(S.screen === 's-hoku') renderHoku(); } catch(_){}
+    renderShop();
+    showToast(item.cat === 'hoku' ? ('今日のHoku利用が +' + item.amount + '回 になりました') : (label + ' を解放しました！アバター変更画面から選べます'), 'success');
+    try { if(navigator.vibrate) navigator.vibrate(12); } catch(_){}
+  }, 'info');
 }
 
 /* 設定：ログインボーナスの ON/OFF（OFF でも内部データは消さない） */
@@ -18076,7 +18231,7 @@ function renderAvatarGrid() {
 
 function selectAvatarItem(avatarId) {
   const avatarDef = AVATARS_ALL.find(a => a.id === avatarId);
-  if(avatarDef?.isPremium && !S.isPremiumUser) {
+  if(avatarDef?.isPremium && !S.isPremiumUser && !isShopOwned('av:'+avatarId)) {
     showPremiumGate();
     return;
   }
@@ -18246,7 +18401,7 @@ function activatePremiumDemo() {
 function confirmAvatarSelect() {
   if(!_avatarSelectTarget || !_avatarSelectedId) return;
   const avatarDef = AVATARS_ALL.find(a => a.id === _avatarSelectedId);
-  if(avatarDef?.isPremium && !S.isPremiumUser) {
+  if(avatarDef?.isPremium && !S.isPremiumUser && !isShopOwned('av:'+_avatarSelectedId)) {
     showPremiumGate(); return;
   }
   if(!S.userAvatars)   S.userAvatars   = {};
@@ -20213,9 +20368,10 @@ function renderHoku() {
       var today = new Date().toISOString().slice(0,10);
       var du = S.hokuDailyUsage;
       var used = (du && du.date===today) ? du.count : 0;
-      var left = Math.max(0, 5 - used);
+      var _lim = _hokuDailyLimit();
+      var left = Math.max(0, _lim - used);
       bar.innerHTML = '<div class="hoku-usage-bar">'
-        + '<span style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / 5回</span></span>'
+        + '<span style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>Hokuの残り回数: <span class="hoku-usage-count">' + left + ' / ' + _lim + '回</span></span>'
         + '<button class="hoku-usage-upgrade" onclick="go(\'s-premium\')">無制限にする</button>'
         + '</div>';
     } else {
@@ -20324,12 +20480,12 @@ function hokuSend() {
     if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) {
       S.hokuDailyUsage = { date: today, count: 0 };
     }
-    if(S.hokuDailyUsage.count >= 5) {
+    if(S.hokuDailyUsage.count >= _hokuDailyLimit()) {
       showConfirm(
         'Hokuの利用制限',
-        '無料プランでは1日5回までHokuを利用できます。\nプレミアムにアップグレードすると無制限でご利用いただけます。',
-        'プレミアムを見る',
-        function(){ go('s-premium'); },
+        '今日の利用上限に達しました。\nファミコインで「Hoku追加チケット」と交換するか、プレミアムにすると無制限でご利用いただけます。',
+        'ショップを開く',
+        function(){ openShop(); },
         'info'
       );
       return;
@@ -23205,7 +23361,11 @@ function seedDefaultCustomBoards() {
   saveS();
 }
 
+var _userGestured = false; // 初回ユーザー操作を検知（ハプティクスのブラウザブロック回避）
 function init() {
+  ['pointerdown','touchstart','keydown'].forEach(function(ev){
+    window.addEventListener(ev, function(){ _userGestured = true; }, { once:true, passive:true });
+  });
   loadS();
   _refreshTrialStatus();      // Wave 222: トライアル期限チェック
   initWorkspaces();           // ワークスペース初期化（デフォルト2スペースを保証）
