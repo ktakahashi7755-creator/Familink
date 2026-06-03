@@ -40,6 +40,13 @@ DB が他メンバーの行をブロックしていた。
 - **招待参加・コード発行時に push→fetch**：`doSupaInviteSubmit` / `openMyInviteModal` で自分のデータに family_id を付与し、家族分を取得するように。
 - 単独利用（familyId なし）は**従来どおり**自分の user_id 分のみ取得（多端末同期は不変）。
 
+### 2.1 マルチ端末リアルタイムの堅牢化（2台・3台以上対応）
+- **自己回復する Realtime**：切断（CHANNEL_ERROR / TIMED_OUT / CLOSED）を検知し、指数バックオフ（最大30秒）で自動再接続。再接続後は取りこぼし防止のため一度フェッチ。
+- **アプリ復帰時の復旧**（`visibilitychange` / `focus`）：iOS Safari は背面化で WebSocket を切るため、フォアグラウンド復帰時に realtime を張り直し最新を取得。→ 何台でも復帰直後から最新が反映。
+- **オンライン復帰時**（`online`）：realtime を張り直し＋フェッチ。
+- **チャンネルの確実な破棄**：`removeChannel` で古い接続を残さず、再接続でゴミが溜まらない。
+- 仕組み上、**台数に制限はなし**（各端末が独立に DB 変更を購読し family_id でマージ）。3台でも N 台でも同じ。
+
 ---
 
 ## 3. ⚠️ Supabase で実行が必要な SQL（①これをやらないと動きません）
@@ -67,7 +74,16 @@ create policy "own_insert" on fl_family_data for insert with check (auth.uid() =
 create policy "own_update" on fl_family_data for update
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own_delete" on fl_family_data for delete using (auth.uid() = user_id);
+
+-- ★ リアルタイム更新を有効化（これが無いと「他端末の変更が即時に届かない」）。
+--   テーブルを Realtime のパブリケーションに追加する。
+alter publication supabase_realtime add table fl_family_data;
 ```
+
+> 💡 `alter publication ... add table` が「already member of publication」エラーになる場合は、
+> 既に有効なので無視してOK。ダッシュボードの **Database → Replication** で
+> `fl_family_data` が ON になっているかでも確認できます。
+> **これが OFF だと、2台目・3台目に変更がリアルタイムで届きません**（RLSが正しくても）。
 
 > Realtime も RLS に従うため、この SELECT 許可があって初めて
 > 「家族の変更がリアルタイムに自分へ届く」ようになります。
