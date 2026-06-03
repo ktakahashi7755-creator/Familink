@@ -1295,6 +1295,11 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
   padding-bottom: calc(98px + env(safe-area-inset-bottom));
 }
+/* 小型端末/6週の月：全体スクロール時の詳細パネル（グリッドの下に自然な高さで続く） */
+.cal-det-panel.cal-det-flow {
+  flex: 0 0 auto;
+  padding-bottom: calc(98px + env(safe-area-inset-bottom));
+}
 .cal-det-hdr {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 14px 8px;
@@ -10122,20 +10127,18 @@ function renderCalMonth() {
   const sel = S.calSel || td;
   const weeks = Math.ceil((firstDay+lastDate)/7);
 
-  // Yahoo カレンダー風：月グリッドは画面内に収め、下の詳細パネルを常に表示する。
-  // かつ「1日あたり最大3行の予定」を表示できるセル高を優先する。
+  // 月グリッドは「1日あたり必ず3行の予定」を表示できる高さに固定する（縮めない）。
+  // 余った高さは下の当日予定パネルへ回し、できるだけ多くの予定（4件前後）が見えるようにする。
   let availH = ma ? ma.clientHeight : 0;
   if(availH < 200 && ma) availH = window.innerHeight - ma.getBoundingClientRect().top - 6;
   if(availH < 200) availH = Math.round(window.innerHeight * 0.64);
   const tabBar = 64 + 8;                                  // 下部タブバー相当の余白
-  // セル高は「3行が入る最小限(約80px)」に固定し、余った高さは下の予定パネルへ回す。
-  // → 3行表示を保ちつつ、当日予定パネルを広く確保（端末が大きいほど予定パネルが広がる）。
-  let cellH = 80;
-  // グリッドが画面を超えてクリップしないよう、詳細に最低150pxを残して上限調整
-  const maxCellForFit = Math.floor((availH - tabBar - 150) / weeks);
-  if(cellH > maxCellForFit) cellH = maxCellForFit;
-  cellH = Math.max(44, cellH);                           // 極小端末の絶対下限
+  const cellH = 78;                                       // 3行が入る固定高（floor((78-25)/17)=3）
   const gridH = cellH * weeks;
+  // グリッド固定後に詳細パネルへ残る高さ。十分なら「グリッド固定＋詳細だけ内部スクロール」、
+  // 足りない（小型端末・6週の月）なら全体スクロールにフォールバック（セルは3行のまま縮めない）。
+  const detailSpace = availH - tabBar - gridH;
+  const pinned = detailSpace >= 170;
 
   const cells = [];
 
@@ -10155,10 +10158,8 @@ function renderCalMonth() {
     const hol = _holidayName(ds);
     const holLine = hol ? `<div class="cal-cell-holiday">${H(hol)}</div>` : '';
 
-    // セル高に応じて表示できる予定ピル数を算出（数字22 + 余白 + 祝日行を差し引く）
-    const reserved = 25 + (hol ? 11 : 0);
-    const cap = Math.max(1, Math.floor((cellH - reserved) / 17));
-    const MAX = Math.min(cap, 4);
+    // 1日あたり最大3行のピルを表示し、超過は「+N」（Yahoo 同様）。祝日は名称行があるため2行。
+    const MAX = hol ? 2 : 3;
 
     const dayEvs = wsFilter(S.events).filter(e=>e.date===ds)
       .sort((a,b)=>a.time.localeCompare(b.time));
@@ -10182,15 +10183,17 @@ function renderCalMonth() {
     cells.push(`<div class="cal-cell cal-other" style="height:${cellH}px"><div class="cal-cell-num">${d}</div></div>`);
   }
 
-  // メインエリアを「グリッド固定＋詳細パネルが残りを占有して内部スクロール」に切替
+  // pinned: グリッド固定＋詳細パネルだけ内部スクロール（画面に十分な高さがある時）
+  // scroll: 全体スクロール（小型端末・6週の月でグリッドが大きい時。セルは3行のまま縮めない）
   const mainArea = ma;
-  mainArea.style.overflow = 'hidden';
   mainArea.style.display = 'flex';
   mainArea.style.flexDirection = 'column';
   mainArea.style.paddingBottom = '0';
+  mainArea.style.overflow = pinned ? 'hidden' : 'auto';
+  const detClass = pinned ? 'cal-det-panel cal-det-fit' : 'cal-det-panel cal-det-flow';
   mainArea.innerHTML =
     `<div class="cal-month-grid" style="grid-template-rows:repeat(${weeks},${cellH}px);height:${gridH}px;flex:none;">${cells.join('')}</div>`+
-    `<div class="cal-det-panel cal-det-fit" id="cal-det-panel-inner"></div>`;
+    `<div class="${detClass}" id="cal-det-panel-inner"></div>`;
 
   renderCalDetail(sel);
 }
