@@ -8132,6 +8132,8 @@ function ackRecoveryCode() {
   if(_signupCtx === 'settings') {
     showToast('アカウントを登録しました');
     if(typeof renderSettings === 'function') renderSettings();
+    // 新規登録完了：アプリ内（設定）からの登録でもログインボーナスを必ず付与
+    setTimeout(function(){ try { checkLoginBonus(true); } catch(_){} }, 700);
   } else {
     _enterApp(true);
   }
@@ -17629,12 +17631,16 @@ function addFamiCoins(n) {
 let _loginBonusPending = null; // モーダルに渡す内容
 
 /* 起動時チェック：条件を満たせばログインボーナスのモーダルを開く
-   force=true（新規登録直後など）は時間帯に関わらず必ず付与する */
+   force=true（新規登録直後など）は時間帯に関わらず必ず付与する。
+   また「登録済みユーザーの初回ボーナス（未受給）」は新規登録完了とみなし、時間帯に関わらず必ず付与する。 */
 function checkLoginBonus(force) {
   const lb = _ensureLoginBonus();
   if(!lb.enabled) return;                 // OFF：表示しない（データは保持）
   const now = new Date();
-  if(!force && now.getHours() < 7) return; // 通常は7:00より前は非表示。新規登録(force)は時間問わず付与
+  const registered = (typeof S !== 'undefined') && (S.account || (typeof isSupaLoggedIn === 'function' && isSupaLoggedIn()));
+  const firstEver  = !lb.lastClaimDate;   // 一度も受け取っていない＝新規登録直後の初回
+  // 通常は7:00より前は非表示。ただし force、または「登録済みユーザーの初回」は時間問わず必ず付与
+  if(!force && now.getHours() < 7 && !(registered && firstEver)) return;
   const today = todayStr();
   if(lb.lastClaimDate === today) return;  // 同日2回目は禁止（force でも二重付与しない）
 
