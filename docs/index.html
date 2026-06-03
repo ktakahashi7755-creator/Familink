@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603v';
+  var V='v20260603w';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1275,9 +1275,10 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   border-radius: 3px; border-left: 3px solid;
   padding: 0 1px 0 4px; font-size: 10px; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: clip;
-  margin-bottom: 1px;
+  margin-bottom: 0; flex: none;          /* flexで潰れないよう固定（行が切れるのを防止） */
 }
 .cal-cell-more {
+  flex: none;
   font-size: 11px; color: var(--text-muted);
   font-weight: 700; text-align: right; padding-right: 3px;
   line-height: 1.3;
@@ -10146,7 +10147,7 @@ function renderCalMonth() {
   if(availH < 200 && ma) availH = window.innerHeight - ma.getBoundingClientRect().top - 6;
   if(availH < 200) availH = Math.round(window.innerHeight * 0.64);
   const tabBar = 64 + 8;                                  // 下部タブバー相当の余白
-  const cellH = 78;                                       // 3行が入る固定高（floor((78-25)/17)=3）
+  const cellH = 92;                                       // 3ピル(16px)+「+N」が潰れず収まる固定高
   const gridH = cellH * weeks;
   // グリッド固定後に詳細パネルへ残る高さ。十分なら「グリッド固定＋詳細だけ内部スクロール」、
   // 足りない（小型端末・6週の月）なら全体スクロールにフォールバック（セルは3行のまま縮めない）。
