@@ -1893,6 +1893,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 @media (prefers-reduced-motion: reduce) {
   .hoku-character img { animation: none !important; }
   .hoku-character.happy::before, .hoku-character.happy::after { animation: none; opacity:0; }
+  .home-coins.bump { animation: none !important; }
 }
 .hoku-bubble {
   max-width: 80%; padding: 10px 14px; line-height: 1.65; font-size: 14px;
@@ -9140,10 +9141,10 @@ function _buildHomeDemoData() {
         ], at:addDays(t,-2), tag:'学校'},
     ],
     memos: [
-      {id:uid(),title:'保育園 先生へのメモ', body:'次男が4日間発熱していました。RSウイルスの疑いで小児科受診済。薬は飲み終わっています。登園許可書は提出済みです。', folderId:'', at:addDays(t,-1), updatedAt:t},
+      {id:uid(),title:'保育園 先生へのメモ', body:'次男が4日間発熱していました。RSウイルスの疑いで小児科受診済。薬は飲み終わっています。登園許可書は提出済みです。', folderId:'', at:addDays(t,-1), updatedAt:t+'T07:42:00'},
       {id:uid(),title:'長男 担任の先生のお話（家庭訪問メモ）', body:'・学校では積極的に手を挙げている\n・算数が得意、国語の読解を伸ばしたい\n・友達関係は良好\n→ 家でも音読の練習を続けること', folderId:'', at:addDays(t,-10), updatedAt:addDays(t,-10)},
       {id:uid(),title:'三男のアレルギー情報', body:'卵アレルギー（軽度）\n・加熱済みの卵は食べられる\n・生卵・半熟は避ける\n・アイスクリームも少量なら可\n※次回の小児科で再検査予定', folderId:'allergy', at:addDays(t,-30), updatedAt:addDays(t,-7)},
-      {id:uid(),title:'月末 TO DO まとめ', body:'□ 保育園の月謝引き落とし確認\n□ ピアノ月謝の振込（1日締め）\n□ 家計簿の締め作業\n□ 翌月の習い事スケジュール調整', folderId:'', at:addDays(t,-5), updatedAt:t},
+      {id:uid(),title:'月末 TO DO まとめ', body:'□ 保育園の月謝引き落とし確認\n□ ピアノ月謝の振込（1日締め）\n□ 家計簿の締め作業\n□ 翌月の習い事スケジュール調整', folderId:'', at:addDays(t,-5), updatedAt:t+'T21:10:00'},
     ],
     memoFolders: [
       {id:'allergy', name:'アレルギー・医療メモ', color:'#FF6B6B'},
