@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603n';
+  var V='v20260603o';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3427,8 +3427,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <span id="home-mode-label">共有用</span>
     </button>
     <!-- Wave 250: ファミコイン残高 -->
-    <button class="home-coins" id="home-coins-btn" onclick="showCoinsInfo()" aria-label="ファミコイン残高" title="ファミコイン">
-      <span class="home-coins-ic" id="home-coins-ic"></span>
+    <button class="home-coins" id="home-coins-btn" onclick="showCoinsInfo()" aria-label="ファミコインショップを開く" title="ファミコインショップ">
+      <span class="home-coins-ic" id="home-coins-ic" aria-hidden="true"></span>
       <span id="home-coins-count">0</span>
     </button>
     <!-- Wave 222: クラウド同期インジケーター -->
@@ -5392,7 +5392,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 <!-- ===== Wave 251: ファミコイン ショップ ===== -->
 <div id="m-shop" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;" role="dialog" aria-modal="true" aria-label="ファミコインショップ">
     <div class="modal-grip"></div>
     <div class="modal-title">ファミコイン ショップ</div>
     <div id="famishop-balance" class="shop-balance"></div>
@@ -17756,7 +17756,7 @@ function renderShop() {
     return '<div class="shop-row">'
       + '<div class="shop-row-ic" style="background:#FAF1DC;">'+ICON('clock',20)+'</div>'
       + '<div class="shop-row-main"><div class="shop-row-label">'+H(i.label)+'</div><div class="shop-row-desc">'+H(i.desc)+'</div></div>'
-      + '<button class="shop-buy'+(can?'':' disabled')+'" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(13)+' '+i.cost+'</button>'
+      + '<button class="shop-buy'+(can?'':' disabled')+'" aria-label="'+H(i.label)+'を'+i.cost+'ファミコインで交換" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(13)+' '+i.cost+'</button>'
       + '</div>';
   }).join('');
 
@@ -17769,7 +17769,7 @@ function renderShop() {
       + '<div class="shop-av-label">'+H(def.label||'アバター')+'</div>'
       + (owned
           ? '<div class="shop-av-owned">'+ICON('check',13)+' 所持済み</div>'
-          : '<button class="shop-buy'+(can?'':' disabled')+'" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(12)+' '+i.cost+'</button>')
+          : '<button class="shop-buy'+(can?'':' disabled')+'" aria-label="アバター「'+H(def.label||'')+'」を'+i.cost+'ファミコインで交換" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(12)+' '+i.cost+'</button>')
       + '</div>';
   }).join('');
 
@@ -17785,7 +17785,7 @@ function renderShop() {
     +   '<div class="shop-earn-note">毎朝アプリを開くとログインボーナスがもらえます。連続日数が途切れると1日目に戻ります。</div>'
     + '</div>';
   const premoHtml = !S.isPremiumUser
-    ? '<div class="shop-premo" onclick="closeModal(\'m-shop\'); go(\'s-premium\');">'
+    ? '<div class="shop-premo" role="button" tabindex="0" aria-label="プレミアムプランを見る" onclick="closeModal(\'m-shop\'); go(\'s-premium\');" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();closeModal(\'m-shop\');go(\'s-premium\');}">'
       +   '<div class="shop-premo-main">'
       +     '<div class="shop-premo-ttl">プレミアムなら、もっと自由に</div>'
       +     '<div class="shop-premo-desc">Hokuが使い放題・限定アバターもすべて解放。月額480円（30日間無料）。</div>'
