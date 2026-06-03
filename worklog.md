@@ -17024,3 +17024,29 @@ Hoku 音声：聞き取り文消失バグの修正 ＋ 音声のAI高精度抽�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `chore: やること画面のマイクボタンと未使用の音声タスク機能を削除`
+
+## 2026-06-03 11:00  env: iPhone経由(Web)  branch: claude/login-bonus（main 起点）
+
+### 作業名
+Hokuログインボーナス / ファミコイン基盤 / 動くHokuアニメーション（v3.x 新機能）
+
+### 変更内容
+- **① Hokuログインボーナス**：毎日7:00以降の初回起動で表示（同日2回目は禁止）。`checkLoginBonus()` を init / _enterApp から起動（900ms 遅延）。連続日数で加算（base+10、3日+30、7日+100、30日で特別バッジ）。中央モーダル `m-login-bonus`＋動くHoku（happy）＋「おはようございます🌱」＋獲得コイン＋連続日数＋保有数。
+- **② 設定トグル**：表示と通知セクションに「Hokuログインボーナス」を追加（`toggleLoginBonus`）。ON既定。OFFで7時以降も非表示・データは保持・再ONで再開。
+- **③ 動くHokuアニメ（CSSのみ）**：`.hoku-character` を新設（float / speaking bounce / thinking tilt / happy bounce+CSSキラキラ、prefers-reduced-motion 対応）。ログインボーナスで happy 使用。※ホーム常駐Hoku(#hoku-fab)とチャットマスコット(.hoku-empty-img)は既存アニメ(breathing/float)を尊重し維持。
+- **④ ファミコイン基盤**：`S.loginBonus.coins`＋公開API `getFamiCoins()`/`addFamiCoins(n)`＋`_famiCoinIcon()`。今回は基盤のみ（ショップ画面なし）。将来のHoku追加利用/アバター/背景/装飾交換の土台。
+- データ：`S.loginBonus={lastClaimDate,streak,coins,enabled,badge30}` を S 既定値＋PERSIST に追加（既存削除なし・追加のみ）。
+- キャッシュバスター v20260603h → **v20260603i**。
+
+### テスト結果（Playwright・320/390px・app/docs両方）
+- 6:30→非表示 / 7:01初回→表示 / 同日2回目→非表示 / OFF→非表示 / ON戻し→正常 / 3日連続→+30 を確認
+- Hoku animation（.hoku-character.happy）表示・iPhone SE(320px)横スクロールなし
+- 既存18(19)画面 19/19描画・クリックスイープ0エラー・a11y0・デッド2(IIFEのみ・新規なし)
+- **app⇔docs md5一致**（0ebd8447…）＝完全同期・body diff0
+
+### 品質条件チェック
+- iPhone SE対応✓ 横スクロール禁止✓ 既存画面破壊なし✓ 既存LocalStorage破壊なし✓ JSエラー0✓ 押せないボタンなし✓ 保存される設定✓ PERSIST追加✓ app→docs同期✓ md5確認✓
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: Hokuログインボーナス＋ファミコイン基盤＋動くHokuアニメーション`
