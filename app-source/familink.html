@@ -10123,14 +10123,19 @@ function renderCalMonth() {
   const weeks = Math.ceil((firstDay+lastDate)/7);
 
   // Yahoo カレンダー風：月グリッドは画面内に収め、下の詳細パネルを常に表示する。
-  // 利用可能な高さからセル高を動的に算出（スクロール不要にする）。
+  // かつ「1日あたり最大3行の予定」を表示できるセル高を優先する。
   let availH = ma ? ma.clientHeight : 0;
   if(availH < 200 && ma) availH = window.innerHeight - ma.getBoundingClientRect().top - 6;
   if(availH < 200) availH = Math.round(window.innerHeight * 0.64);
   const tabBar = 64 + 8;                                  // 下部タブバー相当の余白
-  const detailMin = Math.max(150, Math.round((availH - tabBar) * 0.32)); // 詳細パネルの最低高
+  // 3行（数字22 + ピル3行×17 + 余白）を狙うため詳細パネル最低高は小さめに確保
+  const detailMin = 110;
   let cellH = Math.floor((availH - tabBar - detailMin) / weeks);
-  cellH = Math.max(50, Math.min(96, cellH));             // 下限/上限でクランプ
+  cellH = Math.max(78, Math.min(108, cellH));            // 3行が入る高さ(約78px)を下限に
+  // グリッドが画面を超えてクリップしないよう、詳細に最低60pxを残して上限調整
+  const maxCellForFit = Math.floor((availH - tabBar - 60) / weeks);
+  if(cellH > maxCellForFit) cellH = maxCellForFit;
+  cellH = Math.max(44, cellH);                           // 極小端末の絶対下限
   const gridH = cellH * weeks;
 
   const cells = [];
