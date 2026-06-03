@@ -219,10 +219,10 @@ context（家族の予定/タスク/買い物/今日の体調/メンバー名）
 intent を分類し、entities に**きれいに整形した値**を入れる：
 - title: コマンド語（「カレンダーに」「タスクに」「追加して」等）や助詞を除いた**中身だけ**。
   例「カレンダーにせいやとの飲み追加して」→ title="せいやとの飲み"（崩さない・余計な語を足さない）。
-- date: **${today} を今日として絶対日付 YYYY-MM-DD に解決**（明日/明後日/今週末/月曜 等も具体日に）。
+- date: **${today}（${context?.weekday ?? "?"}曜）を今日として絶対日付 YYYY-MM-DD に解決**（明日/明後日/今週末/今度の月曜 等も具体日に。context.weekday/now を使う）。
 - time: 24時間 HH:MM（「夜7時」「19時」→"19:00"）。
 - member: 次のメンバー名のいずれかに一致すれば氏名を入れる、なければ null：${JSON.stringify(members)}
-- amount: 金額(数値) / category: 食費等 / txType: "expense"|"income"（家計時）。
+- amount: 金額(数値) / category: **context.budgetCategories のいずれか** / txType: "expense"|"income"（家計時）。
 - temperature: 体温 / medicine: 薬 / symptoms: 症状配列（体調時）。
 分類先(intent)：${INTENTS.join(", ")}
 カレンダー=calendar_add、やること=task_add、家計=budget_add、体調=health_add、

@@ -16933,3 +16933,31 @@ Hoku の登録精度向上（AI構造化エンティティ抽出＋ローカル�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: Hoku登録精度向上（AI構造化エンティティ抽出＋ローカルコマンド語除去）`
+
+## 2026-06-03 08:40  env: iPhone経由(Web)  branch: claude/hoku-maxacc（main 起点）
+
+### 作業名
+Hoku 精度の最大化：AI抽出値の防御的正規化＋文脈の充実
+
+### 変更内容
+- **AI抽出値の防御的正規化**（`_hokuIntentFromAI`）：AI が理想形でない値を返しても確実に解決。
+  - date：ISO でなければ AI値→rawText の順で `voiceResolveDate` 解決（「明日」→絶対日付）。
+  - time：HH:MM 以外は `voiceResolveTime` で正規化（「9時」→「09:00」）。
+  - member：AI名前→ID、無ければ `voiceResolveMember(rawText)` で補完。
+  - amount/category/txType も整形。
+- **文脈の充実**（`_hokuChatContext`）：`weekday`（曜日）・`now`（現在時刻）・`budgetCategories`（家計カテゴリ一覧）を追加 → AI の日付/カテゴリ解決精度が向上。
+- **doc §6 プロンプト更新**：date は context.weekday/now を使って絶対日付化、category は context.budgetCategories から選ぶ、を明記。
+- キャッシュバスター v20260603d → **v20260603e**。
+
+### テスト結果（app/docs 両方・body diff0）
+- 防御正規化：AI理想形→そのまま／AIズレ（「明日」「9時」）→2026-06-04・09:00／AI欠落→rawTextから解決（明後日18時→6/5・18:00）を確認
+- AIエンティティでクリーンtitle維持・会話失敗時フォールバック維持・ローカル宛先語除去維持
+- 文脈に weekday(水)・budgetCategories 追加を確認
+- 構文OK・全画面19/19・クリック0・a11y0・エッジ0・XSS安全・デッド2(IIFEのみ)
+
+### 次にやること
+- ユーザー：doc §6 更新版 chat 関数を再デプロイ（context.weekday/budgetCategories 活用）→ 精度さらに向上。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: Hoku精度最大化（AI抽出値の防御正規化＋文脈充実：曜日/現在時刻/家計カテゴリ）`
