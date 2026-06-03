@@ -17712,15 +17712,16 @@ function isShopOwned(id) { return _ensureShop().owned.indexOf(id) >= 0; }
 function _hokuDailyLimit() {
   const today = new Date().toISOString().slice(0,10);
   const du = S.hokuDailyUsage;
-  const bonus = (du && du.date === today && typeof du.bonus === 'number') ? du.bonus : 0;
-  return 5 + bonus;
+  const bonus = (du && du.date === today && typeof du.bonus === 'number' && du.bonus > 0) ? du.bonus : 0;
+  return 5 + bonus; // 基本5 + 当日購入ボーナス（負値は無視し、最低でも5を保証）
 }
-/* 今日の Hoku 利用枠を増やす（ショップ購入で使用） */
+/* 今日の Hoku 利用枠を増やす（ショップ購入で使用）。bonus は 0〜9999 にクランプ */
 function addHokuUses(n) {
   const today = new Date().toISOString().slice(0,10);
   if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) S.hokuDailyUsage = { date: today, count: 0, bonus: 0 };
   if(typeof S.hokuDailyUsage.bonus !== 'number') S.hokuDailyUsage.bonus = 0;
-  S.hokuDailyUsage.bonus += (parseInt(n,10) || 0);
+  const add = Math.max(0, parseInt(n,10) || 0); // 加算のみ・負値や不正値は0扱い
+  S.hokuDailyUsage.bonus = Math.min(9999, S.hokuDailyUsage.bonus + add);
   try { saveS(); } catch(_){}
 }
 
