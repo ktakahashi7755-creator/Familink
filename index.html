@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603g';
+  var V='v20260603h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -2203,12 +2203,6 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   transition:var(--t-spring); white-space:nowrap;
 }
 .tk-filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-#tk-mic-btn.listening { color:#fff; background:var(--red); border-radius:50%; animation:pulseMic 1.2s ease-in-out infinite; }
-#tk-mic-btn.unsupported { opacity:.4; }
-@keyframes pulseMic {
-  0%,100% { box-shadow:0 0 0 0 rgba(255,107,107,.55); }
-  50%     { box-shadow:0 0 0 8px rgba(255,107,107,0); }
-}
 /* Wave 54: 買い物リスト 3 タブ画面 */
 .shop-row {
   display:flex; align-items:center; gap:8px;
@@ -3622,9 +3616,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="header-title">やること</div>
-    <button class="header-icon-btn" id="tk-mic-btn" onclick="taskVoiceToggle()" aria-label="音声でタスク追加" title="音声でタスク追加">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    </button>
     <button class="header-icon-btn" onclick="openTaskModal(null)" aria-label="タスクを追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -20713,108 +20704,6 @@ function parseVoiceIntent(rawText) {
     missing,
     confidence: cls.score >= 5 ? 'high' : (cls.score >= 3 ? 'medium' : 'low')
   };
-}
-
-/* ============================================================
-   Wave 53 — タスク画面の音声入力
-   ・既存 SpeechRecognition を独立して使う（Hoku 画面の音声 UI と干渉しない）
-   ・認識結果は parseVoiceIntent でタイトル / 期日 / 担当 / カテゴリを抽出
-   ・既存 m-task-edit モーダルへ prefill して開く（保存前確認 UX を踏襲）
-   ・既存 ＋ ボタンの導線は完全保持
-   ============================================================ */
-let _tkRec = null;
-let _tkRecListening = false;
-
-function tkMicSetState(state) {
-  const btn = document.getElementById('tk-mic-btn');
-  if(!btn) return;
-  btn.classList.toggle('listening', state === 'listening');
-  btn.classList.toggle('unsupported', state === 'unsupported');
-  btn.title = state === 'listening' ? '聞き取り中（タップで停止）'
-            : state === 'unsupported' ? '音声入力に対応していない端末です'
-            : '音声でタスク追加';
-}
-
-function taskVoiceToggle() {
-  if(!hokuVoiceSupport()) {
-    tkMicSetState('unsupported');
-    showToast('この端末では音声入力に対応していません。＋ボタンから入力してください。','error');
-    return;
-  }
-  if(_tkRecListening && _tkRec) {
-    try { _tkRec.stop(); } catch(e) {}
-    return;
-  }
-  try {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    _tkRec = new SR();
-    _tkRec.lang = 'ja-JP';
-    _tkRec.interimResults = false;
-    _tkRec.continuous = false;
-    _tkRec.maxAlternatives = 1;
-    _tkRec.onstart = function() {
-      _tkRecListening = true;
-      tkMicSetState('listening');
-      showToast('タスク内容を話してください（例：明日までに学校へ電話）','info');
-    };
-    _tkRec.onresult = function(ev) {
-      const text = (ev.results && ev.results[0] && ev.results[0][0]) ? ev.results[0][0].transcript : '';
-      handleTaskVoiceText(text);
-    };
-    _tkRec.onerror = function() {
-      tkMicSetState('idle');
-      showToast('ごめん、聞き取れなかった。もう一回いける？','error');
-    };
-    _tkRec.onend = function() {
-      _tkRecListening = false;
-      tkMicSetState('idle');
-    };
-    _tkRec.start();
-  } catch(e) {
-    tkMicSetState('idle');
-    showToast('音声入力を開始できませんでした','error');
-  }
-}
-
-/* 音声テキストをタスクとして解釈し、m-task-edit に prefill して開く（保存前確認） */
-function handleTaskVoiceText(text) {
-  if(!text || !text.trim()) {
-    showToast('内容を聞き取れませんでした。もう一度お試しください。','error');
-    return;
-  }
-  const v = parseVoiceIntent(text);
-  // タイトル抽出失敗時は確認のみ
-  if(!v.title && !v.member && !v.date) {
-    showToast('タスク内容として読み取れませんでした：' + text,'error');
-    return;
-  }
-  // 既存 m-task-edit モーダルを空で開いてから prefill
-  openTaskModal(null);
-  setTimeout(function() {
-    const titleEl = document.getElementById('te-title');
-    if(titleEl) titleEl.value = v.title || text.trim();
-    if(v.date) {
-      const dueEl = document.getElementById('te-due');
-      if(dueEl) dueEl.value = v.date;
-    }
-    if(v.member) {
-      // 担当ボタンの選択状態を反映
-      try { selectTeMember(v.member); } catch(e) {}
-    }
-    // カテゴリ推定（買い物 / 学校 / 健康）
-    const catEl = document.getElementById('te-cat');
-    if(catEl) {
-      const lower = text;
-      let cat = '';
-      if(/(学校|園|連絡帳|提出|保護者会|面談|宿題)/.test(lower)) cat = 'school';
-      else if(/(買|スーパー|コンビニ|薬局)/.test(lower)) cat = 'shopping';
-      else if(/(病院|医院|薬|診察|発熱|体温)/.test(lower)) cat = 'health';
-      else if(/(運動会|遠足|発表会|お祭り|誕生日)/.test(lower)) cat = 'event';
-      else if(/(掃除|洗濯|料理|片付け|ゴミ)/.test(lower)) cat = 'chore';
-      if(cat) catEl.value = cat;
-    }
-    showToast('音声から内容を反映しました。確認して保存してください。','success');
-  }, 120);
 }
 
 /* ============================================================
