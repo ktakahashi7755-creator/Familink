@@ -8325,6 +8325,8 @@ function ob2Done() {
   switchTab('s-home');
   const dn = displayName();
   showToast(`${dn}さん、ようこそ Familink へ`);
+  // 新規登録（アカウント作成済み）でオンボーディング完了時は、時間帯に関わらず必ずログインボーナスを付与
+  if(S.account || isSupaLoggedIn()) setTimeout(function(){ try { checkLoginBonus(true); } catch(_){} }, 900);
 }
 
 function ob2Skip() {
@@ -8334,6 +8336,8 @@ function ob2Skip() {
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
   showToast('オンボーディングをスキップしました');
+  // 新規登録（アカウント作成済み）でスキップ時も必ずログインボーナスを付与
+  if(S.account || isSupaLoggedIn()) setTimeout(function(){ try { checkLoginBonus(true); } catch(_){} }, 900);
 }
 
 function displayName() {
@@ -10134,7 +10138,7 @@ function renderCalMonth() {
   if(availH < 200 && ma) availH = window.innerHeight - ma.getBoundingClientRect().top - 6;
   if(availH < 200) availH = Math.round(window.innerHeight * 0.64);
   const tabBar = 64 + 8;                                  // 下部タブバー相当の余白
-  const cellH = 92;                                       // 3ピル(16px)+「+N」が潰れず収まる固定高
+  const cellH = 80;                                       // 3ピル(16px)が潰れず収まる固定高（「+N」は廃止）
   const gridH = cellH * weeks;
   // グリッド固定後に詳細パネルへ残る高さ。十分なら「グリッド固定＋詳細だけ内部スクロール」、
   // 足りない（小型端末・6週の月）なら全体スクロールにフォールバック（セルは3行のまま縮めない）。
@@ -10159,7 +10163,7 @@ function renderCalMonth() {
     const hol = _holidayName(ds);
     const holLine = hol ? `<div class="cal-cell-holiday">${H(hol)}</div>` : '';
 
-    // 1日あたり最大3行のピルを表示し、超過は「+N」（Yahoo 同様）。祝日は名称行があるため2行。
+    // 1日あたり最大3行のピルを表示（超過分は非表示・「+N」は廃止）。祝日は名称行があるため2行。
     const MAX = hol ? 2 : 3;
 
     const dayEvs = wsFilter(S.events).filter(e=>e.date===ds)
@@ -10169,12 +10173,11 @@ function renderCalMonth() {
       const bg=hexToRgba(c,0.14);
       return `<div class="cal-ev-pill" style="background:${bg};border-left-color:${c};color:${c}">${H(e.title)}</div>`;
     }).join('');
-    const more=dayEvs.length>MAX?`<div class="cal-cell-more">+${dayEvs.length-MAX}</div>`:'';
 
     const loginCls = isLoginBonusDate(ds) ? 'cal-login' : '';
     cells.push(`<div class="cal-cell ${isToday?'cal-today':''} ${isSel?'cal-sel':''} ${isSun?'cal-sun':''} ${isSat?'cal-sat':''} ${hol?'cal-holiday':''} ${loginCls}"
       style="height:${cellH}px" onclick="selCalDay('${ds}')">
-      <div class="cal-cell-num">${d}</div>${holLine}${pills}${more}
+      <div class="cal-cell-num">${d}</div>${holLine}${pills}
     </div>`);
   }
 
@@ -17625,14 +17628,15 @@ function addFamiCoins(n) {
 
 let _loginBonusPending = null; // モーダルに渡す内容
 
-/* 起動時チェック：条件を満たせばログインボーナスのモーダルを開く */
-function checkLoginBonus() {
+/* 起動時チェック：条件を満たせばログインボーナスのモーダルを開く
+   force=true（新規登録直後など）は時間帯に関わらず必ず付与する */
+function checkLoginBonus(force) {
   const lb = _ensureLoginBonus();
   if(!lb.enabled) return;                 // OFF：表示しない（データは保持）
   const now = new Date();
-  if(now.getHours() < 7) return;          // 7:00 より前は表示しない
+  if(!force && now.getHours() < 7) return; // 通常は7:00より前は非表示。新規登録(force)は時間問わず付与
   const today = todayStr();
-  if(lb.lastClaimDate === today) return;  // 同日2回目は禁止
+  if(lb.lastClaimDate === today) return;  // 同日2回目は禁止（force でも二重付与しない）
 
   // 連続日数：前日に受け取っていれば +1、そうでなければ 1 にリセット
   const yesterday = addDays(today, -1);
