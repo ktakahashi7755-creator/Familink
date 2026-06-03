@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603r';
+  var V='v20260603s';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1301,6 +1301,12 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   background: #fff;
   border-top: 2px solid var(--border-light);
   min-height: 120px;
+}
+/* Yahoo 風：月ビューで詳細パネルが残り高さを占有し、内部だけスクロール */
+.cal-det-panel.cal-det-fit {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+  padding-bottom: calc(98px + env(safe-area-inset-bottom));
 }
 .cal-det-hdr {
   display: flex; align-items: center; gap: 8px;
@@ -10121,9 +10127,7 @@ function setCalView(v) { S.calView = v; renderCal(); }
 
 /* ── 月ビュー ── */
 function renderCalMonth() {
-  // 月ビューは main-area の通常スクロールを使う → 週ビュー用の inline 上書きを解除
   const ma = document.getElementById('cal-main-area');
-  if(ma) { ma.style.overflow = ''; ma.style.display = ''; ma.style.flexDirection = ''; ma.style.paddingBottom = ''; }
   const y=S.calY, m=S.calM;
   const firstDay = new Date(y,m,1).getDay();
   const lastDate  = new Date(y,m+1,0).getDate();
@@ -10131,8 +10135,16 @@ function renderCalMonth() {
   const sel = S.calSel || td;
   const weeks = Math.ceil((firstDay+lastDate)/7);
 
-  // セル高さ：スクロール前提なので快適なサイズ固定（祝日名の行を含めて余裕を持たせる）
-  const cellH = 102;
+  // Yahoo カレンダー風：月グリッドは画面内に収め、下の詳細パネルを常に表示する。
+  // 利用可能な高さからセル高を動的に算出（スクロール不要にする）。
+  let availH = ma ? ma.clientHeight : 0;
+  if(availH < 200 && ma) availH = window.innerHeight - ma.getBoundingClientRect().top - 6;
+  if(availH < 200) availH = Math.round(window.innerHeight * 0.64);
+  const tabBar = 64 + 8;                                  // 下部タブバー相当の余白
+  const detailMin = Math.max(150, Math.round((availH - tabBar) * 0.32)); // 詳細パネルの最低高
+  let cellH = Math.floor((availH - tabBar - detailMin) / weeks);
+  cellH = Math.max(50, Math.min(96, cellH));             // 下限/上限でクランプ
+  const gridH = cellH * weeks;
 
   const cells = [];
 
@@ -10152,9 +10164,13 @@ function renderCalMonth() {
     const hol = _holidayName(ds);
     const holLine = hol ? `<div class="cal-cell-holiday">${H(hol)}</div>` : '';
 
+    // セル高に応じて表示できる予定ピル数を算出（数字22 + 余白 + 祝日行を差し引く）
+    const reserved = 25 + (hol ? 11 : 0);
+    const cap = Math.max(1, Math.floor((cellH - reserved) / 17));
+    const MAX = Math.min(cap, 4);
+
     const dayEvs = wsFilter(S.events).filter(e=>e.date===ds)
       .sort((a,b)=>a.time.localeCompare(b.time));
-    const MAX = hol ? 3 : 4;
     const pills = dayEvs.slice(0,MAX).map(e=>{
       const c=getMemberColor(e.member);
       const bg=hexToRgba(c,0.14);
@@ -10175,17 +10191,19 @@ function renderCalMonth() {
     cells.push(`<div class="cal-cell cal-other" style="height:${cellH}px"><div class="cal-cell-num">${d}</div></div>`);
   }
 
-  // グリッドと詳細を同じコンテナに出力
-  const mainArea = document.getElementById('cal-main-area');
+  // メインエリアを「グリッド固定＋詳細パネルが残りを占有して内部スクロール」に切替
+  const mainArea = ma;
+  mainArea.style.overflow = 'hidden';
+  mainArea.style.display = 'flex';
+  mainArea.style.flexDirection = 'column';
+  mainArea.style.paddingBottom = '0';
   mainArea.innerHTML =
-    `<div class="cal-month-grid" style="grid-template-rows:repeat(${weeks},${cellH}px);">${cells.join('')}</div>`+
-    `<div class="cal-det-panel" id="cal-det-panel-inner"></div>`;
+    `<div class="cal-month-grid" style="grid-template-rows:repeat(${weeks},${cellH}px);height:${gridH}px;flex:none;">${cells.join('')}</div>`+
+    `<div class="cal-det-panel cal-det-fit" id="cal-det-panel-inner"></div>`;
 
   renderCalDetail(sel);
-
-  // 選択日が今日なら詳細パネルにスクロール不要、選択日付が変わったら少しスクロール
-  // （グリッドは常に全件表示される）
 }
+
 
 /* ── 詳細パネル（月・週ビュー） ── */
 function renderCalDetail(ds) {
