@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603e';
+  var V='v20260603f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18920,6 +18920,7 @@ function saveBoardSection() {
 
 let _hokuMsgs       = [];
 let _hokuBusy       = false;
+let _hokuQueue      = []; // 処理中に送られたメッセージの順番待ち（取りこぼし防止）
 let _pendingAction  = null; // { type, params, confirmText }
 
 /* ── メイン送信処理 ── */
@@ -19151,8 +19152,13 @@ async function testHokuApi() {
 }
 
 async function sendHokuMsg(text) {
-  if(_hokuBusy || !(text||'').trim()) return;
   text = (text||'').trim();
+  if(!text) return;
+  if(_hokuBusy) {
+    // 処理中でも取りこぼさない：順番待ちに入れ、現在の応答が終わってから順に処理する
+    _hokuQueue.push(text);
+    return;
+  }
   _hokuBusy = true;
   const sendBtn = document.getElementById('hoku-send');
   if(sendBtn) sendBtn.disabled = true;
@@ -19282,6 +19288,11 @@ async function sendHokuMsg(text) {
     if(sendBtn) sendBtn.disabled = false;
     renderHokuMsgs();
     renderHokuSuggs();
+    // 順番待ちがあれば次を通常処理（正しい順序で表示・応答）
+    if(_hokuQueue.length) {
+      const next = _hokuQueue.shift();
+      setTimeout(() => sendHokuMsg(next), 80);
+    }
   }
 }
 
@@ -20106,7 +20117,7 @@ function hokuSend() {
 
 
 function resetHoku() {
-  _hokuMsgs = []; _hokuBusy = false; _pendingAction = null;
+  _hokuMsgs = []; _hokuBusy = false; _hokuQueue = []; _pendingAction = null;
   const sendBtn = document.getElementById('hoku-send');
   if(sendBtn) sendBtn.disabled = false;
   renderHoku();
