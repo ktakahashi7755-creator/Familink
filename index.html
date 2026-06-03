@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260601m';
+  var V='v20260601n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -6810,6 +6810,8 @@ function doSupaInviteSubmit() {
   saveS();
   closeModal('m-supa-invite');
   closeModal('m-supa-auth');
+  // 既にアプリ利用中（設定から参加）か、入口フロー（新規）かで挙動を分ける。
+  const alreadyInApp = S.loggedIn && S.onboardCompleted;
   if(isSupaLoggedIn()) {
     showToast('家族コードで参加しました！データを同期します', 'success');
     // 自分のデータに family_id を付与（push）→ 家族全員分を取得（fetch）
@@ -6817,7 +6819,13 @@ function doSupaInviteSubmit() {
   } else {
     showToast('家族コードを保存しました。クラウドにログインすると家族と同期されます', 'info');
   }
-  _enterApp(true);
+  if(alreadyInApp) {
+    // 既存ユーザー：再オンボーディング/再シードせず、現在画面を更新するだけ
+    try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
+    try { go(S.screen || 's-home'); } catch(_){}
+  } else {
+    _enterApp(true);
+  }
 }
 
 /* ── 設定画面 / 入口画面の Supabase 関連 UI を再描画 ── */
