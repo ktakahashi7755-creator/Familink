@@ -7143,6 +7143,7 @@ let S = {
   budgetTab: 'normal',  // Wave 60: 家計内タブ normal / recurring / cashflow
   hokuApiUrl: '',       // Wave 77: 外部 Hoku API のベース URL（空 = ローカルのみ・既定）
   hokuApiKey: '',       // Hoku API 簡易保護用の共有シークレット（任意。x-hoku-key ヘッダで送る）
+  hokuChatMode: false,  // 会話モード（AIが文脈を見て自然文で返答。オプトイン・家計金額は送らない）
   hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
   tabConfig: null,   // タブカスタマイズ: [{id,vis}] | null=デフォルト5タブ
   widgetItems: null, // ウィジェット設定: [{type,label,enabled}] | null=デフォルト
@@ -7162,7 +7163,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak'];
 
 function saveS() {
   const d = {};
@@ -18942,12 +18943,80 @@ async function callHokuApi(text) {
   }
 }
 
+/* 会話モード用：AI に渡す家族の文脈（概要のみ・家計の金額は含めない＝プライバシー配慮）。 */
+function _hokuChatContext() {
+  try {
+    const td = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+    const nm = (id) => (typeof memberNameById === 'function' && memberNameById(id)) || '';
+    const ev = (S.events||[]).filter(e=>e && e.date>=td)
+      .sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')))
+      .slice(0,8).map(e=>`${e.date}${e.time?(' '+e.time):''} ${e.title||''}${e.member?('（'+nm(e.member)+'）'):''}`.trim());
+    const tk = (S.tasks||[]).filter(t=>t && t.status!=='done')
+      .slice(0,8).map(t=>(t.title||'')+(t.dueDate?`（期限${t.dueDate}）`:'')+(t.assignedTo?`（${nm(t.assignedTo)}）`:''));
+    const shop = (S.shoppingItems||[]).slice(0,12).map(s=>s.name||s.title).filter(Boolean);
+    const health = (S.health||[]).filter(h=>h && h.date>=td)
+      .map(h=>`${nm(h.memberId||h.child)} ${h.temp?h.temp+'℃':''}${h.symptom?(' '+h.symptom):''}`.trim()).filter(Boolean);
+    const mem = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&m.name).filter(Boolean);
+    return { today: td, members: mem, upcomingEvents: ev, pendingTasks: tk, shoppingList: shop, todayHealth: health };
+  } catch(_) { return {}; }
+}
+
+/* 会話モード：外部 AI に自然文応答を依頼。{reply, intent?, confidence?} を返す。
+   失敗/タイムアウト時は null（呼び出し側でローカルへフォールバック）。 */
+async function callHokuChat(text) {
+  const base = (typeof S!=='undefined' && S.hokuApiUrl || '').trim();
+  if(!base || !text || !text.trim()) return null;
+  const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(()=>{ try{ctrl.abort();}catch(e){} }, 12000) : null; // 会話は遅いので長め
+  try {
+    const headers = { 'Content-Type':'application/json' };
+    const secret = (typeof S!=='undefined' && S.hokuApiKey || '').trim();
+    if(secret) headers['x-hoku-key'] = secret;
+    const recent = (_hokuMsgs||[]).filter(m=>m.role==='user'||m.role==='assistant').slice(-6)
+      .map(m=>({ role: m.role==='assistant'?'assistant':'user', content: String(m.content||'').slice(0,500) }));
+    const res = await fetch(base.replace(/\/+$/,'') + '/api/hoku/chat', {
+      method: 'POST', headers: headers,
+      body: JSON.stringify({ text: text, context: _hokuChatContext(), history: recent }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(!data || typeof data.reply !== 'string') return null;
+    return data;
+  } catch(e) {
+    return null;
+  } finally {
+    if(timer) clearTimeout(timer);
+  }
+}
+
+/* 会話モードの実行：自然文 reply を返す。登録系 intent が含まれれば確認フローへ橋渡し
+   （executeHokuAction は即保存せず必ず確認 UI を開く＝安全）。失敗時は undefined。 */
+async function _hokuTryChat(text) {
+  const chat = await callHokuChat(text);
+  if(!chat || typeof chat.reply !== 'string' || !chat.reply.trim()) return undefined;
+  let reply = chat.reply.trim();
+  if(chat.intent && chat.intent !== 'unknown' &&
+     typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
+     /_add$/.test(chat.intent)) {
+    try {
+      const li = parseHokuIntent(text, 'text');
+      li.intentType = chat.intent;
+      const r = executeHokuAction(li);   // 確認 UI を開く（即保存しない）
+      if(r && r.message) reply += '\n\n' + r.message;
+    } catch(_) {}
+  }
+  return reply;
+}
+
 /* Wave 77: Hoku API 連携設定モーダル */
 function openHokuApiModal() {
   const inp = document.getElementById('hoku-api-url-input');
   if(inp) inp.value = (S.hokuApiUrl || '');
   const keyInp = document.getElementById('hoku-api-key-input');
   if(keyInp) keyInp.value = (S.hokuApiKey || '');
+  const chatInp = document.getElementById('hoku-chat-mode-input');
+  if(chatInp) chatInp.checked = !!S.hokuChatMode;
   const res = document.getElementById('hoku-api-test-result');
   if(res) res.textContent = '';
   openModal('m-hoku-api');
@@ -18960,11 +19029,13 @@ function saveHokuApiUrl() {
     return;
   }
   const keyInp = document.getElementById('hoku-api-key-input');
+  const chatInp = document.getElementById('hoku-chat-mode-input');
   S.hokuApiUrl = url;
   S.hokuApiKey = (keyInp && keyInp.value || '').trim();
+  S.hokuChatMode = !!(chatInp && chatInp.checked) && !!url; // URL未設定なら会話モードは無効
   saveS();
   closeModal('m-hoku-api');
-  showToast(url ? 'Hoku の AI 連携を有効にしました' : 'ローカル判定に戻しました');
+  showToast(!url ? 'ローカル判定に戻しました' : (S.hokuChatMode ? '会話モード（AI）を有効にしました' : 'Hoku の AI 連携を有効にしました'));
   if(typeof renderSettings === 'function') renderSettings();
 }
 /* 接続テスト：入力中の URL/シークレットで実際に1回呼び、結果を表示する。
@@ -19009,7 +19080,15 @@ async function sendHokuMsg(text) {
 
   try {
     let reply;
+    let ctxIntent = null;  // 文脈更新で使うためブロック外にホイスト
 
+    // 会話モード（AI）優先：有効なら外部AIに自然文応答を依頼。成功すれば
+    // 以降のローカル判定をスキップ。失敗/無効時は従来フローへ完全フォールバック。
+    if(S.hokuChatMode && S.hokuApiUrl) {
+      try { reply = await _hokuTryChat(text); } catch(_) { reply = undefined; }
+    }
+
+    if(reply === undefined) {
     // Wave 88: ターン開始時の _pendingAction を固定（削除/聞き返しが副作用で
     //          _pendingAction をセットしても、このターンの分岐判定は開始時の値で行う）
     const hadPending = !!_pendingAction;
@@ -19023,7 +19102,7 @@ async function sendHokuMsg(text) {
       } catch(e) { delReply = null; }
     }
     // Wave 61: 直近文脈で短文修正を解釈（「やっぱ星旺で」「明日にして」「支出で」など）
-    const ctxIntent = (typeof applyHokuContext === 'function') ? applyHokuContext(text) : null;
+    ctxIntent = (typeof applyHokuContext === 'function') ? applyHokuContext(text) : null;
     if(hadPending) {
       reply = handleConfirmation(text);
     } else if(delReply) {
@@ -19096,6 +19175,7 @@ async function sendHokuMsg(text) {
         }
       }
     }
+    } // end if(reply === undefined)（会話モードで未確定のときだけローカル判定）
 
     _hokuMsgs = _hokuMsgs.filter(m => m.role !== 'loading');
     _hokuMsgs.push({role:'assistant', content: reply});
@@ -23950,6 +24030,15 @@ async function _oauthSignIn(provider) {
         ※ これは OpenAI のAPIキーではありません。設定すると x-hoku-key ヘッダで送信します。
       </div>
     </div>
+    <label style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;background:var(--bg-muted);border-radius:10px;margin:4px 0 12px;cursor:pointer;">
+      <input type="checkbox" id="hoku-chat-mode-input" style="width:18px;height:18px;flex:none;margin-top:1px;">
+      <span style="font-size:13px;color:var(--text);line-height:1.6;">
+        <b>会話モード</b>（AI が家族の予定・タスク等の文脈を見て自然に返答）
+        <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:3px;">
+          ※ ON にすると、あなたの<b>予定・タスク・買い物・今日の体調メモの概要</b>が AI（サーバ経由）に送信されます。<b>家計の金額は送信しません</b>。データ登録は必ず確認画面を挟みます。
+        </span>
+      </span>
+    </label>
     <div id="hoku-api-test-result" style="font-size:12px;line-height:1.6;margin:2px 0 10px;"></div>
     <button class="btn btn-ghost btn-block" onclick="testHokuApi()" style="margin-bottom:8px;">接続テスト</button>
     <button class="btn btn-primary btn-block" onclick="saveHokuApiUrl()" style="margin-bottom:8px;">保存</button>
