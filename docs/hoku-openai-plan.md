@@ -190,6 +190,7 @@ Deno.serve(async (req) => {
 - `context` ＝ `_hokuChatContext()` が作る家族の概要：**予定・タスク・買い物・今日の体調メモ・メンバー名**。
   - **家計の金額は送りません**（プライバシー配慮）。`history` は直近6発話のみ。
 - 返答に登録系 `intent`（`*_add`）が含まれる場合のみ、**既存の確認フロー**に橋渡し（AIにDB操作はさせない＝安全。必ず確認画面）。
+- **高精度化（重要）**：AI が `entities`（整形済みの title/date/time/member/amount 等）を返した場合、アプリは**それを直接使って**確認画面を開く（`_hokuIntentFromAI`）。ローカル正規表現の取りこぼし（例「せいやとの飲み」がうまく取れない等）を回避。member は名前→ID に解決。`entities` が無い応答はローカル抽出にフォールバック。
 - API 失敗/タイムアウト(12秒)時は**自動でローカル判定にフォールバック**。
 - **オプトイン**：会話モードは既定 OFF。ON 時に「概要が送信される／家計金額は送らない」と明示。
 
@@ -208,12 +209,30 @@ Deno.serve(async (req) => {
   if (url.pathname.endsWith("/chat")) {
     try {
       const { text, context, history } = await req.json();
+      const today = (context && context.today) || new Date().toISOString().slice(0, 10);
+      const members = (context && context.members) || [];
       const sys = `あなたは家族向けアプリ Familink のやさしいガイド役 Hoku です。
-3児パパ・ママを支える温かく簡潔な相棒。返答は2〜3文・敬語すぎず親しみやすく。
-渡された context（家族の予定/タスク/買い物/今日の体調/メンバー名）を踏まえて答える。
-予定やタスクの「追加」を頼まれたら、reply に一言添えつつ intent を返す（実際の保存はアプリが確認画面で行う）。
-必ず次のJSONのみ：{"reply":"<自然文>","intent":"<${INTENTS.join("|")}>","confidence":<0-1>}
-質問や雑談は intent を "unknown" にする。`;
+3児パパ・ママを支える温かく簡潔な相棒。返答(reply)は2〜3文・親しみやすく。
+context（家族の予定/タスク/買い物/今日の体調/メンバー名）を踏まえて答える。
+
+【最重要：登録の精度】予定・タスク・家計・体調・買い物などの「追加」依頼は、
+intent を分類し、entities に**きれいに整形した値**を入れる：
+- title: コマンド語（「カレンダーに」「タスクに」「追加して」等）や助詞を除いた**中身だけ**。
+  例「カレンダーにせいやとの飲み追加して」→ title="せいやとの飲み"（崩さない・余計な語を足さない）。
+- date: **${today} を今日として絶対日付 YYYY-MM-DD に解決**（明日/明後日/今週末/月曜 等も具体日に）。
+- time: 24時間 HH:MM（「夜7時」「19時」→"19:00"）。
+- member: 次のメンバー名のいずれかに一致すれば氏名を入れる、なければ null：${JSON.stringify(members)}
+- amount: 金額(数値) / category: 食費等 / txType: "expense"|"income"（家計時）。
+- temperature: 体温 / medicine: 薬 / symptoms: 症状配列（体調時）。
+分類先(intent)：${INTENTS.join(", ")}
+カレンダー=calendar_add、やること=task_add、家計=budget_add、体調=health_add、
+買い物=shopping_add、毎週の持ち物=prep_routine_add、〜を見せて=*_view。
+質問・雑談は intent="unknown"（entities 不要）。
+
+必ず次のJSONのみ（説明文禁止）：
+{"reply":"<自然文>","intent":"<上記のいずれか>","confidence":<0-1>,
+ "entities":{"title":"","date":"","time":"","member":null,"amount":null,
+   "category":null,"txType":null,"temperature":null,"medicine":null,"symptoms":[]}}`;
       const messages = [
         { role: "system", content: sys },
         { role: "system", content: "context: " + JSON.stringify(context ?? {}) },
@@ -225,14 +244,14 @@ Deno.serve(async (req) => {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.5, max_tokens: 200,
+        body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.2, max_tokens: 300,
           response_format: { type: "json_object" }, messages }),
       });
       const data = await r.json();
-      let out = { reply: "ごめん、うまく聞き取れなかった。もう一度お願い。", intent: "unknown", confidence: 0 };
+      let out: any = { reply: "ごめん、うまく聞き取れなかった。もう一度お願い。", intent: "unknown", confidence: 0 };
       try { out = JSON.parse(data.choices[0].message.content); } catch (_) {}
       if (!INTENTS.includes(out.intent)) out.intent = "unknown";
-      return json(out);
+      return json(out);   // {reply, intent, confidence, entities}
     } catch (_) {
       return json({ reply: "（接続できませんでした）", intent: "unknown", confidence: 0 });
     }
