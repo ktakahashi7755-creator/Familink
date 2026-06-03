@@ -17305,3 +17305,44 @@ iOS入力体験＋プレースホルダ視認性の磨き込み
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `polish(ios/a11y): SE幅の入力ズーム抑制とプレースホルダ視認性の整理`
+
+## 2026-06-03 16:55  env: iPhone経由(Web)  branch: claude/famicoin-shop（main 起点）
+
+### 作業名
+App Store 提出準備：リリース正本ドキュメントの現状反映（appstore-release-lead）
+
+### 変更ファイル
+- docs/appstore-readiness-checklist.md
+- docs/app-store-metadata.md
+- docs/worklog.md
+（※アプリコード（familink.html / index.html）は未変更。docsのみ）
+
+### 変更内容（既存正本の更新・新規重複は作らない）
+- **readiness-checklist**：Wave213版から現状へ更新。
+  - 自動テストを 84/84 PASS・全16画面/59モーダルエラー0・277クリックファズ・コア保存フローに更新
+  - iOS入力ズーム抑止 ◐→☑（.ob2-input 16px 修正済）、視認性(WCAGコントラスト)行を追加 ☑
+  - 家族同期 ◐(スタブ)→☑(Realtime実装・Wave219+、運用前のRLS/パブリケーションSQLは family-sync-fix.md)
+  - ファミコイン経済(端末内・外部送信なし)行を追加 ☑
+  - スクショ ☐→◐（Playwright取得可、提出素材の仕上げが残）
+  - §8 結論を更新：必須残は「iOSラッパー / IAP本実装 / 実機検証 / 法務レビュー」。優先順位を再整理
+- **app-store-metadata**：
+  - 説明文に「ログインボーナス & ファミコイン」節を追加、プレミアム節にコイン交換と広告なしを反映
+  - App Privacy/年齢区分の家族同期表記を「非リアルタイム」→「Realtime・家族内のみ/RLS保護」に修正
+  - スクショ：キャプション案にコイン訴求を追加、stalーな /tmp パス記述を更新
+  - What's New に「次回アップデート案（ファミコイン追加時）」を追記
+
+### テスト結果
+- docsのみ変更のためアプリ挙動への影響なし（familink.html未変更＝QA結果は前コミットの84/84が有効）
+- 文言の事実整合を現行実装（Wave219 Realtime / Wave250-251 コイン経済 / iOS入力修正）と突合して確認
+
+### 未確認事項
+- 法務文書（privacy/terms）の専門家レビューは未（legal-review-notes.md に論点）
+- IAP本実装・iOSラッパーはオーナー確認必須（独断不可）
+
+### 次にやること
+- オーナー判断待ち：iOSラッパー方式（Capacitor）/ IAP実装可否
+- 任意：提出用スクショの最終素材化（Playwright→提出サイズ＋キャプション）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `docs: App Store提出正本を現状反映(Realtime同期/コイン経済/iOS入力/視認性)`
