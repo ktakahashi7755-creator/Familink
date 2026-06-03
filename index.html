@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260601n';
+  var V='v20260603a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5719,16 +5719,25 @@ async function syncFromSupabase() {
    ─────────────────────────────────────────────────────────── */
 let _realtimeChannel = null;
 let _realtimeDebounce = null;
+let _realtimeWanted = false;   // realtime を維持したい状態か（logout で false）
+let _realtimeRetry = 0;        // 再接続のバックオフ回数
+let _realtimeRetryTimer = null;
+/* realtime が落ちていれば張り直す（ログイン中 & オンライン時のみ） */
+function _ensureRealtime() {
+  if(!isSupaLoggedIn() || !navigator.onLine) return;
+  if(!_realtimeChannel) { try { startRealtimeSync(); } catch(_){} }
+}
 
 function startRealtimeSync() {
   const sb = getSupabase();
   if(!sb || !isSupaLoggedIn()) return;
-  stopRealtimeSync();
+  _realtimeWanted = true;
+  stopRealtimeSync(true);   // 既存チャンネルを畳む（wanted は維持）
   const uid = S.supaSession && S.supaSession.id;
   if(!uid) return;
   try {
     _realtimeChannel = sb
-      .channel('familink_sync_' + uid.slice(0, 8))
+      .channel('familink_sync_' + uid.slice(0, 8) + '_' + Math.random().toString(36).slice(2, 7))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -5746,17 +5755,37 @@ function startRealtimeSync() {
         }, 800);
       })
       .subscribe((status) => {
-        if(status === 'SUBSCRIBED') _setSyncDot(navigator.onLine ? 'synced' : 'offline');
+        if(status === 'SUBSCRIBED') {
+          _realtimeRetry = 0;
+          _setSyncDot(navigator.onLine ? 'synced' : 'offline');
+        } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // 切断：維持したい状態 & オンライン & ログイン中なら指数バックオフで自己回復
+          if(_realtimeWanted && navigator.onLine && isSupaLoggedIn()) {
+            _setSyncDot('error');
+            _realtimeRetry = Math.min(_realtimeRetry + 1, 6);
+            clearTimeout(_realtimeRetryTimer);
+            _realtimeRetryTimer = setTimeout(() => {
+              try { startRealtimeSync(); } catch(_){}
+              _fetchFromSupabase().catch(_=>{}); // 再接続後の取りこぼし防止
+            }, Math.min(1000 * Math.pow(2, _realtimeRetry), 30000));
+          }
+        }
       });
   } catch(e) {
     console.error('Realtime setup failed:', e && e.message);
   }
 }
 
-function stopRealtimeSync() {
+function stopRealtimeSync(keepWanted) {
+  if(!keepWanted) { _realtimeWanted = false; clearTimeout(_realtimeRetryTimer); }
   if(_realtimeChannel) {
-    try { _realtimeChannel.unsubscribe(); } catch(_){}
+    var ch = _realtimeChannel;
     _realtimeChannel = null;
+    try {
+      var sb = getSupabase();
+      if(sb && sb.removeChannel) sb.removeChannel(ch);
+      else ch.unsubscribe();
+    } catch(_){}
   }
   clearTimeout(_realtimeDebounce);
 }
@@ -24164,6 +24193,7 @@ async function _oauthSignIn(provider) {
   function onOnline() {
     _setSyncDot(isSupaLoggedIn() ? 'syncing' : 'offline');
     if(isSupaLoggedIn()) {
+      try { _ensureRealtime(); } catch(_){}   // 切れた realtime を張り直す
       _fetchFromSupabase().catch(_=>{});
     }
     try { showToast('オンラインに戻りました', 'success'); } catch(_){}
@@ -24174,6 +24204,19 @@ async function _oauthSignIn(provider) {
   }
   window.addEventListener('online',  onOnline);
   window.addEventListener('offline', onOffline);
+
+  /* Wave 240: アプリ復帰（バックグラウンド→フォアグラウンド）時の同期復旧。
+     iOS Safari は背面化で WebSocket を切るため、復帰時に realtime を張り直し
+     最新を取得する。2台・3台以上でも復帰直後から最新が反映されるようにする。 */
+  document.addEventListener('visibilitychange', function() {
+    if(document.visibilityState === 'visible' && isSupaLoggedIn() && navigator.onLine) {
+      try { _ensureRealtime(); } catch(_){}
+      _fetchFromSupabase().catch(_=>{});
+    }
+  });
+  window.addEventListener('focus', function() {
+    if(isSupaLoggedIn() && navigator.onLine) { try { _ensureRealtime(); } catch(_){} }
+  });
 })();
 
 /* ── Wave 221: iOS キーボード開閉時のスクロール補正 ──────────────

@@ -16810,3 +16810,38 @@ Web版の改善継続：操作ボタンのタップ領域完成＋Hokuコマン�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `fix: 設定からの家族参加で既存ユーザーの識別子がリセットされる不具合を修正`
+
+## 2026-06-03 05:10  env: iPhone経由(Web)  branch: claude/realtime-hardening（main 起点）
+
+### 作業名
+全ページ総点検 ＋ マルチ端末（2台・3台以上）リアルタイム同期の堅牢化
+
+### 総点検結果（実バグなし）
+- 構文OK(app/docs)・全画面19/19・クリック0エラー・a11y0・横スクロール0・エッジ0・XSS安全・デッド3(retain+IIFE)・デッド変数0・body diff0
+- 招待/参加/同期/Realtime 関数はオフライン・未ログインでも例外ゼロ
+
+### 変更内容（Realtime 堅牢化）
+- **自己回復する Realtime**：subscribe の切断ステータス（CHANNEL_ERROR/TIMED_OUT/CLOSED）を検知し、指数バックオフ（最大30秒）で自動再接続。再接続後はフェッチで取りこぼし防止。`_realtimeWanted`/`_realtimeRetry` で意図的停止（logout）と区別。
+- **アプリ復帰時の復旧**：`visibilitychange`（visible）/`focus` ハンドラ新設。iOS Safari が背面化で WebSocket を切るため、復帰時に realtime 張り直し＋最新取得。
+- **online 復帰時**：`_ensureRealtime()` で realtime 再確立＋フェッチ。
+- **チャンネル確実破棄**：`removeChannel` で古い接続を残さない（再接続でゴミが溜まらない）。
+- `_ensureRealtime()` ヘルパー新設（ログイン中＆オンライン時のみ張り直し）。
+- チャンネル名にランダムサフィックスを付与し衝突回避。
+- → 仕組み上 **台数無制限**（各端末が独立に DB 変更を購読し family_id でマージ）。2台でも3台でもN台でも同じ。
+
+### ⚠️ ユーザー側で必要な追加設定（リアルタイムが届かない場合の主因）
+- **Realtime publication にテーブルを追加**：`alter publication supabase_realtime add table fl_family_data;`（docs/family-sync-fix.md §3 に追記）。これが OFF だと RLS が正しくても他端末の変更が即時に届かない。
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html / index.html
+- docs/family-sync-fix.md（Realtime publication SQL ＋ §2.1 マルチ端末堅牢化を追記）
+- キャッシュバスター v20260601n → **v20260603a**
+
+### テスト結果
+- Realtime 関連関数（_ensureRealtime/start/stop/stop(keep)）＋ visibilitychange/focus/online イベントが例外ゼロで安全動作を確認
+- 全自動監査パス（上記）
+- ※ 実バックエンド＋複数実機での E2E はこの環境では不可。publication 追加後にユーザー実機（2〜3台）テスト推奨。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: マルチ端末リアルタイム同期の堅牢化（自己回復/復帰時復旧/再接続）`
