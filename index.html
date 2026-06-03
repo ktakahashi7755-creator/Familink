@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603c';
+  var V='v20260603d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -19003,8 +19003,52 @@ async function callHokuChat(text) {
   }
 }
 
+/* AI が抽出した構造化エンティティ → executeHokuAction が読む intent 形へ変換。
+   タイトル等を「AIの抽出結果そのまま」使うことで、ローカル正規表現の取りこぼし
+   （「せいやとの飲み」等）を回避し精度を上げる。member は名前→ID に解決。 */
+function _hokuIntentFromAI(intentType, e, rawText) {
+  e = e || {};
+  let memberId = null;
+  if(e.member) {
+    const want = String(e.member).trim();
+    const list = (typeof MEMBERS!=='undefined'?MEMBERS:[]);
+    const m = list.find(x => x && x.name === want)
+           || list.find(x => x && x.name && (x.name.indexOf(want)>=0 || want.indexOf(x.name)>=0));
+    memberId = m ? m.id : null;
+  }
+  const toAmount = (v) => {
+    if(typeof v === 'number') return v;
+    if(v == null) return null;
+    const n = parseInt(String(v).replace(/[^0-9]/g,''),10);
+    return isNaN(n) ? null : n;
+  };
+  const norm = (s) => (s==null?'':String(s)).trim();
+  return {
+    intentType: intentType,
+    rawText: rawText,
+    normalizedText: rawText,
+    confidence: (typeof e.confidence === 'number') ? e.confidence : 0.9,
+    secondary: null, score: 1, missingFields: [],
+    entities: {
+      title:       norm(e.title),
+      date:        norm(e.date) || null,            // AI が YYYY-MM-DD で解決
+      time:        norm(e.time) || null,            // AI が HH:MM(24h) で解決
+      memberId:    memberId,
+      amount:      toAmount(e.amount),
+      temperature: norm(e.temperature) || null,
+      category:    norm(e.category) || null,
+      txType:      (e.txType === 'income') ? 'income' : (e.txType === 'expense' ? 'expense' : null),
+      subject:     norm(e.subject),
+      medicine:    norm(e.medicine),
+      symptoms:    Array.isArray(e.symptoms) ? e.symptoms : [],
+      weekday:     (typeof e.weekday === 'number') ? e.weekday : undefined
+    }
+  };
+}
+
 /* 会話モードの実行：自然文 reply を返す。登録系 intent が含まれれば確認フローへ橋渡し
-   （executeHokuAction は即保存せず必ず確認 UI を開く＝安全）。失敗時は undefined。 */
+   （executeHokuAction は即保存せず必ず確認 UI を開く＝安全）。失敗時は undefined。
+   AI が entities を返した場合はそれを直接使い、無ければローカル抽出にフォールバック。 */
 async function _hokuTryChat(text) {
   const chat = await callHokuChat(text);
   if(!chat || typeof chat.reply !== 'string' || !chat.reply.trim()) return undefined;
@@ -19013,10 +19057,14 @@ async function _hokuTryChat(text) {
      typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
      /_add$/.test(chat.intent)) {
     try {
-      const li = parseHokuIntent(text, 'text');
-      li.intentType = chat.intent;
-      const r = executeHokuAction(li);   // 確認 UI を開く（即保存しない）
-      if(r && r.message) reply += '\n\n' + r.message;
+      let li;
+      if(chat.entities && typeof chat.entities === 'object') {
+        li = _hokuIntentFromAI(chat.intent, chat.entities, text);   // 高精度：AI 抽出を直接使う
+      } else {
+        li = parseHokuIntent(text, 'text');                          // 後方互換：ローカル抽出
+        li.intentType = chat.intent;
+      }
+      executeHokuAction(li);   // 確認 UI を開く（即保存しない）
     } catch(_) {}
   }
   return reply;
@@ -20507,6 +20555,8 @@ function stripTriggerPhrases(text) {
 function _hokuCleanTitle(text) {
   if(!text) return '';
   let t = String(text);
+  // 先頭の「宛先＋に/へ」型コマンド語を除去（例「カレンダーにせいやとの飲み」→「せいやとの飲み」）
+  t = t.replace(/^[\s　]*(?:カレンダー|スケジュール|予定表|タスク|やること|やる事|メモ帳|家計簿|お買い物リスト|買い物リスト|家族ボード|ボード)(?:に|へ)[\s　]*/, '');
   // 日付語
   t = t.replace(/再来週|来週末|今週末|今度の|今度|来週|今週|来月|今月|先月|来年/g, '');
   t = t.replace(/明後日|あさって|一昨日|おととい|今日|本日|きょう|明日|あした|あす|昨日|きのう/g, '');
