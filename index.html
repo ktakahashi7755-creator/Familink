@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604l';
+  var V='v20260604m';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18285,6 +18285,11 @@ function renderThemeLib() {
    画像は仮パスで管理し、差し替えは imageSrc を変えるだけ。読み込み失敗時は通常Hokuにフォールバック。 */
 const HOKU_SKINS = [
   { id:'normal',  name:'通常Hoku',    price:0,   rarity:'normal',  desc:'いつものHoku。家族を見守る基本スタイル。',           imageSrc:'' },
+  { id:'joy',       name:'にこにこHoku', price:30,  rarity:'normal',  desc:'いつも笑顔で家族を応援する、ごきげんなHoku。',         imageSrc:'assets/hoku/joy-hoku.png' },
+  { id:'cheer',     name:'わくわくHoku', price:30,  rarity:'normal',  desc:'うれしいことがあると一緒に喜んでくれるHoku。',         imageSrc:'assets/hoku/cheer-hoku.png' },
+  { id:'surprised', name:'びっくりHoku', price:30,  rarity:'normal',  desc:'おどろいた顔がかわいい、リアクション上手なHoku。',     imageSrc:'assets/hoku/surprised-hoku.png' },
+  { id:'jump',      name:'ぴょんHoku',   price:30,  rarity:'normal',  desc:'元気いっぱい飛び跳ねる、わんぱくなHoku。',             imageSrc:'assets/hoku/jump-hoku.png' },
+  { id:'sleepy',    name:'おやすみHoku', price:30,  rarity:'normal',  desc:'おやすみ前にぴったりの、ねむそうなHoku。',             imageSrc:'assets/hoku/sleepy-hoku.png' },
   { id:'pajama',  name:'パジャマHoku', price:100, rarity:'normal',  desc:'朝と夜にぴったり。やさしく家族を応援するHoku。',       imageSrc:'assets/hoku/pajama-hoku.png' },
   { id:'teacher', name:'先生Hoku',    price:200, rarity:'rare',    desc:'予定やタスクをやさしく教えてくれる学びのHoku。',       imageSrc:'assets/hoku/teacher-hoku.png' },
   { id:'chef',    name:'料理Hoku',    price:200, rarity:'rare',    desc:'ごはん、買い物、家事を楽しくしてくれるHoku。',         imageSrc:'assets/hoku/chef-hoku.png' },
