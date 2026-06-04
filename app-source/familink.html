@@ -2510,7 +2510,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
 .tk-filter-btn {
   flex-shrink:0; border:none; border-radius:var(--r-full);
-  padding:8px 14px; font-size:12px; font-weight:600;
+  padding:10px 14px; font-size:12px; font-weight:600;
   background:var(--bg-card); color:var(--text-muted);
   border:1.5px solid var(--border-light); cursor:pointer;
   transition:var(--t-spring); white-space:nowrap;
@@ -24112,10 +24112,42 @@ function seedDefaultCustomBoards() {
 }
 
 var _userGestured = false; // 初回ユーザー操作を検知（ハプティクスのブラウザブロック回避）
+/* ===== テスト専用：コインバッジ長押しで +5000 ファミコイン付与 =====
+   通常タップは従来どおりファミショップを開く。長押し(800ms)で付与＋トースト。
+   ※ App Store 公開前に必ず削除すること（不正取得防止 / §13.5・§13.7）。 */
+function _setupCoinTestGrant() {
+  var btn = document.getElementById('home-coins-btn');
+  if(!btn || btn._lpBound) return;
+  btn._lpBound = true;
+  btn.removeAttribute('onclick');
+  var timer = null, fired = false;
+  function start() {
+    fired = false;
+    timer = setTimeout(function(){
+      fired = true;
+      try {
+        addFamiCoins(5000);
+        try { _updateHomeCoins(); } catch(_){}
+        try { if(typeof renderShop==='function' && document.getElementById('famishop-body')) renderShop(); } catch(_){}
+        showToast('テスト用にファミコインを5000追加しました', 'success');
+        if(navigator.vibrate) navigator.vibrate(15);
+      } catch(_){}
+    }, 800);
+  }
+  function cancel() { if(timer){ clearTimeout(timer); timer = null; } }
+  btn.addEventListener('pointerdown', start, { passive:true });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev, cancel, { passive:true }); });
+  btn.addEventListener('click', function(e){
+    if(fired) { e.preventDefault(); e.stopPropagation(); fired = false; return; }
+    showCoinsInfo();
+  });
+}
+
 function init() {
   ['pointerdown','touchstart','keydown'].forEach(function(ev){
     window.addEventListener(ev, function(){ _userGestured = true; }, { once:true, passive:true });
   });
+  _setupCoinTestGrant();      // テスト用：コインバッジ長押しで+5000（公開前に要削除）
   loadS();
   _dedupStateById();          // 念のため：id重複の予定/タスク/家計/メモ/写真を除去（重複表示の防止）
   _refreshTrialStatus();      // Wave 222: トライアル期限チェック
