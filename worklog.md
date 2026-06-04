@@ -18239,3 +18239,38 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: revert: スクロール中のHokuフェードを撤去（常時通常表示に戻す）
+
+## 2026-06-04 23:05  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+交換確認ポップアップの改善（ショップ前面表示＋プロUI化）
+
+### 変更ファイル
+- app-source/familink.html（#m-confirm z-index、showConfirm opts、buyHokuSkin/buyShopItem）
+- docs/index.html（head CSS同期＋body同期＋キャッシュバスター 20260604r→20260604s）
+
+### 変更内容
+- 不具合：確認ダイアログ(m-confirm)が全モーダルと同じ z-index:200 で、DOM順によりショップ(m-shop)の裏に開き「戻らないと見えない」状態だった
+- 修正：#m-confirm を z-index:320 に上げ、常に他モーダルの前面に表示（ショップは開いたまま文脈維持）
+- プロUI化：showConfirm に opts追加（primary=主ボタンを青に／iconHtml=任意アイコン画像）
+  - buyHokuSkin：スキン画像プレビュー＋青「交換する」＋✨。赤(danger)→青(primary)で購入が削除に見えない
+  - buyShopItem(アバター/テーマ/チケット)：青「交換する」＋bagアイコンに統一
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：交換押下で confirmOpen=true かつ shopStillOpen=true、confirmZ=320>shopZ=200、okClass=btn-primary、アイコンにスキン画像、タイトル「ヒーローHokuを交換しますか？」
+- JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- ショップで「交換」→その場（ショップの上）に確認が出る／青ボタン＋スキン画像で分かりやすい
+- 削除系の確認は従来どおり赤ボタン
+
+### 次にやること
+- 実機確認OKで完了
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix: 交換確認をショップ前面に表示＋購入UIをプロ仕様(青ボタン/画像プレビュー)に
