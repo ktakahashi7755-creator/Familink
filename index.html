@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604o';
+  var V='v20260604p';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -24166,7 +24166,7 @@ function showQaDebugPanel() {
   const p = document.createElement('div');
   p.id = 'qa-debug-panel';
   p.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(20,20,30,.92);color:#9CFFB8;font-family:monospace;font-size:10px;padding:8px 10px;border-radius:8px;max-width:calc(100% - 16px);max-height:35vh;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);';
-  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">QA Debug</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="addFamiCoins(5000);try{_updateHomeCoins()}catch(_){}try{if(typeof renderShop===\'function\'&&document.getElementById(\'famishop-body\'))renderShop()}catch(_){}qaDebugRefresh();try{showToast(\'ファミコイン +5000\',\'success\')}catch(_){}" style="background:#E8A12C;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">ファミコイン +5000</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
+  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">テストパネル</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="addFamiCoins(5000);try{_updateHomeCoins()}catch(_){}try{if(typeof renderShop===\'function\'&&document.getElementById(\'famishop-body\'))renderShop()}catch(_){}qaDebugRefresh();try{showToast(\'ファミコイン +5000\',\'success\')}catch(_){}" style="background:#E8A12C;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">ファミコイン +5000</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
   document.body.appendChild(p);
   qaDebugRefresh();
 }
@@ -24176,17 +24176,22 @@ function qaDebugRefresh() {
   const SR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   const httpsOK = location.protocol === 'https:' || location.hostname === 'localhost';
   const dataLen = (localStorage.getItem('familink_v3')||'').length;
+  const coins = (function(){try{return getFamiCoins()}catch(_){return '-'}})();
+  const skin  = (function(){try{return equippedHokuSkin()}catch(_){return '-'}})();
+  // クリーン表示：残高と注記を主に、技術詳細は折りたたみ（既定で非表示）
   body.innerHTML = `
-    画面: ${(document.querySelector('.screen:not(.hidden)')||{}).id || '-'}<br>
-    UA: ${navigator.userAgent.slice(0,60)}<br>
-    HTTPS: ${httpsOK ? 'OK' : 'NG'}<br>
-    SpeechRecognition: ${SR ? 'あり' : 'なし'}<br>
-    LS バイト: ${dataLen}<br>
-    user: ${(S.user||{}).name || '-'} (${(S.userProfile||{}).displayName||'-'})<br>
-    events: ${(S.events||[]).length} / tasks: ${(S.tasks||[]).length} / posts: ${(S.announces||[]).length}<br>
-    txs: ${(S.txs||[]).length} / prep: ${(S.prep||[]).length} / customBoards: ${(S.customBoards||[]).length}<br>
-    ファミコイン: ${(function(){try{return getFamiCoins()}catch(_){return '-'}})()} / 装備Hoku: ${(function(){try{return equippedHokuSkin()}catch(_){return '-'}})()}<br>
-    onboardCompleted: ${!!S.onboardCompleted}
+    <div style="font-size:13px;font-weight:800;color:#FFD27A;margin:2px 0 5px;">ファミコイン: ${coins} ／ 装備Hoku: ${H(String(skin))}</div>
+    <div style="color:#aeb8c8;font-size:9px;line-height:1.5;margin-bottom:4px;">テスト用パネルです。通常のご利用画面には表示されません。</div>
+    <details style="color:#9fb0c8;font-size:9px;">
+      <summary style="cursor:pointer;color:#9fb0c8;list-style:none;">詳細を表示 ›</summary>
+      <div style="margin-top:4px;line-height:1.55;">
+        画面: ${(document.querySelector('.screen:not(.hidden)')||{}).id || '-'}<br>
+        HTTPS: ${httpsOK ? 'OK' : 'NG'} ／ 音声入力: ${SR ? '対応' : '非対応'}<br>
+        保存サイズ: ${dataLen} バイト<br>
+        予定 ${(S.events||[]).length} ／ やること ${(S.tasks||[]).length} ／ 投稿 ${(S.announces||[]).length}<br>
+        家計 ${(S.txs||[]).length} ／ 準備 ${(S.prep||[]).length}
+      </div>
+    </details>
   `;
 }
 function qaDebugTestHoku() {
