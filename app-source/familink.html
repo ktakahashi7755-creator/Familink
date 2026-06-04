@@ -18314,6 +18314,15 @@ function refreshEquippedHoku() {
   if(emptyImg) { emptyImg.onerror = function(){ _hokuImgFallback(emptyImg); }; emptyImg.src = src; }
   const hdAv = document.getElementById('hoku-hd-av-img');
   if(hdAv) { hdAv.onerror = function(){ _hokuImgFallback(hdAv); }; hdAv.src = src; }
+  // フローティングボタン(FAB)にも装備中スキンを反映（全箇所で一貫）
+  const fabImg = document.getElementById('hoku-fab-img');
+  if(fabImg && src) {
+    fabImg.onerror = function(){ _hokuImgFallback(fabImg); };
+    fabImg.src = src;
+    fabImg.style.display = 'block';
+    const fb = document.getElementById('hoku-fab-fb');
+    if(fb) fb.style.display = 'none';
+  }
 }
 function equipHokuSkin(id) {
   _ensureHokuSkins();
@@ -24642,11 +24651,10 @@ document.addEventListener('touchcancel', () => {
     fabFb  = document.getElementById('hoku-fab-fb');
     if (!fab) return;
 
-    /* 画像設定 */
+    /* 画像設定（装備中スキンを優先。なければ通常Hoku） */
     try {
-      var src = (typeof IMGS !== 'undefined')
-        ? (IMGS.hoku || IMGS.smile || IMGS.happy || IMGS.wave || null)
-        : null;
+      var src = (function(){ try { return equippedHokuImg(); } catch(_){ return null; } })()
+        || ((typeof IMGS !== 'undefined') ? (IMGS.hoku || IMGS.smile || IMGS.happy || IMGS.wave || null) : null);
       if (src) {
         fabImg.src = src;
         fabImg.style.display = 'block';
