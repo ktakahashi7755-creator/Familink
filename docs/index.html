@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604h';
+  var V='v20260604i';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18172,7 +18172,7 @@ function _openLoginBonusModal() {
     +   '<span>•</span>'
     +   '<span style="display:inline-flex;align-items:center;gap:4px;">保有 '+_famiCoinIcon(13)+' '+d.total+'</span>'
     + '</div>'
-    + '<div style="margin-top:8px;font-size:11.5px;color:var(--text-muted);">Hokuショップで着せ替えに使えます</div>'
+    + '<div style="margin-top:8px;font-size:11.5px;color:var(--text-muted);">ファミショップでHokuの着せ替えに使えます</div>'
     + (d.badge ? '<div style="margin-top:10px;font-size:13px;font-weight:800;color:#9B7EDE;">🎖 30日連続バッジ</div>' : '');
   openModal('m-login-bonus');
   // 自動表示時はユーザー操作前のため振動は出さない（ブラウザがブロックする）。操作後のみ祝福ハプティクス。

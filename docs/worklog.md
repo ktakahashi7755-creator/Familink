@@ -17909,3 +17909,37 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: feat: Hoku表情6種を新アートへ差し替え（IMGS base64再生成・軽量化）
+
+## 2026-06-04 10:39  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+総点検（QA＋ブラウザ実機検証）と取りこぼし文言の改善
+
+### 変更ファイル
+- app-source/familink.html（ログインボーナス文言：Hokuショップ→ファミショップ）
+- docs/index.html（本体同期＋キャッシュバスター 20260604h→20260604i）
+
+### 変更内容
+- Playwrightでブラウザ実検証：openHokuShop()でファミショップが開き#famishop-hokuへスクロール、5コスチューム＋通常(新顔)画像のロード成功、Hoku画面/ヘッダーが新アートに更新を確認
+- 旧表記の取りこぼし1件を修正：ログインボーナス内「Hokuショップで着せ替えに使えます」→「ファミショップでHokuの着せ替えに使えます」
+- 残存ID参照(m-hoku-shop/hkshop-balance)なし、本体 app==docs 一致を確認
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS（2回実行ともFAIL0/WARN0）
+- ブラウザ検証：skin画像 naturalWidth>0（pajama487/teacher461/chef512/hero454/space450）、通常240、mainHoku240
+- consoleのERR_CERT_AUTHORITY_INVALID×4は外部CDN(フォント/Supabase)のサンドボックス遮断由来でアプリ起因ではない
+
+### 未確認事項
+- 実機(iPhone)での見た目最終確認（特にプレミアム表示の宇宙/ヒーローのロック挙動）
+
+### iPhone確認ポイント
+- ファミショップ→Hokuの着せ替え：通常/パジャマ/先生/料理/ヒーロー/宇宙が実画像で並ぶ
+- 交換/装備でメインHoku（Hoku画面・ヘッダー・空状態）が切り替わる
+- ログインボーナスの文言が新導線に一致
+
+### 次にやること
+- 実機確認OK → mainへマージで公開（最終版数 20260604i）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: polish: 総点検反映（ログインボーナス文言を新導線へ統一）＋docs同期
