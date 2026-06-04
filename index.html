@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603y';
+  var V='v20260603z';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -896,6 +896,120 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   font-size:10px; color:#fff; padding:1px 6px; border-radius:6px;
   background:rgba(0,0,0,.55); font-weight:600;
 }
+/* 動画セルの再生バッジ */
+.album-cell.is-video::after {
+  content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.5);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='white'%3E%3Cpolygon points='6 4 20 12 6 20 6 4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:55% 50%;
+}
+.album-cell video { width:100%; height:100%; object-fit:cover; display:block; }
+
+/* ===== Mitene 風フォトビューア（av2-*） ===== */
+.av2-backdrop { align-items:center; justify-content:center; }
+.av2-sheet {
+  width:96vw; max-width:480px; max-height:94vh;
+  background:var(--bg-card); color:var(--text);
+  border-radius:22px; overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:0 18px 60px rgba(0,0,0,.4);
+}
+.av2-top {
+  position:relative; display:flex; align-items:center; gap:8px;
+  padding:10px 10px; border-bottom:1px solid var(--border-light);
+}
+.av2-iconbtn {
+  flex:none; width:38px; height:38px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-muted); color:var(--text-sub); border:none; cursor:pointer;
+  transition:var(--t-spring);
+}
+.av2-iconbtn:active { transform:scale(.92); }
+.av2-titlewrap { flex:1; text-align:center; min-width:0; }
+.av2-date { font-size:15px; font-weight:800; color:var(--text); line-height:1.2; }
+.av2-share {
+  font-size:11px; font-weight:700; color:var(--text-muted);
+  display:inline-flex; align-items:center; gap:3px; margin-top:1px;
+}
+.av2-menu {
+  position:absolute; top:52px; right:10px; z-index:5;
+  background:var(--bg-card); border:1px solid var(--border-light);
+  border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+  padding:6px; min-width:170px;
+}
+.av2-menu.hidden { display:none; }
+.av2-menu button {
+  display:block; width:100%; text-align:left; background:none; border:none;
+  padding:10px 12px; font-size:14px; font-weight:600; color:var(--text);
+  border-radius:8px; cursor:pointer;
+}
+.av2-menu button:active { background:var(--bg-muted); }
+.av2-menu-danger { color:#D9534F !important; }
+.av2-menu-folder { display:flex; align-items:center; gap:8px; padding:8px 12px; }
+.av2-menu-folder span { font-size:12px; color:var(--text-muted); flex:none; }
+.av2-menu-folder select {
+  flex:1; font-size:16px; border:1px solid var(--border); border-radius:8px;
+  padding:6px 8px; background:var(--bg-card); color:var(--text);
+}
+.av2-media {
+  background:#0d0d0f; display:flex; align-items:center; justify-content:center;
+  max-height:56vh; overflow:hidden;
+}
+.av2-media img, .av2-media video { width:100%; max-height:56vh; object-fit:contain; display:block; }
+.av2-actions {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:12px 14px 6px;
+}
+.av2-react {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--bg-muted); border:1px solid transparent; border-radius:var(--r-full);
+  padding:6px 11px; font-size:15px; cursor:pointer; transition:var(--t-spring);
+  line-height:1;
+}
+.av2-react:active { transform:scale(.9); }
+.av2-react.on { background:#FFE7EC; border-color:#FFC2CF; }
+.av2-react .av2-cnt { font-size:12px; font-weight:800; color:var(--text-sub); }
+.av2-fav {
+  margin-left:auto; flex:none; width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-muted); border:none; cursor:pointer; color:var(--text-muted);
+  transition:var(--t-spring);
+}
+.av2-fav:active { transform:scale(.9); }
+.av2-fav.on { background:#FFF3D6; color:#E8A12C; }
+.av2-comments {
+  flex:1 1 auto; min-height:48px; overflow-y:auto;
+  padding:4px 14px 8px; -webkit-overflow-scrolling:touch;
+}
+.av2-comment {
+  display:flex; gap:8px; padding:8px 0; border-top:1px solid var(--border-light);
+}
+.av2-comment:first-child { border-top:none; }
+.av2-cmt-main { flex:1; min-width:0; }
+.av2-cmt-head { display:flex; align-items:baseline; gap:7px; }
+.av2-cmt-who { font-size:13px; font-weight:800; color:var(--text); }
+.av2-cmt-at { font-size:11px; color:var(--text-muted); }
+.av2-cmt-text { font-size:14px; color:var(--text-sub); line-height:1.5; margin-top:2px; word-break:break-word; }
+.av2-cmt-del { flex:none; background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 4px; }
+.av2-cmt-empty { font-size:12.5px; color:var(--text-muted); text-align:center; padding:14px 0 8px; }
+.av2-commentbar {
+  flex:none; display:flex; align-items:center; gap:8px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border-light); background:var(--bg-card);
+}
+.av2-comment-input {
+  flex:1; border:1px solid var(--border); border-radius:var(--r-full);
+  padding:10px 14px; font-size:16px; background:var(--bg-muted); color:var(--text);
+}
+.av2-send {
+  flex:none; width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--grad-primary, var(--primary)); color:#fff; border:none; cursor:pointer;
+  transition:var(--t-spring);
+}
+.av2-send:active { transform:scale(.9); }
+@keyframes av2FloatHeart { 0%{opacity:1;transform:translateY(0) scale(.6);} 100%{opacity:0;transform:translateY(-70px) scale(1.3);} }
+.av2-float { position:absolute; font-size:26px; pointer-events:none; animation:av2FloatHeart .9s ease-out forwards; z-index:9; }
 /* Wave 115: 上質な空状態 */
 .es-wrap { text-align:center; padding:36px 32px 32px; }
 .es-art { margin:0 auto 22px; display:flex; justify-content:center; }
@@ -3488,7 +3602,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
-  <input type="file" id="album-file" accept="image/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
+  <input type="file" id="album-file" accept="image/*,video/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
   <div class="scroll-area" id="album-body" style="flex:1;padding:12px 12px calc(98px + env(safe-area-inset-bottom));"></div>
 </div>
 
@@ -3586,20 +3700,45 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 </div>
 
 <!-- アルバム単写真ビューア -->
-<div id="m-album-view" class="modal-backdrop hidden" style="z-index:400;align-items:center;" onclick="closeModal('m-album-view')">
-  <div class="modal" style="max-height:94vh;max-width:96vw;background:#000;color:#fff;padding:16px 12px;border-radius:20px;" onclick="event.stopPropagation()">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div id="m-album-view-meta" style="font-size:12px;opacity:.85;"></div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="albumDownloadCurrent()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">端末に保存</button>
-        <button onclick="albumDeleteCurrent()" style="background:rgba(255,107,107,.85);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">削除</button>
-        <button onclick="closeModal('m-album-view')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
+<div id="m-album-view" class="modal-backdrop hidden av2-backdrop" style="z-index:400;" onclick="closeModal('m-album-view')">
+  <div class="av2-sheet" onclick="event.stopPropagation()">
+    <!-- ヘッダー：閉じる / 日付＋共有ラベル / メニュー -->
+    <div class="av2-top">
+      <button class="av2-iconbtn" onclick="closeModal('m-album-view')" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="av2-titlewrap">
+        <div id="av2-date" class="av2-date"></div>
+        <div class="av2-share">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          家族みんな
+        </div>
+      </div>
+      <button class="av2-iconbtn" onclick="albumToggleMenu(event)" aria-label="メニュー">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+      <div id="av2-menu" class="av2-menu hidden">
+        <button onclick="albumDownloadCurrent();albumToggleMenu()">端末に保存</button>
+        <div class="av2-menu-folder">
+          <span>フォルダ</span>
+          <select id="av-folder" onchange="albumViewMoveFolder()"></select>
+        </div>
+        <button class="av2-menu-danger" onclick="albumDeleteCurrent()">削除</button>
       </div>
     </div>
-    <img id="m-album-view-img" src="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:#111;" alt="">
-    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-      <span style="font-size:11px;opacity:.8;flex:none;">フォルダ</span>
-      <select id="av-folder" onchange="albumViewMoveFolder()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:7px 8px;font-size:16px;"></select>
+    <!-- メディア（写真 or 動画）-->
+    <div id="av2-media" class="av2-media"></div>
+    <!-- リアクション＋お気に入り -->
+    <div id="av2-actions" class="av2-actions"></div>
+    <!-- コメント一覧 -->
+    <div id="av2-comments" class="av2-comments"></div>
+    <!-- コメント入力 -->
+    <div class="av2-commentbar">
+      <input id="av2-comment-input" class="av2-comment-input" placeholder="コメントを追加…" maxlength="300"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();albumAddComment();}">
+      <button class="av2-send" onclick="albumAddComment()" aria-label="コメントを送信">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
   </div>
 </div>
@@ -14406,8 +14545,13 @@ function _albumCardPreview() {
   }
   return '<div style="display:flex;gap:5px;padding:2px 0;">'
     + photos.map(function(p){
-        return '<div style="flex:1;height:54px;border-radius:8px;overflow:hidden;background:var(--bg-muted);">'
-          + '<img src="'+H(p.dataUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;">'
+        _ensurePhotoFields(p);
+        const media = (p.type === 'video')
+          ? '<video src="'+H(p.dataUrl)+'" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>'
+          : '<img src="'+H(p.dataUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
+        return '<div style="position:relative;flex:1;height:54px;border-radius:8px;overflow:hidden;background:var(--bg-muted);">'
+          + media
+          + (p.type==='video' ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 24 24" fill="#fff"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>' : '')
           + '</div>';
       }).join('')
     + '</div>';
@@ -16189,10 +16333,25 @@ function archiveDelete(id) {
 function _ensureAlbum() {
   if(!Array.isArray(S.albumPhotos)) S.albumPhotos = [];
 }
+/* 写真/動画アイテムに後付けフィールド（type/お気に入り/リアクション/コメント）を担保 */
+function _ensurePhotoFields(p) {
+  if(!p) return p;
+  if(p.type !== 'video') p.type = (typeof p.dataUrl === 'string' && p.dataUrl.indexOf('data:video') === 0) ? 'video' : 'photo';
+  if(typeof p.fav !== 'boolean') p.fav = false;
+  if(!p.reactions || typeof p.reactions !== 'object') p.reactions = {};
+  if(!Array.isArray(p.mine)) p.mine = [];
+  if(!Array.isArray(p.comments)) p.comments = [];
+  return p;
+}
 function _albumCell(p) {
+  _ensurePhotoFields(p);
   const dt = (p.takenAt||'').slice(5,10).replace('-','/');
-  return '<div class="album-cell" onclick="albumOpenView(\''+H(p.id)+'\')">'
-    + '<img src="'+H(p.dataUrl)+'" alt="">'
+  const isVid = p.type === 'video';
+  const media = isVid
+    ? '<video src="'+H(p.dataUrl)+'" muted playsinline preload="metadata"></video>'
+    : '<img src="'+H(p.dataUrl)+'" alt="">';
+  return '<div class="album-cell'+(isVid?' is-video':'')+'" onclick="albumOpenView(\''+H(p.id)+'\')">'
+    + media
     + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
     + '</div>';
 }
@@ -16235,46 +16394,184 @@ function albumOnFilesPicked(ev) {
   const total = files.length;
   let pending = total;
   let failed = 0;
-  // Wave 58: 各写真をダウンスケールしてから push（容量保護）
+  let skipped = 0;
+  function done() {
+    pending--;
+    if(pending !== 0) return;
+    const ok = saveS();
+    renderAlbum();
+    if(!ok) {
+      showToast("容量不足のため保存できませんでした。動画や枚数を減らすか、設定 → ストレージ管理から整理してください。","error");
+    } else if(skipped > 0) {
+      showToast('動画が大きすぎて追加できないものがありました（端末版は短い動画のみ対応）','info');
+    } else if(failed > 0) {
+      showToast((total - failed)+' 件追加 / '+failed+' 件は読込失敗','info');
+    } else {
+      showToast(total+' 件追加しました','success');
+    }
+  }
+  // Wave 252: 写真はダウンスケール、動画は data URL でそのまま保存（容量保護つき）
   for(let i=0; i<total; i++) {
     const f = files[i];
-    downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
-      if(dataUrl && checkPremiumLimit('albumPhotos')) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'' });
-      else failed++;
-      pending--;
-      if(pending === 0) {
-        const ok = saveS();
-        renderAlbum();
-        if(!ok) {
-          // saveS が容量超過で false を返した場合、直前 push を巻き戻して整合性確保
-          showToast("容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。","error");
-        } else if(failed > 0) {
-          showToast((total - failed)+' 枚追加 / '+failed+' 枚は読込失敗','info');
-        } else {
-          showToast(total+' 枚追加しました','success');
-        }
-      }
-    });
+    const isVideo = (f.type||'').indexOf('video/') === 0;
+    if(isVideo) {
+      // 端末内（LocalStorage）保存のため大きすぎる動画はスキップ（base64で約1.35倍に膨らむ）
+      if(f.size > 18 * 1024 * 1024) { skipped++; done(); continue; }
+      const fr = new FileReader();
+      fr.onload = function(){
+        const dataUrl = fr.result;
+        if(dataUrl && checkPremiumLimit('albumPhotos')) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, type:'video', takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'', fav:false, reactions:{}, mine:[], comments:[] });
+        else failed++;
+        done();
+      };
+      fr.onerror = function(){ failed++; done(); };
+      fr.readAsDataURL(f);
+    } else {
+      downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
+        if(dataUrl && checkPremiumLimit('albumPhotos')) S.albumPhotos.push({ id:'ph_'+uid(), dataUrl:dataUrl, type:'photo', takenAt:now, memberId:'', caption:'', folderId:_albumFolder||'', fav:false, reactions:{}, mine:[], comments:[] });
+        else failed++;
+        done();
+      });
+    }
   }
   ev.target.value = '';
 }
 let _albumViewId = null;
+const AV_REACTIONS = ['❤️','😊','👍','🎉','😍'];
+function _curPhoto() { return (S.albumPhotos||[]).find(function(x){ return x.id===_albumViewId; }); }
+function _avFmtDate(iso) {
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso).slice(0,10).replace(/-/g,'/');
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function _avFmtTime(iso) {
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
 function albumOpenView(id) {
   _ensureAlbum();
   const p = (S.albumPhotos||[]).find(function(x){ return x.id===id; });
   if(!p) return;
+  _ensurePhotoFields(p);
   _albumViewId = id;
-  const img = document.getElementById('m-album-view-img');
-  if(img) img.src = p.dataUrl || '';
-  const meta = document.getElementById('m-album-view-meta');
-  if(meta) meta.textContent = (p.takenAt||'').slice(0,10).replace(/-/g,'/');
+  const menu = document.getElementById('av2-menu'); if(menu) menu.classList.add('hidden');
+  // フォルダ選択
   const folSel = document.getElementById('av-folder');
   if(folSel) {
     folSel.innerHTML = '<option value="">未分類</option>'
       + _folderArr('album').map(function(f){ return '<option value="'+H(f.id)+'">'+H(f.name)+'</option>'; }).join('');
     folSel.value = p.folderId || '';
   }
+  albumRenderViewer();
   openModal('m-album-view');
+}
+/* ビューアの中身（日付・メディア・リアクション・コメント）を再描画 */
+function albumRenderViewer() {
+  const p = _curPhoto(); if(!p) return;
+  _ensurePhotoFields(p);
+  // 日付
+  const dateEl = document.getElementById('av2-date');
+  if(dateEl) dateEl.textContent = _avFmtDate(p.takenAt);
+  // メディア（写真 or 動画）
+  const media = document.getElementById('av2-media');
+  if(media) {
+    media.innerHTML = (p.type === 'video')
+      ? '<video src="'+H(p.dataUrl)+'" controls playsinline preload="metadata"></video>'
+      : '<img src="'+H(p.dataUrl)+'" alt="">';
+  }
+  // リアクション＋お気に入り
+  const act = document.getElementById('av2-actions');
+  if(act) {
+    const reacts = AV_REACTIONS.map(function(em){
+      const cnt = p.reactions[em] || 0;
+      const on = p.mine.indexOf(em) >= 0;
+      return '<button class="av2-react'+(on?' on':'')+'" onclick="albumReact(\''+em+'\',event)">'
+        + '<span>'+em+'</span>'+(cnt>0?'<span class="av2-cnt">'+cnt+'</span>':'')+'</button>';
+    }).join('');
+    act.innerHTML = reacts
+      + '<button class="av2-fav'+(p.fav?' on':'')+'" onclick="albumToggleFav()" aria-label="お気に入り">'
+      +   '<svg width="20" height="20" viewBox="0 0 24 24" fill="'+(p.fav?'currentColor':'none')+'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg>'
+      + '</button>';
+  }
+  // コメント
+  const cm = document.getElementById('av2-comments');
+  if(cm) {
+    if(!p.comments.length) {
+      cm.innerHTML = '<div class="av2-cmt-empty">まだコメントはありません。<br>最初のひとことを書いてみましょう。</div>';
+    } else {
+      cm.innerHTML = p.comments.map(function(c){
+        return '<div class="av2-comment">'
+          + '<div class="av2-cmt-main">'
+          +   '<div class="av2-cmt-head"><span class="av2-cmt-who">'+H(c.by||'家族')+'</span><span class="av2-cmt-at">'+H(_avFmtTime(c.at))+'</span></div>'
+          +   '<div class="av2-cmt-text">'+H(c.text||'')+'</div>'
+          + '</div>'
+          + '<button class="av2-cmt-del" onclick="albumDeleteComment(\''+H(c.id)+'\')" aria-label="コメントを削除">削除</button>'
+          + '</div>';
+      }).join('');
+    }
+  }
+}
+function albumToggleMenu(ev) {
+  if(ev) ev.stopPropagation();
+  const menu = document.getElementById('av2-menu');
+  if(menu) menu.classList.toggle('hidden');
+}
+function albumToggleFav() {
+  const p = _curPhoto(); if(!p) return;
+  _ensurePhotoFields(p);
+  p.fav = !p.fav;
+  saveS();
+  albumRenderViewer();
+}
+function albumReact(em, ev) {
+  const p = _curPhoto(); if(!p) return;
+  _ensurePhotoFields(p);
+  const idx = p.mine.indexOf(em);
+  if(idx >= 0) {
+    p.mine.splice(idx,1);
+    p.reactions[em] = Math.max(0, (p.reactions[em]||0) - 1);
+    if(!p.reactions[em]) delete p.reactions[em];
+  } else {
+    p.mine.push(em);
+    p.reactions[em] = (p.reactions[em]||0) + 1;
+    // タップ位置にふわっとリアクション演出
+    if(ev && _userGestured) { try { _avFloatEmoji(em, ev); } catch(_){} }
+  }
+  saveS();
+  albumRenderViewer();
+}
+function _avFloatEmoji(em, ev) {
+  const sheet = document.querySelector('.av2-sheet'); if(!sheet) return;
+  const r = sheet.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'av2-float'; el.textContent = em;
+  el.style.left = (ev.clientX - r.left - 13) + 'px';
+  el.style.top  = (ev.clientY - r.top - 13) + 'px';
+  sheet.appendChild(el);
+  setTimeout(function(){ try { el.remove(); } catch(_){} }, 900);
+}
+function albumAddComment() {
+  const p = _curPhoto(); if(!p) return;
+  _ensurePhotoFields(p);
+  const inp = document.getElementById('av2-comment-input');
+  const text = (inp && inp.value || '').trim();
+  if(!text) return;
+  p.comments.push({ id:'cm_'+uid(), by: displayName(), text:text, at: new Date().toISOString() });
+  if(inp) inp.value = '';
+  saveS();
+  albumRenderViewer();
+  // 最新コメントへスクロール
+  const cm = document.getElementById('av2-comments');
+  if(cm) cm.scrollTop = cm.scrollHeight;
+}
+function albumDeleteComment(cid) {
+  const p = _curPhoto(); if(!p) return;
+  _ensurePhotoFields(p);
+  p.comments = p.comments.filter(function(c){ return c.id !== cid; });
+  saveS();
+  albumRenderViewer();
 }
 /* アルバムビューアからフォルダを移動 */
 function albumViewMoveFolder() {
@@ -16290,7 +16587,9 @@ function albumViewMoveFolder() {
 }
 function albumDeleteCurrent() {
   if(!_albumViewId) return;
-  showConfirm('写真を削除', 'この写真を削除しますか？', '削除する', () => {
+  const p = _curPhoto();
+  const what = (p && p.type === 'video') ? '動画' : '写真';
+  showConfirm(what+'を削除', 'この'+what+'を削除しますか？', '削除する', () => {
     S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
     saveS();
     _albumViewId = null;
@@ -16301,10 +16600,12 @@ function albumDeleteCurrent() {
 
 /* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
 function downloadDataUrl(dataUrl, baseName) {
-  if(!dataUrl) { showToast('保存できる画像がありません','error'); return; }
+  if(!dataUrl) { showToast('保存できるデータがありません','error'); return; }
   try {
-    const m = String(dataUrl).match(/^data:image\/([a-zA-Z]+)/);
-    const ext = m ? (m[1].toLowerCase()==='jpeg' ? 'jpg' : m[1].toLowerCase()) : 'jpg';
+    const m = String(dataUrl).match(/^data:(?:image|video)\/([a-zA-Z0-9]+)/);
+    let ext = m ? m[1].toLowerCase() : 'jpg';
+    if(ext === 'jpeg') ext = 'jpg';
+    if(ext === 'quicktime') ext = 'mov';
     const safe = (baseName||'familink').replace(/[\\/:*?"<>|\s　]+/g,'_').slice(0,40) || 'familink';
     const a = document.createElement('a');
     a.href = dataUrl;
