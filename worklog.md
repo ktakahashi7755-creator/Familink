@@ -17801,3 +17801,145 @@ Hokuショップ（着せ替え）：ファミコインでメインHokuの見た
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: add Hoku shop with fami coin skin exchange`
+
+## 2026-06-04 10:11  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+Hokuショップ（独立モーダル）を撤廃し、ファミショップ内「Hokuの着せ替え」へ統合
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（本体同期＋キャッシュバスター 20260604f→20260604g）
+
+### 変更内容
+- 独立モーダル `m-hoku-shop` を撤廃
+- `renderShop()` 内にスキン交換セクション（装備中表示＋スキングリッド／id=famishop-hoku）を実体として組み込み
+- `openHokuShop()` を「ファミショップ(m-shop)を開き #famishop-hoku へスクロール」に変更
+- `renderHokuShop()` は `renderShop()` へ委譲（購入/装備後の再描画を維持）
+- 導線文言を「Hokuショップ」→「Hokuの着せ替え／着せ替え」へ統一（着せ替えボタン/ホームチップ/設定）
+- 作業ブランチを main 相当(7cce8f1)へ追従（170コミット遅れを解消）
+
+### テスト結果
+- インライン<script>構文チェック：app-source 0エラー / docs 0エラー（node）
+- 残存参照チェック：m-hoku-shop / hkshop-balance 等 0件
+- docs本体==app-source本体 を一致確認、SW登録・.hkshop CSS 温存確認
+- 手動UI確認：未実施（実機/ブラウザ確認は次）
+
+### 未確認事項
+- スキン画像 assets/hoku/*.png 未配置のため現状は全スキンがノーマルにフォールバック（画像差し替えは別タスク）
+- 実機でのファミショップ→Hokuの着せ替えセクションへのスクロール動作
+
+### iPhone確認ポイント
+- ホーム/設定/Hoku画面の各導線からファミショップが開き、Hokuの着せ替えセクションへスクロールするか
+- スキン「交換」「装備」後にメインHoku表示・装備中表示が更新されるか
+
+### 次にやること
+- 元画像2枚（表情シート/コスチュームシート）のアップロード受領 → 5体(pajama/teacher/chef/hero/space)を切り出し assets/hoku/ へ配置（app-source/docs両方）→ docs同期＋版数バンプ
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: Hokuショップをファミショップ内「Hokuの着せ替え」へ統合（独立モーダル撤廃）
+
+## 2026-06-04 10:19  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+Hokuスキン画像5種を実画像へ差し替え（提供コスチュームシートから自動切り出し）
+
+### 変更ファイル
+- app-source/assets/hoku/{pajama,teacher,chef,hero,space}-hoku.png（新規）
+- docs/assets/hoku/{pajama,teacher,chef,hero,space}-hoku.png（新規・同期）
+
+### 変更内容
+- チャット貼付画像は取得不可だったため、会話ログ(jsonl)からbase64画像を復元 → コスチュームシート(1254x1254)を特定
+- numpy/scipy で外周フラッドフィルによる白背景透過（白い服・コック帽・宇宙服など内部の白は保持）
+- 連結成分の上位5体を抽出し装飾の星・惑星を除外、各キャラを正方形(最大512px)透過PNGで書き出し
+- 上段=pajama/teacher/chef、下段=hero/space にマッピングして HOKU_SKINS の参照パスへ配置
+- HTML本体は変更なし（画像ファイル追加のみ）。全5スキンのフォールバック(ノーマル)が解消
+
+### テスト結果
+- HOKU_SKINS の5参照パスが app-source/docs 双方で実ファイル存在を確認
+- 切り出し5枚を目視確認（透過・白服保持・装飾除去・items保持 良好）
+
+### 未確認事項
+- 実機(iPhone)でのスキン表示・装備切替時のメインHoku反映
+- SWキャッシュ下での新規アセット初回取得（通常はキャッシュミス→ネットワーク取得で問題なし想定）
+
+### iPhone確認ポイント
+- ファミショップ→Hokuの着せ替えで5体が実画像で表示されるか
+- 交換/装備でメインHoku（Hoku画面・ヘッダー）が各コスチュームに変わるか
+
+### 次にやること
+- 実機確認OKならmainへマージで公開（版数 20260604g）
+- 表情シート(画像1)の活用余地は将来検討（現状ノーマルでOK）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: Hokuスキン5種の実画像を追加（提供画像から自動切り出し・透過）
+
+## 2026-06-04 10:36  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から再生成）
+
+### 変更ファイル
+- app-source/familink.html（IMGS: smile/happy/wave/sleep/wink/hoku の base64 差し替え）
+- docs/index.html（同期＋キャッシュバスター 20260604g→20260604h）
+
+### 変更内容
+- 会話ログから表情シート(1024x1536)を復元し6表情を切り出し（外周フラッドフィル透過）
+- 240px・FASTOCTREE量子化で最適化（各6〜9KB／現行20〜85KBより軽量化）
+- 既存IMGSキーへマッピング：hoku/smile=穏やか笑顔, happy=満面, wave=手振り, wink=びっくり, sleep=おやすみ
+- キー名・参照箇所は不変のため、Hoku表示は全箇所で自動的に新アートへ更新（コードロジック変更なし）
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS（FAIL 0 / WARN 0）
+- JS構文：app-source/docs ともに 0エラー
+- docs本体==app-source本体 一致、版数 20260604h 反映確認
+
+### 未確認事項
+- 実機(iPhone)での各表情の表示（Hoku画面・ヘッダー・空状態・ボーナス・チャット行）
+
+### iPhone確認ポイント
+- Hoku各所のキャラが新アートに変わっているか
+- 着せ替え未装備（通常）時に穏やか笑顔が表示されるか
+
+### 次にやること
+- 総点検の指摘改善 → 実機確認 → mainへマージで公開
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: Hoku表情6種を新アートへ差し替え（IMGS base64再生成・軽量化）
+
+## 2026-06-04 10:39  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+総点検（QA＋ブラウザ実機検証）と取りこぼし文言の改善
+
+### 変更ファイル
+- app-source/familink.html（ログインボーナス文言：Hokuショップ→ファミショップ）
+- docs/index.html（本体同期＋キャッシュバスター 20260604h→20260604i）
+
+### 変更内容
+- Playwrightでブラウザ実検証：openHokuShop()でファミショップが開き#famishop-hokuへスクロール、5コスチューム＋通常(新顔)画像のロード成功、Hoku画面/ヘッダーが新アートに更新を確認
+- 旧表記の取りこぼし1件を修正：ログインボーナス内「Hokuショップで着せ替えに使えます」→「ファミショップでHokuの着せ替えに使えます」
+- 残存ID参照(m-hoku-shop/hkshop-balance)なし、本体 app==docs 一致を確認
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS（2回実行ともFAIL0/WARN0）
+- ブラウザ検証：skin画像 naturalWidth>0（pajama487/teacher461/chef512/hero454/space450）、通常240、mainHoku240
+- consoleのERR_CERT_AUTHORITY_INVALID×4は外部CDN(フォント/Supabase)のサンドボックス遮断由来でアプリ起因ではない
+
+### 未確認事項
+- 実機(iPhone)での見た目最終確認（特にプレミアム表示の宇宙/ヒーローのロック挙動）
+
+### iPhone確認ポイント
+- ファミショップ→Hokuの着せ替え：通常/パジャマ/先生/料理/ヒーロー/宇宙が実画像で並ぶ
+- 交換/装備でメインHoku（Hoku画面・ヘッダー・空状態）が切り替わる
+- ログインボーナスの文言が新導線に一致
+
+### 次にやること
+- 実機確認OK → mainへマージで公開（最終版数 20260604i）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: polish: 総点検反映（ログインボーナス文言を新導線へ統一）＋docs同期
