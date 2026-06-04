@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604j';
+  var V='v20260604k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18454,7 +18454,7 @@ function renderShop() {
       + '</div>';
   }).join('');
   const hokuSkinHtml =
-      '<div id="famishop-hoku" class="shop-cat-title" style="margin-top:18px;">Hokuの着せ替え</div>'
+      '<div id="famishop-hoku" class="shop-cat-title" style="margin-top:2px;">Hokuの着せ替え</div>'
     + '<div class="hkshop-sub" style="margin:-2px 2px 10px;font-size:12px;color:var(--text-muted);line-height:1.6;">ファミコインでHokuの衣装を交換できます。選ぶとメインHokuに反映されます。</div>'
     + '<div class="hkshop-equipped"><div class="hkshop-eq-img"><img src="'+_hokuSkinImg(equippedDef.id)+'" alt="'+H(equippedDef.name)+'" onerror="_hokuImgFallback(this)"></div>'
     +   '<div class="hkshop-eq-meta"><div class="hkshop-eq-label">装備中のHoku</div><div class="hkshop-eq-name">'+H(equippedDef.name)+'</div></div></div>'
@@ -18481,7 +18481,8 @@ function renderShop() {
       + '</div>'
     : '';
   body.innerHTML =
-      earnHtml
+      hokuSkinHtml
+    + earnHtml
     + '<div class="shop-cat-title">Hokuチケット（今日だけ・残り '+hokuLeft+'回）</div>'
     + hokuHtml
     + '<div class="shop-cat-title" style="margin-top:16px;">限定アバター（購入すると無料プランでも使えます）</div>'
@@ -18491,7 +18492,6 @@ function renderShop() {
     +   '<button class="shop-th-libbtn" onclick="openThemeLib()">テーマ保管庫 ›</button>'
     + '</div>'
     + '<div class="shop-th-grid">' + themeHtml + '</div>'
-    + hokuSkinHtml
     + premoHtml
     + '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:14px;padding:0 2px;">※ Hokuチケットは当日中のみ有効です。アバター・テーマは購入すると恒久的に使えます。テーマは「テーマ保管庫」からいつでも切り替えられます。</div>';
 }
