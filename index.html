@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604m';
+  var V='v20260604n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18462,7 +18462,7 @@ function renderShop() {
       + '</div>';
   }).join('');
   const hokuSkinHtml =
-      '<div id="famishop-hoku" class="shop-cat-title" style="margin-top:2px;">Hokuの着せ替え</div>'
+      '<div id="famishop-hoku" class="shop-cat-title" style="margin-top:16px;">Hokuの着せ替え</div>'
     + '<div class="hkshop-sub" style="margin:-2px 2px 10px;font-size:12px;color:var(--text-muted);line-height:1.6;">ファミコインでHokuの衣装を交換できます。選ぶとメインHokuに反映されます。</div>'
     + '<div class="hkshop-equipped"><div class="hkshop-eq-img"><img src="'+_hokuSkinImg(equippedDef.id)+'" alt="'+H(equippedDef.name)+'" onerror="_hokuImgFallback(this)"></div>'
     +   '<div class="hkshop-eq-meta"><div class="hkshop-eq-label">装備中のHoku</div><div class="hkshop-eq-name">'+H(equippedDef.name)+'</div></div></div>'
@@ -18489,10 +18489,10 @@ function renderShop() {
       + '</div>'
     : '';
   body.innerHTML =
-      hokuSkinHtml
-    + earnHtml
+      earnHtml
     + '<div class="shop-cat-title">Hokuチケット（今日だけ・残り '+hokuLeft+'回）</div>'
     + hokuHtml
+    + hokuSkinHtml
     + '<div class="shop-cat-title" style="margin-top:16px;">限定アバター（購入すると無料プランでも使えます）</div>'
     + '<div class="shop-av-grid">' + avHtml + '</div>'
     + '<div class="shop-cat-title" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">'
