@@ -18041,3 +18041,37 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: ux: Hoku FABをスクロール中フェードしコンテンツ重なりを解消（総点検改善）
+
+## 2026-06-04 14:35  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+表情Hoku5種を安価スキンとしてファミショップへ組み込み（各30ファミコイン）
+
+### 変更ファイル
+- app-source/familink.html（HOKU_SKINS に表情5種追加）
+- app-source/assets/hoku/{joy,cheer,surprised,jump,sleepy}-hoku.png（新規）
+- docs/assets/hoku/{joy,cheer,surprised,jump,sleepy}-hoku.png（新規・同期）
+- docs/index.html（body同期＋キャッシュバスター 20260604l→20260604m）
+
+### 変更内容
+- 表情シート6種のうち5表情をスキン化：にこにこ/わくわく/びっくり/ぴょん/おやすみ
+- 価格は安め＝各30ファミコイン・rarity normal、ノーマル直後に配置
+- 256px量子化で各7〜8KBの軽量透過PNG。買う/装備は既存ロジック流用、PERSIST変更不要
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：着せ替えカード11枚（通常＋表情5＋コスチューム5）、全画像ロード、consoleエラー0
+- 参照パス10件すべて実ファイル存在、JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- 実機での購入→装備→メインHoku反映の体感
+
+### iPhone確認ポイント
+- 着せ替え上部に30コインの表情5種、交換→装備で表情変化
+
+### 次にやること
+- 実機OKで完了。価格/表情の増減要望あれば調整
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: 表情Hoku5種を30ファミコインの安価スキンとして追加
