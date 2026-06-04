@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260603z';
+  var V='v20260604a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -962,13 +962,14 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .av2-react {
   display:inline-flex; align-items:center; gap:4px;
-  background:var(--bg-muted); border:1px solid transparent; border-radius:var(--r-full);
-  padding:6px 11px; font-size:15px; cursor:pointer; transition:var(--t-spring);
-  line-height:1;
+  background:var(--bg-muted); border:1.5px solid transparent; border-radius:var(--r-full);
+  padding:6px 11px; cursor:pointer; transition:var(--t-spring);
+  line-height:0; color:var(--text-muted);
 }
+.av2-react svg { display:block; }
 .av2-react:active { transform:scale(.9); }
-.av2-react.on { background:#FFE7EC; border-color:#FFC2CF; }
-.av2-react .av2-cnt { font-size:12px; font-weight:800; color:var(--text-sub); }
+.av2-react.on { background:var(--bg-card); border-color:currentColor; }
+.av2-react .av2-cnt { font-size:12px; font-weight:800; color:var(--text-sub); line-height:1; }
 .av2-fav {
   margin-left:auto; flex:none; width:40px; height:40px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
@@ -1009,7 +1010,29 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .av2-send:active { transform:scale(.9); }
 @keyframes av2FloatHeart { 0%{opacity:1;transform:translateY(0) scale(.6);} 100%{opacity:0;transform:translateY(-70px) scale(1.3);} }
-.av2-float { position:absolute; font-size:26px; pointer-events:none; animation:av2FloatHeart .9s ease-out forwards; z-index:9; }
+.av2-float { position:absolute; line-height:0; pointer-events:none; animation:av2FloatHeart .9s ease-out forwards; z-index:9; }
+.av2-float svg { display:block; }
+.av2-media img { cursor:zoom-in; }
+/* フル画面の写真ビューア */
+.pf-backdrop { align-items:center; justify-content:center; background:rgba(0,0,0,.94); flex-direction:column; }
+.pf-img { max-width:100vw; max-height:84vh; object-fit:contain; -webkit-touch-callout:default; }
+.pf-close {
+  position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:14px; z-index:2;
+  width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(255,255,255,.18); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+}
+.pf-bar {
+  position:absolute; left:0; right:0; bottom:0;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 18px calc(18px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0));
+}
+.pf-hint { font-size:12.5px; color:rgba(255,255,255,.92); font-weight:600; }
+.pf-save {
+  flex:none; background:rgba(255,255,255,.95); color:#1C1C1E; border:none;
+  border-radius:var(--r-full); padding:9px 16px; font-size:13px; font-weight:800; cursor:pointer;
+}
 /* Wave 115: 上質な空状態 */
 .es-wrap { text-align:center; padding:36px 32px 32px; }
 .es-art { margin:0 auto 22px; display:flex; justify-content:center; }
@@ -3740,6 +3763,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- フル画面の写真ビューア（長押しで端末に保存しやすく） -->
+<div id="m-photo-full" class="modal-backdrop hidden pf-backdrop" style="z-index:500;" onclick="closeModal('m-photo-full')">
+  <button class="pf-close" onclick="closeModal('m-photo-full')" aria-label="閉じる">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="pf-img" class="pf-img" src="" alt="写真" onclick="event.stopPropagation()">
+  <div class="pf-bar" onclick="event.stopPropagation()">
+    <span class="pf-hint">写真を長押しすると端末に保存できます</span>
+    <button class="pf-save" onclick="albumDownloadCurrent()">端末に保存</button>
   </div>
 </div>
 
@@ -16437,7 +16472,15 @@ function albumOnFilesPicked(ev) {
   ev.target.value = '';
 }
 let _albumViewId = null;
-const AV_REACTIONS = ['❤️','😊','👍','🎉','😍'];
+/* リアクションは絵文字ではなくアプリ共通の SVG アイコンで統一 */
+const AV_REACTIONS = [
+  { k:'heart', icon:'heart',     color:'#F2557A' },
+  { k:'smile', icon:'smileface', color:'#E8A12C' },
+  { k:'good',  icon:'thumbsup',  color:'#3B82F6' },
+  { k:'party', icon:'sparkle',   color:'#9B7EDE' },
+  { k:'wow',   icon:'flame',     color:'#EF6C3B' },
+];
+function _avReactDef(k) { return AV_REACTIONS.find(function(r){ return r.k===k; }); }
 function _curPhoto() { return (S.albumPhotos||[]).find(function(x){ return x.id===_albumViewId; }); }
 function _avFmtDate(iso) {
   if(!iso) return '';
@@ -16467,6 +16510,13 @@ function albumOpenView(id) {
   albumRenderViewer();
   openModal('m-album-view');
 }
+/* 写真をタップ → フル画面表示（長押しで端末に保存しやすく） */
+function albumOpenFull() {
+  const p = _curPhoto(); if(!p || p.type === 'video') return;
+  const img = document.getElementById('pf-img');
+  if(img) img.src = p.dataUrl || '';
+  openModal('m-photo-full');
+}
 /* ビューアの中身（日付・メディア・リアクション・コメント）を再描画 */
 function albumRenderViewer() {
   const p = _curPhoto(); if(!p) return;
@@ -16479,16 +16529,17 @@ function albumRenderViewer() {
   if(media) {
     media.innerHTML = (p.type === 'video')
       ? '<video src="'+H(p.dataUrl)+'" controls playsinline preload="metadata"></video>'
-      : '<img src="'+H(p.dataUrl)+'" alt="">';
+      : '<img src="'+H(p.dataUrl)+'" alt="写真" onclick="albumOpenFull()">';
   }
   // リアクション＋お気に入り
   const act = document.getElementById('av2-actions');
   if(act) {
-    const reacts = AV_REACTIONS.map(function(em){
-      const cnt = p.reactions[em] || 0;
-      const on = p.mine.indexOf(em) >= 0;
-      return '<button class="av2-react'+(on?' on':'')+'" onclick="albumReact(\''+em+'\',event)">'
-        + '<span>'+em+'</span>'+(cnt>0?'<span class="av2-cnt">'+cnt+'</span>':'')+'</button>';
+    const reacts = AV_REACTIONS.map(function(r){
+      const cnt = p.reactions[r.k] || 0;
+      const on = p.mine.indexOf(r.k) >= 0;
+      return '<button class="av2-react'+(on?' on':'')+'" onclick="albumReact(\''+r.k+'\',event)" aria-label="リアクション"'
+        + (on ? ' style="color:'+r.color+';"' : '') + '>'
+        + ICON(r.icon, 19) + (cnt>0?'<span class="av2-cnt">'+cnt+'</span>':'') + '</button>';
     }).join('');
     act.innerHTML = reacts
       + '<button class="av2-fav'+(p.fav?' on':'')+'" onclick="albumToggleFav()" aria-label="お気に入り">'
@@ -16525,28 +16576,31 @@ function albumToggleFav() {
   saveS();
   albumRenderViewer();
 }
-function albumReact(em, ev) {
+function albumReact(k, ev) {
   const p = _curPhoto(); if(!p) return;
   _ensurePhotoFields(p);
-  const idx = p.mine.indexOf(em);
+  const idx = p.mine.indexOf(k);
   if(idx >= 0) {
     p.mine.splice(idx,1);
-    p.reactions[em] = Math.max(0, (p.reactions[em]||0) - 1);
-    if(!p.reactions[em]) delete p.reactions[em];
+    p.reactions[k] = Math.max(0, (p.reactions[k]||0) - 1);
+    if(!p.reactions[k]) delete p.reactions[k];
   } else {
-    p.mine.push(em);
-    p.reactions[em] = (p.reactions[em]||0) + 1;
-    // タップ位置にふわっとリアクション演出
-    if(ev && _userGestured) { try { _avFloatEmoji(em, ev); } catch(_){} }
+    p.mine.push(k);
+    p.reactions[k] = (p.reactions[k]||0) + 1;
+    // タップ位置にふわっとリアクション演出（SVGアイコン）
+    if(ev && _userGestured) { try { _avFloatReact(k, ev); } catch(_){} }
   }
   saveS();
   albumRenderViewer();
 }
-function _avFloatEmoji(em, ev) {
+function _avFloatReact(k, ev) {
   const sheet = document.querySelector('.av2-sheet'); if(!sheet) return;
+  const def = _avReactDef(k) || { icon:'heart', color:'#F2557A' };
   const r = sheet.getBoundingClientRect();
   const el = document.createElement('div');
-  el.className = 'av2-float'; el.textContent = em;
+  el.className = 'av2-float';
+  el.style.color = def.color;
+  el.innerHTML = ICON(def.icon, 26);
   el.style.left = (ev.clientX - r.left - 13) + 'px';
   el.style.top  = (ev.clientY - r.top - 13) + 'px';
   sheet.appendChild(el);
