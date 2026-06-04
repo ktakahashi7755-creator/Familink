@@ -964,13 +964,13 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .av2-media img, .av2-media video { width:100%; max-height:56vh; object-fit:contain; display:block; }
 .av2-actions {
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:6px; flex-wrap:nowrap;
   padding:12px 14px 6px;
 }
 .av2-react {
-  display:inline-flex; align-items:center; gap:4px;
+  display:inline-flex; align-items:center; gap:3px; flex:none;
   background:var(--bg-muted); border:1.5px solid transparent; border-radius:var(--r-full);
-  padding:6px 11px; cursor:pointer; transition:var(--t-spring);
+  padding:6px 9px; cursor:pointer; transition:var(--t-spring);
   line-height:0; color:var(--text-muted);
 }
 .av2-react svg { display:block; }
