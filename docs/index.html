@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604c';
+  var V='v20260604d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -2076,6 +2076,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   .hoku-character img { animation: none !important; }
   .hoku-character.happy::before, .hoku-character.happy::after { animation: none; opacity:0; }
   .home-coins.bump { animation: none !important; }
+  .av2-float { display: none !important; }  /* アルバムのリアクション演出を抑制 */
 }
 .hoku-bubble {
   max-width: 80%; padding: 10px 14px; line-height: 1.65; font-size: 14px;
