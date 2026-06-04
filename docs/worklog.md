@@ -17875,3 +17875,37 @@ Hokuスキン画像5種を実画像へ差し替え（提供コスチュームシ
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: feat: Hokuスキン5種の実画像を追加（提供画像から自動切り出し・透過）
+
+## 2026-06-04 10:36  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から再生成）
+
+### 変更ファイル
+- app-source/familink.html（IMGS: smile/happy/wave/sleep/wink/hoku の base64 差し替え）
+- docs/index.html（同期＋キャッシュバスター 20260604g→20260604h）
+
+### 変更内容
+- 会話ログから表情シート(1024x1536)を復元し6表情を切り出し（外周フラッドフィル透過）
+- 240px・FASTOCTREE量子化で最適化（各6〜9KB／現行20〜85KBより軽量化）
+- 既存IMGSキーへマッピング：hoku/smile=穏やか笑顔, happy=満面, wave=手振り, wink=びっくり, sleep=おやすみ
+- キー名・参照箇所は不変のため、Hoku表示は全箇所で自動的に新アートへ更新（コードロジック変更なし）
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS（FAIL 0 / WARN 0）
+- JS構文：app-source/docs ともに 0エラー
+- docs本体==app-source本体 一致、版数 20260604h 反映確認
+
+### 未確認事項
+- 実機(iPhone)での各表情の表示（Hoku画面・ヘッダー・空状態・ボーナス・チャット行）
+
+### iPhone確認ポイント
+- Hoku各所のキャラが新アートに変わっているか
+- 着せ替え未装備（通常）時に穏やか笑顔が表示されるか
+
+### 次にやること
+- 総点検の指摘改善 → 実機確認 → mainへマージで公開
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: Hoku表情6種を新アートへ差し替え（IMGS base64再生成・軽量化）
