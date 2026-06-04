@@ -18171,3 +18171,40 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: テスト(#qa-debug)パネルから生の技術ダンプを撤去しクリーン表示に（コード露出の解消）
+
+## 2026-06-04 21:47  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+総点検（品質/UX/一貫性）→改善点タスク化→実装：装備HokuスキンをFABに反映
+
+### 総点検で洗い出した改善点（タスク化）
+- [T1/高] 装備中HokuスキンがフローティングボタンFABに反映されない不整合 → 実装
+- [T2/低] 二次フィルタタブ(tk-filter-btn等)の高さ35px → 許容範囲のため今回見送り（必要時対応）
+- [確認のみ] a11y：button名欠落0/img alt欠落0、空状態は主要画面に整備済み（タスク/買い物等）、コンソールエラー0、コード露出0 → 健全
+
+### 変更ファイル
+- app-source/familink.html（refreshEquippedHoku / initFab）
+- docs/index.html（body同期＋キャッシュバスター 20260604p→20260604q）
+
+### 変更内容（T1実装）
+- refreshEquippedHoku() で #hoku-fab-img も装備中スキン画像へ更新（fallback付き）
+- initFab() の初期画像を equippedHokuImg() 優先に変更（無ければ通常Hoku）
+- 結果：装備変更時もリロード後も、FAB・Hoku画面・ヘッダーが全て同じ装備スキンで一貫
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：装備chef→FAB=chef-hoku.png、リロード後もchef-hoku.png（before=通常base64）
+- JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 着せ替えでコスチューム/表情を装備 → 右下のHokuボタンも同じ見た目に変わる／再読込後も維持
+
+### 次にやること
+- 実機確認OKで完了。T2(タップ領域)を上げたい場合は指示で対応
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix: 装備HokuスキンをフローティングボタンFABにも反映（表示の一貫性）
