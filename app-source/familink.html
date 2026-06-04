@@ -1332,6 +1332,13 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   color: var(--text-sub); cursor: pointer; transition: var(--t);
 }
 .cal-hd-btn:active { background: var(--primary-light); color: var(--primary); transform: scale(.9); }
+/* 月送りチェボロン：戻るボタン(円形)と区別するため、丸背景なしの軽量チェボロンで月タイトルに寄せる */
+.cal-mn-btn {
+  width: 30px; height: 36px; border: none; background: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); cursor: pointer; transition: var(--t);
+}
+.cal-mn-btn:active { color: var(--primary); transform: scale(.9); }
 .cal-hd-title {
   font-size: 17px;
   font-weight: 700; color: var(--text);
@@ -3868,12 +3875,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="cal-hd-nav">
-      <button class="cal-hd-btn" onclick="changeCalMonth(-1)" aria-label="前の月">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <button class="cal-mn-btn" onclick="changeCalMonth(-1)" aria-label="前の月">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="cal-hd-title" id="cal-month-title"></div>
-      <button class="cal-hd-btn" onclick="changeCalMonth(1)" aria-label="次の月">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      <button class="cal-mn-btn" onclick="changeCalMonth(1)" aria-label="次の月">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
     <div style="display:flex;gap:6px;">
@@ -7851,6 +7858,27 @@ function downscaleImageFile(file, maxDim, quality) {
     reader.readAsDataURL(file);
   });
 }
+/* id 重複のレコードを除去（重複表示の防止・データは消さず最初の1件を残す） */
+function _dedupArrById(arr) {
+  if(!Array.isArray(arr)) return arr;
+  const seen = {}; const out = [];
+  for(const it of arr) {
+    const id = it && it.id;
+    if(id == null) { out.push(it); continue; }   // id無しは触らない
+    if(seen[id]) continue;                        // 既出idはスキップ（重複）
+    seen[id] = 1; out.push(it);
+  }
+  return out;
+}
+function _dedupStateById() {
+  ['events','tasks','txs','memos','albumPhotos','posts','announces','docs'].forEach(function(k){
+    if(Array.isArray(S[k])) {
+      const before = S[k].length;
+      S[k] = _dedupArrById(S[k]);
+      if(S[k].length !== before) { try { saveS(); } catch(_){} }
+    }
+  });
+}
 function loadS() {
   try {
     const d = JSON.parse(localStorage.getItem(SK) || '{}');
@@ -10421,24 +10449,18 @@ function renderCalDetail(ds) {
   const evs = wsFilter(S.events).filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
   const lbl = jpDate(ds);
 
-  const addBtn = `<button class="cal-det-add-btn" onclick="S.calSel='${ds}';openEventModal()" aria-label="この日に予定を追加">
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>追加
-  </button>`;
-
   const hol = _holidayName(ds);
+  // 追加は右下のFAB（＋）に集約（ボタン重複を避ける）。FABは選択中の日付に予定を追加する。
   const hdr = `<div class="cal-det-hdr">
     <div class="cal-det-date-lbl">${H(lbl)}</div>
     ${hol ? `<div class="cal-det-holiday">${H(hol)}</div>` : ''}
     ${evs.length ? `<div class="cal-det-cnt">${evs.length}件</div>` : ''}
-    ${addBtn}
   </div>`;
 
   if(!evs.length) {
     panel.innerHTML = hdr + `<div class="cal-det-empty">
       <div class="cal-det-empty-title">予定はありません</div>
-      <div class="cal-det-empty-sub">「追加」ボタンで予定を登録できます</div>
+      <div class="cal-det-empty-sub">右下の ＋ ボタンで予定を登録できます</div>
     </div>`;
     return;
   }
@@ -23907,6 +23929,7 @@ function init() {
     window.addEventListener(ev, function(){ _userGestured = true; }, { once:true, passive:true });
   });
   loadS();
+  _dedupStateById();          // 念のため：id重複の予定/タスク/家計/メモ/写真を除去（重複表示の防止）
   _refreshTrialStatus();      // Wave 222: トライアル期限チェック
   initWorkspaces();           // ワークスペース初期化（デフォルト2スペースを保証）
   applyMembersFromS();        // Wave 59: 永続化済みメンバーを採用
