@@ -18106,3 +18106,34 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: ui: ファミショップ最上部をコインの貯め方・Hokuチケットに変更
+
+## 2026-06-04 18:23  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+ホームの【着せ替え】チップを削除（ファミショップ導線の重複解消）
+
+### 変更ファイル
+- app-source/familink.html（home-greeting の hokuChip 撤去）
+- docs/index.html（body同期＋キャッシュバスター 20260604n→20260604o）
+
+### 変更内容
+- ホーム挨拶横の「着せ替え」チップ(openHokuShop)を削除。コインバッジ(showCoinsInfo→openShop)とショップ導線が重複していたため
+- コインバッジは維持（ファミショップへの主導線）。着せ替えは ファミショップ／Hoku画面／設定 から引き続き利用可能
+- 挨拶表示の flex 指定も不要になったため通常表示へ簡素化
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：home-greeting内のopenHokuShopボタン消失／コインバッジ存続(onclick=showCoinsInfo→openShop)／JS構文0エラー／本体 app==docs 一致
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- ホーム挨拶横に着せ替えチップが無い／右上コインで従来どおりショップが開く
+
+### 次にやること
+- 実機確認OKで完了。ファミコインのテスト付与は #qa-debug の「ファミコイン +5000」ボタンを使用
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: ui: ホームの着せ替えチップを削除（コインバッジと導線重複のため）
