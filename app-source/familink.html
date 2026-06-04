@@ -812,6 +812,26 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .shop-premo-ttl { font-size:13.5px; font-weight:800; margin-bottom:3px; }
 .shop-premo-desc { font-size:11.5px; line-height:1.55; opacity:.92; }
 .shop-premo-cta { flex:none; font-size:12.5px; font-weight:800; background:rgba(255,255,255,.22); border-radius:var(--r-full); padding:7px 12px; white-space:nowrap; }
+/* ショップ：テーマカード */
+.shop-th-libbtn { background:none; border:none; color:var(--primary); font-size:12px; font-weight:800; cursor:pointer; padding:2px 4px; }
+.shop-th-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.shop-th-card { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.shop-th-swatch { width:100%; aspect-ratio:1/1.15; border-radius:14px; border:1px solid var(--border-light); box-shadow:inset 0 -10px 18px rgba(0,0,0,.03); }
+.shop-th-label { font-size:11.5px; font-weight:700; color:var(--text); }
+.shop-th-use { padding:6px 12px; font-size:12px; }
+/* テーマ保管庫 */
+.thlib-sub { font-size:12.5px; color:var(--text-muted); line-height:1.6; text-align:center; margin:2px 0 14px; }
+.thlib-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.thlib-card { display:flex; flex-direction:column; align-items:center; gap:7px; padding:8px; border-radius:16px; border:2px solid transparent; }
+.thlib-card.active { border-color:var(--primary); background:rgba(10,132,255,0.04); }
+.thlib-swatch { position:relative; width:100%; aspect-ratio:16/10; border-radius:12px; border:1px solid var(--border-light); cursor:pointer; box-shadow:inset 0 -12px 22px rgba(0,0,0,.03); }
+.thlib-free { position:absolute; top:6px; left:6px; font-size:10px; font-weight:800; color:#3A9E6B; background:#E6F6EC; border-radius:6px; padding:1px 6px; }
+.thlib-name { font-size:13px; font-weight:800; color:var(--text); }
+.thlib-badge { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:800; }
+.thlib-badge.on { color:#22A06B; }
+.thlib-use { background:var(--primary); color:#fff; border:none; border-radius:var(--r-full); padding:7px 18px; font-size:12.5px; font-weight:800; cursor:pointer; }
+.thlib-use:active { transform:scale(.94); }
+.thlib-lock { display:inline-flex; align-items:center; gap:4px; background:var(--bg-muted); color:var(--text-sub); border:none; border-radius:var(--r-full); padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; }
 .home-mode-btn {
   display:flex; align-items:center; gap:5px;
   background:rgba(118,118,128,0.12); border:none;
@@ -5575,6 +5595,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- ===== Wave 253: テーマ保管庫（所持テーマの管理・適用） ===== -->
+<div id="m-theme-lib" class="modal-backdrop hidden">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;" role="dialog" aria-modal="true" aria-label="テーマ保管庫">
+    <div class="modal-grip"></div>
+    <div class="modal-title">テーマ保管庫</div>
+    <div class="thlib-sub">ホームのボード背景を切り替えられます。<br>ロックされたテーマはショップで入手できます。</div>
+    <div id="thlib-grid" class="thlib-grid"></div>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-theme-lib')" style="margin-top:14px;">閉じる</button>
+  </div>
+</div>
+
 <!-- ===== TAB BAR — Floating Dock (dynamic via renderTabBar) ===== -->
 <nav id="tabbar" class="hidden"></nav>
 
@@ -7478,10 +7509,11 @@ let S = {
   loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
   // Wave 251: ファミコイン ショップ（保有した装飾アイテムのID）
   shop: { owned: [] },
+  activeTheme: 'default',        // ホーム背景テーマ（テーマ保管庫で変更）
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme'];
 
 function saveS() {
   const d = {};
@@ -9771,6 +9803,7 @@ function reseedDefaultDemoProfiles() {
    ============================================================ */
 function renderHome() {
   const m = S.user || MEMBERS[0];
+  try { applyTheme(); } catch(_){}   // ホーム背景テーマを適用
   // Wave 104: 初回ホーム表示時に使い方ガイドを 1 度だけ表示
   if(!S.guideSeen) {
     S.guideSeen = true;
@@ -18091,6 +18124,13 @@ const SHOP_ITEMS = [
   { id:'av:flp_woman',        cat:'avatar', avatarId:'flp_woman',        cost:80 },
   { id:'av:flp_grandpa',      cat:'avatar', avatarId:'flp_grandpa',      cost:80 },
   { id:'av:flp_grandma',      cat:'avatar', avatarId:'flp_grandma',      cost:80 },
+  // ホーム背景テーマ（保有・恒久。テーマ保管庫で適用）
+  { id:'theme:sky',      cat:'theme', themeId:'sky',      cost:60 },
+  { id:'theme:sakura',   cat:'theme', themeId:'sakura',   cost:60 },
+  { id:'theme:mint',     cat:'theme', themeId:'mint',     cost:60 },
+  { id:'theme:lavender', cat:'theme', themeId:'lavender', cost:60 },
+  { id:'theme:apricot',  cat:'theme', themeId:'apricot',  cost:80 },
+  { id:'theme:aqua',     cat:'theme', themeId:'aqua',     cost:80 },
 ];
 
 function _ensureShop() {
@@ -18099,6 +18139,59 @@ function _ensureShop() {
   return S.shop;
 }
 function isShopOwned(id) { return _ensureShop().owned.indexOf(id) >= 0; }
+
+/* ===== Wave 253: ホーム背景テーマ（ファミコインで購入・テーマ保管庫で管理） =====
+   単一HTML制約のため CSS グラデーションで構成。白いカード/濃い文字が読めるよう淡色で統一。 */
+const THEMES = [
+  { id:'default',  name:'デフォルト',   cost:0,  bg:'var(--bg)' },
+  { id:'cream',    name:'クリーム',     cost:0,  bg:'linear-gradient(180deg,#FBF4E6 0%,#FEFBF4 100%)' },
+  { id:'sky',      name:'青空',         cost:60, bg:'linear-gradient(180deg,#E4F0FE 0%,#F3F9FF 55%,#FFFFFF 100%)' },
+  { id:'sakura',   name:'さくら',       cost:60, bg:'linear-gradient(180deg,#FCE5EF 0%,#FFF3F9 55%,#FFFFFF 100%)' },
+  { id:'mint',     name:'ミント',       cost:60, bg:'linear-gradient(180deg,#E0F4E8 0%,#F2FBF6 55%,#FFFFFF 100%)' },
+  { id:'lavender', name:'ラベンダー',   cost:60, bg:'linear-gradient(180deg,#ECE6FB 0%,#F6F3FF 55%,#FFFFFF 100%)' },
+  { id:'apricot',  name:'夕日',         cost:80, bg:'linear-gradient(180deg,#FCE7D8 0%,#FFF0E4 45%,#FCF4FF 100%)' },
+  { id:'aqua',     name:'うみ',         cost:80, bg:'linear-gradient(180deg,#DAEFF1 0%,#ECF9F9 50%,#F3FAFF 100%)' },
+];
+function _themeDef(id) { return THEMES.find(function(t){ return t.id===id; }) || THEMES[0]; }
+function isThemeOwned(id) { const t=_themeDef(id); return t.cost===0 || isShopOwned('theme:'+id); }
+function getActiveTheme() { const id = S.activeTheme || 'default'; return isThemeOwned(id) ? id : 'default'; }
+/* ホームのボード背景に現在のテーマを適用 */
+function applyTheme() {
+  const el = document.querySelector('.home-board-scroll');
+  if(el) el.style.background = _themeDef(getActiveTheme()).bg;
+}
+/* テーマを選択（所持していなければショップへ誘導） */
+function selectTheme(id) {
+  if(!isThemeOwned(id)) { openShop(); return; }
+  S.activeTheme = id;
+  try { saveS(); } catch(_){}
+  applyTheme();
+  try { renderThemeLib(); } catch(_){}
+  try { renderShop(); } catch(_){}
+  showToast('テーマ「'+_themeDef(id).name+'」を設定しました','success');
+}
+/* テーマ保管庫を開く */
+function openThemeLib() { renderThemeLib(); openModal('m-theme-lib'); }
+function renderThemeLib() {
+  const grid = document.getElementById('thlib-grid');
+  if(!grid) return;
+  const active = getActiveTheme();
+  grid.innerHTML = THEMES.map(function(t){
+    const owned = isThemeOwned(t.id);
+    const isActive = active === t.id;
+    let badge;
+    if(isActive) badge = '<div class="thlib-badge on">'+ICON('check',13)+' 使用中</div>';
+    else if(owned) badge = '<button class="thlib-use" onclick="selectTheme(\''+t.id+'\')">設定する</button>';
+    else badge = '<button class="thlib-lock" onclick="openShop()" aria-label="ショップで入手"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> '+_famiCoinIcon(11)+' '+t.cost+'</button>';
+    return '<div class="thlib-card'+(isActive?' active':'')+'">'
+      + '<div class="thlib-swatch" style="background:'+t.bg+'" onclick="'+(owned?'selectTheme(\''+t.id+'\')':'openShop()')+'">'
+      +   (t.cost===0?'<span class="thlib-free">無料</span>':'')
+      + '</div>'
+      + '<div class="thlib-name">'+H(t.name)+'</div>'
+      + badge
+      + '</div>';
+  }).join('');
+}
 
 /* 今日の Hoku 利用上限（基本5 + 当日購入ボーナス） */
 function _hokuDailyLimit() {
@@ -18127,8 +18220,25 @@ function renderShop() {
   const body = document.getElementById('famishop-body');
   if(!body) return;
 
-  const hokuItems = SHOP_ITEMS.filter(i => i.cat === 'hoku');
-  const avItems   = SHOP_ITEMS.filter(i => i.cat === 'avatar');
+  const hokuItems  = SHOP_ITEMS.filter(i => i.cat === 'hoku');
+  const avItems    = SHOP_ITEMS.filter(i => i.cat === 'avatar');
+  const themeItems = SHOP_ITEMS.filter(i => i.cat === 'theme');
+
+  const themeHtml = themeItems.map(function(i){
+    const t = _themeDef(i.themeId);
+    const owned = isShopOwned(i.id);
+    const can = coins >= i.cost;
+    const active = getActiveTheme() === i.themeId;
+    return '<div class="shop-th-card">'
+      + '<div class="shop-th-swatch" style="background:'+t.bg+'"></div>'
+      + '<div class="shop-th-label">'+H(t.name)+'</div>'
+      + (owned
+          ? (active
+              ? '<div class="shop-av-owned">'+ICON('check',13)+' 使用中</div>'
+              : '<button class="shop-buy shop-th-use" onclick="selectTheme(\''+i.themeId+'\')">設定する</button>')
+          : '<button class="shop-buy'+(can?'':' disabled')+'" aria-label="テーマ「'+H(t.name)+'」を'+i.cost+'ファミコインで交換" '+(can?'onclick="buyShopItem(\''+i.id+'\')"':'disabled')+'>'+_famiCoinIcon(12)+' '+i.cost+'</button>')
+      + '</div>';
+  }).join('');
 
   const hokuHtml = hokuItems.map(function(i){
     const can = coins >= i.cost;
@@ -18178,28 +18288,39 @@ function renderShop() {
     + hokuHtml
     + '<div class="shop-cat-title" style="margin-top:16px;">限定アバター（購入すると無料プランでも使えます）</div>'
     + '<div class="shop-av-grid">' + avHtml + '</div>'
+    + '<div class="shop-cat-title" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">'
+    +   '<span>ホーム背景テーマ</span>'
+    +   '<button class="shop-th-libbtn" onclick="openThemeLib()">テーマ保管庫 ›</button>'
+    + '</div>'
+    + '<div class="shop-th-grid">' + themeHtml + '</div>'
     + premoHtml
-    + '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:14px;padding:0 2px;">※ Hokuチケットは当日中のみ有効です。アバターは購入すると恒久的に使えます（アバター変更画面から選択）。</div>';
+    + '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:14px;padding:0 2px;">※ Hokuチケットは当日中のみ有効です。アバター・テーマは購入すると恒久的に使えます。テーマは「テーマ保管庫」からいつでも切り替えられます。</div>';
 }
 
 function buyShopItem(id) {
   const item = SHOP_ITEMS.find(x => x.id === id);
   if(!item) return;
   const lb = _ensureLoginBonus();
-  if(item.cat === 'avatar' && isShopOwned(id)) { showToast('すでに所持しています', 'info'); return; }
+  if((item.cat === 'avatar' || item.cat === 'theme') && isShopOwned(id)) { showToast('すでに所持しています', 'info'); return; }
   if(lb.coins < item.cost) { showToast('ファミコインが足りません', 'error'); return; }
-  const def = item.cat === 'avatar' ? (AVATARS_ALL.find(a => a.id === item.avatarId) || {}) : null;
-  const label = item.cat === 'avatar' ? (def.label || 'アバター') : item.label;
+  const def = item.cat === 'avatar' ? (AVATARS_ALL.find(a => a.id === item.avatarId) || {})
+            : item.cat === 'theme'  ? _themeDef(item.themeId) : null;
+  const label = item.cat === 'avatar' ? (def.label || 'アバター')
+              : item.cat === 'theme'  ? ('テーマ「' + (def.name||'') + '」') : item.label;
   showConfirm('交換しますか？', label + '\n' + item.cost + ' ファミコイン（保有 ' + lb.coins + '）', '交換する', function(){
     if(lb.coins < item.cost) { showToast('ファミコインが足りません', 'error'); return; }
     lb.coins -= item.cost;
     if(item.cat === 'hoku') { addHokuUses(item.amount); }
     else if(item.cat === 'avatar') { _ensureShop().owned.push(item.id); }
+    else if(item.cat === 'theme')  { _ensureShop().owned.push(item.id); S.activeTheme = item.themeId; try { applyTheme(); } catch(_){} }
     try { saveS(); } catch(_){}
     try { _updateHomeCoins(); } catch(_){}
     try { if(S.screen === 's-hoku') renderHoku(); } catch(_){}
     renderShop();
-    showToast(item.cat === 'hoku' ? ('今日のHoku利用が +' + item.amount + '回 になりました') : (label + ' を解放しました！アバター変更画面から選べます'), 'success');
+    const msg = item.cat === 'hoku' ? ('今日のHoku利用が +' + item.amount + '回 になりました')
+              : item.cat === 'theme' ? (label + ' を設定しました！テーマ保管庫でいつでも変更できます')
+              : (label + ' を解放しました！アバター変更画面から選べます');
+    showToast(msg, 'success');
     try { if(navigator.vibrate) navigator.vibrate(12); } catch(_){}
   }, 'info');
 }
@@ -18363,6 +18484,13 @@ function renderSettings() {
       <div class="settings-item" onclick="openTabSettings()">
         <div class="settings-item-icon" style="background:#EBF0FF">${si('<rect x="2" y="17" width="20" height="5" rx="2"/><path d="M7 17v-5m5 5V7m5 10V4"/>','#4A65E2')}</div>
         <div class="settings-item-label">タブのカスタマイズ</div><div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="openThemeLib()">
+        <div class="settings-item-icon" style="background:#F3ECFF">${si('<circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2a10 10 0 1 0 0 20 2.5 2.5 0 0 0 2-4 2.5 2.5 0 0 1 2-4h2a4 4 0 0 0 4-4 10 10 0 0 0-10-8z"/>','#9B7EDE')}</div>
+        <div class="settings-item-label">テーマ・背景
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">ホームのボード背景を切り替え（テーマ保管庫）</div>
+        </div>
+        <div class="settings-value">${H(_themeDef(getActiveTheme()).name)}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" onclick="openNotifSettings()">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>','#0A84FF')}</div>
