@@ -18008,3 +18008,36 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: ui: ファミショップ内「Hokuの着せ替え」を最上部へ昇格（目立たせる）
+
+## 2026-06-04 14:23  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+総点検の改善：Hoku FABがコンテンツに重なる点を「スクロール中フェード」で解消
+
+### 変更ファイル
+- app-source/familink.html（#hoku-fab CSS にトランジション＋.fab-faded、initFabにスクロール監視）
+- docs/index.html（head CSS差し替え＋body同期＋キャッシュバスター 20260604k→20260604l）
+
+### 変更内容
+- 全22画面の総点検実施：横スクロール0/コンソールエラー0/空画面0/QA84件PASS、致命不具合0件を確認
+- 唯一の軽微点（右下Hoku FABが体温の℃や金額など右端コンテンツに重なる）を改善
+- スクロール中は #hoku-fab に .fab-faded を付与し opacity:.16＋pointer-events:none、停止620ms後に復帰
+- ドラッグ中・モーダル表示中は不変。位置/サイズ/Hoku人格は変更なし（§10.6準拠）
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：scroll中 fab-faded 付与→idle解除、faded時 computed opacity=0.16、復帰=1.0 を確認
+- JS構文 0エラー、本体 app==docs 一致、CSS(head)/JS(body) 双方反映
+
+### 未確認事項
+- 実機での体感（フェードの速さ620msが妥当か）。重すぎ/軽すぎあれば調整
+
+### iPhone確認ポイント
+- 体調/家計/ボード等を指でスクロール → Hokuが一瞬薄くなり背後の数字が読める／指を離すと戻る
+
+### 次にやること
+- 実機OKで完了。微調整要望あれば対応
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: ux: Hoku FABをスクロール中フェードしコンテンツ重なりを解消（総点検改善）

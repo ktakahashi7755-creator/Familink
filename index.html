@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604k';
+  var V='v20260604l';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -2981,9 +2981,12 @@ nav#tabbar.hidden { display: none !important; }
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  transition: opacity .22s ease;
 }
 #hoku-fab.fab-hidden { display: none !important; }
 #hoku-fab.dragging   { cursor: grabbing; }
+/* スクロール中は薄くして背後のコンテンツを読みやすく（重なり回避）。指を離すと戻る */
+#hoku-fab.fab-faded  { opacity: .16; pointer-events: none; }
 
 /* 内側: アニメーション専用（背景・枠なし・透明） */
 #hoku-fab .hoku-fab-inner {
@@ -24673,6 +24676,19 @@ document.addEventListener('touchcancel', () => {
     fab.addEventListener('touchend',    onTE,  {passive: true});
     fab.addEventListener('touchcancel', onTC,  {passive: true});
     fab.addEventListener('mousedown',   onMD,  {passive: true});
+
+    /* スクロール中はHokuを薄くフェード（右側コンテンツとの重なりで読みづらくなるのを防ぐ）。
+       ドラッグ中・モーダル表示中には影響しない。capture:true で各スクロール領域を一括捕捉。 */
+    if (!fab._fadeBound) {
+      fab._fadeBound = true;
+      var _fadeTimer = null;
+      document.addEventListener('scroll', function() {
+        if (!fab || fab.classList.contains('dragging')) return;
+        fab.classList.add('fab-faded');
+        if (_fadeTimer) clearTimeout(_fadeTimer);
+        _fadeTimer = setTimeout(function() { fab.classList.remove('fab-faded'); }, 620);
+      }, { passive: true, capture: true });
+    }
   }
 
   /* ── left/top で配置（画面クランプ付き） ── */
