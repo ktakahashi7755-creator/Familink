@@ -433,6 +433,8 @@ select.input {
   transition: opacity .28s;
 }
 .modal-backdrop.open { opacity: 1; pointer-events: all; }
+/* 確認ダイアログは常に他モーダル（ショップ等）の前面に表示する */
+#m-confirm { z-index: 320; }
 .modal {
   background: var(--bg-card); border-radius: 20px 20px 0 0;
   padding: 0 20px calc(24px + env(safe-area-inset-bottom));
@@ -8134,11 +8136,15 @@ document.addEventListener('keydown', function(e){
 });
 
 let _confirmCb = null;
-function showConfirm(title, msg, btnTxt, cb, icon='warning') {
+function showConfirm(title, msg, btnTxt, cb, icon='warning', opts={}) {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
-  document.getElementById('confirm-ok').textContent = btnTxt;
-  const ci = document.getElementById('confirm-icon'); if(ci) ci.innerHTML = (icon && typeof ICON==='function') ? ICON(icon,40) : '';
+  const ok = document.getElementById('confirm-ok');
+  ok.textContent = btnTxt;
+  // 既定は破壊的操作向けの赤。購入・交換など前向きな操作は opts.primary で青に
+  ok.className = 'btn btn-block ' + (opts.primary ? 'btn-primary' : 'btn-danger');
+  const ci = document.getElementById('confirm-icon');
+  if(ci) ci.innerHTML = opts.iconHtml || ((icon && typeof ICON==='function') ? ICON(icon,40) : '');
   _confirmCb = cb;
   openModal('m-confirm');
 }
@@ -18336,7 +18342,8 @@ function buyHokuSkin(id) {
   if(isHokuSkinOwned(id)) { equipHokuSkin(id); return; }
   const lb = _ensureLoginBonus();
   if(lb.coins < def.price) { showToast('ファミコインが足りません', 'error'); return; }
-  showConfirm(def.name + 'を交換しますか？', def.price + ' ファミコイン（保有 ' + lb.coins + '）で交換し、メインHokuに設定します。', '交換する', function(){
+  const imgHtml = '<img src="'+_hokuSkinImg(id)+'" onerror="_hokuImgFallback(this)" alt="" style="width:76px;height:76px;object-fit:contain;border-radius:18px;background:#F4F7FB;padding:6px;box-shadow:0 2px 10px rgba(0,0,0,.06);">';
+  showConfirm(def.name + 'を交換しますか？', def.price + ' ファミコインで交換して、メインHokuに設定します。（保有 ' + lb.coins + '）', '交換する', function(){
     if(lb.coins < def.price) { showToast('ファミコインが足りません', 'error'); return; }
     lb.coins -= def.price;
     if(S.hokuOwnedSkins.indexOf(id) < 0) S.hokuOwnedSkins.push(id);
@@ -18348,7 +18355,7 @@ function buyHokuSkin(id) {
     renderHokuShop();
     showToast(def.name + 'を交換しました。メインHokuに設定しました。', 'success');
     try { if(navigator.vibrate) navigator.vibrate(12); } catch(_){}
-  }, 'info');
+  }, 'sparkle', { primary:true, iconHtml: imgHtml });
 }
 /* Hokuショップはファミショップ（m-shop）内へ統合。導線は該当セクションへスクロール */
 function openHokuShop() {
@@ -18518,7 +18525,7 @@ function buyShopItem(id) {
               : (label + ' を解放しました！アバター変更画面から選べます');
     showToast(msg, 'success');
     try { if(navigator.vibrate) navigator.vibrate(12); } catch(_){}
-  }, 'info');
+  }, 'bag', { primary:true });
 }
 
 /* 設定：ログインボーナスの ON/OFF（OFF でも内部データは消さない） */
