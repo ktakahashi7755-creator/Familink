@@ -17801,3 +17801,41 @@ Hokuショップ（着せ替え）：ファミコインでメインHokuの見た
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `feat: add Hoku shop with fami coin skin exchange`
+
+## 2026-06-04 10:11  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+Hokuショップ（独立モーダル）を撤廃し、ファミショップ内「Hokuの着せ替え」へ統合
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（本体同期＋キャッシュバスター 20260604f→20260604g）
+
+### 変更内容
+- 独立モーダル `m-hoku-shop` を撤廃
+- `renderShop()` 内にスキン交換セクション（装備中表示＋スキングリッド／id=famishop-hoku）を実体として組み込み
+- `openHokuShop()` を「ファミショップ(m-shop)を開き #famishop-hoku へスクロール」に変更
+- `renderHokuShop()` は `renderShop()` へ委譲（購入/装備後の再描画を維持）
+- 導線文言を「Hokuショップ」→「Hokuの着せ替え／着せ替え」へ統一（着せ替えボタン/ホームチップ/設定）
+- 作業ブランチを main 相当(7cce8f1)へ追従（170コミット遅れを解消）
+
+### テスト結果
+- インライン<script>構文チェック：app-source 0エラー / docs 0エラー（node）
+- 残存参照チェック：m-hoku-shop / hkshop-balance 等 0件
+- docs本体==app-source本体 を一致確認、SW登録・.hkshop CSS 温存確認
+- 手動UI確認：未実施（実機/ブラウザ確認は次）
+
+### 未確認事項
+- スキン画像 assets/hoku/*.png 未配置のため現状は全スキンがノーマルにフォールバック（画像差し替えは別タスク）
+- 実機でのファミショップ→Hokuの着せ替えセクションへのスクロール動作
+
+### iPhone確認ポイント
+- ホーム/設定/Hoku画面の各導線からファミショップが開き、Hokuの着せ替えセクションへスクロールするか
+- スキン「交換」「装備」後にメインHoku表示・装備中表示が更新されるか
+
+### 次にやること
+- 元画像2枚（表情シート/コスチュームシート）のアップロード受領 → 5体(pajama/teacher/chef/hero/space)を切り出し assets/hoku/ へ配置（app-source/docs両方）→ docs同期＋版数バンプ
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: Hokuショップをファミショップ内「Hokuの着せ替え」へ統合（独立モーダル撤廃）

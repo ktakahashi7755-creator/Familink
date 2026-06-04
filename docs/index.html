@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604f';
+  var V='v20260604g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -4114,7 +4114,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div class="hoku-hd-name">Hoku（ホク）</div>
       <div class="hoku-hd-sub">Familink AIアシスタント</div>
     </div>
-    <button class="hoku-dress-btn" onclick="openHokuShop()" aria-label="Hokuショップ（着せ替え）" title="Hokuショップ">
+    <button class="hoku-dress-btn" onclick="openHokuShop()" aria-label="Hokuの着せ替え" title="着せ替え">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 14.5L16 10 4 22"/><path d="M3.5 6.5l3-3 3 3-1.5 1.5L12 11l3-3 2 2"/><circle cx="17.5" cy="6.5" r="2.5"/></svg>
     </button>
     <button class="hoku-reset-btn" onclick="resetHoku()">クリア</button>
@@ -5664,18 +5664,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- ===== Wave 254: Hokuショップ（着せ替え） ===== -->
-<div id="m-hoku-shop" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;" role="dialog" aria-modal="true" aria-label="Hokuショップ">
-    <div class="modal-grip"></div>
-    <div class="modal-title">Hokuショップ</div>
-    <div class="hkshop-sub">ファミコインでHokuの衣装を交換できます。<br>家族で楽しく着せ替えしましょう。</div>
-    <div id="hkshop-balance" class="shop-balance"></div>
-    <div id="hkshop-equipped" class="hkshop-equipped"></div>
-    <div id="hkshop-grid" class="hkshop-grid"></div>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-hoku-shop')" style="margin-top:14px;">閉じる</button>
-  </div>
-</div>
+<!-- Wave 254: Hokuショップはファミコインショップ（m-shop）内「Hokuの着せ替え」へ統合済み -->
 
 <!-- ===== TAB BAR — Floating Dock (dynamic via renderTabBar) ===== -->
 <nav id="tabbar" class="hidden"></nav>
@@ -9921,10 +9910,10 @@ function renderHome() {
     const streakBadge = _streak >= 3
       ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;background:#fef3c7;border-radius:10px;padding:2px 7px;margin-left:7px;vertical-align:middle;">${_streak}日連続</span>`
       : '';
-    // Hokuショップへの小さな導線（装備中Hokuのミニ表示つき・邪魔にならない位置）
-    const hokuChip = `<button onclick="openHokuShop()" aria-label="Hokuショップを開く" title="Hokuショップ" style="margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#FFF6DD,#FFEFC2);border:1px solid #F3E2BC;border-radius:999px;padding:4px 11px 4px 5px;cursor:pointer;">`
+    // Hokuの着せ替えへの小さな導線（装備中Hokuのミニ表示つき・邪魔にならない位置）
+    const hokuChip = `<button onclick="openHokuShop()" aria-label="Hokuの着せ替えを開く" title="Hokuの着せ替え" style="margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#FFF6DD,#FFEFC2);border:1px solid #F3E2BC;border-radius:999px;padding:4px 11px 4px 5px;cursor:pointer;">`
       + `<img src="${equippedHokuImg()}" onerror="_hokuImgFallback(this)" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:contain;background:#fff;">`
-      + `<span style="font-size:11.5px;font-weight:800;color:#7A4E00;white-space:nowrap;">Hokuショップ</span></button>`;
+      + `<span style="font-size:11.5px;font-weight:800;color:#7A4E00;white-space:nowrap;">着せ替え</span></button>`;
     greetEl.style.display = 'flex';
     greetEl.style.alignItems = 'center';
     greetEl.innerHTML = `<span>${H(greeting())}、<strong>${H(nm)}</strong>さん${streakBadge}</span>${hokuChip}`;
@@ -18364,39 +18353,16 @@ function buyHokuSkin(id) {
     try { if(navigator.vibrate) navigator.vibrate(12); } catch(_){}
   }, 'info');
 }
-function openHokuShop() { renderHokuShop(); openModal('m-hoku-shop'); }
-function renderHokuShop() {
-  _ensureHokuSkins();
-  const coins = getFamiCoins();
-  const bal = document.getElementById('hkshop-balance');
-  if(bal) bal.innerHTML = _famiCoinIcon(20) + '<span style="font-size:20px;font-weight:900;color:#B5790A;margin:0 4px;">' + coins + '</span><span style="font-size:13px;font-weight:700;color:#B5790A;">ファミコイン</span>';
-  const eq = document.getElementById('hkshop-equipped');
-  if(eq) {
-    const d = _hokuSkinDef(equippedHokuSkin());
-    eq.innerHTML = '<div class="hkshop-eq-img"><img src="'+_hokuSkinImg(d.id)+'" alt="'+H(d.name)+'" onerror="_hokuImgFallback(this)"></div>'
-      + '<div class="hkshop-eq-meta"><div class="hkshop-eq-label">装備中のHoku</div><div class="hkshop-eq-name">'+H(d.name)+'</div></div>';
-  }
-  const grid = document.getElementById('hkshop-grid');
-  if(!grid) return;
-  grid.innerHTML = HOKU_SKINS.map(function(s){
-    const owned = isHokuSkinOwned(s.id);
-    const equipped = equippedHokuSkin() === s.id;
-    const can = coins >= s.price;
-    const r = HOKU_RARITY[s.rarity] || HOKU_RARITY.normal;
-    let btn;
-    if(equipped) btn = '<button class="hkshop-btn equipped" disabled>装備中</button>';
-    else if(owned) btn = '<button class="hkshop-btn equip" onclick="equipHokuSkin(\''+s.id+'\')">装備する</button>';
-    else if(!can) btn = '<button class="hkshop-btn lack" disabled>'+_famiCoinIcon(12)+' '+s.price+'（不足）</button>';
-    else btn = '<button class="hkshop-btn buy" onclick="buyHokuSkin(\''+s.id+'\')">'+_famiCoinIcon(12)+' '+s.price+'で交換</button>';
-    return '<div class="hkshop-card'+(equipped?' on':'')+'">'
-      + '<div class="hkshop-rarity" style="color:'+r.color+';background:'+r.bg+';">'+r.label+'</div>'
-      + '<div class="hkshop-img"><img src="'+_hokuSkinImg(s.id)+'" alt="'+H(s.name)+'" onerror="_hokuImgFallback(this)"></div>'
-      + '<div class="hkshop-name">'+H(s.name)+(s.price===0?' <span class="hkshop-free">無料</span>':'')+'</div>'
-      + '<div class="hkshop-desc">'+H(s.desc)+'</div>'
-      + btn
-      + '</div>';
-  }).join('');
+/* Hokuショップはファミショップ（m-shop）内へ統合。導線は該当セクションへスクロール */
+function openHokuShop() {
+  renderShop();
+  openModal('m-shop');
+  setTimeout(function(){
+    try { var el = document.getElementById('famishop-hoku'); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); } catch(_){}
+  }, 80);
 }
+/* スキン購入・装備後の再描画はファミショップ本体の再描画に委譲 */
+function renderHokuShop() { try { renderShop(); } catch(_){} }
 
 /* 今日の Hoku 利用上限（基本5 + 当日購入ボーナス） */
 function _hokuDailyLimit() {
@@ -18467,6 +18433,33 @@ function renderShop() {
       + '</div>';
   }).join('');
 
+  // Hokuの着せ替え（旧 Hokuショップをファミショップ内へ統合）
+  const equippedDef = _hokuSkinDef(equippedHokuSkin());
+  const hokuSkinCards = HOKU_SKINS.map(function(s){
+    const owned = isHokuSkinOwned(s.id);
+    const equipped = equippedHokuSkin() === s.id;
+    const can = coins >= s.price;
+    const r = HOKU_RARITY[s.rarity] || HOKU_RARITY.normal;
+    let btn;
+    if(equipped) btn = '<button class="hkshop-btn equipped" disabled>装備中</button>';
+    else if(owned) btn = '<button class="hkshop-btn equip" onclick="equipHokuSkin(\''+s.id+'\')">装備する</button>';
+    else if(!can) btn = '<button class="hkshop-btn lack" disabled>'+_famiCoinIcon(12)+' '+s.price+'（不足）</button>';
+    else btn = '<button class="hkshop-btn buy" onclick="buyHokuSkin(\''+s.id+'\')">'+_famiCoinIcon(12)+' '+s.price+'で交換</button>';
+    return '<div class="hkshop-card'+(equipped?' on':'')+'">'
+      + '<div class="hkshop-rarity" style="color:'+r.color+';background:'+r.bg+';">'+r.label+'</div>'
+      + '<div class="hkshop-img"><img src="'+_hokuSkinImg(s.id)+'" alt="'+H(s.name)+'" onerror="_hokuImgFallback(this)"></div>'
+      + '<div class="hkshop-name">'+H(s.name)+(s.price===0?' <span class="hkshop-free">無料</span>':'')+'</div>'
+      + '<div class="hkshop-desc">'+H(s.desc)+'</div>'
+      + btn
+      + '</div>';
+  }).join('');
+  const hokuSkinHtml =
+      '<div id="famishop-hoku" class="shop-cat-title" style="margin-top:18px;">Hokuの着せ替え</div>'
+    + '<div class="hkshop-sub" style="margin:-2px 2px 10px;font-size:12px;color:var(--text-muted);line-height:1.6;">ファミコインでHokuの衣装を交換できます。選ぶとメインHokuに反映されます。</div>'
+    + '<div class="hkshop-equipped"><div class="hkshop-eq-img"><img src="'+_hokuSkinImg(equippedDef.id)+'" alt="'+H(equippedDef.name)+'" onerror="_hokuImgFallback(this)"></div>'
+    +   '<div class="hkshop-eq-meta"><div class="hkshop-eq-label">装備中のHoku</div><div class="hkshop-eq-name">'+H(equippedDef.name)+'</div></div></div>'
+    + '<div class="hkshop-grid">' + hokuSkinCards + '</div>';
+
   const usedToday = (S.hokuDailyUsage && S.hokuDailyUsage.date === todayStr()) ? S.hokuDailyUsage.count : 0;
   const hokuLeft = Math.max(0, _hokuDailyLimit() - usedToday);
   const earnHtml =
@@ -18498,10 +18491,7 @@ function renderShop() {
     +   '<button class="shop-th-libbtn" onclick="openThemeLib()">テーマ保管庫 ›</button>'
     + '</div>'
     + '<div class="shop-th-grid">' + themeHtml + '</div>'
-    + '<div class="shop-premo" role="button" tabindex="0" aria-label="Hokuショップを開く" style="background:linear-gradient(135deg,#FFE9A8,#FFD27A);color:#7A4E00;" onclick="closeModal(\'m-shop\'); openHokuShop();" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();closeModal(\'m-shop\');openHokuShop();}">'
-    +   '<div class="shop-premo-main"><div class="shop-premo-ttl">Hokuの着せ替え</div><div class="shop-premo-desc" style="opacity:.85;">ファミコインでHokuの衣装を変えられます。</div></div>'
-    +   '<span class="shop-premo-cta" style="background:rgba(255,255,255,.45);color:#7A4E00;">Hokuショップ ›</span>'
-    + '</div>'
+    + hokuSkinHtml
     + premoHtml
     + '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:14px;padding:0 2px;">※ Hokuチケットは当日中のみ有効です。アバター・テーマは購入すると恒久的に使えます。テーマは「テーマ保管庫」からいつでも切り替えられます。</div>';
 }
@@ -18703,8 +18693,8 @@ function renderSettings() {
       </div>
       <div class="settings-item" onclick="openHokuShop()">
         <div class="settings-item-icon" style="background:#FFF6DD">${si('<path d="M12 2.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 18.6l1-5.8L3.5 8.7l5.9-.9z"/>','#E8A12C')}</div>
-        <div class="settings-item-label">Hokuショップ
-          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">ファミコインでHokuの衣装を交換できます</div>
+        <div class="settings-item-label">Hokuの着せ替え
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">ファミショップでHokuの衣装を交換できます</div>
         </div>
         <div class="settings-value">${H(_hokuSkinDef(equippedHokuSkin()).name)}</div><div class="settings-arrow">›</div>
       </div>
