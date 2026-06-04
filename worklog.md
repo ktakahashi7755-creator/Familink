@@ -17763,3 +17763,41 @@ App Store 提出準備：リリース正本ドキュメントの現状反映（a
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: `fix: カレンダーのボタン重複を解消＋予定のid重複を防御的に除去`
+
+## 2026-06-04 14:00  env: iPhone経由(Web)  branch: claude/famicoin-shop（main 起点）
+
+### 作業名
+Hokuショップ（着せ替え）：ファミコインでメインHokuの見た目を変更
+
+### 変更ファイル
+- app-source/familink.html / docs/index.html（同期 v20260604e→f）/ index.html / docs/worklog.md
+- docs/assets/hoku/README.md（新規・スキン画像の配置ガイド）
+
+### 設計判断（壊さない・統一）
+- 既存のファミコイン経済（getFamiCoins/loginBonus.coins）とログインボーナス（checkLoginBonus/loginBonus.enabled/lastClaimDate）を維持し、**別残高 S.famiCoins は作らず既存残高に統一**（仕様7）。
+
+### 追加したLocalStorageキー（PERSISTにも追加）
+- hokuOwnedSkins（初期 ['normal']）/ hokuEquippedSkin（初期 'normal'）/ hokuShopPurchaseHistory（初期 []）
+
+### 実装内容
+- **HOKU_SKINS**（6種：normal0/pajama100/teacher200/chef200/hero300/space300、rarity・desc・imageSrcを1箇所管理）。画像は仮パス assets/hoku/*.png、読み込み失敗時は通常Hoku(IMGS.hoku)にフォールバック（_hokuImgFallback）。
+- **Hokuショップ画面 m-hoku-shop**：残高／装備中Hoku／スキンカード（画像・名称・説明・レア度・購入済/装備中/装備する/交換ボタン）。コイン不足は押せない「不足」表示。
+- **購入確認モーダル**：showConfirmで確認→コイン減算・owned追加・equipped変更・履歴push{skinId,price,purchasedAt}・saveS・再描画・トースト。
+- **メインHoku反映**：Hoku画面の大Hoku（.hoku-empty-img）＋ヘッダーav（#hoku-hd-av-img）を装備中スキンへ。renderHokuでrefreshEquippedHoku。
+- **導線**：Hoku画面ヘッダーに着せ替えボタン／設定に「Hokuショップ」項目（装備中名を表示）／ホーム挨拶行に小さな「Hokuショップ」チップ（装備中Hokuミニ表示）／ファミコインショップにもクロスリンク。
+- **ログインボーナス**：既存基盤を使用。獲得モーダルに「Hokuショップで着せ替えに使えます」を追記。設定のON/OFFトグルも既存のものを使用。
+
+### テスト結果（仕様11を網羅）
+- 初期normal表示・残高初期化・ショップ起動・コイン不足で購入不可・足りる場合は確認モーダル・購入後コイン減/owned追加/equipped変更/メインHoku変更・所持スキン装備・装備中表示・存在しないidはnormalにフォールバック・リロード(localStorage)保持・SE(320)横スクロール無し・JSエラー0 → すべてOK
+- node qa_full_test.js → 84/84 PASS / app⇔docs md5一致
+
+### iPhone確認ポイント
+- Hoku画面の着せ替えボタン／設定/ホームチップからショップ／購入確認→メインHoku変化／コイン不足表示／SE幅で崩れない
+- ※スキン画像は仮パス。docs/assets/hoku/ に pajama-hoku.png 等を置くと反映（未配置時は通常Hoku表示）
+
+### 次に必要な作業
+- スキン画像（pajama/teacher/chef/hero/space）を docs/assets/hoku/ に配置（透過PNG・正方形・Retina対応）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: `feat: add Hoku shop with fami coin skin exchange`
