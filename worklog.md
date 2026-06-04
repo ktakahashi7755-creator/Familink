@@ -18208,3 +18208,34 @@ Hoku表情6種を新アートへ差し替え（IMGS base64 を提供画像から
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: 装備HokuスキンをフローティングボタンFABにも反映（表示の一貫性）
+
+## 2026-06-04 22:22  env: iPhone経由(web/remote)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+スクロール時にHoku(FAB)が薄くなる挙動を撤去（ユーザー要望）
+
+### 変更ファイル
+- app-source/familink.html（#hoku-fab CSSの.fab-faded/transition撤去、initFabのスクロール監視撤去）
+- docs/index.html（head CSS差し戻し＋body同期＋キャッシュバスター 20260604q→20260604r）
+
+### 変更内容
+- 先日重なり対策で入れた「スクロール中フェード」を撤去。Hokuは常に通常の濃さで表示
+- .fab-faded ルールとスクロールリスナー(_fadeBound)を削除。ドラッグ移動・モーダル時非表示は従来どおり維持
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：スクロール前後ともFAB opacity=1.0、fab-fadedクラス付与なし
+- JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- 重なりは仕様（Hokuはドラッグで移動可・モーダル時は自動で隠れる）。再度気になる場合は別方式を検討
+
+### iPhone確認ポイント
+- どの画面でもスクロール中にHokuが薄くならない
+
+### 次にやること
+- 実機確認OKで完了
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: revert: スクロール中のHokuフェードを撤去（常時通常表示に戻す）
