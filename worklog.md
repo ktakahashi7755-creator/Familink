@@ -18597,3 +18597,31 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: トースト重複防止＋引っ張って更新を無音化（更新しました多発を解消）
+
+## 2026-06-05 12:52  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+デモデータに「完全に空（全ページ）」プロファイルを追加
+
+### 変更ファイル
+- app-source/familink.html（_buildEmptyDemoData 追加 / createDefaultDemoProfiles 調整）
+- docs/index.html（body同期＋キャッシュバスター 20260605b→20260605c）
+
+### 変更内容
+- _buildEmptyDemoData(): 予定/タスク/家計/ボード/体調/準備/買い物/メモ/家族構成 等の全コンテンツキーを空で持つデータ
+- createDefaultDemoProfiles を調整：既定4種は初回/force時のみ、新規「完全に空（全ページ）」は seeded 済みの既存ユーザーにも hasName で補完
+- 仕様メモ：applyMembersFromS は S.members 空時 DEFAULT_MEMBERS(5名)にフォールバックするため、家族構成は既定家族が表示される（家族アプリの設計上0人にはしない）。コンテンツ系は全ページ空になる
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ：空プロファイル適用後 tasks/events/txs/members/boards/memos/health/posts/shopping すべて0、全11ページがエラー0で正常表示・空状態を確認、JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- なし（デモ専用・本番導線に影響なし）
+
+### iPhone確認ポイント
+- 設定→デモ・提案用データの管理 に「完全に空（全ページ）」が出る → 適用で全ページ空表示
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: デモに「完全に空（全ページ）」プロファイルを追加
