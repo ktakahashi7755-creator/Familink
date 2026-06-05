@@ -9629,6 +9629,21 @@ function _buildBlankDemoData() {
   };
 }
 
+/* 完全に全ページ空：家族構成・全コンテンツを空にする（各ページの空表示の確認/スクショ用）。
+   ボード等の構造も空にするため、適用後は全ページが空状態で表示される。 */
+function _buildEmptyDemoData() {
+  return {
+    members: [],
+    events: [], tasks: [], txs: [], announces: [], posts: [],
+    health: [], prep: [], prepRoutines: [], notifs: [],
+    shoppingItems: [], shoppingFrequent: [], shoppingHistory: [],
+    customBoards: [], boardItems: [], boardSections: [], boardCustomTabs: [],
+    recurringTxs: [], memos: [], memoFolders: [],
+    budgetY: new Date().getFullYear(),
+    budgetM: new Date().getMonth(),
+  };
+}
+
 /* デモプロファイル 1 件を組み立てる */
 function _makeDemoProfile(name, desc, data, isDefault) {
   const now = new Date().toISOString();
@@ -9647,10 +9662,11 @@ function _makeDemoProfile(name, desc, data, isDefault) {
 /* 初期 4 種類のデモプロファイルを 1 回だけ投入。
    既存プロファイルは触らず、demoProfilesSeeded が立っていれば何もしない。 */
 function createDefaultDemoProfiles(force) {
-  if(!force && S.demoProfilesSeeded) return;
   if(!Array.isArray(S.demoProfiles)) S.demoProfiles = [];
   // 既存の同名 isDefault プロファイルがあればスキップ（再投入で重複を増やさない）
   const hasName = (nm) => S.demoProfiles.some(p => p && p.isDefault && p.name === nm);
+  // 初回シード or force のときに既定4種を投入
+  if(force || !S.demoProfilesSeeded) {
   if(!hasName('家庭向けリアルデモ')) {
     S.demoProfiles.push(_makeDemoProfile(
       '家庭向けリアルデモ',
@@ -9674,6 +9690,14 @@ function createDefaultDemoProfiles(force) {
       '新規デモデータ',
       '空に近い状態から自由に作るためのデータ。最低限の家族メンバーのみ。',
       _buildBlankDemoData(), true));
+  }
+  }
+  // 新規既定「完全に空（全ページ）」は seeded 済みの既存ユーザーにも補完する
+  if(!hasName('完全に空（全ページ）')) {
+    S.demoProfiles.push(_makeDemoProfile(
+      '完全に空（全ページ）',
+      '予定・タスク・家計・ボード・体調・買い物・メモ・家族構成まで、すべて空。各ページの空表示の確認やスクショ用。',
+      _buildEmptyDemoData(), true));
   }
   S.demoProfilesSeeded = true;
   saveS();
