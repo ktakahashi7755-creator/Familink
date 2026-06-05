@@ -18520,3 +18520,22 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: chore: 公開準備第1巡(残骸清掃)＋Supabaseセキュリティ監査ドキュメント
+
+## 2026-06-05 06:25  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+公開準備 第2巡：family_id 総当たり脆弱性の修正（暗号乱数・長尺化）
+
+### 変更内容
+- _generateFamilyId: Math.random4文字(32^4≈105万)→crypto.getRandomValues 12文字(32^12≈1.2京)。形式 FAMI-XXXX-XXXX-XXXX
+- 参加検証regexを新旧両対応(/^FAMI-[A-Z0-9]{4}(-[A-Z0-9]{4})*$/)＝既存家族不変、招待入力/表示を長尺対応
+
+### テスト結果
+- QA 84/84 PASS、UT(新形式100%/旧互換/不正拒否)、ブラウザ生成19桁確認、JS構文0エラー、本体一致
+
+### 次にやること（重要）
+- 🔴 RLS/認証設定は Supabase ダッシュボード適用が必須（docs/supabase-security-hardening.md）
+- 公開前にテスト用バックドア削除
+
+### コミット
+- メッセージ: security: family_id を暗号乱数12文字化し総当たり耐性を確保（旧形式互換）
