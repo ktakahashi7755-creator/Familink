@@ -34,25 +34,23 @@ function _generateFamilyId() {
 - 家族共有は「family_id を知っていれば参加・閲覧できる」設計のため、family_id は実質**ベアラ・トークン（合言葉）**。
 - RLS が family_id 一致で SELECT を許可していると、**総当たりで他家族の体調/家計/子ども情報が抜き取られ得る**。
 
-### 推奨修正（クライアント）
-暗号学的乱数で十分に長い ID にする（例: 16 文字 = 32^16 ≈ 1.2×10^24 通り）。既存家族の ID は不変なので後方互換。
+### 修正（クライアント）✅ 実装済み（v20260604z）
+暗号学的乱数 12 文字 = **32^12 ≈ 1.2×10^18（約1.2京）通り**へ強化。形式 `FAMI-XXXX-XXXX-XXXX`（既存 `FAMI-XXXX` も参加検証で互換維持）。
 ```js
 function _generateFamilyId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const n = 16;
   let out = '';
   try {
-    const buf = new Uint32Array(n);
+    const buf = new Uint32Array(12);
     crypto.getRandomValues(buf);
-    for (let i = 0; i < n; i++) out += chars[buf[i] % chars.length];
+    for (let i = 0; i < 12; i++) out += chars[buf[i] % chars.length];
   } catch (_) {
-    for (let i = 0; i < n; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
   }
-  // 4文字ごとに区切って共有しやすく: FAMI-XXXX-XXXX-XXXX-XXXX
-  return 'FAMI-' + out.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+  return 'FAMI-' + out.replace(/(.{4})(?=.)/g, '$1-');  // FAMI-XXXX-XXXX-XXXX
 }
 ```
-> 表示・コピー UX は「コードをコピー」ボタン＋QR で長さの不便を吸収する。
+参加検証 regex も新旧両対応: `/^FAMI-[A-Z0-9]{4}(-[A-Z0-9]{4})*$/`
 
 ---
 
@@ -61,8 +59,15 @@ function _generateFamilyId() {
 anon キーは公開前提のため、**RLS が無効/不適切だと誰でも全行を読み書きできる＝全データ漏洩**。Supabase ダッシュボード（SQL Editor）で以下を適用・検証する。
 
 ```sql
+-- ▼ そのままコピペで貼り付け→Run。再実行しても安全（冪等）です ▼
 -- 1) RLS を有効化（最重要）
 alter table public.fl_family_data enable row level security;
+
+-- 既存ポリシーを掃除（再実行時のエラー回避）
+drop policy if exists "own_insert" on public.fl_family_data;
+drop policy if exists "own_update" on public.fl_family_data;
+drop policy if exists "own_delete" on public.fl_family_data;
+drop policy if exists "read_own_or_family" on public.fl_family_data;
 
 -- 2) 書き込みは本人の行のみ（user_id = 自分）
 create policy "own_insert" on public.fl_family_data
@@ -87,6 +92,7 @@ create policy "read_own_or_family" on public.fl_family_data
   );
 ```
 > この設計でも「family_id を知る＝その家族に1行書けば参加できる」ため、**family_id の強度（§2）が前提**。より堅牢にするには別途 `family_members(user_id, family_id, joined_at)` テーブル＋招待検証を設け、RLS をそのテーブル参照に切り替える（中期対応）。
+
 
 ### 検証手順（ダッシュボード）
 1. SQL Editor で `select * from fl_family_data;` を **anon ロール**で実行 → RLS 有効なら自分の行以外は返らない。
