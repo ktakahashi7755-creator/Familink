@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604v';
+  var V='v20260604w';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -63,6 +63,7 @@ if('serviceWorker' in navigator){
   --accent-dark:  #C77400;
   /* ── Backgrounds (iOS Grouped) ── */
   --bg:       #F2F2F7;
+  --theme-bg: var(--bg);  /* テーマ背景：全画面共通。applyTheme() で現在テーマに上書き */
   --bg-card:  #FFFFFF;
   --bg-muted: #EBEBF0;
   --bg-grouped: #F2F2F7;
@@ -203,7 +204,7 @@ body {
 }
 
 /* Screen */
-.screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--theme-bg); overflow: hidden; }
 .screen.hidden { display: none !important; }
 
 /* Scroll area */
@@ -715,7 +716,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 /* ============================================================
    LOGIN SCREEN (Apple Sign-In style)
    ============================================================ */
-#s-login { background: var(--bg); }
+#s-login { background: var(--theme-bg); }
 .login-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .login-inner {
   min-height: 100%; display: flex; flex-direction: column;
@@ -2033,7 +2034,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 /* ============================================================
    HOKU AI ASSISTANT (iMessage-inspired)
    ============================================================ */
-#s-hoku { background: var(--bg); }
+#s-hoku { background: var(--theme-bg); }
 .hoku-hd {
   display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   padding: 0 14px;
@@ -18252,8 +18253,12 @@ function isThemeOwned(id) { const t=_themeDef(id); return t.cost===0 || isShopOw
 function getActiveTheme() { const id = S.activeTheme || 'default'; return isThemeOwned(id) ? id : 'default'; }
 /* ホームのボード背景に現在のテーマを適用 */
 function applyTheme() {
+  const bg = _themeDef(getActiveTheme()).bg;
+  // 全画面共通の背景変数を更新（.screen 等が var(--theme-bg) を使用）→ 全ページに統一反映
+  try { document.documentElement.style.setProperty('--theme-bg', bg); } catch(_){}
+  // ホームのボード背景は .screen に統一。個別インライン背景はクリアして二重適用を防ぐ
   const el = document.querySelector('.home-board-scroll');
-  if(el) el.style.background = _themeDef(getActiveTheme()).bg;
+  if(el) el.style.background = '';
 }
 /* テーマを選択（所持していなければショップへ誘導） */
 function selectTheme(id) {
@@ -24170,6 +24175,7 @@ function init() {
   });
   _setupCoinTestGrant();      // テスト用：コインバッジ長押しで+5000（公開前に要削除）
   loadS();
+  try { applyTheme(); } catch(_){}   // 起動時に現在テーマを全画面へ適用（開始画面に依存しない）
   _dedupStateById();          // 念のため：id重複の予定/タスク/家計/メモ/写真を除去（重複表示の防止）
   _refreshTrialStatus();      // Wave 222: トライアル期限チェック
   initWorkspaces();           // ワークスペース初期化（デフォルト2スペースを保証）
