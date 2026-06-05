@@ -18421,3 +18421,36 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: 電波不良時のローディングハングを解消（クラウド取得を非ブロック化＋タイムアウト＋安全オートクローズ）
+
+## 2026-06-05 00:23  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+テーマカラーを全ページに反映（従来はホームのみ）
+
+### 変更ファイル
+- app-source/familink.html（CSS変数 --theme-bg 追加、.screen/#s-login/#s-hoku の背景、applyTheme、init）
+- docs/index.html（head CSS同期×4＋body同期＋キャッシュバスター 20260604v→20260604w）
+
+### 変更内容
+- 原因：applyTheme が .home-board-scroll のみに背景適用＝ホーム限定だった。各 .screen は個別に background:var(--bg)
+- 修正：全画面共通の CSS変数 --theme-bg を新設（既定 var(--bg)）。.screen / #s-login / #s-hoku を var(--theme-bg) に変更
+- applyTheme は :root の --theme-bg を現在テーマの背景に更新（home-board-scroll の個別背景はクリアし二重適用防止）→ 全ページへ統一反映
+- init でも applyTheme を実行（開始画面に依存せず適用）
+- #s-onboard（初回体験）は据え置き（プリセット前提のため）
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ検証：sky テーマ適用で home/task/cal/budget/health/hoku/settings すべての .screen 背景にグラデ反映、--theme-bg=linear-gradient(...) を確認、JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項
+- 各テーマ（クリーム/青空/さくら/ミント/ラベンダー/夕日/うみ）の全画面での見え方（カードや白背景セクションとのコントラスト）
+
+### iPhone確認ポイント
+- テーマ保管庫/ショップでテーマ変更→ホーム以外（タスク・家計・体調・設定等）も背景が変わり統一される
+
+### 次にやること
+- 特になし（致命不具合0）。公開前チェックで _setupCoinTestGrant 削除は引き続き要対応
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: テーマカラーを全ページに反映（--theme-bg導入で統一感）
