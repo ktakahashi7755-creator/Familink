@@ -6017,10 +6017,18 @@ async function _pushToSupabase() {
   return { ok };
 }
 
+/* Promise を ms でタイムアウトさせる（通信ハング時に同期が終わらず固まるのを防ぐ） */
+function _withTimeout(promise, ms) {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('timeout')); }, ms); })
+  ]);
+}
 async function _fetchFromSupabase() {
   const sb = getSupabase();
   if(!sb || !isSupaLoggedIn()) return;
-  showLoading('データを取得中...');
+  // クラウド取得で全画面ローディングを出さない（アプリはローカルデータで動作）。状態は同期ドットで表示
+  _setSyncDot('syncing');
   try {
     const uid = S.supaSession && S.supaSession.id;
     if(!uid) return;
@@ -6028,7 +6036,7 @@ async function _fetchFromSupabase() {
     // 単独利用（familyId なし）は従来どおり自分の user_id 分のみ取得。
     let q = sb.from('fl_family_data').select('user_id,data_key,payload,updated_at');
     q = S.familyId ? q.eq('family_id', S.familyId) : q.eq('user_id', uid);
-    const { data, error } = await q;
+    const { data, error } = await _withTimeout(q, 12000);
     if(error) { console.error('sync fetch error:', error.message); _setSyncDot('error'); return; }
     if(!data || !data.length) { _pushToSupabase(); return; }
     // data_key ごとに（複数メンバーの行を）グループ化
@@ -6072,8 +6080,6 @@ async function _fetchFromSupabase() {
   } catch(e) {
     console.error('_fetchFromSupabase:', e && e.message);
     _setSyncDot('error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -8014,6 +8020,7 @@ function greeting() {
    ============================================================ */
 /* ── Wave 224: グローバルローディングオーバーレイ ── */
 let _loadingCount = 0;
+let _loadingTimer = null;
 function showLoading(msg) {
   _loadingCount++;
   const el = document.getElementById('global-loading');
@@ -8021,10 +8028,14 @@ function showLoading(msg) {
   el.style.display = 'flex';
   const msgEl = document.getElementById('global-loading-msg');
   if(msgEl) msgEl.textContent = msg || '';
+  // 安全策：通信ハング等でも一定時間で必ず閉じ、UIが固まらないようにする
+  if(_loadingTimer) clearTimeout(_loadingTimer);
+  _loadingTimer = setTimeout(function(){ _loadingCount = 0; if(el) el.style.display = 'none'; }, 15000);
 }
 function hideLoading() {
   _loadingCount = Math.max(0, _loadingCount - 1);
   if(_loadingCount > 0) return;
+  if(_loadingTimer) { clearTimeout(_loadingTimer); _loadingTimer = null; }
   const el = document.getElementById('global-loading');
   if(el) el.style.display = 'none';
 }
