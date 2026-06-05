@@ -18539,3 +18539,32 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 
 ### コミット
 - メッセージ: security: family_id を暗号乱数12文字化し総当たり耐性を確保（旧形式互換）
+
+## 2026-06-05 07:02  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+公開準備 第3巡：認証の追加ハードニング(リカバリーコード暗号乱数化)＋全ページ再総点検
+
+### 変更ファイル
+- app-source/familink.html（_genRecoveryCode を crypto.getRandomValues 化）
+- docs/index.html（body同期＋キャッシュバスター 20260604z→20260605a）
+
+### 変更内容
+- _genRecoveryCode: Math.random → crypto.getRandomValues（12文字=32^12≈1.2京通り、形式 XXXX-XXXX-XXXX は不変）
+- 監査メモ: 招待参加はfamily_id強化(1.2京)で総当たり耐性十分／実カード決済モーダルは無し(β)／ローカルpassHash(FNV)はLocalStorage前提の簡易ロックで脅威限定的(記録のみ)
+
+### 全ページ総点検（実ブラウザ・360px）
+- 全16画面: 表示OK / 横スクロール0 / コード露出0 / コンソールエラー0
+- リカバリーコード生成: 暗号乱数・形式正常を確認
+- QA: 84/84 PASS、JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項 / 次にやること
+- Supabase ダッシュボードの認証設定(§4: メール確認ON/最小PW長/Leaked PW保護)は要適用・確認(私からは不可)
+- 公開直前: テスト用バックドア(_setupCoinTestGrant/#qa-debug)削除
+
+### iPhone確認ポイント
+- リカバリーコード再発行時の表示(XXXX-XXXX-XXXX)。挙動変更なし
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: security: リカバリーコードを暗号乱数化＋全ページ再総点検(クリーン)
