@@ -18486,3 +18486,37 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: カレンダーにもテーマを反映（.cal-main-area を--theme-bg化）
+
+## 2026-06-05 00:46  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+公開準備 第1巡：全体監査＋コード残骸清掃＋Supabaseセキュリティ監査(脆弱性発見)
+
+### 変更ファイル
+- app-source/familink.html（未使用CSS .hoku-dress-btn 除去）
+- docs/index.html（head同期＋キャッシュバスター 20260604x→20260604y）
+- docs/supabase-security-hardening.md（新規：監査結果＋RLS SQL＋family_id強化＋公開前チェック）
+
+### 監査結果（クライアント：良好）
+- 秘密鍵露出なし(anonのみ)/eval 0/console.log残骸 0/window.open noopener漏れなし
+- XSS：ユーザー入力は H() か textContent 経由で安全（疑い箇所はICS生成/確認ダイアログ/最終H()包みで誤検知）
+- 残骸：削除済みボタンの未使用CSS .hoku-dress-btn を除去
+
+### 🔴 重大な脆弱性（要対応・要確認）
+1. family_id が FAMI-XXXX（32^4≈105万通り・Math.random）＝総当たり可能 → 暗号乱数で長い ID へ（doc に修正コード）
+2. RLS 適用必須（anonキー前提。RLS不備だと全データ漏洩）→ doc に SQL。サーバ側(ダッシュボード)対応
+3. 公開前にテスト用バックドア(_setupCoinTestGrant/#qa-debug)削除
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS、JS構文0エラー、本体 app==docs 一致
+
+### 未確認事項 / 次にやること
+- §7/§14.3 により family_id 変更・RLS・認証設定は人間確認が必要。ユーザー判断待ち
+- RLS/認証設定は Supabase ダッシュボードでの適用が必要（私からは不可）
+
+### iPhone確認ポイント
+- なし（今回は監査と残骸清掃。挙動変更なし）
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: chore: 公開準備第1巡(残骸清掃)＋Supabaseセキュリティ監査ドキュメント
