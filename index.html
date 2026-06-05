@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260604w';
+  var V='v20260604x';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1431,7 +1431,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   padding-bottom: calc(98px + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--theme-bg);
 }
 
 /* ── 月表示グリッド ── */
