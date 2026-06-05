@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260605c';
+  var V='v20260605d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3050,7 +3050,7 @@ nav#tabbar.hidden { display: none !important; }
 /* ============================================================
    Premium Screen (App Store Subscription Style)
    ============================================================ */
-#s-premium { display:flex; flex-direction:column; background:var(--bg); }
+#s-premium { display:flex; flex-direction:column; background:var(--theme-bg); }
 .prm-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
 .prm-header-bar {
