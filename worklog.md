@@ -18706,3 +18706,35 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: 招待コード入力の暴発を解消（JS強制大文字→iOSネイティブ大文字入力）
+
+## 2026-06-06 00:29  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+家族間リアルタイム共有の総点検＋確実化（ポーリング保険・focus取得）
+
+### 総点検結果（コードは正しい設計）
+- データ変更→saveS→1.5秒で自動push、取得は family_id で家族全員分マージ、復帰/オンライン時に再取得、Realtime購読あり、RLS read_own_or_family で相互読み取り可。push は全行に family_id 付与。FAMILY_SHARED_KEYS に予定/タスク/家計/ボード/体調/買い物/メモ等を含む＝共有ロジックは正しい
+- 不足：①Realtimeはサーバ側でテーブルを publication 登録しないと一切発火しない（未設定の可能性大）②Realtime未受信時の保険が無い
+
+### 変更ファイル
+- app-source/familink.html（realtime購読フラグ＋購読直後取得＋focus取得＋常時20秒ポーリング）
+- docs/index.html（body同期・版数 20260605g）
+
+### 変更内容
+- 購読直後に _fetchFromSupabase（取りこぼし防止）
+- focus 時も取得（従来は realtime 張り直しのみ）
+- **表示中・ログイン中・家族参加中は20秒ごとに取得する保険**を追加（Realtime未公開/切断でも確実に共有が反映。2〜4台対応）
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS、JS構文0エラー、起動時コンソールエラー0、本体 app==docs 一致
+
+### 未確認事項 / 必須対応
+- 🔴 Supabaseで **fl_family_data を Realtime に登録**（publication追加）すると即時反映に。SQL: alter publication supabase_realtime add table public.fl_family_data;
+- 両端末で Supabase ログイン＋同じ招待コードが前提
+
+### iPhone確認ポイント
+- 端末A/Bで Supabaseログイン＋同コード → 片方で入力→もう片方が20秒以内（Realtime有効なら即時）に反映
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat: 家族共有を確実化（20秒ポーリング保険＋focus/購読直後取得）
