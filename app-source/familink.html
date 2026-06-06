@@ -7200,6 +7200,7 @@ function _generateFamilyId() {
 function _setFamilyId(id) {
   S.familyId = id || null;
   S.familyIdOwner = (S.supaSession && S.supaSession.id) || null;
+  S.familyIdSetByUser = !!id;  // 明示的なユーザー操作（生成/参加）の印。ログアウト中設定でも本人意図として保持
   try { saveS(); } catch(_){}
 }
 
@@ -7209,15 +7210,21 @@ function _setFamilyId(id) {
 function _reconcileFamilyIdForLogin() {
   const uid = S.supaSession && S.supaSession.id;
   if(!uid) return;
-  if(S.familyId && S.familyIdOwner === uid) return; // 自分が owner → そのまま
-  if(S.familyId) {
-    // owner が別アカウント、または owner 未記録（旧版生成）の familyId が端末に残存。
-    // 取り違えを防ぐため一旦クリアし、直後の _fetchFromSupabase が
-    // 「自分の行」に familyId があれば復元する（= 真に自分が参加した家族のみ引き継ぐ）。
-    S.familyId = null;
-    S.familyIdOwner = null;
+  if(!S.familyId) return;
+  if(S.familyIdOwner === uid) return; // 自分が owner → そのまま
+  if(!S.familyIdOwner && S.familyIdSetByUser) {
+    // ログアウト状態で本人が明示的に生成/参加したコード → このアカウントで確定。
+    S.familyIdOwner = uid;
     try { saveS(); } catch(_){}
+    return;
   }
+  // owner が別アカウント、または旧版の残骸（明示操作の印なし）の familyId が端末に残存。
+  // 取り違えを防ぐため一旦クリアし、直後の _fetchFromSupabase が
+  // 「自分の行」に familyId があれば復元する（= 真に自分が参加した家族のみ引き継ぐ）。
+  S.familyId = null;
+  S.familyIdOwner = null;
+  S.familyIdSetByUser = false;
+  try { saveS(); } catch(_){}
 }
 
 function openSupaInviteModal() {
@@ -7296,6 +7303,7 @@ function leaveFamilyGroup() {
     function() {
       S.familyId = null;
       S.familyIdOwner = null;
+      S.familyIdSetByUser = false;
       try { saveS(); } catch(_){}
       // クラウド上の自分の行の family_id を解除（family_id=null で再 push）
       if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
@@ -7623,6 +7631,7 @@ let S = {
   supaEntryChoice: null,         // ウェルカム画面で選択した入口: 'supa' | 'guest' | 'invite' | null（未選択）
   familyId: null,                // Wave 219: 家族グループID（将来の招待・多端末同期で使用）
   familyIdOwner: null,           // Wave 234: familyId を確定したアカウントの user_id（別アカウントへの取り違え防止）
+  familyIdSetByUser: false,      // Wave 234: この端末の利用者が明示的に生成/参加したコードか（旧版残骸と区別）
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
   // Wave 250: Hoku ログインボーナス / ファミコイン（毎日開きたくなる習慣化）
   loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
@@ -7635,7 +7644,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory'];
 
 function saveS() {
   const d = {};
