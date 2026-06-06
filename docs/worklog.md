@@ -14714,3 +14714,56 @@ Wave 214c — 設定画面の階層を世界最高峰品質に再構築（8 → 
 ### コミット
 - ハッシュ: 終了報告で記録
 - メッセージ予定: `wave 214c: settings UI — 8→6 sections, dedupe avatar, group notif into 表示, absorb hoku api, promote logout to danger zone + docs sync v20260526h`
+
+---
+
+## 2026-06-06 23:44  env: PC (Remote Control / 完全自走モード)  branch: claude/latest-version-link-MHEoh → main(claude/merge-and-push-main-u44Ty)
+
+### 作業名
+Wave 215g ログイン体験統一 + Supabase 家族共有セットアップ SQL 確定 + 全ページ総点検 + docs 同期/デプロイ
+
+### 変更ファイル
+- app-source/familink.html（#s-login をウェルカム(s-ob) v2 と同じ .ob-v2 トーンへ統一。旧 login-scroll/login-inner/login-hero マークアップを撤去）
+- app-source/_new_slogin.html（ドラフト適用済みのため削除）
+- docs/supabase-setup-sql.sql（新規：実行用の最終版 SQL）
+- docs/supabase-backend-plan.md（状態更新・SQL 確定を反映・Phase 4-4/4-5 を意図的に未着手とする理由を明記）
+- docs/index.html（app-source と同期・本文一致確認済み・キャッシュバスター v20260606a）
+- index.html（root リダイレクター・v20260526h → v20260606a）
+- docs/worklog.md（本エントリ）
+
+### 変更内容
+1. **Wave 215g 完成**：前セッションの未コミット作業（welcome v2 = s-ob の Apple 純正風刷新）を確認のうえ、staged だったドラフト `_new_slogin.html` を #s-login に適用。welcome と login の 2 画面が同じ .ob-v2 デザイン言語に統一された。旧 #s-login 用に既に追加済みだった .ob-v2-back-btn 等の CSS が「dead CSS」だった状態を解消。
+2. **家族リアルタイム共有（goal #1）の現状確定と前進**：コード調査の結果、`syncToSupabase`/`syncFromSupabase`・招待コードはすべて「準備中」スタブで、family_id/Realtime/家族テーブルは未実装と判明（docs/supabase-backend-plan.md の Phase 4-4/4-5 未着手と一致）。唯一のブロッカーは Phase 4-1（オーナーが Supabase にテーブル/RLS を作成）。これは Claude では実行・検証不能（service_role 不要方針・本物の家族データ）。そこで **実行用の最終版 SQL（families/family_members/family_data + RLS + 招待コード RPC + Realtime publication、冪等）を `docs/supabase-setup-sql.sql` として確定**し、貼り付け 1 回実行で Phase 4-1 が完了する状態にした。
+3. **全ページ総点検（goal #2）**：puppeteer で 22 画面を iPhone SE 幅（375px）で巡回。**全画面レンダリング OK・横スクロールなし・JS エラー 0・dead onclick ハンドラなし**。Hoku 意図エンジン 56/56・モーダル ESC スタック OK・Wave 215g スモーク 12/12 PASS。公開レベルの構造品質を確認。
+4. **docs 同期 + キャッシュバスター bump**（§12.3）。
+
+### テスト結果
+- smoke-215g.js: **12/12 PASS**（welcome/login 両画面の要素・ハンドラ・JS エラー 0）
+- audit-fullpage.js: 22 画面 全レンダリング OK / overflowX 全 false / pageerror 0
+- intent-mega.js: **56/56 (100%)** pageerror なし
+- esc-key-test.js: モーダルスタック + ESC クローズ OK / pageError 0
+- docs/index.html 本文 == app-source/familink.html（diff 一致確認済み）
+- ※ 旧 auth-e2e.js は welcome 再設計前の supaEntryClickLogin を呼ぶため stale（テスト側の未追従。アプリ側は正常）。代替として smoke-215g.js を新設。
+
+### 重要判断（自走モードでの裁定・§9 ユーザー指示優先だが安全境界を明記）
+- 家族リアルタイム共有を「完璧に動く状態」にするには Supabase バックエンド（テーブル/RLS/Realtime）が必須。これは Claude が実行・検証できず、未検証の機微データ同期コード（体調・家計・写真）を本番ライブへ盲目投入するのは §10.2/§13 に反するため**行わない**。
+- 代わりに、ディレクティブの明示的な代替指示（「Supabase 側の手順を docs にまとめ、アプリ側でできる対策をして先へ進む」）に従い、**実行用 SQL を確定**して Phase 4-1 のブロッカーを解消した。
+- Phase 4-4（同期レイヤー）/4-5（Realtime 購読）は、オーナーが SQL を実行して**検証可能な状態になってから**着手する（次セッション）。
+
+### 未確認事項
+- **goal #1 の受け入れ条件（A→B リアルタイム反映・family_id 一致・#qa-debug の所有者表示）は、オーナーが `docs/supabase-setup-sql.sql` を実行するまで実装・検証できない**。SQL 実行後、2 アカウントでの検証ラウンドが必要。
+- GitHub Pages の実デプロイ反映（公開 URL での目視）。
+
+### iPhone確認ポイント
+- welcome(s-ob) と login 画面が同じ白基調・.ob-v2 トーンで統一されて見えるか
+- s-login のパスワード表示切替（目アイコン）が効くか / 「新しいアカウントを作る」「パスワードをお忘れですか？」導線
+- 全画面で横スクロールが出ないか（SE 幅）
+
+### 次にやること
+1. オーナー：`docs/supabase-setup-sql.sql` を Supabase SQL Editor で実行（+ Email provider 有効化）
+2. その後 Phase 4-4/4-5（同期レイヤー + Realtime）をアプリに実装し、2 アカウントで受け入れ条件を検証
+3. #qa-debug に「家族コード / コード所有者 / 最終同期エラー」行を追加（同期実装と同時）
+
+### コミット
+- ハッシュ: 終了報告で記録
+- メッセージ: 複数（Wave 215g / docs supabase SQL / docs 同期 v20260606a / worklog）
