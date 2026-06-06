@@ -18924,3 +18924,89 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 
 ### コミット
 - `feat(qa): 家族共有セルフテスト` / `docs(family-sharing): SQL+診断` / `chore(sync): docs同期 v20260607a` / 本worklog
+
+---
+
+## 2026-06-07 08:10  env: PC (Remote Control / 完全自走モード)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+家族共有のβ品質仕上げ — 招待UX強化（STEP5）＋Hoku共有導線（STEP6）＋総点検（STEP2/3/7/8）
+
+### 背景
+リモコン指示で「家族共有を完成させ、複数端末で同じ家族を共有・別家庭は完全分離・β公開品質へ」。
+既存実装（family_id 取得/マージ/Realtime/20秒ポーリング/招待/owner追跡/leave）は完成済み。
+過去診断（worklog 2026-06-06〜07）で共有不成立の最有力原因は **バックエンド側**（RLS family_read / Realtime publication の SQL 未適用、またはメール確認ON で家族がログイン不可）＝オーナーの Supabase 操作で解消する領域と特定済み。
+本セッションはコード側で安全に磨ける UX・案内・分離の確実性に集中。
+
+### STEP1 現状確認
+- 作業ツリー clean、canonical=claude/merge-and-push-main-u44Ty (ab18edc) = ライブデプロイ線（GitHub Actions）。app-source ⇄ docs 本文一致。
+
+### STEP2 ブランチ整理（確認のみ・破壊操作なし）
+- バックアップは **すべて origin に存在**することを git ls-remote で確認：
+  - backup/2026-06-06-MHEoh-real-b-line (eba12f4 = 本物B線)
+  - backup/2026-06-06-u44Ty-mine-a-line (eba4dd6 = A線)
+  - snapshot/wave-214-perfect (d0dfa3f)
+  - 履歴は完全保全。新規作業は canonical 上に追記コミット（reset/force なし）。
+- origin/main は eba12f4（B reconcile点・実質バックアップ）のまま。公開線は Actions on canonical で最新。
+
+### STEP3 家族共有 総点検（読解・検証）
+- 分離は二重に担保：fetch は family_id で client 側フィルタ（q.eq('family_id', S.familyId)）＋ RLS（family_read / SECURITY DEFINER fl_my_family_ids）でサーバ側強制。別家庭の混入経路なし。
+- familyId は crypto 乱数 12 桁（32^12）でコード衝突は無視可能。
+- owner 追跡（familyIdOwner / familyIdSetByUser / _reconcileFamilyIdForLogin）で同一端末の別アカウント取り違えを防止。leaveFamilyGroup で単独利用へ復帰可。
+- 結論：コードは正しく、共有成立はオーナーの SQL 適用＋メール確認OFF に依存（docs/family-sharing-fix-2026-06-07.md / docs/supabase-setup-sql.sql 参照）。
+
+### STEP5 招待UX強化（コード変更）
+- m-my-invite に「信頼できる家族だけに共有してください」の注意ボックスを常設。
+- m-my-invite に未ログイン時の動的案内（my-invite-login-note）：未ログインなら「端末内のみ保存／ログインで実同期」を表示。
+- m-supa-invite に共有対象（予定/やること/家族ボード/買い物/準備）の明示＋反映に数秒かかる旨の案内。
+
+### STEP6 Hoku 共有導線（コード変更）
+- Hoku 空状態：家族未参加（!S.familyId）のとき「家族を招待」チップ（home アイコン）を追加。onclick=openMyInviteModal() で**実際に動く**導線（押せないボタンなし）。
+- サブ見出しも家族未参加時は「家族を招待すると、予定やタスクをみんなで共有できます」に切替。
+
+### STEP7 公開前セキュリティ確認
+- service_role キー：なし（publishable/anon のみ）✓
+- console.log：0 件 ✓（console.error は 14 件＝正当なエラーログ）
+- #qa-debug は URL ハッシュ限定（通常ユーザー非到達）。家族共有セルフテストはオーナー診断の生命線のため**意図的に保持**。
+- ⚠ 申し送り：#qa-debug 内の「ファミコイン+5000」「リセット」チートは β家族テストでは隠し扱いで許容。App Store 提出前にオーナー判断で削除を推奨。
+
+### STEP8 品質チェック（当機で可能な範囲）
+- node --check（インライン script 抽出）→ SYNTAX OK
+- Chrome ヘッドレス（file://）で実描画 → DOM 2.6MB 生成、新規要素 my-invite-login-note / 「家族を招待」チップ 存在、`[Supabase] connected`、**アプリ起因の JS エラー 0**。
+- node qa_full_test.js は当 Windows 機では実行不可（Linux パスの playwright require・python は Store スタブ）。代替で上記スモークを実施。
+
+### STEP9 同期・コミット
+- app-source → docs/index.html 同期（§12.3 手順）。本文 diff 完全一致。キャッシュバスター v20260607a→**v20260607b**。
+- root index.html リダイレクタも 20260607a→20260607b。
+
+### 変更ファイル
+- app-source/familink.html（招待2モーダル＋openMyInviteModal＋Hoku空状態）
+- docs/index.html（同期＋v20260607b）
+- index.html（リダイレクタ版上げ）
+- docs/worklog.md（本エントリ）
+
+### テスト結果
+- node --check：SYNTAX OK
+- Chrome ヘッドレス描画：DOM生成OK・新規要素OK・Supabase接続OK・JSエラー0
+- app-source ⇄ docs 本文：完全一致
+- node qa_full_test.js：当機実行不可（理由上記）。次回 Linux 環境で 84/84 再確認推奨。
+
+### 未確認事項（オーナー対応待ち／コードでは解消不可）
+- 🔴 Supabase で docs/supabase-setup-sql.sql を1回実行（RLS family_read / Realtime publication）。
+- 🔴 メール確認OFF（または家族は welcome の「メール認証不要で作成」緑ボタンで登録）。
+- 実機2アカウントで 招待→参加→双方向リアルタイム同期 の最終受け入れ。#qa-debug→家族共有セルフテストで②家族取得・③Realtime配信が OK になるか。
+
+### iPhone確認ポイント
+- 設定→家族を招待：未ログイン時に黄色の「端末内のみ保存」案内が出るか／信頼共有の注意が出るか。
+- 招待コードで参加モーダルに共有対象の説明が出るか。
+- Hoku を開く（会話なし状態）と家族未参加時に「家族を招待」チップが出て、押すと招待モーダルが開くか。
+- 横スクロールが出ないか（iPhone SE 幅）。
+
+### 次にやること
+1. オーナー：SQL実行＋メール確認OFF → 実機2アカウントで共有受け入れ確認。
+2. （任意）参加後に「家族データ0件」を検知して手順誘導するバナー追加。
+3. App Store 提出前に #qa-debug チート（ファミコイン/リセット）の扱いをオーナー判断。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat(family-sharing): 招待UX強化＋Hoku共有導線＋docs同期(v20260607b)

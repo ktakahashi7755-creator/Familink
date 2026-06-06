@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260607a';
+  var V='v20260607b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -4724,12 +4724,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-grip"></div>
     <div class="modal-title">招待コードで参加</div>
     <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-      ご家族から共有された招待コードを入力してください。同じコードを持つ家族と予定・やることを共有できます。
+      ご家族から共有された招待コードを入力してください。参加すると、同じ家族の予定・やること・家族ボード・買い物・準備リストなどを共有できます。
     </p>
     <div class="modal-form" style="gap:4px;">
       <label class="form-label">招待コード</label>
       <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="24" style="letter-spacing:1.5px;text-transform:uppercase;">
       <div id="supa-invite-err" style="font-size:12px;color:var(--red);min-height:16px;margin-top:4px;"></div>
+    </div>
+    <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin:4px 0 4px;">
+      参加後、家族の予定が反映されるまで数秒かかることがあります。クラウドにログインしておくと自動で同期されます。
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary btn-block" onclick="doSupaInviteSubmit()">このコードで参加する</button>
@@ -4746,9 +4749,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
       下のコードをご家族に共有してください。同じコードで参加した方と予定・やることを共有できます。
     </p>
-    <div style="background:var(--bg-muted);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;">
+    <div style="background:var(--bg-muted);border-radius:14px;padding:18px;text-align:center;margin-bottom:12px;">
       <div id="my-invite-code" style="font-size:19px;font-weight:800;letter-spacing:1.5px;color:var(--primary);font-family:monospace;word-break:break-all;line-height:1.4;"></div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">このコードをご家族に伝えてください</div>
+    </div>
+    <div id="my-invite-login-note" style="display:none;font-size:11.5px;line-height:1.6;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>
+    <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+      このコードは<b>信頼できる家族だけ</b>に共有してください。コードを知っている人は家族の予定や情報を見られます。
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary btn-block" onclick="copyMyInviteCode()">コードをコピー</button>
@@ -7256,6 +7263,16 @@ function openMyInviteModal() {
   }
   const el = document.getElementById('my-invite-code');
   if(el) el.textContent = S.familyId;
+  // ログイン状態に応じた案内：未ログインだとコードは端末内のみで実際の同期は起きない
+  const note = document.getElementById('my-invite-login-note');
+  if(note) {
+    if(isSupaLoggedIn()) {
+      note.style.display = 'none'; note.textContent = '';
+    } else {
+      note.style.display = 'block';
+      note.textContent = 'いまはこの端末だけにコードを保存しています。設定からクラウドにログインすると、家族と実際に予定やタスクが同期されます。';
+    }
+  }
   openModal('m-my-invite');
 }
 
@@ -21325,12 +21342,19 @@ function renderHokuMsgs() {
       : shopCount
       ? `<button class="hoku-empty-chip" onclick="sendHokuMsg('買い物リストを教えて')">${ICON('cart',16)} 買い物(${shopCount}件)</button>`
       : `<button class="hoku-empty-chip" onclick="sendHokuMsg('今月の家計を確認')">${ICON('wallet',16)} 家計確認</button>`;
+    /* Wave 251: 家族未参加なら「家族を招待」チップで共有導線へ（押せる実動作） */
+    const chipFamily = !S.familyId
+      ? `<button class="hoku-empty-chip" onclick="openMyInviteModal()">${ICON('home',16)} 家族を招待</button>`
+      : '';
+    const familyHint = !S.familyId
+      ? '家族を招待すると、予定やタスクをみんなで共有できます'
+      : '予定・タスク・家計・体調をサポートします';
 
     el.innerHTML = `<div class="hoku-empty-state">
       <img src="${equippedHokuImg()}" class="hoku-empty-img" alt="Hoku" onerror="_hokuImgFallback(this)">
       <div class="hoku-empty-title">${nm ? H(nm)+'さん、' : ''}何でも聞いて！</div>
-      <div class="hoku-empty-sub">予定・タスク・家計・体調をサポートします</div>
-      <div class="hoku-empty-chips">${chip1}${chip2}${chip3}</div>
+      <div class="hoku-empty-sub">${familyHint}</div>
+      <div class="hoku-empty-chips">${chip1}${chip2}${chip3}${chipFamily}</div>
       <div class="hoku-empty-voice"><span class="hoku-empty-voice-dot"></span>マイクで話しかけてもOK</div>
     </div>`;
     return;
