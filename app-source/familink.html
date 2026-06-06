@@ -18692,6 +18692,18 @@ function renderSettings() {
               <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${H(supaEmail())}</div>
             </div>
           </div>
+          <div class="settings-item" onclick="openMyInviteModal()">
+            <div class="settings-item-icon" style="background:#F0FDF4">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#22C55E')}</div>
+            <div class="settings-item-label">家族を招待する
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'コードを生成して家族に共有'}</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" onclick="openSupaInviteModal()">
+            <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#F59E0B')}</div>
+            <div class="settings-item-label">招待コードで参加
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族から受け取ったコードで参加'}</div>
+            </div><div class="settings-arrow">›</div>
+          </div>
           <div class="settings-item" onclick="syncToSupabase()">
             <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M12 2v20M5 15l7 7 7-7"/>','#10B981')}</div>
             <div class="settings-item-label">クラウドへ送信
