@@ -18875,3 +18875,52 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 
 ### コミット
 - メッセージ: `ci(pages): deploy canonical (B) via GitHub Actions workflow`（0d8c986）
+
+---
+
+## 2026-06-07 00:55  env: PC (Remote Control / 完全自走モード)  branch: claude/merge-and-push-main-u44Ty (canonical=B)
+
+### 作業名
+家族共有が動かない件の総点検・原因切り分け・自己診断追加・実行SQL確定・日本語ドキュメント提出
+
+### 背景
+ユーザー報告「複数端末・別アカウントでリアルタイム家族共有ができない（致命的）」。アプリ側実装（family_id取得/マージ/Realtime/20秒ポーリング/招待）は完成済みだが共有が成立しない。
+
+### 実バックエンド診断（curl で実プロジェクトを確認）
+- `fl_family_data` テーブル: 存在 ✓ ／ `fl_my_family_ids()` RPC: 存在 ✓ ／ RLS: 有効（anon insert は 42501 で拒否）✓
+- `family_read`（家族横断SELECT）: 認証セッションが必要で当環境から検証不可（最有力の未適用候補）
+- Realtime publication: コードの記載SQLに publication 行が無く、**未設定の可能性大**（未設定でも20秒ポーリングで共有自体は動く）
+- **メール確認: ON（mailer_autoconfirm=false）** ← 新発見。家族が登録しても未確認だとログイン不可＝同期されない（無料SMTPは1時間2通制限）
+- OAuth(Google/Apple): 全OFF（welcomeのボタンは「準備中」表示で安全に分岐済み）
+
+### 結論（最有力原因）
+(A) `family_read` RLS / Realtime publication の SQL が未適用 or 旧版、または (B) 家族メンバーがメール未確認でログインできていない。→ いずれもオーナーの Supabase 操作で解消。
+
+### 変更ファイル
+- `app-source/familink.html`：`#qa-debug` に「家族共有セルフテスト」追加（runFamilyShareSelfTest/_realtimeEchoTest/_renderFamTest）。実アカウントで①送信②家族取得(RLS判定)③Realtime実測④メール確認設定 を順に診断し失敗レイヤーを日本語表示。
+- `docs/supabase-setup-sql.sql`（新規）：貼り付け1回で完了の冪等SQL（テーブル+RPC+RLS+Realtime publicationの安全DOブロック）。
+- `docs/family-sharing-fix-2026-06-07.md`（新規）：日本語の診断＋オーナー作業STEP1-3＋セルフテストの読み方（提出用）。
+- `docs/index.html`：app-source と同期（本文一致）／キャッシュバスター v20260605l→v20260607a。
+- `index.html`：root リダイレクター 20260604f→20260607a。
+
+### テスト結果
+- 実バックエンド: curl で table/RPC/RLS/auth設定を確認（上記）。
+- アプリ: puppeteer で注入後の app-source を検証 → **JSエラー0／関数定義OK／セルフテストボタン配置OK**。
+- `node qa_full_test.js`：当Windows機では実行不可（Linuxパスのplaywright require・python不可）。代替で puppeteer-core 検証。
+- docs/index.html 本文 == app-source（diff一致）。
+
+### 未確認事項（オーナー対応待ち）
+- **`docs/supabase-setup-sql.sql` の実行**（STEP1）＋ **メール確認OFF**（STEP2）→ 実機2アカウントで共有/リアルタイム確認（STEP3）。
+- 実行後 `#qa-debug`→「家族共有セルフテスト」で②が複数メンバー・③配信OK になるか。
+
+### iPhone確認ポイント
+- 設定→クラウドにログイン→招待コード発行／別アカウントで参加→数秒〜20秒で予定が反映されるか。
+- `#qa-debug`（URL末尾に #qa-debug）→「家族共有セルフテスト」の②③④の表示。
+
+### 次にやること
+1. オーナー：SQL実行＋メール確認OFF（docs/family-sharing-fix-2026-06-07.md STEP1-2）
+2. セルフテスト or 2端末で受け入れ確認
+3. （任意）参加直後に「家族データ0件」を検知して手順誘導するバナー追加・Notion転記
+
+### コミット
+- `feat(qa): 家族共有セルフテスト` / `docs(family-sharing): SQL+診断` / `chore(sync): docs同期 v20260607a` / 本worklog
