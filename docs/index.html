@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260607b';
+  var V='v20260607c';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3434,7 +3434,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 .hoku-empty-chip {
   background: #fff; border: 1.5px solid var(--border-light);
-  border-radius: var(--r-full); padding: 8px 14px;
+  border-radius: var(--r-full); padding: 10px 14px;
   font-size: 13px; font-weight: 600; color: var(--text);
   cursor: pointer; transition: var(--t-spring);
   box-shadow: 0 2px 8px rgba(26,36,64,.06);
@@ -5886,6 +5886,8 @@ async function supaSignIn(email, password) {
 
 /* ── サインアウト（クラウド側のみ。ローカルの S.account / familink_v3 は触らない） ── */
 async function supaSignOut() {
+  // Realtime チャンネルを確実に畳む（ログアウト後にゾンビ購読が残らないように）
+  try { stopRealtimeSync(); } catch(_){}
   const sb = getSupabase();
   if(!sb) {
     S.supaSession = null;
@@ -6059,7 +6061,12 @@ async function _fetchFromSupabase() {
     q = S.familyId ? q.eq('family_id', S.familyId) : q.eq('user_id', uid);
     const { data, error } = await _withTimeout(q, 12000);
     if(error) { window._lastSyncError = '取得: '+error.message; console.error('sync fetch error:', error.message); _setSyncDot('error'); return; }
-    if(!data || !data.length) { _pushToSupabase(); return; }
+    if(!data || !data.length) {
+      _pushToSupabase();
+      // 家族にまだクラウド行が無くても Realtime を張り、相手の初回書き込みを取りこぼさない
+      if(!_realtimeChannel) { try { startRealtimeSync(); } catch(_){} }
+      return;
+    }
     // data_key ごとに（複数メンバーの行を）グループ化
     const byKey = {};
     data.forEach(row => {
@@ -6098,6 +6105,8 @@ async function _fetchFromSupabase() {
     }
     if(changed) {
       saveS();
+      // 家族の members を取り込んだら MEMBERS グローバルを再構築（ピッカー/アバター反映）
+      try { applyMembersFromS(); } catch(_){}
       try { go(S.screen); } catch(_){}
     }
     window._lastSyncError = '';
@@ -7307,9 +7316,18 @@ function doSupaInviteSubmit() {
   // 既にアプリ利用中（設定から参加）か、入口フロー（新規）かで挙動を分ける。
   const alreadyInApp = S.loggedIn && S.onboardCompleted;
   if(isSupaLoggedIn()) {
-    showToast('家族コードで参加しました！データを同期します', 'success');
-    // 自分のデータに family_id を付与（push）→ 家族全員分を取得（fetch）
-    _pushToSupabase().then(function(){ return _fetchFromSupabase(); }).catch(function(){});
+    showToast('家族に参加しています…', 'info');
+    // 自分のデータに family_id を付与（push）→ 家族全員分を取得（fetch）。
+    // push 成否で成功/失敗トーストを出し分ける（失敗時に「参加済み」と誤解させない）。
+    _pushToSupabase().then(function(r){
+      if(r && r.ok) {
+        showToast('家族コードで参加しました！データを同期します', 'success');
+        return _fetchFromSupabase();
+      }
+      showToast('参加の同期に失敗しました。通信環境を確認して、設定→クラウドから再度お試しください', 'error');
+    }).catch(function(){
+      showToast('参加の同期に失敗しました。通信環境を確認して、設定→クラウドから再度お試しください', 'error');
+    });
   } else {
     showToast('家族コードを保存しました。クラウドにログインすると家族と同期されます', 'info');
   }
@@ -8084,7 +8102,7 @@ function avHtml(memberId, size=36, fontSize=14, extraStyle='') {
   // カスタム写真（ユーザー撮影）はそのまま、白余白の前提なし
   const photo = (S.userPhotos||{})[memberId];
   if(photo) {
-    return `<div class="av" style="width:${sz};height:${sz};background:${H(m.grad)};overflow:hidden;${extraStyle}"><img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="${H(m.name)}"></div>`;
+    return `<div class="av" style="width:${sz};height:${sz};background:${H(m.grad)};overflow:hidden;${extraStyle}"><img src="${H(photo)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="${H(m.name)}"></div>`;
   }
   // デフォルト（グラデーション＋文字）
   return `<div class="av" style="background:${H(m.grad)};width:${sz};height:${sz};font-size:${fs};${extraStyle}">${H(m.av)}</div>`;
@@ -10481,7 +10499,7 @@ function homeToggleTask(id) {
   if(!t) return;
   t.status      = t.status === 'done' ? 'todo' : 'done';
   t.completedAt = t.status === 'done' ? todayStr() : '';
-  t.updatedAt   = todayStr();
+  t.updatedAt   = new Date().toISOString();
   saveS(); renderHome(); renderTaskScreen();
 }
 
@@ -12543,7 +12561,7 @@ function bindListDrag(card) {
     // 全再描画によるちらつきを避け order の更新と保存のみ行う（Wave 156）
     document.querySelectorAll('#tk-main .tk-card').forEach((c,i) => {
       const t = (S.tasks||[]).find(t => t.id === c.dataset.id);
-      if(t) { t.order = i; t.updatedAt = todayStr(); }
+      if(t) { t.order = i; t.updatedAt = new Date().toISOString(); }
     });
     saveS();
     if(typeof renderHome === 'function') renderHome();
@@ -12601,7 +12619,7 @@ function toggleTaskDone(id){
   const t=(S.tasks||[]).find(t=>t.id===id);
   if(!t)return;
   t.status=t.status==='done'?'todo':'done';
-  t.completedAt=t.status==='done'?todayStr():'';t.updatedAt=todayStr();
+  t.completedAt=t.status==='done'?todayStr():'';t.updatedAt=new Date().toISOString();
   saveS();renderTaskScreen();renderHome();
 }
 

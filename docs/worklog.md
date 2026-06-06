@@ -19010,3 +19010,63 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: feat(family-sharing): 招待UX強化＋Hoku共有導線＋docs同期(v20260607b)
+
+---
+
+## 2026-06-07 08:40  env: PC (Remote Control / Agent Team体制)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+Agent Team（5専門サブエージェント）並列レビュー → 検出S/A項目の安全修正 → 検証 → デプロイ
+
+### Agent体制の確認結果
+- `.claude/skills/` に 17 Familink Skill（役割ベース指示セット）。`.claude/agents/`（自律サブエージェント定義）は無し、hooks 無し、`.claude/settings.json` 無し（settings.local.json は端末固有で非コミット）。
+- 専用 Security Skill が欠落していることを確認（CLAUDE.md §13＋cto-architect が兼務）。
+- ご要望の「並列レビュー」を実現するため、Agentツールで **5 Lead を並列起動**（読み取り専用レビュー → 私が修正集約 → テスト → commit）。
+
+### 使用した Agent（5並列）と要点
+- Supabase Lead：**[S] 削除が端末間で復活（LWW union にトゥームストーン無し）**／**[S] タスク updatedAt が日付のみ＝同日編集が消失**／[A] ログアウト時 Realtime 未停止／[A] fetch後 MEMBERS 未再構築／[A] 参加フローの push 未確認。**家族分離（誰が誰のデータを読めるか）は健全**と判定。
+- Security Lead：**[B] line 8074 `src=${photo}` 未エスケープ（唯一のXSS経路）**。鍵露出なし／RLS健全／招待コード強度~59bit。家族βはセキュリティ的にリリース可。
+- Frontend/Mobile Lead：**S/A なし**。デッドボタン0・横スクロール対策済み・遷移健全。Cのみ（chip高さ・pinch-zoom）。
+- QA Lead：**家族共有ロジックは自動テスト未カバー**。pure-function 中心の新規10ケースを提案（最重要=個人キーが家族間で上書きされない分離回帰）。
+- Product Lead：作り込みは80点級だが**家族導線がオンボーディングに無く設定の奥**。採用見込み 62/100。Top3＝①オンボに招待 ②ゲストにも招待常設 ③ホームにHokuナッジ。
+
+### 実施した修正（安全・検証可能なもののみ）
+1. [Security] line 8074 `src="${H(photo)}"`（同期写真の data URL をエスケープ）
+2. [S 同期] タスク updatedAt をミリ秒 ISO 化（toggle×2/reorder）。同日跨端末編集の消失を解消。表示側は slice(0,10)/localeCompare/new Date() 全て ISO 互換を確認済み。
+3. [A 家族] `_fetchFromSupabase` 取込後に `applyMembersFromS()`：参加直後に家族メンバーがピッカー/アバターへ即反映（要リロード解消）。
+4. [A 家族] `supaSignOut` で `stopRealtimeSync()`：ログアウト後のゾンビ購読/再接続ループを防止。
+5. [A 家族] 参加フロー：push 成否で成功/失敗トーストを出し分け（失敗時に「参加済み」と誤認させない）。
+6. [C UI] Hoku chip の tap 領域を ~40px へ（padding 10px）。
+7. [A 家族] 家族にクラウド行が無い初回経路でも Realtime を張る（相手の初回書込み取りこぼし防止）。
+
+### 修正を見送り、人間確認/CIに回す項目（理由明記）
+- 🔴 [S] 削除のトゥームストーン化（端末間の削除が復活する根本対策）：~10機能の delete 経路とレンダリングに跨る**構造的データ変更**で、当機では 84テスト回帰を実行できない（Playwright は Linux 専用）。CLAUDE.md §14.3「LocalStorage構造変更は停止」に従い、設計のみ提示し**CI/Linux でのテスト前提で次セッション実装**とする。設計：delete を `it._deleted=true; it.updatedAt=ISO` のソフト削除化＋merge でトゥームストーン優先＋描画時 filter＋30日GC。
+- [Product S] オンボーディングに招待ステップ追加／ホームに招待常設・Hokuナッジ：UX構造変更のため設計提案に留め、次の優先実装候補とする（Hoku空状態の招待チップは前セッションで実装済み）。
+- [QA] 提案10テストの追加：当機で qa_full_test.js を実行できないため、ブラインドでスイートを壊さないよう次のCI可能セッションで追加。
+
+### 変更ファイル
+- app-source/familink.html（7修正）／docs/index.html（同期 v20260607c）／index.html（版上げ）／docs/worklog.md
+
+### テスト結果
+- node --check（インライン抽出）：SYNTAX OK
+- Chrome ヘッドレス描画：DOM 2.6MB・`[Supabase] connected`・**アプリ起因 JSエラー 0**・修正反映（padding 10px/参加トースト文言）を DOM で確認
+- app-source ⇄ docs 本文：完全一致
+- node qa_full_test.js：当機実行不可（Linuxパス）。次回 CI で 84/84＋新規テスト推奨
+
+### 未確認事項
+- 上記「見送り」3項目（トゥームストーン／オンボ招待／QA10テスト）は次セッション。
+- 家族共有の実機受け入れ（SQL適用済み・前タスク確認済み。2端末同期の最終目視）。
+
+### iPhone確認ポイント
+- タスク完了/並べ替え後も他端末の同日編集が消えないか（ISO化の効果）。
+- 参加時、同期失敗ならエラートーストが出るか（誤「参加済み」表示が消えたか）。
+- 参加直後に家族メンバーがメンバー選択に出るか。
+
+### 次にやること
+1. CI/Linux で qa_full_test.js（84）＋QA提案の家族共有テスト追加 → グリーン確認。
+2. 削除トゥームストーン化を実装（端末間削除の整合）。
+3. オンボに招待ステップ＋ホームHokuナッジ（Product Top3）。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix(family-sync+security): Agent Teamレビュー由来のS/A修正7件＋docs同期(v20260607c)
