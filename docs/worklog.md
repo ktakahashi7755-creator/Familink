@@ -18738,3 +18738,15 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: feat: 家族共有を確実化（20秒ポーリング保険＋focus/購読直後取得）
+
+## 2026-06-06 00:43  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+家族共有が反映されない件：RLS自己参照再帰を疑い、同期診断を可視化
+### 変更内容
+- _fetchFromSupabase/_pushToSupabase のエラーを window._lastSyncError に記録、#qa-debug に「家族同期診断」(ログイン/family_id/Realtime/最終同期エラー)を表示
+- 仮説：RLS read_own_or_family の自己参照サブクエリが infinite recursion を起こしfetch失敗→家族データ来ず。SECURITY DEFINER関数方式へ置換予定
+### テスト結果
+- QA 84/84 PASS、JS構文0エラー、docs同期 20260605h
+### コミット
+- メッセージ: diag: 同期エラー可視化＋家族同期診断パネル（RLS再帰の切り分け用）

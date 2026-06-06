@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260605g';
+  var V='v20260605h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -6015,11 +6015,11 @@ async function _pushToSupabase() {
         lastErr = error;
         await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
       }
-      if(lastErr) { console.error('sync push error:', lastErr.message); ok = false; break; }
+      if(lastErr) { window._lastSyncError = '送信: '+lastErr.message; console.error('sync push error:', lastErr.message); ok = false; break; }
     }
     _setSyncDot(ok ? 'synced' : 'error');
   } catch(e) {
-    console.error('_pushToSupabase:', e && e.message);
+    window._lastSyncError = '送信例外: '+(e && e.message); console.error('_pushToSupabase:', e && e.message);
     _setSyncDot('error');
     ok = false;
   } finally {
@@ -6048,7 +6048,7 @@ async function _fetchFromSupabase() {
     let q = sb.from('fl_family_data').select('user_id,data_key,payload,updated_at');
     q = S.familyId ? q.eq('family_id', S.familyId) : q.eq('user_id', uid);
     const { data, error } = await _withTimeout(q, 12000);
-    if(error) { console.error('sync fetch error:', error.message); _setSyncDot('error'); return; }
+    if(error) { window._lastSyncError = '取得: '+error.message; console.error('sync fetch error:', error.message); _setSyncDot('error'); return; }
     if(!data || !data.length) { _pushToSupabase(); return; }
     // data_key ごとに（複数メンバーの行を）グループ化
     const byKey = {};
@@ -6083,13 +6083,14 @@ async function _fetchFromSupabase() {
       saveS();
       try { go(S.screen); } catch(_){}
     }
+    window._lastSyncError = '';
     _setSyncDot('synced');
     /* Wave 233: Realtimeチャンネルをまだ開いていなければ開始 */
     if(!_realtimeChannel) {
       try { startRealtimeSync(); } catch(_){}
     }
   } catch(e) {
-    console.error('_fetchFromSupabase:', e && e.message);
+    window._lastSyncError = '取得例外: '+(e && e.message); console.error('_fetchFromSupabase:', e && e.message);
     _setSyncDot('error');
   }
 }
@@ -24286,9 +24287,21 @@ function qaDebugRefresh() {
   const dataLen = (localStorage.getItem('familink_v3')||'').length;
   const coins = (function(){try{return getFamiCoins()}catch(_){return '-'}})();
   const skin  = (function(){try{return equippedHokuSkin()}catch(_){return '-'}})();
-  // クリーン表示：残高と注記を主に、技術詳細は折りたたみ（既定で非表示）
+  const _li  = (function(){try{return !!isSupaLoggedIn()}catch(_){return false}})();
+  const _em  = (function(){try{return _li ? (supaEmail()||'') : ''}catch(_){return ''}})();
+  const _fid = S.familyId || 'なし';
+  const _rt  = (typeof _realtimeSubscribed !== 'undefined' && _realtimeSubscribed) ? '購読中' : '未購読';
+  const _err = window._lastSyncError || 'なし';
+  // クリーン表示：残高＋家族同期診断を主に、技術詳細は折りたたみ
   body.innerHTML = `
     <div style="font-size:13px;font-weight:800;color:#FFD27A;margin:2px 0 5px;">ファミコイン: ${coins} ／ 装備Hoku: ${H(String(skin))}</div>
+    <div style="font-size:10px;line-height:1.65;background:rgba(255,255,255,.06);border-radius:6px;padding:5px 7px;margin-bottom:5px;">
+      <b style="color:#fff;">家族同期診断</b><br>
+      ログイン: <b style="color:${_li?'#9CFFB8':'#FF9B9B'}">${_li ? 'はい ('+H(_em)+')' : 'いいえ（ゲスト）'}</b><br>
+      招待コード(family_id): <b style="color:#FFD27A">${H(String(_fid))}</b><br>
+      Realtime: ${_rt}<br>
+      最終同期エラー: <span style="color:${_err==='なし'?'#bfe3c7':'#FF9B9B'}">${H(String(_err))}</span>
+    </div>
     <div style="color:#aeb8c8;font-size:9px;line-height:1.5;margin-bottom:4px;">テスト用パネルです。通常のご利用画面には表示されません。</div>
     <details style="color:#9fb0c8;font-size:9px;">
       <summary style="cursor:pointer;color:#9fb0c8;list-style:none;">詳細を表示 ›</summary>
