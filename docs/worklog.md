@@ -18750,3 +18750,15 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 - QA 84/84 PASS、JS構文0エラー、docs同期 20260605h
 ### コミット
 - メッセージ: diag: 同期エラー可視化＋家族同期診断パネル（RLS再帰の切り分け用）
+
+## 2026-06-06 06:45  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+### 作業名
+家族共有の根本修正：ログイン時に取得後の自動push
+### 根本原因
+- DB実データで特定：fl_family_data に1アカウント分(FAMI-PTKN/35行)しか無く2台目の行が皆無。ログインがfetchのみでpushしない→「先に参加→後でログイン」した2台目のデータが上がらず、RLSの鶏と卵で永久に読めない
+### 変更内容
+- getSession/SIGNED_IN で _fetchFromSupabase().then(()=>{ if(S.familyId) _pushToSupabase() }) を追加（2箇所）
+### テスト結果
+- QA 84/84 PASS、JS構文0エラー、docs同期 20260605j
+### コミット
+- メッセージ: fix: ログイン時に家族データを自動push（メンバーが共有できない根本原因を解消）

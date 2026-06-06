@@ -5720,7 +5720,7 @@ function initSupabase() {
       if(sess && sess.user) {
         S.supaSession = { id: sess.user.id, email: sess.user.email || '' };
         try { saveS(); } catch(_) {}
-        try { _fetchFromSupabase().catch(_=>{}); } catch(_) {}
+        try { _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{}); } catch(_) {}
       }
       try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
     }).catch(()=>{});
@@ -5735,7 +5735,7 @@ function initSupabase() {
           if(event === 'SIGNED_IN' && !wasLoggedIn) {
             try {
               try { closeModal('m-supa-auth'); } catch(_){}
-              _fetchFromSupabase().catch(_=>{});
+              _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{});
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
                 showToast('Magic Link でログインしました', 'success');
                 _enterApp(true);
