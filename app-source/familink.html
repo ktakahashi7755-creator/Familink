@@ -6100,6 +6100,7 @@ async function syncFromSupabase() {
    同一 family_id を持つメンバー間で変更がリアルタイムに届く。
    ─────────────────────────────────────────────────────────── */
 let _realtimeChannel = null;
+let _realtimeSubscribed = false;   // realtime が実際に購読できているか（false=ポーリングで補完）
 let _realtimeDebounce = null;
 let _realtimeWanted = false;   // realtime を維持したい状態か（logout で false）
 let _realtimeRetry = 0;        // 再接続のバックオフ回数
@@ -6139,8 +6140,11 @@ function startRealtimeSync() {
       .subscribe((status) => {
         if(status === 'SUBSCRIBED') {
           _realtimeRetry = 0;
+          _realtimeSubscribed = true;
           _setSyncDot(navigator.onLine ? 'synced' : 'offline');
+          _fetchFromSupabase().catch(_=>{});   // 購読直後に最新を取得（取りこぼし防止）
         } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          _realtimeSubscribed = false;
           // 切断：維持したい状態 & オンライン & ログイン中なら指数バックオフで自己回復
           if(_realtimeWanted && navigator.onLine && isSupaLoggedIn()) {
             _setSyncDot('error');
@@ -25620,8 +25624,20 @@ async function _oauthSignIn(provider) {
     }
   });
   window.addEventListener('focus', function() {
-    if(isSupaLoggedIn() && navigator.onLine) { try { _ensureRealtime(); } catch(_){} }
+    if(isSupaLoggedIn() && navigator.onLine) {
+      try { _ensureRealtime(); } catch(_){}
+      _fetchFromSupabase().catch(_=>{});   // フォーカス時も最新を取得（家族の変更を即反映）
+    }
   });
+  /* 家族共有の確実化：表示中・ログイン中・家族参加中は常時 20 秒ごとに取得する保険。
+     Realtime は「購読成功でもテーブル未公開だとイベントが来ない」ことがあるため、
+     購読状態に関わらずポーリングして 2台・3台・4台でも確実に共有が反映されるようにする。
+     （Realtime 有効時は変更を即時反映＋このポーリングが取りこぼしを補完） */
+  setInterval(function() {
+    if(document.visibilityState === 'visible' && isSupaLoggedIn() && navigator.onLine && S.familyId) {
+      _fetchFromSupabase().catch(_=>{});
+    }
+  }, 20000);
 })();
 
 /* ── Wave 221: iOS キーボード開閉時のスクロール補正 ──────────────
