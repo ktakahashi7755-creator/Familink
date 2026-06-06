@@ -24334,7 +24334,7 @@ function showQaDebugPanel() {
   const p = document.createElement('div');
   p.id = 'qa-debug-panel';
   p.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(20,20,30,.92);color:#9CFFB8;font-family:monospace;font-size:10px;padding:8px 10px;border-radius:8px;max-width:calc(100% - 16px);max-height:35vh;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);';
-  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">テストパネル</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="addFamiCoins(5000);try{_updateHomeCoins()}catch(_){}try{if(typeof renderShop===\'function\'&&document.getElementById(\'famishop-body\'))renderShop()}catch(_){}qaDebugRefresh();try{showToast(\'ファミコイン +5000\',\'success\')}catch(_){}" style="background:#E8A12C;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">ファミコイン +5000</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
+  p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">テストパネル</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="runFamilyShareSelfTest()" style="background:#C77DFF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">家族共有セルフテスト</button><button onclick="addFamiCoins(5000);try{_updateHomeCoins()}catch(_){}try{if(typeof renderShop===\'function\'&&document.getElementById(\'famishop-body\'))renderShop()}catch(_){}qaDebugRefresh();try{showToast(\'ファミコイン +5000\',\'success\')}catch(_){}" style="background:#E8A12C;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">ファミコイン +5000</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
   document.body.appendChild(p);
   qaDebugRefresh();
   // 自動更新（2秒ごと）：family_id・同期エラーの現在値を常にライブ表示。閉じたら停止
@@ -24394,6 +24394,105 @@ function qaDebugTestHoku() {
     }, 1500);
   } catch(e) { alert('音声テスト：例外 ' + e.message); }
 }
+
+/* ============================================================
+   Wave 250: 家族共有セルフテスト（#qa-debug 限定・オーナー診断用）
+   実バックエンドに対して「他メンバーの行が読めるか(RLS family_read)」
+   「Realtime が配信されるか(publication)」「メール確認設定」をその場で診断し、
+   失敗しているレイヤーと対処を日本語で表示する。実アカウントで実行することで
+   家族共有が動かない原因（RLS未適用 / Realtime未公開 / 未確認アカウント）を切り分けられる。
+   ============================================================ */
+function _renderFamTest(html) {
+  var panel = document.getElementById('qa-debug-panel');
+  if(!panel) { try { alert(html.replace(/<[^>]+>/g,'')); } catch(_){} return; }
+  var box = document.getElementById('famtest-result');
+  if(!box) {
+    box = document.createElement('div');
+    box.id = 'famtest-result';
+    box.style.cssText = 'margin-top:6px;font-size:10px;line-height:1.65;background:rgba(255,255,255,.10);border-radius:6px;padding:7px 8px;color:#eaf0f7;';
+    panel.appendChild(box);
+  }
+  box.innerHTML = html;
+}
+
+/* Realtime publication が有効かを実測：一時チャンネルを張り、自分の行を1件 upsert して
+   その変更イベントが届くかを最大6秒待つ。届けば publication 有効、届かなければ未公開の可能性。 */
+function _realtimeEchoTest(sb, uid) {
+  return new Promise(function(resolve){
+    var done = false, ch;
+    function finish(v){ if(done) return; done = true; try{ sb.removeChannel(ch); }catch(_){} resolve(v); }
+    try {
+      ch = sb.channel('familytest_' + Math.random().toString(36).slice(2,8))
+        .on('postgres_changes', { event:'*', schema:'public', table:'fl_family_data' }, function(){ finish(true); })
+        .subscribe(function(status){
+          if(status === 'SUBSCRIBED') {
+            try {
+              sb.from('fl_family_data').upsert([{
+                user_id: uid, family_id: S.familyId || null,
+                data_key: 'onboardCompleted',
+                payload: (S.onboardCompleted !== undefined ? S.onboardCompleted : true),
+                updated_at: new Date().toISOString()
+              }], { onConflict:'user_id,data_key' });
+            } catch(_){}
+          }
+        });
+    } catch(e) { finish(false); return; }
+    setTimeout(function(){ finish(false); }, 6000);
+  });
+}
+
+async function runFamilyShareSelfTest() {
+  if(!isSupaLoggedIn()) { _renderFamTest('❌ まず「クラウドにログイン」してください（設定 → クラウド連携）。'); return; }
+  var sb = getSupabase();
+  if(!sb) { _renderFamTest('❌ クラウドに接続できていません（通信または CDN 読み込み失敗）。'); return; }
+  var uid = S.supaSession && S.supaSession.id;
+  var L = [];
+  function P(){ _renderFamTest('<b style="color:#FFD27A;">家族共有セルフテスト</b><br>' + L.join('<br>')); }
+  if(!S.familyId) { _setFamilyId(_generateFamilyId()); }
+  L.push('家族コード: <b>' + H(String(S.familyId)) + '</b>');
+  L.push('① 自分のデータを送信中…'); P();
+  var pr = await _pushToSupabase();
+  L[L.length-1] = (pr && pr.ok) ? '① 送信: ✅ OK' : '① 送信: ❌ 失敗（' + H(String(window._lastSyncError||'不明')) + '）';
+  P();
+  L.push('② 家族データを取得中…'); P();
+  var rows = [], rerr = null;
+  try {
+    var res = await sb.from('fl_family_data').select('user_id,data_key,updated_at').eq('family_id', S.familyId);
+    if(res.error) rerr = res.error.message; else rows = res.data || [];
+  } catch(e) { rerr = e && e.message; }
+  if(rerr) { L[L.length-1] = '② 取得: ❌ ' + H(rerr); P(); return; }
+  var members = {}; rows.forEach(function(r){ members[r.user_id] = 1; });
+  var memberN = Object.keys(members).length;
+  var mine = rows.filter(function(r){ return r.user_id === uid; }).length;
+  var others = memberN - (members[uid] ? 1 : 0);
+  L[L.length-1] = '② 取得: ✅ 家族メンバー ' + memberN + ' 人 / 自分の行 ' + mine + ' 件';
+  if(others >= 1) {
+    L.push('　→ ✅ <b style="color:#9CFFB8;">他メンバーの行が読めています（RLS 正常・共有OK）</b>');
+  } else {
+    L.push('　→ ⚠️ <b style="color:#FFC56B;">自分の行のみ。</b>家族がまだ参加していないなら正常。家族が参加済みでこの表示なら RLS(family_read) 未適用の可能性 → <u>docs/supabase-setup-sql.sql を再実行</u>。');
+  }
+  P();
+  L.push('③ Realtime 配信を確認中…（最大6秒）'); P();
+  var rt = await _realtimeEchoTest(sb, uid);
+  L[L.length-1] = rt
+    ? '③ Realtime: ✅ <b style="color:#9CFFB8;">配信OK（即時反映）</b>'
+    : '③ Realtime: ⚠️ <b style="color:#FFC56B;">イベント未受信。</b>publication 未設定の可能性。未設定でも20秒ごとのポーリングで共有は動きます。';
+  P();
+  L.push('④ メール確認設定を確認中…'); P();
+  var conf = null;
+  try { conf = await fetch(SUPABASE_URL + '/auth/v1/settings', { headers: { apikey: SUPABASE_PUBLISHABLE_KEY } }).then(function(r){ return r.json(); }); } catch(_){}
+  if(conf && typeof conf.mailer_autoconfirm !== 'undefined') {
+    L[L.length-1] = conf.mailer_autoconfirm
+      ? '④ メール確認: ✅ 自動確認 ON（登録後すぐログイン可）'
+      : '④ メール確認: ⚠️ <b style="color:#FFC56B;">ON（要確認メール）</b>。家族は登録後に確認メールのリンク or 6桁コードが必要。確実なのは「メールでコードを受け取る(OTP)」。';
+  } else {
+    L[L.length-1] = '④ メール確認: 取得できず（通信）';
+  }
+  L.push('—');
+  L.push('<span style="color:#9fb0c8;">手順書: docs/family-sharing-fix-2026-06-07.md / SQL: docs/supabase-setup-sql.sql</span>');
+  P();
+}
+
 
 window.addEventListener('DOMContentLoaded', init);
 
