@@ -24265,6 +24265,8 @@ function showQaDebugPanel() {
   p.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#fff;">テストパネル</strong><button onclick="document.getElementById(\'qa-debug-panel\').remove();location.hash=\'\'" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;">×</button></div><div id="qa-debug-body"></div><div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"><button onclick="qaDebugRefresh()" style="background:#0A84FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">更新</button><button onclick="qaDebugTestHoku()" style="background:#52C47A;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">Hoku 音声 API 判定</button><button onclick="addFamiCoins(5000);try{_updateHomeCoins()}catch(_){}try{if(typeof renderShop===\'function\'&&document.getElementById(\'famishop-body\'))renderShop()}catch(_){}qaDebugRefresh();try{showToast(\'ファミコイン +5000\',\'success\')}catch(_){}" style="background:#E8A12C;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">ファミコイン +5000</button><button onclick="if(confirm(\'LocalStorage を完全リセットします\')){localStorage.clear();location.reload();}" style="background:#FF6B6B;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;">リセット</button></div>';
   document.body.appendChild(p);
   qaDebugRefresh();
+  // 自動更新（2秒ごと）：family_id・同期エラーの現在値を常にライブ表示。閉じたら停止
+  var _qaT = setInterval(function(){ if(!document.getElementById('qa-debug-panel')){ clearInterval(_qaT); return; } try{ qaDebugRefresh(); }catch(_){} }, 2000);
 }
 function qaDebugRefresh() {
   const body = document.getElementById('qa-debug-body');
