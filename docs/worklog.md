@@ -18834,3 +18834,44 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 
 ### コミット
 - メッセージ: fix: ゲストが設定した家族コードをログイン時に保護（総点検＋エッジケース対応）
+
+---
+
+## 2026-06-07 00:10  env: PC (Remote Control / 完全自走モード)  branch: claude/merge-and-push-main-u44Ty (canonical=B)
+
+### 作業名
+ブランチ整合の復旧 — 正本(B)を canonical 化し、ライブデプロイ経路を修復
+
+### 背景（重要・取り違えの経緯）
+- ローカル PC の `claude/merge-and-push-main-u44Ty` が wave214c(3b49f51) のまま「stale」で、未コミットの welcome v2 実験が作業ツリーに残っていた。
+- 一方、本物の最新開発線（家族共有/ファミコイン/カレンダー刷新/qa_full_test.js 等 **205 コミット**）は remote の **`claude/latest-version-link-MHEoh`（=B、=origin/main, eba12f4）** にあった。これがリモコン指示の本来の対象。
+- 当初、stale な main 上で Wave 215g(s-login 統一)＋docs を 4 コミットして push してしまい、main が B から乖離。さらに **GitHub Pages のソースが「GitHub Actions」**（A 系 pages.yml が claude/merge-and-push-main-u44Ty を whole-repo デプロイ）だったため、**stale な A 系がライブに出てしまった**（v20260606a）。B の gh-pages 系 workflow は Pages ソース未切替のため一度もライブ反映されていなかった。
+
+### 対応（ユーザー承認のうえ実施）
+1. **バックアップを先に作成し push**（削除なし）：
+   - `backup/2026-06-06-u44Ty-mine-a-line`（A 系=今回の私の作業 eba4dd6）
+   - `backup/2026-06-06-MHEoh-real-b-line`（B=本物 eba12f4）
+2. **B を canonical 化**：`claude/merge-and-push-main-u44Ty` を B(eba12f4) に reset --hard → `--force-with-lease` で push。main も B、latest-version-link-MHEoh も B、すべて eba12f4 で一致。
+3. **デプロイ経路の修復**：Pages ソースが「GitHub Actions」である事実に合わせ、B の内容の上に **Actions 方式の pages.yml（whole-repo, このブランチ push でデプロイ）を復元**してコミット(0d8c986)＋push。これで canonical(B) がライブに反映される。
+
+### テスト結果
+- `node qa_full_test.js`：**この Windows PC では実行不可**（B の qa_full_test.js は `/opt/node22/.../playwright`(Linux) を require、かつ Playwright 未導入・python は Store スタブ）。B 自身の worklog では同スイート 84/84 PASS 済み。
+- 代替：puppeteer-core による smoke/audit を A 系で実施済み（welcome/login 12/12、22 画面 0 エラー）。B 本体の puppeteer 検証は次手順。
+
+### 未確認事項
+- **ライブ反映の最終確認**（Actions デプロイ完了後、公開 URL が B＝本物アプリを返すか）。
+- **GitHub Pages のデプロイ方式の最終決定（オーナー判断）**：(a) 現状の Actions 方式を継続（今回これでライブ復旧）、(b) B 本来の gh-pages 方式へ統一（その場合は GitHub UI で Pages ソースを gh-pages ブランチへ切替＋B の pages.yml を復元）。
+- 実機2アカウントでの家族リアルタイム共有の最終確認（B が元々抱える残課題）。
+- 私の Wave 215g（s-login を .ob-v2 に統一）は B には未適用。必要なら backup ブランチから cherry-pick 可。
+
+### iPhone確認ポイント
+- 公開 URL が本物アプリ（ファミコイン/家族共有/カレンダー刷新あり）を開くか
+- #qa-debug の「コード所有者＝自分」「最終同期エラー＝なし」
+
+### 次にやること
+1. Actions デプロイ完了を確認 → 公開 URL で B 反映を目視
+2. オーナー：上記「デプロイ方式の最終決定」
+3. 実機2アカウントで招待→参加→双方向リアルタイム同期の受け入れ確認
+
+### コミット
+- メッセージ: `ci(pages): deploy canonical (B) via GitHub Actions workflow`（0d8c986）
