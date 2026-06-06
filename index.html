@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260605j';
+  var V='v20260605k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5733,6 +5733,7 @@ function initSupabase() {
       if(sess && sess.user) {
         S.supaSession = { id: sess.user.id, email: sess.user.email || '' };
         try { saveS(); } catch(_) {}
+        try { if(typeof _reconcileFamilyIdForLogin === 'function') _reconcileFamilyIdForLogin(); } catch(_) {}
         try { _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{}); } catch(_) {}
       }
       try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
@@ -5748,6 +5749,7 @@ function initSupabase() {
           if(event === 'SIGNED_IN' && !wasLoggedIn) {
             try {
               try { closeModal('m-supa-auth'); } catch(_){}
+              try { if(typeof _reconcileFamilyIdForLogin === 'function') _reconcileFamilyIdForLogin(); } catch(_) {}
               _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{});
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
                 showToast('Magic Link でログインしました', 'success');
@@ -6043,6 +6045,7 @@ async function _fetchFromSupabase() {
   try {
     const uid = S.supaSession && S.supaSession.id;
     if(!uid) return;
+    const _familyIdBefore = S.familyId || null;
     // 家族参加中（familyId あり）は family_id で家族全員分を取得し共有キーをマージ。
     // 単独利用（familyId なし）は従来どおり自分の user_id 分のみ取得。
     let q = sb.from('fl_family_data').select('user_id,data_key,payload,updated_at');
@@ -6079,12 +6082,20 @@ async function _fetchFromSupabase() {
       }
       changed = true;
     });
+    // familyId を自分の行から復元したら owner を現アカウントに確定。
+    // さらに familyId が今復元されたなら、家族全員分を取り直す（最初の取得は user_id 限定だったため）。
+    let _refetchFamily = false;
+    if(S.familyId) {
+      if(S.familyIdOwner !== uid) { S.familyIdOwner = uid; changed = true; }
+      if(!_familyIdBefore) _refetchFamily = true;
+    }
     if(changed) {
       saveS();
       try { go(S.screen); } catch(_){}
     }
     window._lastSyncError = '';
     _setSyncDot('synced');
+    if(_refetchFamily) { try { _fetchFromSupabase(); } catch(_){} }
     /* Wave 233: Realtimeチャンネルをまだ開いていなければ開始 */
     if(!_realtimeChannel) {
       try { startRealtimeSync(); } catch(_){}
@@ -7197,6 +7208,31 @@ function _generateFamilyId() {
   return 'FAMI-' + out.replace(/(.{4})(?=.)/g, '$1-');  // FAMI-XXXX-XXXX-XXXX
 }
 
+/* familyId を確定する唯一の入口。確定したアカウント(uid)を owner として記録し、
+   別アカウントが同一端末でログインしたときに familyId を取り違えないようにする。 */
+function _setFamilyId(id) {
+  S.familyId = id || null;
+  S.familyIdOwner = (S.supaSession && S.supaSession.id) || null;
+  try { saveS(); } catch(_){}
+}
+
+/* ログイン時に呼ぶ：今ログインしたアカウントが familyId の owner と異なるなら、
+   端末に残った前アカウントの familyId を引き継がない（クラウドから自分の値を取り直す）。
+   同一アカウントなら何もしない。 */
+function _reconcileFamilyIdForLogin() {
+  const uid = S.supaSession && S.supaSession.id;
+  if(!uid) return;
+  if(S.familyId && S.familyIdOwner === uid) return; // 自分が owner → そのまま
+  if(S.familyId) {
+    // owner が別アカウント、または owner 未記録（旧版生成）の familyId が端末に残存。
+    // 取り違えを防ぐため一旦クリアし、直後の _fetchFromSupabase が
+    // 「自分の行」に familyId があれば復元する（= 真に自分が参加した家族のみ引き継ぐ）。
+    S.familyId = null;
+    S.familyIdOwner = null;
+    try { saveS(); } catch(_){}
+  }
+}
+
 function openSupaInviteModal() {
   const inp = document.getElementById('supa-invite-code');
   if(inp) inp.value = '';
@@ -7207,8 +7243,7 @@ function openSupaInviteModal() {
 
 function openMyInviteModal() {
   if(!S.familyId) {
-    S.familyId = _generateFamilyId();
-    saveS();
+    _setFamilyId(_generateFamilyId());
     // 自分のデータに family_id を付与してクラウドへ反映（家族が取得できるように）
     if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
   }
@@ -7242,8 +7277,7 @@ function doSupaInviteSubmit() {
     if(errEl) errEl.textContent = 'これはあなた自身の招待コードです';
     return;
   }
-  S.familyId = raw;
-  saveS();
+  _setFamilyId(raw);
   closeModal('m-supa-invite');
   closeModal('m-supa-auth');
   // 既にアプリ利用中（設定から参加）か、入口フロー（新規）かで挙動を分ける。
@@ -7262,6 +7296,28 @@ function doSupaInviteSubmit() {
   } else {
     _enterApp(true);
   }
+}
+
+/* 家族グループから抜ける（コードをリセット）。クラウド上の自分の行の family_id を
+   null に戻し、以後は単独利用に戻す。端末内データ（familink_v3）は消さない。
+   その後あらためて「家族を招待する」を開けば新しいコードが発行される。 */
+function leaveFamilyGroup() {
+  showConfirm(
+    '家族グループから抜ける',
+    '現在の家族コードを解除し、単独利用に戻します。端末内のデータは消えません。新しいコードを作り直したり、別の家族コードで参加し直せます。',
+    '抜ける',
+    function() {
+      S.familyId = null;
+      S.familyIdOwner = null;
+      try { saveS(); } catch(_){}
+      // クラウド上の自分の行の family_id を解除（family_id=null で再 push）
+      if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
+      showToast('家族グループから抜けました', 'success');
+      try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
+      try { go(S.screen || 's-home'); } catch(_){}
+    },
+    'warning'
+  );
 }
 
 /* ── 設定画面 / 入口画面の Supabase 関連 UI を再描画 ── */
@@ -7579,6 +7635,7 @@ let S = {
   supaSession: null,             // クラウドログイン中なら { id, email }、未ログインは null。本体セッションは sb-* キーに自動保存
   supaEntryChoice: null,         // ウェルカム画面で選択した入口: 'supa' | 'guest' | 'invite' | null（未選択）
   familyId: null,                // Wave 219: 家族グループID（将来の招待・多端末同期で使用）
+  familyIdOwner: null,           // Wave 234: familyId を確定したアカウントの user_id（別アカウントへの取り違え防止）
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
   // Wave 250: Hoku ログインボーナス / ファミコイン（毎日開きたくなる習慣化）
   loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
@@ -7591,7 +7648,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory'];
 
 function saveS() {
   const d = {};
@@ -18722,6 +18779,12 @@ function renderSettings() {
               <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族から受け取ったコードで参加'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
+          ${S.familyId ? `<div class="settings-item" onclick="leaveFamilyGroup()">
+            <div class="settings-item-icon" style="background:#FEF2F2">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#EF4444')}</div>
+            <div class="settings-item-label">家族グループから抜ける
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">コードを解除して単独利用に戻す</div>
+            </div><div class="settings-arrow">›</div>
+          </div>` : ''}
           <div class="settings-item" onclick="syncToSupabase()">
             <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M12 2v20M5 15l7 7 7-7"/>','#10B981')}</div>
             <div class="settings-item-label">クラウドへ送信
@@ -24301,6 +24364,7 @@ function qaDebugRefresh() {
       <b style="color:#fff;">家族同期診断</b><br>
       ログイン: <b style="color:${_li?'#9CFFB8':'#FF9B9B'}">${_li ? 'はい ('+H(_em)+')' : 'いいえ（ゲスト）'}</b><br>
       招待コード(family_id): <b style="color:#FFD27A">${H(String(_fid))}</b><br>
+      コード所有者: <b style="color:${(S.familyIdOwner && S.supaSession && S.familyIdOwner===S.supaSession.id)?'#9CFFB8':'#FFD27A'}">${S.familyIdOwner ? (S.supaSession && S.familyIdOwner===S.supaSession.id ? '自分' : '別アカウント') : 'なし'}</b><br>
       Realtime: ${_rt}<br>
       最終同期エラー: <span style="color:${_err==='なし'?'#bfe3c7':'#FF9B9B'}">${H(String(_err))}</span>
     </div>

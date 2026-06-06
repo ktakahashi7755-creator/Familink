@@ -18762,3 +18762,39 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 - QA 84/84 PASS、JS構文0エラー、docs同期 20260605j
 ### コミット
 - メッセージ: fix: ログイン時に家族データを自動push（メンバーが共有できない根本原因を解消）
+
+## 2026-06-06 env: iPhone経由 branch: claude/latest-version-link-MHEoh
+
+### 作業名
+家族コードがアカウント間で取り違わる根本バグを修正（毎回同じコードになる問題）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（v20260605k へ同期）
+
+### 変更内容
+- 根本原因：familyId は端末の familink_v3 に保存されるため、同一端末で別アカウントを新規登録/ログインしても前アカウントの familyId（例 FAMI-PTKN）を黙って引き継いでいた。openMyInviteModal は !S.familyId のときしか生成しないため、毎回同じコードが表示されていた。
+- familyIdOwner（コードを確定した user_id）を新設し PERSIST / S 既定値 / 診断パネルに追加
+- _setFamilyId(id)：familyId と owner を同時に確定する唯一の入口（生成・参加で使用）
+- _reconcileFamilyIdForLogin()：ログイン時、owner が現アカウントと異なる/未記録なら familyId を一旦クリア。直後の fetch が「自分の行」に familyId があれば復元（＝本当に自分が参加した家族のみ引き継ぐ）
+- _fetchFromSupabase：自分の行から familyId を復元したら owner を確定し、復元時は家族全員分を取り直す
+- getSession / SIGNED_IN ハンドラで fetch 前に _reconcileFamilyIdForLogin を呼ぶ
+- leaveFamilyGroup()：家族から抜けてコードを解除（クラウド行の family_id も null へ）。設定に導線追加
+- これにより、新規アカウントは familyId を引き継がず、家族を招待すると毎回異なる長いコード（FAMI-XXXX-XXXX-XXXX）が発行される
+
+### テスト結果
+- QA 84/84 PASS、docs同期 v20260605k
+
+### 未確認事項
+- 実機2アカウントで「招待→参加→双方向同期」を再確認。診断パネル(#qa-debug)の「コード所有者」が双方「自分」になり、family_id が一致するか
+- RLS（read_own_or_family / own_insert）適用済み前提。2台目の push が cloud に行を作るか SQL で確認
+
+### iPhone確認ポイント
+- 新規登録すると家族コードが空（未生成）になり、招待生成で毎回違う長いコードが出るか
+- 設定に「家族グループから抜ける」が出るか、抜けると単独利用に戻るか
+
+### 次にやること
+- 2アカウント実機テストで共有成立を確認 → 全ページ総点検ループ継続
+
+### コミット
+- メッセージ: fix: 家族コードのアカウント間取り違えを解消（owner追跡＋ログイン時整合）
