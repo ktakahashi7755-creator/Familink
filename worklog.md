@@ -18682,3 +18682,27 @@ Hoku画面ヘッダーの着せ替えボタン（クリア左のアイコン）�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: ログイン中も家族招待/参加UIを表示（別端末同期の導線を復旧）
+
+## 2026-06-06 00:20  env: PC/リモート(継続)  branch: claude/latest-version-link-MHEoh
+
+### 作業名
+招待コード入力欄でフリック/トグル入力が暴発する不具合を修正
+
+### 変更ファイル
+- app-source/familink.html（#supa-invite-code 入力欄の属性）
+- docs/index.html（body同期＋キャッシュバスター 20260605e→20260605f）
+
+### 変更内容
+- 原因：oninput="this.value=this.value.toUpperCase()" が iOS フリック/9キー入力の IME 変換を毎キー確定させ、1文字ごとに新規大文字が積まれて「PPPTPTPT…」のように暴発
+- 修正：JS強制大文字を撤去し、iOSネイティブの autocapitalize="characters"＋autocorrect="off" spellcheck="false" inputmode="text" に置換。CSS text-transform:uppercase（表示）と送信側 .toUpperCase()（正規化）は維持
+
+### テスト結果
+- node qa_full_test.js → 84/84 PASS
+- ブラウザ：1文字ずつ入力しても重複なし（値=入力どおり）、oninput除去・autocapitalize付与を確認、送信側で大文字化＋形式判定OK、JS構文0エラー、本体 app==docs 一致
+
+### iPhone確認ポイント
+- 招待コードで参加 の入力で、フリック/トグル入力しても文字が暴発しない・1文字ずつ正しく入る
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix: 招待コード入力の暴発を解消（JS強制大文字→iOSネイティブ大文字入力）
