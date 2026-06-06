@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260605e';
+  var V='v20260605f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -4728,7 +4728,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     </p>
     <div class="modal-form" style="gap:4px;">
       <label class="form-label">招待コード</label>
-      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX-XXXX" autocomplete="off" maxlength="24" style="letter-spacing:1.5px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="24" style="letter-spacing:1.5px;text-transform:uppercase;">
       <div id="supa-invite-err" style="font-size:12px;color:var(--red);min-height:16px;margin-top:4px;"></div>
     </div>
     <div class="modal-actions">
