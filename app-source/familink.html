@@ -489,7 +489,8 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   display: inline-flex; align-items: center; gap: 10px;
   padding: 12px 18px; border-radius: var(--r-sm);
   font-size: 14px; font-weight: 600; max-width: 340px;
-  box-shadow: var(--s); animation: toastIn .3s var(--t-spring) both;
+  box-shadow: var(--s); border: 0.5px solid rgba(60,60,67,0.10);
+  animation: toastIn .3s var(--t-spring) both;
 }
 .toast-success { background: #fff; color: var(--secondary-dark); border-left: 4px solid var(--secondary); }
 .toast-error   { background: #fff; color: #c0392b;              border-left: 4px solid var(--red); }
@@ -1239,8 +1240,15 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   background:rgba(255,255,255,0.9); border:0.5px solid rgba(60,60,67,0.12);
   border-radius:var(--r-full); padding:5px 11px;
   font-size:11px; font-weight:600; color:var(--text-sub);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor:default; white-space:nowrap;
+  box-shadow: var(--s-card); cursor:pointer; white-space:nowrap; transition:transform .12s ease, opacity .12s ease;
 }
+.home-today-chip:active { transform:scale(.95); opacity:.85; }
+.home-hoku-nudge {
+  font-size:13px; line-height:1.6; color:var(--text-sub);
+  background:rgba(255,255,255,0.85); border:0.5px solid var(--border-light);
+  border-radius:var(--r-sm); padding:9px 12px; margin:0 0 12px;
+}
+.home-hoku-nudge:empty { display:none; }
 .home-today-chip.fever { background:#FFF0EF; border-color:rgba(255,59,48,0.2); color:#C0392B; }
 .home-today-chip.event { background:#E8F3FF; border-color:rgba(10,132,255,0.2); color:#0055CC; }
 .home-today-chip.task  { background:#D4F5DF; border-color:rgba(52,199,89,0.2); color:#1A7A34; }
@@ -1764,7 +1772,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .recurring-row .rr-chip.expense { background:var(--status-expense-bg); color:var(--status-expense); }
 .recurring-row .rr-chip.cycle   { background:var(--status-indigo-bg);  color:var(--status-indigo); }
 .recurring-row .rr-chip.member  { background:var(--bg-muted); color:var(--text-muted); }
-.recurring-row .rr-amount { font-size:15px; font-weight:800; color:var(--text); }
+.recurring-row .rr-amount { font-size:15px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
 .recurring-row .rr-amount.income { color:var(--status-income); }
 .recurring-row .rr-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
 .recurring-row .rr-actions button { background:transparent; border:1px solid var(--border-light); border-radius:8px; padding:4px 9px; font-size:11px; color:var(--text-muted); cursor:pointer; }
@@ -1794,7 +1802,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .tx-desc { font-size: 15px; font-weight: 500; }
 .tx-meta { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
-.tx-amount { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.tx-amount { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; font-variant-numeric:tabular-nums; }
 .tx-amount.ex { color: var(--red); }
 .tx-amount.in { color: var(--secondary-dark); }
 
@@ -3651,7 +3659,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <span id="home-coins-count">0</span>
     </button>
     <!-- Wave 222: クラウド同期インジケーター -->
-    <span id="sync-status-dot" class="sync-dot offline" title="クラウド同期" style="margin-right:2px;cursor:pointer;" onclick="isSupaLoggedIn()?showToast('クラウド同期状態：'+(S.trialStartedAt||S.isPremiumUser?'プレミアム':'無料')+'プラン','info'):showToast('クラウドにログインすると同期が有効になります','info')"></span>
+    <span id="sync-status-dot" class="sync-dot offline" title="クラウド同期" style="margin-right:2px;cursor:pointer;" onclick="isSupaLoggedIn()?showToast('クラウド同期は有効です','success'):showToast('ログインすると家族と自動で同期されます','info')"></span>
     <!-- Wave 57: 通知ベル（常時表示）→ s-notif -->
     <button class="home-bell" onclick="go('s-notif')" id="home-bell-btn" aria-label="通知">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -3660,6 +3668,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
   <div class="home-board-scroll">
     <div class="home-greeting" id="home-greeting"></div>
+    <!-- Wave 254: ホームの Hoku 一言ナッジ（毎日開く理由）＋家族未参加なら招待導線 -->
+    <div id="home-hoku-nudge" class="home-hoku-nudge"></div>
+    <div id="home-invite-cta"></div>
     <!-- Wave 231: 今日のサマリーバー -->
     <div id="home-today-bar" class="home-today-bar"></div>
     <div class="home-grid" id="home-grid"></div>
@@ -5336,7 +5347,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
           </select>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
-          ※ 現在は記録のみ保存されます。実際の繰り返し展開は今後のアップデートで対応します。
+          ※ カレンダー（月／週／日）に繰り返し表示されます。編集・削除はくり返し全体に反映されます。
         </div>
       </div>
       <div class="field">
@@ -6138,8 +6149,9 @@ async function _fetchFromSupabase() {
     // 先に _deletions（削除トゥームストーン）を全メンバー分 union マージ（最新時刻優先）
     if(byKey['_deletions']) {
       if(!S._deletions || typeof S._deletions !== 'object') S._deletions = {};
+      const _delBefore = JSON.stringify(S._deletions);
       byKey['_deletions'].forEach(function(r){ if(r.payload && typeof r.payload === 'object') _mergeDeletions(S._deletions, r.payload); });
-      changed = true;
+      if(JSON.stringify(S._deletions) !== _delBefore) changed = true;  // 実際に変わった時だけ
     }
     Object.keys(byKey).forEach(k => {
       if(k === '_deletions') return;  // 上で特別処理済み
@@ -6160,19 +6172,22 @@ async function _fetchFromSupabase() {
         if(FAMILY_SHARED_KEYS.includes(k) && S._deletions && S._deletions[k]) {
           merged = merged.filter(function(it){ return !_isTombstoned(k, it); });
         }
-        S[k] = merged;
+        // 実際に内容が変わった時だけ反映＝無変更の再描画/再アップロードを防ぐ（20秒ポーリングの空振り対策）
+        if(JSON.stringify(S[k]) !== JSON.stringify(merged)) { S[k] = merged; changed = true; }
       } else {
-        // 非配列：最新 updated_at の値で上書き
+        // 非配列：最新 updated_at の値で上書き（変化時のみ）
         const latest = rows[rows.length - 1];
-        if(latest && latest.payload !== null && latest.payload !== undefined) S[k] = latest.payload;
+        if(latest && latest.payload !== null && latest.payload !== undefined &&
+           JSON.stringify(S[k]) !== JSON.stringify(latest.payload)) { S[k] = latest.payload; changed = true; }
       }
-      changed = true;
     });
     // _deletions だけ来てローカル配列にまだ該当項目が残っているケースも掃除する
     if(byKey['_deletions']) {
       FAMILY_SHARED_KEYS.forEach(function(k){
         if(Array.isArray(S[k]) && S._deletions && S._deletions[k]) {
+          const _b = S[k].length;
           S[k] = S[k].filter(function(it){ return !_isTombstoned(k, it); });
+          if(S[k].length !== _b) changed = true;  // 実削除があった時だけ
         }
       });
     }
@@ -6188,7 +6203,10 @@ async function _fetchFromSupabase() {
       saveS();
       // 家族の members を取り込んだら MEMBERS グローバルを再構築（ピッカー/アバター反映）
       try { applyMembersFromS(); } catch(_){}
+      // 同期由来の再描画でスクロール位置が飛ばないよう保存→復元（家族の更新中もガクッとしない）
+      let _sy = 0; try { const _sa = document.querySelector('.screen:not(.hidden) .scroll-area'); _sy = _sa ? _sa.scrollTop : 0; } catch(_){}
       try { go(S.screen); } catch(_){}
+      try { if(_sy) { const _sa2 = document.querySelector('.screen:not(.hidden) .scroll-area'); if(_sa2) _sa2.scrollTop = _sy; } } catch(_){}
     }
     window._lastSyncError = '';
     _setSyncDot('synced');
@@ -10292,14 +10310,14 @@ function renderHome() {
     const todayEvs231 = wsFilter(S.events).filter(e=>e.date===td);
     if(todayEvs231.length > 0) {
       const nextEv = todayEvs231.sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
-      chips.push(`<div class="home-today-chip event">
+      chips.push(`<div class="home-today-chip event" onclick="go('s-cal')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         今日 ${H(todayEvs231.length)}件${nextEv.time?' 次 '+H(nextEv.time):''}
       </div>`);
     }
     const pendingTasks231 = wsFilter(S.tasks).filter(t=>t.status!=='done');
     if(pendingTasks231.length > 0) {
-      chips.push(`<div class="home-today-chip task">
+      chips.push(`<div class="home-today-chip task" onclick="go('s-task')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         未完了 ${H(pendingTasks231.length)}件
       </div>`);
@@ -10307,19 +10325,36 @@ function renderHome() {
     const feverKids231 = (S.health||[]).filter(h=>h.date>=td&&(h.temp||0)>=38);
     if(feverKids231.length > 0) {
       const kid = getMem(feverKids231[0].memberId || feverKids231[0].child);
-      chips.push(`<div class="home-today-chip fever">
+      chips.push(`<div class="home-today-chip fever" onclick="go('s-health')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 9.5a2.5 2.5 0 0 1 0 5M12 3v1M12 20v1M3 12h1M20 12h1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 18.4l.7-.7M17.7 6.3l.7-.7"/></svg>
         ${kid?H(kid.name):''} 発熱 ${feverKids231[0].temp}℃
       </div>`);
     }
     const shopLeft231 = (S.shoppingItems||[]).length;
     if(shopLeft231 > 0 && chips.length < 4) {
-      chips.push(`<div class="home-today-chip shop">
+      chips.push(`<div class="home-today-chip shop" onclick="go('s-shopping')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
         買い物 ${H(shopLeft231)}件
       </div>`);
     }
     todayBar.innerHTML = chips.join('');
+    // Wave 254: Hoku の一言ナッジ（今日の集計を再利用。毎日ひらく動機づけ）
+    var nudgeEl = document.getElementById('home-hoku-nudge');
+    if(nudgeEl) {
+      var _n='';
+      if(feverKids231.length) _n='今日は体調を気にかけてあげてくださいね。';
+      else if(todayEvs231.length) _n='今日は予定が'+todayEvs231.length+'件。準備はおまかせください。';
+      else if(pendingTasks231.length) _n='やることが'+pendingTasks231.length+'件。少しずついきましょう。';
+      else _n='今日はゆったり過ごせそう。気になることがあれば聞いてね。';
+      nudgeEl.textContent = 'Hoku：'+_n;
+    }
+  }
+  // Wave 254: 家族未参加なら、ホームから招待できる導線（プロダクトの核を最初の画面に）
+  var inviteCta = document.getElementById('home-invite-cta');
+  if(inviteCta) {
+    inviteCta.innerHTML = !S.familyId
+      ? '<button class="es-cta" style="width:100%;justify-content:center;margin:0 0 14px;" onclick="openMyInviteModal()">家族を招待して一緒に使う</button>'
+      : '';
   }
 
   // Wave 225: ゲストユーザー向けクラウド登録促進バナー
@@ -10686,6 +10721,7 @@ function renderCalMonth() {
   const pinned = detailSpace >= 170;
 
   const cells = [];
+  const _calEv = wsFilter(S.events);  // ループ外で1回（O(n^2)回避）。繰り返しは表示用に展開
 
   // 前月残り日
   for(let i=0; i<firstDay; i++) {
@@ -10706,8 +10742,8 @@ function renderCalMonth() {
     // 1日あたり最大3行のピルを表示（超過分は非表示・「+N」は廃止）。祝日は名称行があるため2行。
     const MAX = hol ? 2 : 3;
 
-    const dayEvs = wsFilter(S.events).filter(e=>e.date===ds)
-      .sort((a,b)=>a.time.localeCompare(b.time));
+    const dayEvs = _eventsOnDate(_calEv, ds)
+      .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
     const pills = dayEvs.slice(0,MAX).map(e=>{
       const c=getMemberColor(e.member);
       const bg=hexToRgba(c,0.14);
@@ -10748,7 +10784,7 @@ function renderCalDetail(ds) {
   // cal-det-panel-inner: renderCalMonth で毎回生成される
   const panel = document.getElementById('cal-det-panel-inner');
   if(!panel) return;
-  const evs = wsFilter(S.events).filter(e=>e.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  const evs = _eventsOnDate(wsFilter(S.events), ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const lbl = jpDate(ds);
 
   const hol = _holidayName(ds);
@@ -10836,7 +10872,7 @@ function renderCalWeek() {
       const date = new Date(weekStart);
       date.setDate(weekStart.getDate()+d);
       const ds = localDateStr(date);
-      const dayEvs = wsFilter(S.events).filter(e=>e.date===ds && e.time)
+      const dayEvs = wsFilter(S.events).filter(e=>e.time && _occursOn(e, ds))
         .sort((a,b)=>a.time.localeCompare(b.time));
 
       const slots = HOURS.map(h=>`<div class="cal-week-slot"></div>`).join('');
@@ -11939,6 +11975,39 @@ function _repeatLabel(e) {
     return (e.repeatInterval || 1) + u + 'ごと';
   }
   return ({daily:'毎日', weekdays:'平日', weekly:'毎週', monthly:'毎月', yearly:'毎年'})[e.repeat] || '';
+}
+
+/* Wave 254: 繰り返し予定の「表示用」展開（保存データは単発のまま。編集/削除はシリーズ単位）。
+   イベント e がその日付 ds に発生するか判定（純関数・テスト可能）。 */
+function _occursOn(e, ds) {
+  if(!e || !e.date || !ds) return false;
+  if(e.date === ds) return true;
+  const rep = e.repeat;
+  if(!rep) return false;
+  if(ds < e.date) return false;
+  const a = new Date(e.date+'T00:00:00'), b = new Date(ds+'T00:00:00');
+  const days = Math.round((b - a) / 86400000);
+  if(days <= 0) return false;
+  if(rep === 'daily')    return true;
+  if(rep === 'weekdays') return b.getDay() !== 0 && b.getDay() !== 6;
+  if(rep === 'weekly')   return days % 7 === 0;
+  if(rep === 'monthly')  return b.getDate() === a.getDate();
+  if(rep === 'yearly')   return b.getDate() === a.getDate() && b.getMonth() === a.getMonth();
+  if(rep === 'custom') {
+    const n = Math.max(1, parseInt(e.repeatInterval,10) || 1);
+    const u = e.repeatUnit;
+    if(u === 'day')   return days % n === 0;
+    if(u === 'week')  return days % (7*n) === 0;
+    if(u === 'month') { if(b.getDate() !== a.getDate()) return false; const mo=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); return mo>0 && mo % n === 0; }
+    if(u === 'year')  { if(b.getDate()!==a.getDate()||b.getMonth()!==a.getMonth()) return false; const yr=b.getFullYear()-a.getFullYear(); return yr>0 && yr % n === 0; }
+  }
+  return false;
+}
+/* ds に発生するイベント一覧。繰り返し由来は当日日付のクローン（id は維持＝編集/削除はシリーズに効く）。 */
+function _eventsOnDate(arr, ds) {
+  const out = [];
+  (arr||[]).forEach(e => { if(_occursOn(e, ds)) out.push(e.date === ds ? e : Object.assign({}, e, { date: ds, _occ: true })); });
+  return out;
 }
 
 function saveEvent() {
@@ -19496,6 +19565,7 @@ function onAvatarPhotoPicked(ev) {
   const f = ev && ev.target && ev.target.files && ev.target.files[0];
   if(!f) return;
   if(!_avatarSelectTarget) { showToast('対象メンバーが指定されていません','error'); return; }
+  showToast('写真を読み込み中…','info');   // 圧縮中のフリーズ感を防ぐ即時フィードバック
   // Wave 58 の downscale 関数で 1280px / JPEG 0.85 へ自動圧縮
   downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
     if(!dataUrl) { showToast('画像を読み込めませんでした','error'); return; }

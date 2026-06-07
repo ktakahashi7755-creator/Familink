@@ -33,7 +33,7 @@ let S = { _deletions: {} };
 const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
-const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions']
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn']
   .map(extractFn).join('\n\n');
 eval(srcs);
 
@@ -174,6 +174,32 @@ console.log('Familink sync harness');
   const b = [{ id: 'k', title: '夜の値', updatedAt: '2026-06-07T20:00:00.000Z' }];
   const merged = _mergeSyncArray(a, b);
   ok('T5 同日でも新しい編集が採用される（ISO精度）', merged.find(x => x.id === 'k').title === '夜の値');
+})();
+
+// ---- T6: 繰り返し予定の発生判定 _occursOn ----
+(function () {
+  // 毎週月曜（2026-06-01 は月曜）
+  const wk = { date: '2026-06-01', repeat: 'weekly' };
+  ok('T6-1 毎週: 同曜日の翌週は発生', _occursOn(wk, '2026-06-08'));
+  ok('T6-2 毎週: 違う曜日は非発生', !_occursOn(wk, '2026-06-09'));
+  ok('T6-3 開始日より前は非発生', !_occursOn(wk, '2026-05-25'));
+  // 毎日
+  ok('T6-4 毎日: 任意の後日は発生', _occursOn({ date: '2026-06-01', repeat: 'daily' }, '2026-06-20'));
+  // 平日のみ（2026-06-06 は土曜）
+  const wd = { date: '2026-06-01', repeat: 'weekdays' };
+  ok('T6-5 平日: 土曜は非発生', !_occursOn(wd, '2026-06-06'));
+  ok('T6-6 平日: 金曜は発生', _occursOn(wd, '2026-06-05'));
+  // 毎月（同じ日）
+  ok('T6-7 毎月: 翌月同日は発生', _occursOn({ date: '2026-06-15', repeat: 'monthly' }, '2026-07-15'));
+  ok('T6-8 毎月: 別日は非発生', !_occursOn({ date: '2026-06-15', repeat: 'monthly' }, '2026-07-16'));
+  // 毎年
+  ok('T6-9 毎年: 翌年同月日は発生', _occursOn({ date: '2026-06-15', repeat: 'yearly' }, '2027-06-15'));
+  // カスタム（2日ごと）
+  const c = { date: '2026-06-01', repeat: 'custom', repeatInterval: 2, repeatUnit: 'day' };
+  ok('T6-10 カスタム2日ごと: 2日後は発生', _occursOn(c, '2026-06-03'));
+  ok('T6-11 カスタム2日ごと: 1日後は非発生', !_occursOn(c, '2026-06-02'));
+  // 単発
+  ok('T6-12 単発: 当日のみ発生', _occursOn({ date: '2026-06-01', repeat: '' }, '2026-06-01') && !_occursOn({ date: '2026-06-01', repeat: '' }, '2026-06-02'));
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');
