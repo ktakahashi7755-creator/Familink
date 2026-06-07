@@ -19665,3 +19665,39 @@ OpenAIキーは従来どおりサーバSecretsのみ。
 
 ### コミット
 - メッセージ: feat(hoku): プレミアムは設定不要でAI版が自動有効（JWT認証＋関数invoke）(v20260607r)
+
+---
+
+## 2026-06-08 09:30  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+「Hokuが賢くならない」総点検：AI起動チェーン確認＋原因切り分け診断を追加
+
+### 確認（コード監査）
+- AI起動チェーンは正常：sendHokuMsg→_hokuChatActive()→_hokuTryChat→callHokuChat→_hokuCallBackend→sb.functions.invoke('hoku')。
+  失敗/未許可時は既存Hokuへフォールバック（仕様どおり＝賢くならない時は黙ってローカルに戻るため気づきにくい）。
+- 賢くならない主因の候補：①プレミアム未設定 ②クラウド未ログイン ③関数がエラー（JWT/鍵/残高）。
+  いずれもサイレントにフォールバックするため、原因を可視化する診断が必要だった。
+
+### 追加（改善）
+- #qa-debug に「Hoku AI 診断」ボタン＋ runHokuAiSelfTest() を新設。
+  表示：プレミアム可否／クラウドログイン／allowed／active／接続先（既定invoke or 独自URL）。
+  実呼び出し：sb.functions.invoke('hoku') を直接叩き、成功時は返答、失敗時は**実エラー全文**
+  （401=JWT/認証、500=OPENAI_API_KEY未設定、502=OpenAI側（残高不足 insufficient_quota 等））を日本語で表示。
+  → 「どこで止まっているか」をその場で特定可能に。
+
+### テスト結果
+- node --check：SYNTAX OK／harness 47/47／#qa-debug 起動 JSエラー0
+- app-source ⇄ docs 一致（v20260608a）
+
+### オーナー確認手順（重要）
+1. アプリURL末尾に #qa-debug を付けて開く → 「Hoku AI 診断」をタップ
+2. 表示で原因を確認：
+   - プレミアム❌ → プレミアム/トライアルにする
+   - ログイン❌ → 設定→クラウド連携でログイン
+   - 結果が「401」→ 関数を --no-verify-jwt 無しで再デプロイ／ログインし直し
+   - 結果が「500 OPENAI_API_KEY未設定」→ secrets set を確認
+   - 結果が「502 / insufficient_quota」→ OpenAI のクレジット・キー所属プロジェクト確認
+
+### コミット
+- メッセージ: diag(hoku): AI版が効かない原因を切り分ける #qa-debug 診断を追加 (v20260608a)
