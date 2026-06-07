@@ -32,6 +32,7 @@ function extractFn(name) {
 let S = { _deletions: {} };
 const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
 function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent が呼ぶ）
+function isSupaLoggedIn() { return S.__loggedIn === true; }  // スタブ（_hokuAiAllowed が参照）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
 const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive']
@@ -277,17 +278,23 @@ console.log('Familink sync harness');
   ok('T9-8 「食費3000円使った」は登録', q('食費3000円使った') === 'action');
 })();
 
-// ---- T10: AI版Hoku のプレミアム限定ゲート（無料は既存Hoku） ----
+// ---- T10: AI版Hoku のプレミアム×ゼロ設定ゲート（無料は既存Hoku） ----
 (function () {
-  S = { hokuApiUrl:'https://x/functions/v1/hoku', hokuChatMode:true, isPremiumUser:false };
-  ok('T10-1 無料はAI不可（allowed=false）', _hokuAiAllowed() === false);
-  ok('T10-2 無料は会話モード不可（active=false）', _hokuChatActive() === false);
-  S.isPremiumUser = true;
-  ok('T10-3 プレミアム＋URL＋会話ONでAI有効', _hokuAiAllowed() === true && _hokuChatActive() === true);
-  S.hokuChatMode = false;
-  ok('T10-4 会話OFFなら allowed=true / active=false（切替可能）', _hokuAiAllowed() === true && _hokuChatActive() === false);
-  S.hokuApiUrl = '';
-  ok('T10-5 URL未設定なら両方false（フォールバック）', _hokuAiAllowed() === false && _hokuChatActive() === false);
+  // 無料：ログイン中でもAI不可
+  S = { isPremiumUser:false, __loggedIn:true, hokuAiOff:false };
+  ok('T10-1 無料はAI不可', _hokuAiAllowed() === false && _hokuChatActive() === false);
+  // プレミアム＋ログイン：設定なしで自動有効（ゼロ設定）
+  S = { isPremiumUser:true, __loggedIn:true, hokuAiOff:false };
+  ok('T10-2 プレミアム＋ログインで設定不要でAI有効', _hokuAiAllowed() === true && _hokuChatActive() === true);
+  // プレミアム＋ログイン＋OFFトグル：切替可能
+  S.hokuAiOff = true;
+  ok('T10-3 OFFトグルで既存Hokuへ（切替可能）', _hokuAiAllowed() === true && _hokuChatActive() === false);
+  // プレミアムだが未ログイン＆URLなし：不可（→既存Hokuにフォールバック）
+  S = { isPremiumUser:true, __loggedIn:false, hokuAiOff:false };
+  ok('T10-4 未ログイン＆URLなしは不可', _hokuAiAllowed() === false);
+  // プレミアム＋未ログインでも独自URLがあれば可（上級者）
+  S = { isPremiumUser:true, __loggedIn:false, hokuAiOff:false, hokuApiUrl:'https://x/functions/v1/hoku' };
+  ok('T10-5 独自URL設定時は未ログインでも可', _hokuAiAllowed() === true && _hokuChatActive() === true);
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');

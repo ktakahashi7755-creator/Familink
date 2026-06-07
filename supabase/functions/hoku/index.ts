@@ -9,11 +9,16 @@
 //       POST .../hoku/api/hoku/intent  → { intent, confidence }
 //     （Supabase は /functions/v1/hoku 配下の全パスをこの関数に渡すため req.url で判定）
 //
-// デプロイ:
-//   supabase secrets set OPENAI_API_KEY=sk-...        # 鍵をサーバ秘密に
-//   supabase secrets set HOKU_SHARED_KEY=任意の文字列  # 任意：簡易保護（アプリのx-hoku-keyと一致）
-//   supabase functions deploy hoku --no-verify-jwt
-//   → アプリの 設定→Hoku で URL に https://<ref>.supabase.co/functions/v1/hoku を貼る
+// 認証（ゼロ設定方針）:
+//   既定は Supabase の JWT 検証に任せる（= --no-verify-jwt を付けずにデプロイ）。
+//   こうすると「ログイン中の Familink ユーザー」だけがこの関数に到達でき、
+//   アプリ側は URL も合言葉も手入力不要（フロントは関数名 invoke で自動的に
+//   ユーザーの JWT と anon キーを付与）。OpenAI 課金の不正利用は認証で防ぐ。
+//
+// デプロイ（推奨・ゼロ設定）:
+//   supabase secrets set OPENAI_API_KEY=sk-...      # 鍵はサーバ秘密のみ
+//   supabase functions deploy hoku                  # ← --no-verify-jwt は付けない（JWT検証ON）
+//   （任意）HOKU_SHARED_KEY を設定すると x-hoku-key 一致も追加で要求（独自URL直叩き用）
 // ============================================================
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
@@ -97,12 +102,10 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // フェイルクローズ：共有キー必須。未設定だと誰でも叩けるOpenAI課金プロキシになるため、
-  // HOKU_SHARED_KEY を必ず設定し、アプリの x-hoku-key と一致する場合のみ通す。
-  if (!HOKU_SHARED_KEY) {
-    return json({ error: "server_misconfigured: HOKU_SHARED_KEY 未設定（不正利用防止のため必須）" }, 500);
-  }
-  if ((req.headers.get("x-hoku-key") || "") !== HOKU_SHARED_KEY) {
+  // 認証：本番は Supabase の JWT 検証（デプロイ時 verify_jwt=ON）で「ログイン中ユーザー」だけが到達。
+  //       アプリは関数名 invoke でユーザーJWTを自動付与するため、設定不要で安全。
+  // 互換：HOKU_SHARED_KEY を設定した場合のみ、x-hoku-key 一致も追加で要求（独自URLの直叩き用）。
+  if (HOKU_SHARED_KEY && (req.headers.get("x-hoku-key") || "") !== HOKU_SHARED_KEY) {
     return json({ error: "unauthorized" }, 401);
   }
   if (!OPENAI_API_KEY) return json({ error: "server_misconfigured: OPENAI_API_KEY 未設定" }, 500);
@@ -113,7 +116,8 @@ Deno.serve(async (req: Request) => {
   const text = String((body.text ?? "")).trim();
   if (!text) return json({ error: "empty_text" }, 400);
 
-  const wantIntentOnly = new URL(req.url).pathname.endsWith("/api/hoku/intent");
+  // モード判定：body.mode（関数名 invoke 経由）優先、無ければパス（独自URL直叩き）で判定。
+  const wantIntentOnly = body.mode === "intent" || new URL(req.url).pathname.endsWith("/api/hoku/intent");
   const context = body.context ?? {};
   const history = Array.isArray(body.history) ? body.history : [];
 

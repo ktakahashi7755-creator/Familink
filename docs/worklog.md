@@ -19626,3 +19626,42 @@ OPENAI_API_KEY はサーバの Secrets のみ。フロントHTML/Gitには一切
 
 ### コミット
 - メッセージ: feat(hoku): OpenAI版Hokuをプレミアム限定で切替可能に＋無料/失敗時は既存Hoku (v20260607q)
+
+---
+
+## 2026-06-07 23:45  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+プレミアムは「設定不要」でAI版Hokuが有効になるゼロ設定化（JWT認証＋関数名invoke）
+
+### 方針
+URL/合言葉の手入力を廃止。プレミアム かつ Supabaseログイン中なら自動でOpenAI版Hoku。
+OpenAIキーは従来どおりサーバSecretsのみ。
+
+### 実装
+- フロント：Hoku呼び出しを `supabase.functions.invoke('hoku', {body:{mode,text,context,history}})` に統一
+  （`_hokuCallBackend`新設）。supabase-js が **ログイン中ユーザーのJWTとanonキーを自動付与**＝URL内蔵・設定不要。
+  S.hokuApiUrl を入れた場合のみ従来どおり独自URLを直叩き（上級者）。
+- ゲート：`_hokuAiAllowed()=isPremiumUser && (ログイン中 || 独自URL)`、`_hokuChatActive()=allowed && !hokuAiOff`。
+  AI版は**既定ON（opt-out）**。`hokuAiOff`（PERSIST追加）でOFF切替可。
+- Edge Function：認証をフェイルクローズ共有キー必須→**JWT検証前提**に変更（HOKU_SHARED_KEYは独自URL時のみ任意）。
+  モード判定を body.mode 優先に（invoke対応）。`--no-verify-jwt を付けずにデプロイ`が推奨。
+- UI：設定の入口/モーダルを「プレミアム限定・自動有効（URLは通常空欄でOK）」に更新。プラン状態バッジも更新。
+
+### 壊していないこと
+- 無料＝既存Hoku、API失敗/未ログイン＝既存Hokuへフォールバック（不変）。
+- 音声入力・intent解析・Wave257参照ガード・Wave258プレミアムゲートは維持。
+
+### テスト結果
+- tools/sync_harness_test.js：**47/47 PASS**（T10をゼロ設定ゲートに更新：無料不可/プレミアム自動有効/OFF切替/未ログイン不可/独自URL可）
+- node --check：SYNTAX OK／home・hoku・settings 描画 JSエラー0
+- Edge Function：波括弧整合・sk-リテラルなし・body.mode対応 確認
+- app-source ⇄ docs 一致（v20260607r）
+
+### オーナー作業（これだけ）
+1. `supabase functions deploy hoku`（--no-verify-jwt を付けない＝JWT検証ON）
+2. `supabase secrets set OPENAI_API_KEY=sk-...`
+→ あとはプレミアム＆ログイン中ユーザーが自動でAI版Hokuに。アプリ側の設定入力は不要。
+
+### コミット
+- メッセージ: feat(hoku): プレミアムは設定不要でAI版が自動有効（JWT認証＋関数invoke）(v20260607r)
