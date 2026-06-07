@@ -19070,3 +19070,67 @@ Agent Team（5専門サブエージェント）並列レビュー → 検出S/A�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix(family-sync+security): Agent Teamレビュー由来のS/A修正7件＋docs同期(v20260607c)
+
+---
+
+## 2026-06-07 09:15  env: PC (Remote Control / 全画面総点検)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+全画面総点検（5サブエージェント並列監査）→ S/A バグ多数修正 ＋ 削除トゥームストーン（端末間削除の整合）＋ 別家族分離の自動証明 ＋ デザイン磨き込み
+
+### 手法
+- Claude が処理しやすいタスクに分割（TaskCreate #1-#4）。22画面+モーダルを4グループに分けサブエージェント並列監査。
+- 検証は当機可能な全手段を反復: node --check / node 単体テストハーネス（新規）/ Chrome ヘッドレス描画+console / iPhone SE スクショ目視。Playwright(84) は Linux 専用で当機不可のため中核ロジックはハーネスで自動検証。
+
+### 監査で検出→修正したバグ
+- [S] プレミアム解約が永続しない（isPremiumUser だけ false → 次回 _refreshTrialStatus で復活）。premiumPaid/trialStartedAt も解除して確実化。
+- [A] 開発用プレミアム切替トグルが本番に露出（誰でも無料解放）→ #qa-debug 限定表示にゲート。
+- [A] 課金導線に β（実決済なし）明示が無い（§13.5）→ プレミアム画面 CTA に β バナー常設＋「解約/管理」導線を常設（解約の発見性も解消）。
+- [A] ホームのクイック追加タスクが priority:'normal'（不正値）→ ホーム並び順が NaN・優先度バー無色。'none' に修正。
+- [A] ホーム「今日」サマリーが S.events 全件（ワークスペース無視）→ wsFilter に統一。
+- [A] 体温チャートの日付キーが UTC 生成で JST と1日ズレ（棒が消える/ズレる）→ localDateStr に統一（2箇所）。
+- [A] 買い物/固定収支/準備ルーティンの追加に workspaceId 欠落 → 非共有WSで不可視（5経路）に curWsId() 付与。
+- [A] 家族ボード詳細でコメント後、一覧のコメント数バッジが古いまま → renderBoard() 追加。
+- [Security/B] 同期写真 data URL を H() エスケープ（前回分含む）。
+
+### 端末間「削除」の整合（最重要・新規実装）
+- 描画非干渉の **トゥームストーン・レジストリ方式**を採用：S._deletions = { 配列キー: { id: ISO時刻 } }。
+  - _recordDeletion / _isTombstoned / _mergeDeletions / _gcDeletions(30日) を新設。SYNC_KEYS と PERSIST に _deletions 追加、S 既定値に追加。
+  - _fetchFromSupabase：_deletions を全メンバー union マージ → 共有配列を union 後にトゥームストーンで除外 → GC。
+  - 主要 delete 経路（events/tasks/txs/health/announces/memos/shoppingItems/shoppingFrequent/docs/albumPhotos/prep/boardItems/customBoards一括/Hoku削除）に _recordDeletion を付与（描画側は無改造＝回帰リスク極小。未対応経路は「伝播しないだけ＝従来同等」で悪化なし）。
+
+### 自動検証（新規ハーネス）
+- tools/sync_harness_test.js：実コードのヘルパーを抽出し _fetchFromSupabase の中核を忠実再現。**11/11 PASS**。
+  - T1 削除がBで復活しない / T2 削除後編集は残る / T3 高橋家⇄田中家 完全分離（双方向6本）/ T4 個人キー非混入 / T5 同日ISOで新編集採用。
+
+### デザイン磨き込み（安全・加点的のみ）
+- アルバム/書類サムネに img onerror フォールバック（壊れ画像の安っぽさ防止）。
+- 家計の ¥/円 表記ゆれ統一（資金繰り警告）。
+- 家計ヒーロー金額に nowrap + tabular-nums（大桁の折返し/桁あふれ防止）。
+- タスクの空状態を絞り込み別文言に（「今日が期日のタスクはありません」等）。
+- Hoku 提案チップのタップ領域 ~40px（前回分）。
+- ※ 密集行のチェックボックス（買物26/準備24px）など視覚確認が要るタップ領域拡大は、スクショ検証可能な次セッションへ申し送り（誤って別の崩れを生まないため）。
+
+### テスト結果
+- node --check：SYNTAX OK
+- node tools/sync_harness_test.js：11/11 PASS（削除整合・別家族分離を自動証明）
+- Chrome ヘッドレス：DOM 2.6MB・[Supabase] connected・アプリ起因 JSエラー 0
+- iPhone SE スクショ：ウェルカム画面の品質目視 OK・横スクロールなし
+- app-source ⇄ docs 本文：完全一致（v20260607d）
+- node qa_full_test.js：当機不可（Linux）。次回CIで 84/84 推奨。
+
+### 未確認事項 / 申し送り
+- 密集行タップ領域（買物/準備チェック、カスタムボード上下削除、prm-link、Hoku各種）→ スクショ検証して 44px 化。
+- 繰り返し予定の画面内展開（記録のみで未展開）→ 仕様判断＋実装は別タスク（Aだが大）。
+- オンボーディングに招待ステップ／ホーム Hoku ナッジ（Product Top3）。
+- CI で qa_full_test.js + 家族共有テスト追加。
+
+### iPhone確認ポイント
+- プレミアム「解約」後にアプリ再起動してもプレミアムに戻らないか。
+- プレミアム画面に β バナーと「解約/管理」が出るか。開発用トグルが（#qa-debug 以外で）消えているか。
+- 体温グラフの棒が正しい日付に出るか。非共有スペースで買い物/固定収支/準備の追加が消えないか。
+- 端末A/Bで一方が予定/タスクを削除→他方で復活しないか（SQL適用済み前提）。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix: 全画面総点検のS/A修正＋削除トゥームストーン同期＋別家族分離テスト＋デザイン磨き(v20260607d)

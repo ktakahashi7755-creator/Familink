@@ -1739,7 +1739,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .budget-row { display: flex; justify-content: space-between; margin-bottom: 14px; }
 .budget-item label { font-size: 11px; opacity: .75; display: block; margin-bottom: 4px; font-weight: 500; }
-.budget-item .amount { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.budget-item .amount { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .budget-bal { font-size: 14px; opacity: .88; margin-top: 4px; font-weight: 600; }
 .type-toggle {
   display: flex; margin: 0 16px 16px;
@@ -5938,7 +5938,7 @@ const SYNC_KEYS = [
   'notifs','tabConfig','widgetItems','homeOrder',
   'userPhotos','userAvatars','userAvatarType',
   'userProfile','isPremiumUser','onboardCompleted','hokuContext',
-  'cashflowSettings','demoProfiles','familyId'
+  'cashflowSettings','demoProfiles','familyId','_deletions'
 ];
 
 /* 家族で共有するキー（家族参加中は全メンバー分をマージ）。
@@ -5981,6 +5981,56 @@ function _mergeSyncArray(localArr, cloudArr) {
     if(!cur || ts(it) > ts(cur)) byId.set(it.id, it); // ローカルのみ or ローカルが新しい
   });
   return Array.from(byId.values());
+}
+
+/* ── Wave 252: 削除トゥームストーン ─────────────────────────────
+   配列項目を削除したら _recordDeletion(キー, id) を呼ぶ。S._deletions に
+   { キー: { id: ISO時刻 } } として記録し、同期で家族全員に伝播する。
+   _fetchFromSupabase は union マージ後にトゥームストーンで削除済み項目を
+   除外するため、他端末の古いコピーが「復活」しない。
+   ─────────────────────────────────────────────────────────── */
+const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;  // 30日でGC（端末が30日以上オフラインなら復活し得る＝許容）
+function _recordDeletion(key, id) {
+  if(!key || id == null) return;
+  if(!S._deletions || typeof S._deletions !== 'object') S._deletions = {};
+  if(!S._deletions[key]) S._deletions[key] = {};
+  S._deletions[key][id] = new Date().toISOString();
+}
+/* item がそのキーのトゥームストーンで「削除済み」と判定されるか。
+   削除時刻 >= item更新時刻 のときだけ削除を優先（削除後に編集された項目は残す）。 */
+function _isTombstoned(key, item) {
+  if(!item || item.id == null) return false;
+  const map = S._deletions && S._deletions[key];
+  const tomb = map && map[item.id];
+  if(!tomb) return false;
+  const itemTs = Date.parse(item.updatedAt || item.updated_at || item.createdAt || item.created_at) || 0;
+  const tombTs = Date.parse(tomb) || 0;
+  return tombTs >= itemTs;
+}
+/* 複数メンバー分の _deletions（オブジェクト）を union マージ。id ごとに最新時刻を採用。 */
+function _mergeDeletions(into, incoming) {
+  if(!incoming || typeof incoming !== 'object') return into;
+  Object.keys(incoming).forEach(function(key){
+    const m = incoming[key];
+    if(!m || typeof m !== 'object') return;
+    if(!into[key]) into[key] = {};
+    Object.keys(m).forEach(function(id){
+      const a = Date.parse(into[key][id]) || 0;
+      const b = Date.parse(m[id]) || 0;
+      if(b > a) into[key][id] = m[id];
+    });
+  });
+  return into;
+}
+/* 30日より古いトゥームストーンを破棄（肥大化防止） */
+function _gcDeletions() {
+  if(!S._deletions || typeof S._deletions !== 'object') return;
+  const cutoff = Date.now() - _TOMB_TTL_MS;
+  Object.keys(S._deletions).forEach(function(key){
+    const m = S._deletions[key]; if(!m) return;
+    Object.keys(m).forEach(function(id){ if((Date.parse(m[id])||0) < cutoff) delete m[id]; });
+    if(!Object.keys(m).length) delete S._deletions[key];
+  });
 }
 
 async function _pushToSupabase() {
@@ -6061,7 +6111,14 @@ async function _fetchFromSupabase() {
       (byKey[row.data_key] = byKey[row.data_key] || []).push(row);
     });
     let changed = false;
+    // 先に _deletions（削除トゥームストーン）を全メンバー分 union マージ（最新時刻優先）
+    if(byKey['_deletions']) {
+      if(!S._deletions || typeof S._deletions !== 'object') S._deletions = {};
+      byKey['_deletions'].forEach(function(r){ if(r.payload && typeof r.payload === 'object') _mergeDeletions(S._deletions, r.payload); });
+      changed = true;
+    }
     Object.keys(byKey).forEach(k => {
+      if(k === '_deletions') return;  // 上で特別処理済み
       let rows = byKey[k];
       const shared = FAMILY_SHARED_KEYS.includes(k);
       if(!shared) {
@@ -6075,6 +6132,10 @@ async function _fetchFromSupabase() {
         // 配列：ローカル + 全メンバーの payload を per-item last-write-wins でマージ
         let merged = Array.isArray(S[k]) ? S[k] : [];
         rows.forEach(r => { if(Array.isArray(r.payload)) merged = _mergeSyncArray(merged, r.payload); });
+        // トゥームストーンで削除済みの項目を除外（他端末の古いコピーが復活しないように）
+        if(FAMILY_SHARED_KEYS.includes(k) && S._deletions && S._deletions[k]) {
+          merged = merged.filter(function(it){ return !_isTombstoned(k, it); });
+        }
         S[k] = merged;
       } else {
         // 非配列：最新 updated_at の値で上書き
@@ -6083,6 +6144,15 @@ async function _fetchFromSupabase() {
       }
       changed = true;
     });
+    // _deletions だけ来てローカル配列にまだ該当項目が残っているケースも掃除する
+    if(byKey['_deletions']) {
+      FAMILY_SHARED_KEYS.forEach(function(k){
+        if(Array.isArray(S[k]) && S._deletions && S._deletions[k]) {
+          S[k] = S[k].filter(function(it){ return !_isTombstoned(k, it); });
+        }
+      });
+    }
+    try { _gcDeletions(); } catch(_){}
     // familyId を自分の行から復元したら owner を現アカウントに確定。
     // さらに familyId が今復元されたなら、家族全員分を取り直す（最初の取得は user_id 限定だったため）。
     let _refetchFamily = false;
@@ -7667,6 +7737,7 @@ let S = {
   familyId: null,                // Wave 219: 家族グループID（将来の招待・多端末同期で使用）
   familyIdOwner: null,           // Wave 234: familyId を確定したアカウントの user_id（別アカウントへの取り違え防止）
   familyIdSetByUser: false,      // Wave 234: この端末の利用者が明示的に生成/参加したコードか（旧版残骸と区別）
+  _deletions: {},                // Wave 252: 削除トゥームストーン { 配列キー: { id: ISO時刻 } }。端末間で削除が復活しないように同期する
   trialStartedAt: null,          // Wave 222: 30日無料トライアル開始日（ISO文字列）
   // Wave 250: Hoku ログインボーナス / ファミコイン（毎日開きたくなる習慣化）
   loginBonus: { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] },
@@ -7679,7 +7750,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
 
 function saveS() {
   const d = {};
@@ -10185,7 +10256,7 @@ function renderHome() {
   const todayBar = document.getElementById('home-today-bar');
   if(todayBar) {
     const chips = [];
-    const todayEvs231 = (S.events||[]).filter(e=>e.date===td);
+    const todayEvs231 = wsFilter(S.events).filter(e=>e.date===td);
     if(todayEvs231.length > 0) {
       const nextEv = todayEvs231.sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
       chips.push(`<div class="home-today-chip event">
@@ -10499,7 +10570,7 @@ function homeQuickAddTask() {
   if(!checkPremiumLimit('tasks')) return;
   const now = new Date().toISOString();
   const newTask = {
-    id: uid(), title: text, status: 'todo', priority: 'normal',
+    id: uid(), title: text, status: 'todo', priority: 'none',
     assignedTo: (S.user && S.user.id) || (S.userProfile && S.userProfile.memberId) || '',
     workspaceId: curWsId(), createdAt: now, updatedAt: now,
     /* 旧スキーマ互換 */
@@ -11877,6 +11948,7 @@ function saveEvent() {
 function deleteCurrentEvent() {
   const eid = document.getElementById('ev-id').value;
   showConfirm('予定を削除','この予定を削除しますか？','削除する', () => {
+    _recordDeletion('events', eid);
     S.events = (S.events||[]).filter(e=>e.id!==eid);
     saveS(); closeModal('m-event'); renderCal(); renderHome();
     showToast('削除しました');
@@ -12147,6 +12219,13 @@ function renderListView(){
       el.innerHTML=`<div class="docs-empty" style="margin-top:48px;">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
         <div class="docs-empty-title">完了タスクなし</div>
+      </div>`;
+    } else if(_tkFilter==='today' || _tkFilter==='week' || _tkFilter==='overdue') {
+      const _lbl = _tkFilter==='today' ? '今日が期日のタスク' : _tkFilter==='week' ? '今週のタスク' : '期限切れのタスク';
+      el.innerHTML=`<div class="docs-empty" style="margin-top:48px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="opacity:.2;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
+        <div class="docs-empty-title">${_lbl}はありません</div>
+        <div class="docs-empty-sub" style="margin-top:6px;">絞り込みを切り替えると他のタスクを確認できます</div>
       </div>`;
     } else {
       el.innerHTML=`<div class="docs-empty" style="margin-top:40px;padding:0 20px;">
@@ -12491,6 +12570,7 @@ function _attachTaskSwipe(container) {
         const t = (S.tasks||[]).find(x => x.id === cardId);
         if(!t) return;
         showConfirm('タスクを削除', `「${t.title}」を削除しますか？`, '削除する', () => {
+          _recordDeletion('tasks', cardId);
           S.tasks = (S.tasks||[]).filter(x => x.id !== cardId);
           saveS(); renderTaskScreen(); if(typeof renderHome==='function') renderHome();
         }, 'danger');
@@ -12682,6 +12762,7 @@ function deleteTaskFromModal(){
   const id=document.getElementById('te-id').value;
   if(!id)return;
   showConfirm('タスクを削除','このタスクを削除しますか？','削除する',()=>{
+    _recordDeletion('tasks', id);
     S.tasks=(S.tasks||[]).filter(t=>t.id!==id);
     saveS();closeModal('m-task-edit');renderTaskScreen();renderHome();
     showToast('削除しました');
@@ -13108,6 +13189,7 @@ function applyRecurringForMonth(y, m0, opts) {
     S.txs = S.txs || [];
     S.txs.push({
       id: uid(),
+      workspaceId: curWsId(),
       type: it.recurring.type,
       amount: Number(it.recurring.amount) || 0,
       cat: it.recurring.cat || 'その他',
@@ -13420,7 +13502,7 @@ function renderCashflowSection() {
     + '</div>';
   // 警告
   if(cf.endingBalanceForecast < 0) {
-    html += '<div class="cf-warn danger">'+ICON('warning',13)+' '+H(monthLabel)+' は月末残高がマイナスになる見込みです（'+cf.endingBalanceForecast.toLocaleString()+' 円）。固定支出の見直しか開始残高の確認をおすすめします。</div>';
+    html += '<div class="cf-warn danger">'+ICON('warning',13)+' '+H(monthLabel)+' は月末残高がマイナスになる見込みです（¥'+cf.endingBalanceForecast.toLocaleString()+'）。固定支出の見直しか開始残高の確認をおすすめします。</div>';
   } else if(cf.totalExpense > cf.totalIncome) {
     html += '<div class="cf-warn">注意：'+H(monthLabel)+' は支出予定（¥'+cf.totalExpense.toLocaleString()+'）が収入予定（¥'+cf.totalIncome.toLocaleString()+'）を超えています。</div>';
   }
@@ -13633,6 +13715,7 @@ function openTxModal(id) {
 function deleteCurrentTx() {
   const id = document.getElementById('bm-id').value;
   if(!id) return;
+  _recordDeletion('txs', id);
   S.txs = (S.txs||[]).filter(t => t.id !== id);
   saveS();
   closeModal('m-budget');
@@ -14645,6 +14728,7 @@ function deletePostWithConfirm(postId, onAfterDelete) {
     msg = `「${a.title || '(無題)'}」を削除しますか？\nこの操作は元に戻せません。`;
   }
   showConfirm('投稿を削除', msg, '削除する', () => {
+    _recordDeletion('announces', postId);
     S.announces = (S.announces||[]).filter(x => x.id !== postId);
     saveS();
     if(typeof renderBoard === 'function') renderBoard();
@@ -14676,10 +14760,11 @@ function submitBoardComment(postId) {
   if(!a) return;
   if(!a.comments) a.comments = [];
   a.comments.push({id:uid(), author:userId(), text, time:todayStr()});
-  a.updatedAt = todayStr();
+  a.updatedAt = new Date().toISOString();
   saveS();
   input.value = '';
   renderBoardDetail();
+  try { if(typeof renderBoard === 'function') renderBoard(); } catch(_){}  // 一覧のコメント数バッジを即時更新
   showToast('コメントを送信しました');
 }
 
@@ -15296,6 +15381,7 @@ function deleteMemo() {
   if(!_memoEditId) return;
   const id = _memoEditId;
   showConfirm('メモを削除', 'このメモを削除しますか？', '削除する', () => {
+    _recordDeletion('memos', id);
     S.memos = (S.memos||[]).filter(function(x){ return x.id !== id; });
     saveS();
     closeModal('m-memo-edit');
@@ -15418,7 +15504,7 @@ function renderHealthCharts(recs) {
   const todayDate = new Date(today + 'T00:00:00');
   const DAYS = 30;
   const sinceDate = new Date(todayDate); sinceDate.setDate(sinceDate.getDate() - (DAYS - 1));
-  const sinceStr = sinceDate.toISOString().slice(0, 10);
+  const sinceStr = localDateStr(sinceDate);  // JST 基準（r.date と整合。UTCだと1日ズレる）
   const isAllMembers = (typeof _healthMemberFilter !== 'undefined') && _healthMemberFilter === 'all';
 
   // 日付ごとの最高体温と該当レコード（誰のものかを保持）を集計
@@ -15437,7 +15523,7 @@ function renderHealthCharts(recs) {
   const days = [];
   for(let i = DAYS - 1; i >= 0; i--) {
     const d = new Date(todayDate); d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
+    const k = localDateStr(d);  // JST 基準（r.date と一致させる）
     days.push({ date: k, temp: tempByDate[k] != null ? tempByDate[k] : null, rec: peakRecByDate[k] || null, day: d.getDate(), month: d.getMonth() + 1 });
   }
 
@@ -15880,6 +15966,7 @@ function deleteCurrentHealth() {
   const id = document.getElementById('hm-id').value;
   if(!id) return;
   showConfirm('記録を削除', 'この体調記録を削除しますか？この操作は元に戻せません。', '削除する', () => {
+    _recordDeletion('health', id);
     S.health = (S.health||[]).filter(r => r.id !== id);
     saveS();
     closeModal('m-health');
@@ -16182,6 +16269,7 @@ function shopMarkPurchased(id) {
 
 function shopDeleteItem(id) {
   showConfirm('買い物項目を削除', 'この買い物項目を削除しますか？', '削除する', () => {
+    _recordDeletion('shoppingItems', id);
     S.shoppingItems = (S.shoppingItems||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderShopping();
@@ -16208,6 +16296,7 @@ function shopAddToFrequent(id) {
 
 function shopFreqDelete(id) {
   showConfirm('よく買うものから削除', '「よく購入するもの」から削除しますか？', '削除する', () => {
+    _recordDeletion('shoppingFrequent', id);
     S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderShopping();
@@ -16224,7 +16313,7 @@ function shopFreqToList(id) {
       const now = new Date().toISOString();
       S.shoppingItems.push({
         id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
-        memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+        memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now, workspaceId: curWsId()
       });
       saveS();
       showToast('リストに追加しました','success');
@@ -16236,7 +16325,7 @@ function shopFreqToList(id) {
   const now = new Date().toISOString();
   S.shoppingItems.push({
     id: 'shop_'+uid(), name: f.name, qty: f.defaultQty||'', category: f.category||'',
-    memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+    memo: '', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now, workspaceId: curWsId()
   });
   saveS();
   showToast('リストに追加しました','success');
@@ -16437,7 +16526,7 @@ function _emptyState(art, title, desc, ctaLabel, ctaOnclick) {
 
 function _archiveRow(d) {
   const thumb = d.photo
-    ? '<img src="'+H(d.photo)+'" alt="">'
+    ? '<img src="'+H(d.photo)+'" alt="" onerror="this.style.display=\'none\'">'
     : ICON('document',26);
   const thumbClick = d.photo ? ' onclick="event.stopPropagation();openDocPhotoById(\''+H(d.id)+'\')" style="cursor:zoom-in;"' : '';
   return '<div class="archive-row" onclick="openArchiveAdd(\''+H(d.id)+'\')">'
@@ -16595,6 +16684,7 @@ function saveArchiveAdd() {
 }
 function archiveDelete(id) {
   showConfirm('書類を削除', 'この書類を削除しますか？写真も一緒に削除されます。', '削除する', () => {
+    _recordDeletion('docs', id);
     S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderArchive();
@@ -16625,7 +16715,7 @@ function _albumCell(p) {
   const isVid = p.type === 'video';
   const media = isVid
     ? '<video src="'+H(p.dataUrl)+'" muted playsinline preload="metadata"></video>'
-    : '<img src="'+H(p.dataUrl)+'" alt="">';
+    : '<img src="'+H(p.dataUrl)+'" alt="" onerror="this.style.display=\'none\'">';
   return '<div class="album-cell'+(isVid?' is-video':'')+'" onclick="albumOpenView(\''+H(p.id)+'\')">'
     + media
     + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
@@ -16885,6 +16975,7 @@ function albumDeleteCurrent() {
   const p = _curPhoto();
   const what = (p && p.type === 'video') ? '動画' : '写真';
   showConfirm(what+'を削除', 'この'+what+'を削除しますか？', '削除する', () => {
+    _recordDeletion('albumPhotos', _albumViewId);
     S.albumPhotos = (S.albumPhotos||[]).filter(function(x){ return x.id!==_albumViewId; });
     saveS();
     _albumViewId = null;
@@ -16946,7 +17037,7 @@ function shopHistRepost(id) {
   const now = new Date().toISOString();
   S.shoppingItems.push({
     id: 'shop_'+uid(), name: h.name, qty: h.qty||'', category: h.category||'',
-    memo: h.memo||'', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now
+    memo: h.memo||'', section: '今すぐ', assignedTo: '', status: 'active', createdAt: now, updatedAt: now, workspaceId: curWsId()
   });
   saveS();
   showToast('リストに再追加しました','success');
@@ -17243,6 +17334,7 @@ function deletePrep(id) {
   const p = (S.prep||[]).find(x => x.id === id);
   if(!p) return;
   showConfirm('この準備項目を削除しますか？', H(p.text), '削除', () => {
+    _recordDeletion('prep', id);
     S.prep = (S.prep||[]).filter(p=>p.id!==id);
     saveS(); renderPrep(); showToast('削除しました');
   }, 'trash');
@@ -17434,6 +17526,7 @@ function applyPrepRoutinesForDate(targetDateStr, opts) {
     S.prep = S.prep || [];
     S.prep.push({
       id: uid(),
+      workspaceId: curWsId(),
       text: r.title,
       cat: r.category || 'その他',
       subject: r.subject || '',          // Wave 55: 教科を引き継ぐ
@@ -18121,10 +18214,15 @@ function renderPremium() {
     const trialBadge = inTrial
       ? `<div style="font-size:12px;color:#059669;font-weight:700;margin-bottom:6px;">トライアル中 — あと${trialLeft}日</div>`
       : '';
+    // §13.5 実決済が未実装のβ状態であることを課金導線に明示
+    const betaBar = '<div style="font-size:10.5px;line-height:1.5;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,.25);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:8px;">現在はベータ版です。実際の課金は発生しません（正式リリース時にApp Store経由で開始）</div>';
+    // プレミアム利用中はこの画面から解約/管理できる導線を常設
+    const manageLink = '<div class="prm-links"><button class="prm-link" onclick="cancelPremium()">プレミアムを解約 / 管理</button></div><div style="height:6px"></div>';
     ctaBar.innerHTML = isPrem
-      ? trialBadge + '<div class="prm-cta-already">✓ プレミアム利用中</div>'
+      ? betaBar + trialBadge + '<div class="prm-cta-already">✓ プレミアム利用中</div>'
         + (inTrial ? '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px;">無料期間終了後は月額480円で自動更新（正式リリース後）</div>' : '')
-      : trialBadge + '<button class="prm-cta-btn" onclick="prmStartTrial()">'
+        + manageLink
+      : betaBar + trialBadge + '<button class="prm-cta-btn" onclick="prmStartTrial()">'
         + '<span>30日間 無料でためす</span>'
         + '<span class="prm-cta-btn-sub">クレジットカード不要・今すぐ開始</span>'
         + '</button>'
@@ -18966,8 +19064,8 @@ function renderSettings() {
       }
     </div>
 
-    <!-- Dev: プレミアム切替トグル（本番想定では非表示に） -->
-    <div class="settings-section" style="opacity:.6">
+    <!-- Dev: プレミアム切替トグル（#qa-debug のときだけ表示。通常ユーザーには出さない） -->
+    ${location.hash === '#qa-debug' ? `<div class="settings-section" style="opacity:.6">
       <div class="settings-title" style="font-size:11px">開発用オプション</div>
       <div class="settings-item" onclick="devTogglePremium()">
         <div class="settings-item-icon" style="background:#F3F4F6">
@@ -18978,7 +19076,7 @@ function renderSettings() {
         </div>
         <div class="settings-value">${S.isPremiumUser ? '●' : '○'}</div>
       </div>
-    </div>
+    </div>` : ''}
 
     <!-- Footer -->
     <div class="menu-footer">
@@ -19059,8 +19157,12 @@ function cancelPremiumProceed() {
     '本当に Familink プレミアムを解約しますか？\nこの操作は取り消せません。',
     '解約する',
     function() {
+      // 解約は確実に反映：課金フラグ・トライアルも解除しないと _refreshTrialStatus で復活する
       S.isPremiumUser = false;
+      S.premiumPaid = false;
+      S.trialStartedAt = null;
       try { saveS(); } catch(_){}
+      try { if(typeof renderPremium === 'function' && S.screen === 's-premium') renderPremium(); } catch(_){}
       try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
       try { if(typeof renderHome === 'function') renderHome(); } catch(_){}
       showToast('プレミアムを解約しました');
@@ -19934,6 +20036,7 @@ function toggleBoardItem(itemId) {
 }
 
 function deleteBoardItem(itemId) {
+  _recordDeletion('boardItems', itemId);
   S.boardItems = (S.boardItems||[]).filter(i=>i.id!==itemId);
   saveS(); renderCustomBoardDetail(); renderHome();
 }
@@ -19972,6 +20075,9 @@ function deleteBoardConfirm() {
   const b = (S.customBoards||[]).find(b=>b.id===_activeBoardId);
   if(!b) return;
   showConfirm('ボードを削除', `「${b.name}」を削除しますか？項目もすべて削除されます。`, '削除する', () => {
+    _recordDeletion('customBoards', _activeBoardId);
+    (S.boardItems||[]).forEach(function(i){ if(i.boardId===_activeBoardId) _recordDeletion('boardItems', i.id); });
+    (S.boardSections||[]).forEach(function(s){ if(s.boardId===_activeBoardId) _recordDeletion('boardSections', s.id); });
     S.customBoards = (S.customBoards||[]).filter(b=>b.id!==_activeBoardId);
     hoRemoveCustomBoard(_activeBoardId);
     S.boardItems   = (S.boardItems||[]).filter(i=>i.boardId!==_activeBoardId);
@@ -21036,6 +21142,7 @@ function executeAction(action) {
     }
 
     case 'delete_task': {
+      _recordDeletion('tasks', action.params.id);
       S.tasks=(S.tasks||[]).filter(t=>t.id!==action.params.id);
       saveS(); refresh('s-task');
       return `「${action.params.title}」を削除しました。`;
