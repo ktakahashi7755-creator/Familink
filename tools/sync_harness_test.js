@@ -1,0 +1,180 @@
+/* ============================================================
+   Familink 同期ロジック検証ハーネス（Node 単体テスト）
+   app-source/familink.html から実際のヘルパー関数を抽出して読み込み、
+   端末間の「削除伝播 / 削除後編集 / 別家族の完全分離 / 同日編集LWW」を検証する。
+   実行: node tools/sync_harness_test.js
+   注意: Playwright(84) は Linux 専用で当機実行不可のため、家族同期の
+        中核ロジックはこのハーネスで自動検証する。
+   ============================================================ */
+const fs = require('fs');
+const path = require('path');
+
+const HTML = fs.readFileSync(path.join(__dirname, '..', 'app-source', 'familink.html'), 'utf8');
+
+// --- 実コードから対象関数のソースを抽出して評価（S をハーネス側で定義） ---
+function extractFn(name) {
+  const re = new RegExp('function ' + name + '\\s*\\(', 'g');
+  const m = re.exec(HTML);
+  if (!m) throw new Error('関数が見つかりません: ' + name);
+  // 関数開始位置から波括弧の対応を数えて本体終端を探す
+  let i = HTML.indexOf('{', m.index);
+  let depth = 0, end = -1;
+  for (let j = i; j < HTML.length; j++) {
+    const c = HTML[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) { end = j; break; } }
+  }
+  if (end < 0) throw new Error('関数本体の終端が見つかりません: ' + name);
+  return HTML.slice(m.index, end + 1);
+}
+
+// グローバル相当のコンテキスト
+let S = { _deletions: {} };
+const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
+
+// 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions']
+  .map(extractFn).join('\n\n');
+eval(srcs);
+
+// app-source と一致させる（変更時はここも更新）
+const FAMILY_SHARED_KEYS = [
+  'events','tasks','txs','health','posts','announces',
+  'prep','prepRoutines','folders','docs','albumPhotos',
+  'shoppingItems','shoppingFrequent','members',
+  'customBoards','boardItems','boardSections',
+  'recurringTxs','memos','memoFolders','workspaces'
+];
+const SYNC_KEYS = FAMILY_SHARED_KEYS.concat([
+  'notifs','tabConfig','widgetItems','homeOrder','userPhotos','userAvatars','userAvatarType',
+  'userProfile','isPremiumUser','onboardCompleted','hokuContext','cashflowSettings','demoProfiles','familyId','_deletions'
+]);
+
+/* _fetchFromSupabase の中核（マージ＋トゥームストーン＋家族分離）を忠実に再現。
+   rowsAll: クラウド全行 [{user_id, family_id, data_key, payload, updated_at}]
+   familyId/uid: 取得する端末の状態。戻り値: マージ後の S（テスト用にthis-Sを使う） */
+function simulateFetch(rowsAll, familyId, uid) {
+  // クエリ相当の家族分離フィルタ（q.eq('family_id', familyId) もしくは eq('user_id', uid)）
+  const data = familyId
+    ? rowsAll.filter(r => r.family_id === familyId)
+    : rowsAll.filter(r => r.user_id === uid);
+  const byKey = {};
+  data.forEach(row => { if (!SYNC_KEYS.includes(row.data_key)) return; (byKey[row.data_key] = byKey[row.data_key] || []).push(row); });
+
+  if (byKey['_deletions']) {
+    if (!S._deletions || typeof S._deletions !== 'object') S._deletions = {};
+    byKey['_deletions'].forEach(r => { if (r.payload && typeof r.payload === 'object') _mergeDeletions(S._deletions, r.payload); });
+  }
+  Object.keys(byKey).forEach(k => {
+    if (k === '_deletions') return;
+    let rows = byKey[k];
+    const shared = FAMILY_SHARED_KEYS.includes(k);
+    if (!shared) { rows = rows.filter(r => r.user_id === uid); if (!rows.length) return; }
+    rows = rows.slice().sort((a, b) => (a.updated_at || '').localeCompare(b.updated_at || ''));
+    const anyArray = Array.isArray(S[k]) || rows.some(r => Array.isArray(r.payload));
+    if (anyArray) {
+      let merged = Array.isArray(S[k]) ? S[k] : [];
+      rows.forEach(r => { if (Array.isArray(r.payload)) merged = _mergeSyncArray(merged, r.payload); });
+      if (FAMILY_SHARED_KEYS.includes(k) && S._deletions && S._deletions[k]) merged = merged.filter(it => !_isTombstoned(k, it));
+      S[k] = merged;
+    } else {
+      const latest = rows[rows.length - 1];
+      if (latest && latest.payload != null) S[k] = latest.payload;
+    }
+  });
+  if (byKey['_deletions']) {
+    FAMILY_SHARED_KEYS.forEach(k => { if (Array.isArray(S[k]) && S._deletions && S._deletions[k]) S[k] = S[k].filter(it => !_isTombstoned(k, it)); });
+  }
+  _gcDeletions();
+  return S;
+}
+
+// --- ミニテストランナー ---
+let pass = 0, fail = 0;
+function ok(name, cond) { if (cond) { pass++; console.log('  PASS ' + name); } else { fail++; console.log('  FAIL ' + name); } }
+function rowsFromState(uid, familyId, state) {
+  return Object.keys(state).map(k => ({ user_id: uid, family_id: familyId, data_key: k, payload: state[k], updated_at: new Date().toISOString() }));
+}
+
+console.log('Familink sync harness');
+
+// ---- T1: 削除がトゥームストーンで端末間に伝播し、相手の古いコピーが復活しない ----
+(function () {
+  S = { _deletions: {} };
+  const FAM = 'FAMI-TEST';
+  // 端末A: events に X,Y。X を削除（トゥームストーン記録 + ローカル除去）
+  S.events = [{ id: 'X', title: '保育園', updatedAt: '2026-06-01T09:00:00Z' }, { id: 'Y', title: '習い事', updatedAt: '2026-06-01T09:00:00Z' }];
+  _recordDeletion('events', 'X');
+  S.events = S.events.filter(e => e.id !== 'X');
+  const aRows = rowsFromState('userA', FAM, { events: S.events, _deletions: S._deletions });
+  // 端末B: まだ X を保持（古いコピー）。Bがクラウドから取得（A行 + 自分のローカル）
+  S = { _deletions: {}, events: [{ id: 'X', title: '保育園', updatedAt: '2026-06-01T09:00:00Z' }, { id: 'Y', title: '習い事', updatedAt: '2026-06-01T09:00:00Z' }] };
+  simulateFetch(aRows, FAM, 'userB');
+  ok('T1-1 端末Bで削除Xが復活しない', !S.events.some(e => e.id === 'X'));
+  ok('T1-2 端末BでYは残る', S.events.some(e => e.id === 'Y'));
+})();
+
+// ---- T2: 削除後に他端末が編集した場合は「編集」が勝って項目は残る ----
+(function () {
+  S = { _deletions: {} };
+  const FAM = 'FAMI-TEST';
+  // 端末A: 06-01 に X を削除
+  S.events = [{ id: 'X', title: '旧', updatedAt: '2026-06-01T09:00:00Z' }];
+  _recordDeletion('events', 'X'); // tombstone ~ now (> 06-01)
+  // 故意にトゥームストーン時刻を 06-01 に固定（Aが過去に削除）
+  S._deletions.events['X'] = '2026-06-01T10:00:00Z';
+  const aRows = rowsFromState('userA', FAM, { events: [], _deletions: S._deletions });
+  // 端末B: 06-02 に X を編集（削除より後）→ 残るべき
+  S = { _deletions: {}, events: [{ id: 'X', title: '新（編集後）', updatedAt: '2026-06-02T09:00:00Z' }] };
+  simulateFetch(aRows, FAM, 'userB');
+  ok('T2 削除後に編集された項目は残る（edit-after-delete）', S.events.some(e => e.id === 'X' && e.title === '新（編集後）'));
+})();
+
+// ---- T3: 別家族の完全分離（高橋家 vs 田中家） ----
+(function () {
+  const TAKA = 'FAMI-TAKA', TANA = 'FAMI-TANA';
+  // クラウドに両家族の行が混在
+  const cloud = [
+    { user_id: 'taka1', family_id: TAKA, data_key: 'events', payload: [{ id: 't1', title: '高橋家・保育園' }], updated_at: '2026-06-01T00:00:00Z' },
+    { user_id: 'taka2', family_id: TAKA, data_key: 'tasks', payload: [{ id: 't2', title: '高橋家・買い物' }], updated_at: '2026-06-01T00:00:00Z' },
+    { user_id: 'tana1', family_id: TANA, data_key: 'events', payload: [{ id: 'n1', title: '田中家・歯医者' }], updated_at: '2026-06-01T00:00:00Z' },
+    { user_id: 'tana2', family_id: TANA, data_key: 'tasks', payload: [{ id: 'n2', title: '田中家・掃除' }], updated_at: '2026-06-01T00:00:00Z' },
+  ];
+  // 高橋家メンバーが取得
+  S = { _deletions: {} };
+  simulateFetch(cloud, TAKA, 'taka1');
+  const takaEv = (S.events || []).map(e => e.id), takaTk = (S.tasks || []).map(t => t.id);
+  ok('T3-1 高橋家に田中家の予定が混ざらない', !takaEv.includes('n1'));
+  ok('T3-2 高橋家に田中家のタスクが混ざらない', !takaTk.includes('n2'));
+  ok('T3-3 高橋家は自家族の予定を取得できる', takaEv.includes('t1') && takaTk.includes('t2'));
+  // 田中家メンバーが取得
+  S = { _deletions: {} };
+  simulateFetch(cloud, TANA, 'tana1');
+  const tanaEv = (S.events || []).map(e => e.id), tanaTk = (S.tasks || []).map(t => t.id);
+  ok('T3-4 田中家に高橋家の予定が混ざらない', !tanaEv.includes('t1'));
+  ok('T3-5 田中家に高橋家のタスクが混ざらない', !tanaTk.includes('t2'));
+  ok('T3-6 田中家は自家族の予定を取得できる', tanaEv.includes('n1') && tanaTk.includes('n2'));
+})();
+
+// ---- T4: 個人固有キー（isPremiumUser）は他メンバーで上書きされない ----
+(function () {
+  const FAM = 'FAMI-TEST';
+  const cloud = [
+    { user_id: 'me', family_id: FAM, data_key: 'isPremiumUser', payload: false, updated_at: '2026-06-01T00:00:00Z' },
+    { user_id: 'other', family_id: FAM, data_key: 'isPremiumUser', payload: true, updated_at: '2026-06-02T00:00:00Z' },
+  ];
+  S = { _deletions: {}, isPremiumUser: false };
+  simulateFetch(cloud, FAM, 'me');
+  ok('T4 他メンバーのプレミアム状態が自分に混入しない', S.isPremiumUser === false);
+})();
+
+// ---- T5: 同日編集の LWW（ミリ秒ISOなら新しい編集が勝つ） ----
+(function () {
+  const a = [{ id: 'k', title: '朝の値', updatedAt: '2026-06-07T08:00:00.000Z' }];
+  const b = [{ id: 'k', title: '夜の値', updatedAt: '2026-06-07T20:00:00.000Z' }];
+  const merged = _mergeSyncArray(a, b);
+  ok('T5 同日でも新しい編集が採用される（ISO精度）', merged.find(x => x.id === 'k').title === '夜の値');
+})();
+
+console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');
+process.exit(fail ? 1 : 0);
