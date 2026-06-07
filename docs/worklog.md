@@ -19701,3 +19701,26 @@ OpenAIキーは従来どおりサーバSecretsのみ。
 
 ### コミット
 - メッセージ: diag(hoku): AI版が効かない原因を切り分ける #qa-debug 診断を追加 (v20260608a)
+
+---
+
+## 2026-06-08 10:05  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+#qa-debug テストパネルが下部ボタンを塞ぐ問題の改善（最小化＋閉じる強化）
+
+### 変更
+- テストパネルに「最小化(▁)」ボタン＋ qaDebugToggleMin() を追加。タップでヘッダだけに畳み、
+  オンボーディング等の下部CTAを塞がない。タイトル「テストパネル」タップでも開閉。
+- 閉じる(×)・最小化ボタンを30pxに拡大（押しやすく）。
+
+### テスト結果
+- node --check：SYNTAX OK／harness 47/47／#qa-debug 起動 JSエラー0・最小化ボタン存在を確認
+- app-source ⇄ docs 一致（v20260608b）
+
+### 補足（AI診断は継続中）
+- 診断スクショではログイン=はい（kenya…）。AI版有効化の残り条件は「プレミアム状態」。
+  パネルの「Hoku AI 診断」で allowed/active と実エラーを確認できる。
+
+### コミット
+- メッセージ: fix(qa-debug): パネルを最小化可能にして下部ボタンを塞がないように (v20260608b)
