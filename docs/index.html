@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260607k';
+  var V='v20260607l';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8182,16 +8182,37 @@ function _dedupStateById() {
    偶然の一致で実害が小さいキーのみ対象（買い物/家計/メモは正当な重複があり得るため除外）。
    各端末がマージ後に内容で畳むため、別idの重複が再流入しても自己回復する。 */
 function _dedupByContent() {
-  const sig = {
-    events:     e => 'ev|'+(e.title||'')+'|'+(e.date||'')+'|'+(e.time||'')+'|'+(e.member||e.memberId||''),
-    tasks:      t => 'tk|'+(t.title||t.text||'')+'|'+(t.dueDate||t.at||'')+'|'+(t.assignedTo||t.member||''),
-    announces:  a => 'an|'+(a.title||'')+'|'+(a.body||a.text||'')+'|'+(a.cat||''),
-    posts:      p => 'po|'+(p.title||'')+'|'+(p.body||p.text||''),
-    boardItems: b => 'bi|'+(b.boardId||'')+'|'+(b.text||b.title||'')+'|'+(b.sectionId||b.section||''),
-    prep:       p => 'pr|'+(p.text||'')+'|'+(p.date||'')+'|'+(p.member||p.memberId||''),
-    health:     h => 'he|'+(h.date||'')+'|'+(h.memberId||h.child||'')+'|'+(h.temp||'')+'|'+(h.symptom||h.cond||'')
-  };
   let changed = false;
+  // (1) カスタムボード：intent/名前で重複を1つに集約し、配下の項目/セクションの boardId を
+  //     生き残った正規ボードへ付け替える（孤立防止）。ホームに「買い物メモ」等が増殖するのを解消。
+  if(Array.isArray(S.customBoards)) {
+    const canon = {}, idMap = {}, kept = [];
+    S.customBoards.forEach(function(b){
+      if(!b) return;
+      const k = 'cb|' + ((b.intent || b.name) || b.id);
+      if(canon[k] == null) { canon[k] = b.id; kept.push(b); }
+      else { if(b.id !== canon[k]) idMap[b.id] = canon[k]; changed = true; }  // 重複ボード→正規へ
+    });
+    if(kept.length !== S.customBoards.length) S.customBoards = kept;
+    if(Object.keys(idMap).length) {
+      ['boardItems','boardSections'].forEach(function(k){
+        if(Array.isArray(S[k])) S[k].forEach(function(it){ if(it && idMap[it.boardId]) it.boardId = idMap[it.boardId]; });
+      });
+    }
+  }
+  // (2) 内容ベースの重複除去（boardId 付け替え後に実行するので項目も正しく畳まれる）
+  const sig = {
+    events:        e => 'ev|'+(e.title||'')+'|'+(e.date||'')+'|'+(e.time||'')+'|'+(e.member||e.memberId||''),
+    tasks:         t => 'tk|'+(t.title||t.text||'')+'|'+(t.dueDate||t.at||'')+'|'+(t.assignedTo||t.member||''),
+    announces:     a => 'an|'+(a.title||'')+'|'+(a.body||a.text||'')+'|'+(a.cat||''),
+    posts:         p => 'po|'+(p.title||'')+'|'+(p.body||p.text||''),
+    boardItems:    b => 'bi|'+(b.boardId||'')+'|'+(b.text||b.title||'')+'|'+(b.sectionId||b.section||''),
+    boardSections: s => 'bs|'+(s.boardId||'')+'|'+(s.title||''),
+    prep:          p => 'pr|'+(p.text||'')+'|'+(p.date||'')+'|'+(p.member||p.memberId||''),
+    health:        h => 'he|'+(h.date||'')+'|'+(h.memberId||h.child||'')+'|'+(h.temp||'')+'|'+(h.symptom||h.cond||''),
+    shoppingItems: s => 'sh|'+(s.name||s.title||'')+'|'+(s.qty||'')+'|'+(s.section||'')+'|'+(s.memo||''),
+    shoppingFrequent: s => 'sf|'+(s.name||'')+'|'+(s.category||'')
+  };
   Object.keys(sig).forEach(function(k){
     if(!Array.isArray(S[k])) return;
     const seen = {}, out = [];

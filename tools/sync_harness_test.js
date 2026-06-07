@@ -226,11 +226,40 @@ console.log('Familink sync harness');
   ok('T7-2 別内容イベントは残る', S.events.some(e=>e.title==='遠足') && S.events.some(e=>e.title==='運動会'));
   ok('T7-3 タスクの内容重複を1件に', S.tasks.length === 1);
   ok('T7-4 ボード項目の3重を1件に', S.boardItems.length === 1);
-  ok('T7-5 買い物は対象外で重複維持', S.shoppingItems.length === 2);
+  ok('T7-5 買い物の同内容重複も除去（名前+数量+区分が同一）', S.shoppingItems.length === 1);
   ok('T7-6 変更ありを返す', changed === true);
   // 重複が無いときは何も変えない（冪等）
   const again = _dedupByContent();
   ok('T7-7 冪等：2回目は変更なし', again === false);
+})();
+
+// ---- T8: カスタムボード重複の集約＋boardId付け替え＋買い物 ----
+(function () {
+  S = { _deletions: {} };
+  S.customBoards = [
+    { id:'b1', intent:'shopping', name:'買い物メモ' },
+    { id:'b2', intent:'shopping', name:'買い物メモ' },   // 重複ボード（別id）
+    { id:'b3', intent:'shopping', name:'買い物メモ' }    // 3つ目
+  ];
+  S.boardItems = [
+    { id:'i1', boardId:'b1', text:'牛乳', section:'今すぐ' },
+    { id:'i2', boardId:'b2', text:'牛乳', section:'今すぐ' },   // 重複ボード配下の同内容
+    { id:'i3', boardId:'b3', text:'牛乳', section:'今すぐ' },
+    { id:'i4', boardId:'b1', text:'食パン', section:'今すぐ' }
+  ];
+  S.boardSections = [
+    { id:'s1', boardId:'b1', title:'今すぐ' },
+    { id:'s2', boardId:'b2', title:'今すぐ' }
+  ];
+  S.shoppingItems = [
+    { id:'sh1', name:'牛乳', qty:'2本', section:'今すぐ' },
+    { id:'sh2', name:'牛乳', qty:'2本', section:'今すぐ' }   // 同内容＝重複
+  ];
+  _dedupByContent();
+  ok('T8-1 重複ボードを1つに集約', S.customBoards.length === 1 && S.customBoards[0].id === 'b1');
+  ok('T8-2 配下項目が正規boardへ付け替わり重複除去（牛乳1+食パン1）', S.boardItems.length === 2 && S.boardItems.every(i=>i.boardId==='b1'));
+  ok('T8-3 セクション重複も集約', S.boardSections.length === 1 && S.boardSections[0].boardId === 'b1');
+  ok('T8-4 買い物の同内容重複を除去', S.shoppingItems.length === 1);
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');

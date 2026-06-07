@@ -19444,3 +19444,37 @@ seedDemo がデモ初期データを `id:uid()`（毎回ランダム）で生成
 
 ### コミット
 - メッセージ: fix(dup): ログイン時の予定/タスク/ボード重複を内容ベース重複除去で解消 (v20260607k)
+
+---
+
+## 2026-06-07 20:10  env: PC (Remote Control / 重複バグ修正2)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+重複の根治：カスタムボード（買い物メモ等）の増殖＋買い物項目の重複を解消
+
+### 追加で判明した原因
+前回の内容ベース重複除去は events/tasks/announces/boardItems/prep/health のみ対象で、
+**customBoards（カスタムボード本体）と shoppingItems を含めていなかった**。
+ホームに「買い物メモ」ボードが2〜3枚…と増えていたのは customBoards の重複（別id・同intent/名）で、
+同期のたびに畳まれず累積（増殖）していた。配下の boardItems も別ボードid配下のため畳めていなかった。
+
+### 修正（_dedupByContent 強化）
+- customBoards を intent/名前で集約し、消した重複ボード配下の boardItems / boardSections の
+  boardId を生き残った正規ボードへ**付け替え**（孤立防止）→ その後 boardItems/boardSections を内容で畳む。
+- 対象キーに boardSections / shoppingItems / shoppingFrequent を追加。
+  shoppingItems は「名前+数量+区分+メモ」が完全一致のものだけ畳む（正当な別品は残る）。
+- init とマージ後に実行＝既存重複を自動クリーン＋再流入しても自己回復し push でクラウド収束。
+
+### テスト結果
+- tools/sync_harness_test.js：**34/34 PASS**（重複除去/ボード集約/付け替え/買い物 を新規検証 T7・T8）
+- node --check：SYNTAX OK
+- Chrome ヘッドレス（demo）：s-home/s-board/s-shopping JSエラー0
+- app-source ⇄ docs 完全一致（v20260607l）
+
+### iPhone確認ポイント（重要）
+- 「キャッシュを消去して再読み込み」後、ホームの「買い物メモ」ボードが1枚になり、予定/タスク/ボード/買い物の重複が消えること。
+- 以後ログイン/同期しても増殖しないこと。
+- もしクラウド側に大量の重複が残っている場合、ログインして30秒ほど待つ（push収束）と他端末でも解消。
+
+### コミット
+- メッセージ: fix(dup): カスタムボード増殖＋買い物重複を集約（boardId付け替え）(v20260607l)
