@@ -19183,3 +19183,55 @@ Agent Team（5専門サブエージェント）並列レビュー → 検出S/A�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: 再総点検 — migrate破棄/トゥームストーン順/未カバー削除/Hoku時刻・メンバー/members LWW/タップ領域・a11y (v20260607e)
+
+---
+
+## 2026-06-07 11:00  env: PC (Remote Control / Hoku AI強化)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+Hoku を文脈つき会話AIへ強化（OpenAI連携の実装・鍵はサーバ側）＋専門レビュー反映
+
+### 方針
+既存の会話スタイル（あたたかく短い・確認フロー・吹き出しUI・クイックチップ）を崩さず精度と文脈会話力を最大化。OpenAI鍵は絶対にクライアント/Gitに置かず Supabase Edge Function（環境変数）に隠す。
+
+### クライアント実装（app-source/familink.html）
+- 会話履歴を 6→**12ターン**に拡張、ACTION_BUTTONS マーカーを履歴から除去、1メッセージ 500→800字。
+- `_hokuChatContext` を強化：membersDetail（役割つき）/ familyName / 明日までの準備 / 直近メモ / 直近掲示 を追加（家計金額は引き続き非送信＝プライバシー）。
+- URL設定時は**会話モード既定ON**（初回はURLを貼るだけで文脈会話が有効）。
+- 見る系(_view)はAIの自然文に加えローカルと同じクイック操作チップを添えて操作感を統一。
+- 設定モーダルのプライバシー注記を実態に更新／共有シークレットは必須である旨を明記。
+
+### サーバ実装（新規 supabase/functions/hoku/index.ts ＋ README）
+- Deno/Edge Function。`{text, context, history}`→OpenAI（既定 gpt-4o-mini）→`{reply,intent,entities}`。
+- Hokuの人格・話し方をシステムプロンプトに固定（短い・やさしい・日本語・医療/金銭は助言しない）。
+- パスで chat/intent を判定。CORS対応。**フェイルクローズ**：HOKU_SHARED_KEY 未設定/不一致は拒否（無認証OpenAI課金プロキシ化を防止）。鍵は env（OPENAI_API_KEY）。リポジトリに sk- は一切なし。
+- weekday(0-6) をentitiesスキーマに追加（毎週○曜の繰り返し対応）。/intent ルート判定を厳密化。context上限6000字。
+
+### 専門レビュー（サブエージェント）反映
+- [A] 無認証オープンプロキシ риск → 共有キー必須化（fail-closed）。
+- [A] weekday 欠落 → スキーマ追加。
+- [A] _view が会話モードで操作チップ消失 → クイックチップ付与で parity 回復。
+- privacy注記・/intent判定厳密化・context上限調整。
+
+### テスト結果
+- HTML node --check：SYNTAX OK
+- Edge Function：波括弧balanced / Deno.serve・env利用・**sk-リテラル無し**を確認
+- tools/sync_harness_test.js：11/11 PASS
+- Chrome ヘッドレス：DOM 2.6MB・[Supabase] connected・**JSエラー0**
+- app-source ⇄ docs：完全一致（v20260607f）
+
+### 未確認事項 / オーナー操作（有効化）
+1. `supabase secrets set OPENAI_API_KEY=sk-...` と `HOKU_SHARED_KEY=合言葉` を設定
+2. `supabase functions deploy hoku --no-verify-jwt`
+3. アプリ 設定→Hoku で URL に `https://jrmzzizjlkrogrbtzyuz.supabase.co/functions/v1/hoku`、共有シークレットに同じ合言葉を入力して保存
+   → 会話モード既定ONで、前の会話の文脈をふまえた自然会話＋登録の手伝いが有効
+- 実機で会話精度・文脈継続・登録確認フローを確認。
+
+### iPhone確認ポイント
+- 設定→Hoku でURL＋合言葉を保存後、「明日の予定は？」→文脈つきで自然に返答するか。
+- 「来週月曜にスイミング追加して」→確認モーダルが出て正しく登録されるか。
+- 未設定時は従来どおりローカルで動く（落ちない）か。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: feat(hoku): 文脈つき会話AI化＋OpenAI Edge Function（鍵サーバ側/fail-closed）(v20260607f)

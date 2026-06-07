@@ -1,0 +1,146 @@
+// ============================================================
+// Familink Hoku — OpenAI バックエンド（Supabase Edge Function / Deno）
+//
+// 役割：アプリ(HTML)から来る {text, context, history} を OpenAI に渡し、
+//       Hoku の人格で「短い自然文の返答」＋（登録系なら）構造化 intent/entities を返す。
+//   - 鍵は必ずサーバ側（環境変数 OPENAI_API_KEY）。アプリ／Gitには出さない。
+//   - エンドポイント（アプリの呼び出し規約に合わせる）:
+//       POST .../hoku/api/hoku/chat    → { reply, intent, entities }
+//       POST .../hoku/api/hoku/intent  → { intent, confidence }
+//     （Supabase は /functions/v1/hoku 配下の全パスをこの関数に渡すため req.url で判定）
+//
+// デプロイ:
+//   supabase secrets set OPENAI_API_KEY=sk-...        # 鍵をサーバ秘密に
+//   supabase secrets set HOKU_SHARED_KEY=任意の文字列  # 任意：簡易保護（アプリのx-hoku-keyと一致）
+//   supabase functions deploy hoku --no-verify-jwt
+//   → アプリの 設定→Hoku で URL に https://<ref>.supabase.co/functions/v1/hoku を貼る
+// ============================================================
+
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const HOKU_SHARED_KEY = Deno.env.get("HOKU_SHARED_KEY") || "";
+const MODEL = Deno.env.get("HOKU_MODEL") || "gpt-4o-mini"; // 安価＆十分賢い既定
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "content-type, x-hoku-key, authorization, apikey",
+};
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS },
+  });
+}
+
+// Hoku の人格・話し方（既存アプリのトーンを崩さない：あたたかく短い・日本語・家族の秘書役）
+const SYSTEM_PROMPT = `あなたは家族向けアプリ「Familink」のアシスタント「Hoku」です。
+3児パパ・ママ・祖父母など家族みんなの段取りをそっと支える、やさしく頼れる秘書役。
+
+話し方（厳守・既存のトーンを崩さない）:
+- 日本語。あたたかく、親しみやすい、少しだけくだけた丁寧さ（例:「OK、入れておくね」「明日は〇〇があるよ」）。
+- 必ず短く。1〜3文。絵文字は基本使わない（使っても1つまで）。
+- 家族の味方。急かさない・否定しない・安心感。
+- 医療/お金/育児は「記録と整理の手伝い」。診断・断定・専門助言はしない。心配な体調は受診や#7119をやさしく促す。
+
+文脈の使い方:
+- context（today, members, 予定/タスク/買い物/準備/体調/メモ など）と history（直前までの会話）を必ず踏まえて、前の話の続きとして自然に答える。
+- 相対日付（明日/来週/金曜 など）は context.today を基準に YYYY-MM-DD へ解決する。
+- メンバー名は context.members / membersDetail の表記に合わせる。
+
+登録の手伝い（重要）:
+- ユーザーが「予定/タスク/買い物/準備/体調/家計/お知らせ などを追加・登録したい」場合は、reply に短い確認のひと言を入れつつ、intent と entities を返す。
+- 追加ではなく質問・相談・雑談なら intent は "unknown" にして reply だけ返す。
+
+返答は必ず次のJSONのみ:
+{
+  "reply": "ユーザーへの短い自然文（必須）",
+  "intent": "下記のどれか",
+  "confidence": 0.0〜1.0,
+  "entities": { "title": "", "date": "YYYY-MM-DD", "time": "HH:MM", "member": "名前", "amount": 0, "txType": "income|expense", "category": "", "temperature": "", "subject": "", "medicine": "", "symptoms": [], "weekday": 0 }
+}
+weekday は「毎週○曜」のような繰り返し（prep_routine_add / recurring_budget_add）のときだけ 0=日,1=月,2=火,3=水,4=木,5=金,6=土 の数値で入れる。
+intent候補: calendar_add, task_add, budget_add, recurring_budget_add, prep_add, prep_routine_add, health_add, board_post_add, notification_add, shopping_add, shopping_frequent_add, shopping_purchased, calendar_view, task_view, budget_view, health_view, prep_view, shopping_view, unknown
+entities は該当する項目だけ入れればよい（無い項目は省略可）。`;
+
+async function callOpenAI(messages: unknown[]): Promise<Record<string, unknown> | null> {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.4,
+      max_tokens: 500,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!res.ok) {
+    console.error("OpenAI error", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) return null;
+  try {
+    return JSON.parse(content);
+  } catch (_) {
+    // JSON でなければ素のテキストを reply として扱う
+    return { reply: String(content).slice(0, 600), intent: "unknown", confidence: 0.3 };
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  // フェイルクローズ：共有キー必須。未設定だと誰でも叩けるOpenAI課金プロキシになるため、
+  // HOKU_SHARED_KEY を必ず設定し、アプリの x-hoku-key と一致する場合のみ通す。
+  if (!HOKU_SHARED_KEY) {
+    return json({ error: "server_misconfigured: HOKU_SHARED_KEY 未設定（不正利用防止のため必須）" }, 500);
+  }
+  if ((req.headers.get("x-hoku-key") || "") !== HOKU_SHARED_KEY) {
+    return json({ error: "unauthorized" }, 401);
+  }
+  if (!OPENAI_API_KEY) return json({ error: "server_misconfigured: OPENAI_API_KEY 未設定" }, 500);
+
+  let body: Record<string, unknown> = {};
+  try { body = await req.json(); } catch (_) { return json({ error: "bad_json" }, 400); }
+
+  const text = String((body.text ?? "")).trim();
+  if (!text) return json({ error: "empty_text" }, 400);
+
+  const wantIntentOnly = new URL(req.url).pathname.endsWith("/api/hoku/intent");
+  const context = body.context ?? {};
+  const history = Array.isArray(body.history) ? body.history : [];
+
+  const messages: unknown[] = [
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: "現在の家族の文脈(JSON):\n" + JSON.stringify(context).slice(0, 6000) },
+  ];
+  for (const h of history.slice(-12)) {
+    const role = (h as any)?.role === "assistant" ? "assistant" : "user";
+    const content = String((h as any)?.content ?? "").slice(0, 800);
+    if (content) messages.push({ role, content });
+  }
+  messages.push({ role: "user", content: text });
+
+  const out = await callOpenAI(messages);
+  if (!out) return json({ error: "ai_failed" }, 502);
+
+  if (wantIntentOnly) {
+    return json({
+      intent: typeof out.intent === "string" ? out.intent : "unknown",
+      confidence: typeof out.confidence === "number" ? out.confidence : 0.5,
+    });
+  }
+  return json({
+    reply: typeof out.reply === "string" && out.reply.trim() ? out.reply.trim() : "うん、聞いてるよ。",
+    intent: typeof out.intent === "string" ? out.intent : "unknown",
+    confidence: typeof out.confidence === "number" ? out.confidence : 0.5,
+    entities: (out.entities && typeof out.entities === "object") ? out.entities : {},
+  });
+});

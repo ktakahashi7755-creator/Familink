@@ -20432,15 +20432,28 @@ function _hokuChatContext() {
     const health = (S.health||[]).filter(h=>h && h.date>=td)
       .map(h=>`${nm(h.memberId||h.child)} ${h.temp?h.temp+'℃':''}${h.symptom?(' '+h.symptom):''}`.trim()).filter(Boolean);
     const mem = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&m.name).filter(Boolean);
+    // メンバーは役割つきで渡す（誰が子どもか分かると案内精度が上がる）
+    const memDetail = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&{ name:m.name, role:(m.role==='parent'?'親':'子') }).filter(Boolean);
+    // 明日までの準備リスト（持ち物・忘れ物サポート用）
+    const tmr = (typeof addDays==='function') ? addDays(td,1) : td;
+    const prep = (S.prep||[]).filter(p=>p && !p.done && (p.date===td || p.date===tmr))
+      .slice(0,10).map(p=>`${p.date===td?'今日':'明日'} ${p.text||''}${p.member?('（'+nm(p.member)+'）'):''}`.trim());
+    const memos = (S.memos||[]).slice().sort((a,b)=>((b.updatedAt||b.createdAt||'')+'').localeCompare((a.updatedAt||a.createdAt||'')+''))
+      .slice(0,5).map(m=>m && (m.title||(m.body||'').slice(0,20))).filter(Boolean);
+    const board = (S.announces||[]).slice().sort((a,b)=>((b.createdAt||'')+'').localeCompare((a.createdAt||'')+''))
+      .slice(0,5).map(a=>a && (a.title||a.text||'').slice(0,30)).filter(Boolean);
     const now = new Date();
     const dow = ['日','月','火','水','木','金','土'][now.getDay()];
     return {
       today: td,
       weekday: dow,                                   // 「今週末」「月曜」等の解決用
       now: String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
+      familyName: (S.userProfile && S.userProfile.familyName) || '',
       members: mem,
+      membersDetail: memDetail,
       budgetCategories: ['食費','日用品','医療費','教育費','交通費','娯楽費','衣類','住居費','水道光熱費','通信費','保険','その他'],
-      upcomingEvents: ev, pendingTasks: tk, shoppingList: shop, todayHealth: health
+      upcomingEvents: ev, pendingTasks: tk, shoppingList: shop, todayHealth: health,
+      prepItems: prep, recentMemos: memos, recentBoardPosts: board
     };
   } catch(_) { return {}; }
 }
@@ -20456,8 +20469,10 @@ async function callHokuChat(text) {
     const headers = { 'Content-Type':'application/json' };
     const secret = (typeof S!=='undefined' && S.hokuApiKey || '').trim();
     if(secret) headers['x-hoku-key'] = secret;
-    const recent = (_hokuMsgs||[]).filter(m=>m.role==='user'||m.role==='assistant').slice(-6)
-      .map(m=>({ role: m.role==='assistant'?'assistant':'user', content: String(m.content||'').slice(0,500) }));
+    // 直近12ターンを履歴として送る（前の会話の文脈をふまえた連続会話のため）。
+    // ACTION_BUTTONS マーカーは履歴では不要なので除去して渡す。
+    const recent = (_hokuMsgs||[]).filter(m=>m.role==='user'||m.role==='assistant').slice(-12)
+      .map(m=>({ role: m.role==='assistant'?'assistant':'user', content: String(m.content||'').replace(/\[\[ACTION_BUTTONS:[^\]]*\]\]/g,'').trim().slice(0,800) }));
     const res = await fetch(base.replace(/\/+$/,'') + '/api/hoku/chat', {
       method: 'POST', headers: headers,
       body: JSON.stringify({ text: text, context: _hokuChatContext(), history: recent }),
@@ -20540,6 +20555,11 @@ async function _hokuTryChat(text) {
   const chat = await callHokuChat(text);
   if(!chat || typeof chat.reply !== 'string' || !chat.reply.trim()) return undefined;
   let reply = chat.reply.trim();
+  // 見る系（_view）はAIが自然文で答えるが、ローカルと同じクイック操作チップも添える（操作感を統一）
+  const _viewCat = { calendar_view:'calendar', task_view:'task', budget_view:'budget', health_view:'health', prep_view:'prep', shopping_view:'shopping' };
+  if(chat.intent && _viewCat[chat.intent] && !/\[\[ACTION_BUTTONS:/.test(reply)) {
+    reply += '\n\n[[ACTION_BUTTONS:' + _viewCat[chat.intent] + ']]';
+  }
   if(chat.intent && chat.intent !== 'unknown' &&
      typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
      /_add$/.test(chat.intent)) {
@@ -20564,7 +20584,8 @@ function openHokuApiModal() {
   const keyInp = document.getElementById('hoku-api-key-input');
   if(keyInp) keyInp.value = (S.hokuApiKey || '');
   const chatInp = document.getElementById('hoku-chat-mode-input');
-  if(chatInp) chatInp.checked = !!S.hokuChatMode;
+  // 初回設定（URL未設定）では会話モードを既定ON＝URLを貼るだけで文脈会話が有効になる
+  if(chatInp) chatInp.checked = S.hokuApiUrl ? !!S.hokuChatMode : true;
   const res = document.getElementById('hoku-api-test-result');
   if(res) res.textContent = '';
   openModal('m-hoku-api');
@@ -25696,7 +25717,7 @@ async function _oauthSignIn(provider) {
       <input type="text" class="input" id="hoku-api-key-input"
         placeholder="サーバ側と同じ合言葉（x-hoku-key）" autocomplete="off" style="font-size:13px;">
       <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
-        ※ これは OpenAI のAPIキーではありません。設定すると x-hoku-key ヘッダで送信します。
+        ※ これは OpenAI のAPIキーではありません。同梱の Edge Function では<b>不正利用防止のため必須</b>です（サーバの HOKU_SHARED_KEY と同じ合言葉を入力）。x-hoku-key ヘッダで送信します。
       </div>
     </div>
     <label style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;background:var(--bg-muted);border-radius:10px;margin:4px 0 12px;cursor:pointer;">
@@ -25704,7 +25725,7 @@ async function _oauthSignIn(provider) {
       <span style="font-size:13px;color:var(--text);line-height:1.6;">
         <b>会話モード</b>（AI が家族の予定・タスク等の文脈を見て自然に返答）
         <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:3px;">
-          ※ ON にすると、あなたの<b>予定・タスク・買い物・今日の体調メモの概要</b>が AI（サーバ経由）に送信されます。<b>家計の金額は送信しません</b>。データ登録は必ず確認画面を挟みます。
+          ※ ON にすると、あなたの<b>予定・タスク・買い物・準備・体調・メモ/掲示の概要</b>が AI（サーバ経由）に送信されます。<b>家計の金額は送信しません</b>。データ登録は必ず確認画面を挟みます。
         </span>
       </span>
     </label>
