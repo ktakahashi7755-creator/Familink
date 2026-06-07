@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <!-- セキュリティメタ：リファラ漏洩防止 + CSP（XSS耐性／外部送信制限／フレーミング禁止）
      Wave 202: script-src に cdn.jsdelivr.net、connect-src に Supabase API/Realtime を追加 -->
@@ -58,7 +58,7 @@
   /* ── Text (iOS Labels) ── */
   --text:       #1C1C1E;
   --text-sub:   #3C3C43;
-  --text-muted: rgba(60,60,67,0.62);
+  --text-muted: rgba(60,60,67,0.72);
   /* ── Borders (iOS Separators) ── */
   --border:       rgba(60,60,67,0.18);
   --border-light: rgba(60,60,67,0.10);
@@ -3452,6 +3452,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .prm-compare-row { transition: background .15s ease; }
 .prm-compare-row:active { background: var(--primary-light) !important; }
 
+/* ── Wave 253: タップ領域 44px 化（::before オーバーレイで見た目は変えずヒット領域だけ拡大）＋ a11y ── */
+.shop-chk, .shop-iconbtn, .prep-chk, .hoku-usage-upgrade { position: relative; }
+.shop-chk::before, .prep-chk::before {
+  content:""; position:absolute; top:50%; left:50%; width:44px; height:44px; transform:translate(-50%,-50%);
+}
+.shop-iconbtn::before {  /* 1行に3個並ぶため重なりを抑えて 38px */
+  content:""; position:absolute; top:50%; left:50%; width:38px; height:38px; transform:translate(-50%,-50%);
+}
+.bdetail-comment .cmt-del, .av2-cmt-del { position: relative; }
+.bdetail-comment .cmt-del::before, .av2-cmt-del::before {
+  content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:44px;
+}
+.hoku-usage-upgrade::before {
+  content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:44px; min-width:44px;
+}
+.hoku-reset-btn, .prm-link, .ob2-footer-link { min-height:44px; display:inline-flex; align-items:center; }
+.ob2-link-guest { min-height:44px; display:flex; align-items:center; justify-content:center; }
+[role="button"]:focus-visible, .prep-chk:focus-visible { outline:2.5px solid var(--primary); outline-offset:2px; }
+@media (max-width:375px){ .home-mode-btn{ max-width:84px; } }
+
 </style>
 </head>
 <body>
@@ -5930,6 +5950,10 @@ async function supaSignOut() {
    ============================================================ */
 
 const SYNC_KEYS = [
+  // _deletions を先頭に置く：push は20件バッチで、後半バッチが失敗すると
+  // 「配列は削除済みで commit／トゥームストーンは未送信」となり削除が伝播せず復活する。
+  // 先頭に置けば配列キーと同じ最初のバッチに必ず含まれ、削除の耐久性を担保できる。
+  '_deletions',
   'events','tasks','txs','health','posts','announces',
   'prep','prepRoutines','folders','docs','albumPhotos',
   'shoppingItems','shoppingFrequent','members',
@@ -5938,7 +5962,7 @@ const SYNC_KEYS = [
   'notifs','tabConfig','widgetItems','homeOrder',
   'userPhotos','userAvatars','userAvatarType',
   'userProfile','isPremiumUser','onboardCompleted','hokuContext',
-  'cashflowSettings','demoProfiles','familyId','_deletions'
+  'cashflowSettings','demoProfiles','familyId'
 ];
 
 /* 家族で共有するキー（家族参加中は全メンバー分をマージ）。
@@ -7477,8 +7501,15 @@ function applyMembersFromS() {
   }
 }
 function persistMembersToS() {
+  // 既存メンバーの updatedAt を温存し、内容が変わったものだけ時刻を更新する。
+  // これにより家族間マージ（_mergeSyncArray）が LWW で機能し、改名が他端末に正しく反映される。
+  const prev = {}; (S.members||[]).forEach(function(m){ if(m && m.id) prev[m.id] = m; });
+  const nowIso = new Date().toISOString();
   S.members = MEMBERS.map(function(m){
-    return { id:m.id, name:m.name, role:m.role, av:m.av, grad:m.grad };
+    const p = prev[m.id];
+    const changed = !p || p.name!==m.name || p.role!==m.role || p.av!==m.av || p.grad!==m.grad;
+    return { id:m.id, name:m.name, role:m.role, av:m.av, grad:m.grad,
+             updatedAt: (changed || !p.updatedAt) ? nowIso : p.updatedAt };
   });
 }
 
@@ -9031,11 +9062,13 @@ function deleteWorkspace(wsId) {
     '「' + ws.name + '」を削除しますか？\nこのスペースのデータはすべて削除されます。',
     '削除する',
     function() {
+      _recordDeletion('workspaces', wsId);
       S.workspaces = S.workspaces.filter(function(w) { return w.id !== wsId; });
       if (S.currentWorkspaceId === wsId) S.currentWorkspaceId = 'ws_shared';
-      // スペースのデータも削除
+      // スペースのデータも削除（各項目もトゥームストーン記録し、端末間で復活しないように）
       ['events','tasks','txs','health','prep','memos','shoppingItems'].forEach(function(key) {
         if (Array.isArray(S[key])) {
+          S[key].forEach(function(item) { if((item.workspaceId || 'ws_shared') === wsId) _recordDeletion(key, item.id); });
           S[key] = S[key].filter(function(item) { return (item.workspaceId || 'ws_shared') !== wsId; });
         }
       });
@@ -12143,16 +12176,23 @@ function isThisWeek(due){
 
 function migrateTaskData() {
   if(!S.tasks){S.tasks=[];return;}
-  S.tasks=S.tasks.map((t,i)=>({
-    id:t.id||uid(), title:t.title||t.text||'',
-    memo:t.memo||'', assignedTo:t.assignedTo||t.member||'',
-    dueDate:t.dueDate||t.due||'',
-    status:t.done?'done':(t.status||'todo'),
-    priority:t.priority||'none', category:t.category||t.cat||'',
-    order:t.order!==undefined?t.order:i,
-    completedAt:t.completedAt||(t.done?t.at:''),
-    createdAt:t.createdAt||t.at||todayStr(), updatedAt:t.updatedAt||todayStr(),
-  }));
+  // 既存オブジェクトに上書きマージ（repeat/repeatInterval/repeatUnit/workspaceId/photo 等の
+  // 新規フィールドを毎回の起動で消さないこと）。updatedAt は既存値を温存（同期の競合解決で
+  // 「今日」に書き換えると他端末の新しい編集を誤って上書きしてしまうため）。
+  S.tasks=S.tasks.map((t,i)=>{
+    const b = (t && typeof t === 'object') ? t : {};
+    return Object.assign({}, b, {
+      id:b.id||uid(), title:b.title||b.text||'',
+      memo:b.memo||'', assignedTo:b.assignedTo||b.member||'',
+      dueDate:b.dueDate||b.due||'',
+      status:b.done?'done':(b.status||'todo'),
+      priority:b.priority||'none', category:b.category||b.cat||'',
+      order:b.order!==undefined?b.order:i,
+      completedAt:b.completedAt||(b.done?b.at:''),
+      createdAt:b.createdAt||b.at||todayStr(),
+      updatedAt:b.updatedAt||b.createdAt||b.at||todayStr()
+    });
+  });
 }
 
 function openTkMemberManager() {
@@ -13113,6 +13153,7 @@ function updateRecurringTx(id, patch) {
 }
 function deleteRecurringTx(id) {
   _ensureRecurring();
+  _recordDeletion('recurringTxs', id);
   S.recurringTxs = S.recurringTxs.filter(function(x){ return x.id !== id; });
   saveS();
 }
@@ -15285,6 +15326,7 @@ function _memoFolderOptsDelete() {
     const parent = f.parentId || '';
     S.memos.forEach(function(m){ if((m.folderId||'') === id) m.folderId = parent; });
     S.memoFolders.forEach(function(x){ if((x.parentId||'') === id) x.parentId = parent; });
+    _recordDeletion('memoFolders', id);
     S.memoFolders = S.memoFolders.filter(function(x){ return x.id !== id; });
     saveS();
     renderMemo();
@@ -16480,6 +16522,7 @@ function deleteFolder(kind, id) {
   showConfirm('フォルダを削除', 'フォルダ「' + f.name + '」を削除しますか？中のアイテムは「未分類」に移動します。', '削除する', () => {
     const items = (kind === 'album') ? (S.albumPhotos || []) : (S.docs || []);
     items.forEach(it => { if(it.folderId === id) it.folderId = ''; });
+    if(kind !== 'album') _recordDeletion('folders', id);  // 書類フォルダ(folders)は家族共有キー。albumFoldersは非同期
     const i = arr.indexOf(f);
     if(i >= 0) arr.splice(i, 1);
     _setCurFolder(kind, '');
@@ -17162,7 +17205,7 @@ function renderPrep() {
       return `<div class="prep-section">
         <div class="prep-sec-title">${H(cat)}</div>
         ${catItems.map(p=>`<div class="prep-item ${p.done?'done':''}">
-          <div class="prep-chk ${p.done?'done':''}" onclick="togglePrep('${H(p.id)}')">${p.done?ICON('check',13):''}</div>
+          <div class="prep-chk ${p.done?'done':''}" role="button" tabindex="0" aria-label="${p.done?'未完了に戻す':'完了にする'}" onclick="togglePrep('${H(p.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePrep('${H(p.id)}');}">${p.done?ICON('check',13):''}</div>
           <div style="flex:1">
             <div class="prep-txt ${p.done?'done':''}">${H(p.text)}${p.memberId?`<span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-weight:600;">${H(memberNameById(p.memberId))}</span>`:''}${p.source==='routine'?`<span style="font-size:11px;color:#6366F1;background:#EEF2FF;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:700;">ルーティン</span>`:''}</div>
             ${p.date?`<div class="prep-date">${H(jpDate(p.date))}</div>`:''}
@@ -17459,6 +17502,7 @@ function updatePrepRoutine(id, patch) {
 }
 function deletePrepRoutine(id) {
   _ensurePrepRoutines();
+  _recordDeletion('prepRoutines', id);
   S.prepRoutines = S.prepRoutines.filter(x => x.id !== id);
   saveS();
 }
@@ -18620,14 +18664,23 @@ function renderHokuShop() { try { renderShop(); } catch(_){} }
 
 /* 今日の Hoku 利用上限（基本5 + 当日購入ボーナス） */
 function _hokuDailyLimit() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();  // JST 基準（利用枠表示と統一。UTCだと深夜帯にズレる）
   const du = S.hokuDailyUsage;
   const bonus = (du && du.date === today && typeof du.bonus === 'number' && du.bonus > 0) ? du.bonus : 0;
   return 5 + bonus; // 基本5 + 当日購入ボーナス（負値は無視し、最低でも5を保証）
 }
+/* Hoku 保存時にメンバー未指定だった場合の保険。kenya/seito の決め打ちは
+   カスタム家族では存在せず「？」の迷子アバターになるため、必ず実在メンバーへ解決する。 */
+function _hokuFallbackMember() {
+  try {
+    const uid = (S.user && S.user.id) || (S.userProfile && S.userProfile.memberId);
+    if(uid && MEMBERS.some(m => m && m.id === uid)) return uid;
+    return (MEMBERS[0] && MEMBERS[0].id) || '';
+  } catch(_) { return ''; }
+}
 /* 今日の Hoku 利用枠を増やす（ショップ購入で使用）。bonus は 0〜9999 にクランプ */
 function addHokuUses(n) {
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayStr();  // JST 基準で統一
   if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) S.hokuDailyUsage = { date: today, count: 0, bonus: 0 };
   if(typeof S.hokuDailyUsage.bonus !== 'number') S.hokuDailyUsage.bonus = 0;
   const add = Math.max(0, parseInt(n,10) || 0); // 加算のみ・負値や不正値は0扱い
@@ -21392,7 +21445,7 @@ function renderHoku() {
   var bar = document.getElementById('hoku-usage-bar');
   if(bar) {
     if(!S.isPremiumUser) {
-      var today = new Date().toISOString().slice(0,10);
+      var today = todayStr();  // JST 基準で統一
       var du = S.hokuDailyUsage;
       var used = (du && du.date===today) ? du.count : 0;
       var _lim = _hokuDailyLimit();
@@ -21510,9 +21563,9 @@ function hokuSend() {
   if(!text) return;
   // Hoku 1日5回制限（無料ユーザーのみ）
   if(!S.isPremiumUser) {
-    const today = new Date().toISOString().slice(0,10);
+    const today = todayStr();  // JST 基準で統一（深夜帯のカウントずれ防止）
     if(!S.hokuDailyUsage || S.hokuDailyUsage.date !== today) {
-      S.hokuDailyUsage = { date: today, count: 0 };
+      S.hokuDailyUsage = { date: today, count: 0, bonus: 0 };
     }
     if(S.hokuDailyUsage.count >= _hokuDailyLimit()) {
       showConfirm(
@@ -22878,15 +22931,15 @@ function _hokuExecuteView(intent) {
   function inPeriod(dateStr) {
     if(!dateStr) return false;
     if(e.date === 'today')      return dateStr === today;
-    if(e.date === 'tomorrow')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return dateStr === t.toISOString().slice(0,10); }
-    if(e.date === 'dayafter')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+2);return dateStr === t.toISOString().slice(0,10); }
-    if(e.date === 'thisweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()); const end=new Date(start); end.setDate(start.getDate()+6); const ds=start.toISOString().slice(0,10), de=end.toISOString().slice(0,10); return dateStr>=ds && dateStr<=de; }
-    if(e.date === 'nextweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()+7); const end=new Date(start); end.setDate(start.getDate()+6); const ds=start.toISOString().slice(0,10), de=end.toISOString().slice(0,10); return dateStr>=ds && dateStr<=de; }
+    if(e.date === 'tomorrow')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return dateStr === localDateStr(t); }
+    if(e.date === 'dayafter')   { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+2);return dateStr === localDateStr(t); }
+    if(e.date === 'thisweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()); const end=new Date(start); end.setDate(start.getDate()+6); const ds=localDateStr(start), de=localDateStr(end); return dateStr>=ds && dateStr<=de; }
+    if(e.date === 'nextweek')   { const td=new Date(today+'T00:00:00'); const start=new Date(td); start.setDate(td.getDate()-td.getDay()+7); const end=new Date(start); end.setDate(start.getDate()+6); const ds=localDateStr(start), de=localDateStr(end); return dateStr>=ds && dateStr<=de; }
     if(e.date === 'thismonth')  return dateStr.slice(0,7) === today.slice(0,7);
-    if(e.date === 'lastmonth')  { const td=new Date(today+'T00:00:00');td.setMonth(td.getMonth()-1);return dateStr.slice(0,7) === td.toISOString().slice(0,7); }
+    if(e.date === 'lastmonth')  { const td=new Date(today+'T00:00:00');td.setMonth(td.getMonth()-1);return dateStr.slice(0,7) === localDateStr(td).slice(0,7); }
     // デフォルト：今後 1 週間
     const td=new Date(today+'T00:00:00'); const end=new Date(td); end.setDate(td.getDate()+7);
-    return dateStr >= today && dateStr <= end.toISOString().slice(0,10);
+    return dateStr >= today && dateStr <= localDateStr(end);
   }
   const periodLabel = e.date === 'today' ? '今日' : e.date === 'tomorrow' ? '明日' : e.date === 'dayafter' ? '明後日'
     : e.date === 'thisweek' ? '今週' : e.date === 'nextweek' ? '来週'
@@ -22931,7 +22984,7 @@ function _hokuExecuteView(intent) {
     const filtered = all.filter(x => {
       if(!x.date) return false;
       if(e.date === 'today')    return x.date === today;
-      if(e.date === 'tomorrow') { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return x.date === t.toISOString().slice(0,10); }
+      if(e.date === 'tomorrow') { const t=new Date(today+'T00:00:00');t.setDate(t.getDate()+1);return x.date === localDateStr(t); }
       return true;
     });
     if(!filtered.length) return { ok:true, message: target+'の準備はまだないよ。\n\n[[ACTION_BUTTONS:prep]]' };
@@ -23419,7 +23472,7 @@ function voiceConfirmSave() {
   let saved = false;
   try {
     if(cat === 'calendar') {
-      S.events.push({ id:uid(), title, date, time, color:'#0A84FF', member: member||'kenya', note, workspaceId:curWsId() });
+      S.events.push({ id:uid(), title, date, time, color:'#0A84FF', member: member||_hokuFallbackMember(), note, workspaceId:curWsId() });
       saved = true;
     } else if(cat === 'task') {
       S.tasks.push({
@@ -23467,11 +23520,11 @@ function voiceConfirmSave() {
       if(!isFinite(amount) || amount <= 0) { showToast('金額を入力してください','error'); return; }
       const _bCat  = (_voiceParsed && _voiceParsed.budgetCat) ? _voiceParsed.budgetCat : '食費';
       const _bType = (_voiceParsed && _voiceParsed.txType === 'income') ? 'income' : 'expense';
-      S.txs.push({ id:uid(), type:_bType, amount:amount, cat:_bCat, desc: title || note || '音声入力', date, member: member||'kenya', workspaceId:curWsId() });
+      S.txs.push({ id:uid(), type:_bType, amount:amount, cat:_bCat, desc: title || note || '音声入力', date, member: member||_hokuFallbackMember(), workspaceId:curWsId() });
       saved = true;
     } else if(cat === 'health') {
       // 体温は任意（薬の記録だけのケースも許容）
-      const memberId = member || 'seito';
+      const memberId = member || _hokuFallbackMember();
       const mem = MEMBERS.find(m => m.id === memberId);
       const _vpSymptoms = (_voiceParsed && Array.isArray(_voiceParsed.symptoms) && _voiceParsed.symptoms.length) ? _voiceParsed.symptoms.slice() : null;
       const _vpMedicine = (_voiceParsed && _voiceParsed.medicine) ? _voiceParsed.medicine : '';

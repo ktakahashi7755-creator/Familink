@@ -19134,3 +19134,52 @@ Agent Team（5専門サブエージェント）並列レビュー → 検出S/A�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: fix: 全画面総点検のS/A修正＋削除トゥームストーン同期＋別家族分離テスト＋デザイン磨き(v20260607d)
+
+---
+
+## 2026-06-07 10:00  env: PC (Remote Control / 再総点検)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+再総点検（新観点4サブエージェント）→ 重大データ整合バグ2件＋家族同期の耐久性＋Hoku時刻/メンバー整合＋a11y/タップ領域
+
+### 検出と修正（前回未深掘り領域）
+**[S] migrateTaskData が毎起動でフィールドを破棄** — 固定形オブジェクト再構築で repeat/repeatInterval/repeatUnit/workspaceId/photo を毎回消し、updatedAt を日付のみに上書き→他端末の新しい編集を誤上書き。→ 既存オブジェクトにマージ（spread）方式へ、updatedAt は温存。
+**[S] 削除トゥームストーンの push 順** — _deletions が SYNC_KEYS 末尾（2バッチ目）で、後半バッチ失敗時に「配列は削除済みcommit／トゥームストーン未送信」→削除が伝播せず復活。→ _deletions を先頭へ（必ず最初のバッチに同梱）。
+**[A] トゥームストーン未カバーの削除経路** — recurringTxs / memoFolders / prepRoutines / folders(書類) / workspaces＋スペース内データ一括 に _recordDeletion を追加（端末間で復活しないように）。
+**[A] Hoku の期間ビューが JST で1日ズレ** — inPeriod / prep の tomorrow・week・month が toISOString(UTC)。「明日の予定」が今日を表示していた→ localDateStr に統一。
+**[A] Hoku 1日制限の日付キーが UTC** — 表示は JST(todayStr) で、深夜帯にカウント不整合＋ボーナス消失。→ 4箇所 todayStr() に統一＋リセット時 bonus 保持。
+**[A] Hoku 保存のメンバー既定値が kenya/seito 決め打ち** — カスタム家族で不在→迷子アバター。→ _hokuFallbackMember() で実在メンバーへ解決。
+**[A] members に updatedAt が無く cloud-wins** — 改名が他端末で戻る。→ persistMembersToS で変更時のみ updatedAt 付与し LWW 化。
+
+### デザイン / アクセシビリティ（安全・レイアウト非干渉）
+- タップ領域 44px 化：shop-chk / shop-iconbtn / prep-chk / cmt-del / av2-cmt-del / hoku-usage-upgrade を ::before オーバーレイ（見た目不変）、hoku-reset / prm-link / ob2 リンクを min-height。
+- ピンチズーム解禁（viewport の maximum-scale=1 削除、WCAG 1.4.4）。
+- 補助テキストのコントラスト改善（--text-muted 0.62→0.72）。
+- prep-chk に role/aria-label/tabindex/Enter,Space 対応＋ [role=button] の focus-visible。
+- 375px でヘッダのスペース名ボタン幅を抑制。
+
+### テスト結果
+- node --check：SYNTAX OK
+- tools/sync_harness_test.js：**11/11 PASS**（削除伝播・削除後編集・高橋/田中 完全分離・個人キー非混入・ISO LWW）
+- Chrome ヘッドレス：DOM 2.6MB・[Supabase] connected・**JSエラー 0**
+- iPhone SE スクショ：ウェルカム画面 視覚回帰なし・横スクロールなし
+- app-source ⇄ docs：完全一致（v20260607e）
+- _recordDeletion 設置：22箇所
+- node qa_full_test.js：当機不可（Linux）→ 次回CIで84/84
+
+### 未確認事項 / 申し送り
+- 既存タスクは次回起動時に migrateTaskData のマージ版で正規化される（破壊なし）。
+- members LWW 化後、実機で改名が双方向反映されるか確認。
+- 繰り返し予定の画面内展開（記録のみ）／オンボに招待ステップ（Product Top3）は引き続き保留。
+- CI で qa_full_test.js + 家族共有テスト。
+
+### iPhone確認ポイント
+- Hoku「明日の予定教えて」が"明日"を返すか（JST）。
+- 体温グラフ・準備"明日"の日付一致。
+- タスクの繰り返し設定が再起動後も保持されるか（migrate修正）。
+- 端末間：一方で削除→他方で復活しないか（recurringTx/メモフォルダ/準備ルーティン/書類フォルダ/スペース含む）。
+- ピンチズームが効くか。小さなボタンが押しやすくなったか。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix: 再総点検 — migrate破棄/トゥームストーン順/未カバー削除/Hoku時刻・メンバー/members LWW/タップ領域・a11y (v20260607e)
