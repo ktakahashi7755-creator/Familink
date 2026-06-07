@@ -19528,3 +19528,23 @@ seedDemo がデモ初期データを `id:uid()`（毎回ランダム）で生成
 
 ### コミット
 - メッセージ: chore(premium): 説明ページから「思い出タグ」「まとめてDL」カード＋比較行を削除 (v20260607n)
+
+---
+
+## 2026-06-07 21:30  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+ホーム画面から「Hokuの一言ナッジ」「今日のサマリーバー(今日◯件/未完了◯件/買い物◯件)」の2行を削除
+
+### 変更
+- HTML要素 `home-hoku-nudge` と `home-today-bar` を削除（`home-greeting` `home-invite-cta` `home-grid` は維持）。
+- renderHome の該当描画ブロック（チップ生成＋ナッジ）を削除。
+- 未使用となった CSS（.home-today-bar / .home-today-chip* / .home-hoku-nudge）も除去。
+
+### テスト結果
+- node --check：SYNTAX OK／残存参照 grep 0件
+- harness：34/34 PASS／home(demo)描画 JSエラー0・DOMに該当要素なし
+- app-source ⇄ docs 一致（v20260607o）
+
+### コミット
+- メッセージ: chore(home): Hoku一言ナッジ＋今日サマリーバーの2行を削除 (v20260607o)
