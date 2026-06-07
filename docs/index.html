@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260607m';
+  var V='v20260607n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18313,14 +18313,6 @@ function renderPremium() {
       bg:'#FFFAEB', name:'プレミアムアバターが使える',
       desc:'家族メンバーごとに特別なアバターを設定できます。',
       detail:'プレミアムアバターは18種類以上。ファンタジーやドラゴンシリーズも選べます。' },
-    { icon: _si('<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>', '#7C3AED'),
-      bg:'#F5F0FF', name:'思い出をタグで整理',
-      desc:'子ども別、イベント別、日付別に思い出を探しやすく整理できます。',
-      detail:'アルバムやボードの写真・記録にタグをつけて、あとから素早く検索できます。' },
-    { icon: _si('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', '#0D9488'),
-      bg:'#F0FFF8', name:'まとめてダウンロード',
-      desc:'写真・書類・家族データを必要な時にまとめて保存できます。',
-      detail:'年度末の整理や端末変更時に、家族の記録を一括でバックアップできます。' },
   ];
   const featureCardsHtml = '<div class="prm-section-title">プレミアムの機能</div>'
     + features.map((f,i) =>
@@ -18344,8 +18336,6 @@ function renderPremium() {
     ['Hoku利用',      '1日5回',   '無制限'],
     ['プレミアムアバター','—',     '✓'],
     ['写真/書類管理',  '基本機能', '拡張機能'],
-    ['思い出タグ',     '—',        '✓'],
-    ['まとめてDL',     '—',        '✓'],
     ['今後の限定機能', '—',        '✓'],
   ];
   const compareHtml = '<div class="prm-section-title">プラン比較</div>'
