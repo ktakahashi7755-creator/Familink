@@ -6192,6 +6192,8 @@ async function _fetchFromSupabase() {
       });
     }
     try { _gcDeletions(); } catch(_){}
+    // マージ後に内容重複を畳む（別idの同一デモ等がログイン/同期で二重化するのを解消）
+    try { if(_dedupByContent()) changed = true; } catch(_){}
     // familyId を自分の行から復元したら owner を現アカウントに確定。
     // さらに familyId が今復元されたなら、家族全員分を取り直す（最初の取得は user_id 限定だったため）。
     let _refetchFamily = false;
@@ -8158,6 +8160,38 @@ function _dedupStateById() {
       if(S[k].length !== before) { try { saveS(); } catch(_){} }
     }
   });
+}
+
+/* Wave 255: 内容ベースの重複除去。
+   デモ初期データ等がランダムidで生成され、ゲスト(端末ローカル)とクラウドで別idのまま
+   ログイン時にマージされ「同じ予定/タスクが二重・三重に出る」問題を解消する。
+   id一致の重複は _dedupStateById、内容一致の重複はこちらが担当。
+   偶然の一致で実害が小さいキーのみ対象（買い物/家計/メモは正当な重複があり得るため除外）。
+   各端末がマージ後に内容で畳むため、別idの重複が再流入しても自己回復する。 */
+function _dedupByContent() {
+  const sig = {
+    events:     e => 'ev|'+(e.title||'')+'|'+(e.date||'')+'|'+(e.time||'')+'|'+(e.member||e.memberId||''),
+    tasks:      t => 'tk|'+(t.title||t.text||'')+'|'+(t.dueDate||t.at||'')+'|'+(t.assignedTo||t.member||''),
+    announces:  a => 'an|'+(a.title||'')+'|'+(a.body||a.text||'')+'|'+(a.cat||''),
+    posts:      p => 'po|'+(p.title||'')+'|'+(p.body||p.text||''),
+    boardItems: b => 'bi|'+(b.boardId||'')+'|'+(b.text||b.title||'')+'|'+(b.sectionId||b.section||''),
+    prep:       p => 'pr|'+(p.text||'')+'|'+(p.date||'')+'|'+(p.member||p.memberId||''),
+    health:     h => 'he|'+(h.date||'')+'|'+(h.memberId||h.child||'')+'|'+(h.temp||'')+'|'+(h.symptom||h.cond||'')
+  };
+  let changed = false;
+  Object.keys(sig).forEach(function(k){
+    if(!Array.isArray(S[k])) return;
+    const seen = {}, out = [];
+    for(const it of S[k]) {
+      if(!it) continue;
+      const s = sig[k](it);
+      if(seen[s]) { changed = true; continue; }   // 内容が同一 → 2件目以降は除去
+      seen[s] = 1; out.push(it);
+    }
+    if(out.length !== S[k].length) S[k] = out;
+  });
+  if(changed) { try { saveS(); } catch(_){} }
+  return changed;
 }
 function loadS() {
   try {
@@ -24566,6 +24600,7 @@ function init() {
   loadS();
   try { applyTheme(); } catch(_){}   // 起動時に現在テーマを全画面へ適用（開始画面に依存しない）
   _dedupStateById();          // 念のため：id重複の予定/タスク/家計/メモ/写真を除去（重複表示の防止）
+  try { _dedupByContent(); } catch(_){}  // 内容重複（別idの同一デモ等）も除去（ログイン時の二重表示対策）
   _refreshTrialStatus();      // Wave 222: トライアル期限チェック
   initWorkspaces();           // ワークスペース初期化（デフォルト2スペースを保証）
   applyMembersFromS();        // Wave 59: 永続化済みメンバーを採用

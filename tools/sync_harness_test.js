@@ -31,9 +31,10 @@ function extractFn(name) {
 // グローバル相当のコンテキスト
 let S = { _deletions: {} };
 const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
+function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent が呼ぶ）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
-const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn']
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent']
   .map(extractFn).join('\n\n');
 eval(srcs);
 
@@ -200,6 +201,36 @@ console.log('Familink sync harness');
   ok('T6-11 カスタム2日ごと: 1日後は非発生', !_occursOn(c, '2026-06-02'));
   // 単発
   ok('T6-12 単発: 当日のみ発生', _occursOn({ date: '2026-06-01', repeat: '' }, '2026-06-01') && !_occursOn({ date: '2026-06-01', repeat: '' }, '2026-06-02'));
+})();
+
+// ---- T7: 内容ベース重複除去 _dedupByContent（ログイン時の二重表示対策） ----
+(function () {
+  S = { _deletions: {} };
+  S.events = [
+    { id:'a', title:'運動会', date:'2026-06-10', time:'09:00', member:'k' },
+    { id:'b', title:'運動会', date:'2026-06-10', time:'09:00', member:'k' },   // 別id・同内容＝重複
+    { id:'c', title:'遠足',   date:'2026-06-11', time:'08:00', member:'k' }
+  ];
+  S.tasks = [
+    { id:'x', title:'衣装確認', dueDate:'2026-06-09', assignedTo:'m' },
+    { id:'y', title:'衣装確認', dueDate:'2026-06-09', assignedTo:'m' }        // 重複
+  ];
+  S.boardItems = [
+    { id:'p', boardId:'b1', text:'運動会の役割分担' },
+    { id:'q', boardId:'b1', text:'運動会の役割分担' },
+    { id:'r', boardId:'b1', text:'運動会の役割分担' }                          // 3重
+  ];
+  S.shoppingItems = [ { id:'s1', name:'牛乳' }, { id:'s2', name:'牛乳' } ];    // 対象外＝維持
+  const changed = _dedupByContent();
+  ok('T7-1 同内容イベントの重複を除去（別idでも）', S.events.length === 2);
+  ok('T7-2 別内容イベントは残る', S.events.some(e=>e.title==='遠足') && S.events.some(e=>e.title==='運動会'));
+  ok('T7-3 タスクの内容重複を1件に', S.tasks.length === 1);
+  ok('T7-4 ボード項目の3重を1件に', S.boardItems.length === 1);
+  ok('T7-5 買い物は対象外で重複維持', S.shoppingItems.length === 2);
+  ok('T7-6 変更ありを返す', changed === true);
+  // 重複が無いときは何も変えない（冪等）
+  const again = _dedupByContent();
+  ok('T7-7 冪等：2回目は変更なし', again === false);
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');
