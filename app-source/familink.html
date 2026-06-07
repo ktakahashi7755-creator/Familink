@@ -24777,9 +24777,35 @@ async function runHokuAiSelfTest() {
       else {
         var r = await sb.functions.invoke('hoku', { body: { mode:'chat', text:'接続テスト。今日が何日か一言で。', context:{ today: (typeof todayStr==='function'?todayStr():'') }, history:[] } });
         if(r && r.error) {
-          var msg = (r.error && r.error.message) || String(r.error);
-          try { if(r.error.context && typeof r.error.context.json === 'function'){ var j = await r.error.context.json(); if(j) msg += ' / ' + JSON.stringify(j); } } catch(_){}
-          detail = '❌ エラー: ' + msg;
+          var err = r.error;
+          var msg = (err && err.message) || String(err);
+          // context が Response なら HTTP ステータスが取れる（＝関数に到達して応答が返った）
+          var st = (err && err.context && typeof err.context.status === 'number') ? err.context.status : null;
+          var bodyTxt = '';
+          try { if(err.context && typeof err.context.json === 'function'){ var j = await err.context.json(); if(j) bodyTxt = JSON.stringify(j); } } catch(_){}
+          if(st === null) {
+            // ステータスが取れない＝fetch 自体が失敗（未到達）。関数未デプロイ or CORS/プリフライト遮断が濃厚。
+            detail = '❌ 関数に到達できません（未デプロイ または CORS/プリフライト遮断の可能性）。<br>'
+              + '<span style="color:#9fb0c8;">→ Supabase に <b>hoku</b> 関数をデプロイしてください：<br>'
+              + '&nbsp;&nbsp;<code>supabase secrets set OPENAI_API_KEY=sk-...</code><br>'
+              + '&nbsp;&nbsp;<code>supabase functions deploy hoku</code><br>'
+              + '（既にデプロイ済みなら関数名が <b>hoku</b> か／プロジェクトが一致しているか確認）</span>'
+              + '<br><span style="color:#6f7f96;">詳細: ' + H(String(msg)) + '</span>';
+          } else if(st === 401 || st === 403) {
+            detail = '❌ 認証エラー（' + st + '）。JWT 検証で弾かれています。<br>'
+              + '<span style="color:#9fb0c8;">→ 一度ログインし直す／関数を <b>verify_jwt ON</b>（--no-verify-jwt 無し）で再デプロイ。</span>'
+              + (bodyTxt ? '<br><span style="color:#6f7f96;">' + H(bodyTxt) + '</span>' : '');
+          } else if(st === 500) {
+            detail = '❌ サーバ設定エラー（500）。<br>'
+              + '<span style="color:#9fb0c8;">→ <code>OPENAI_API_KEY</code> 未設定の可能性。<code>supabase secrets set OPENAI_API_KEY=sk-...</code> を確認。</span>'
+              + (bodyTxt ? '<br><span style="color:#6f7f96;">' + H(bodyTxt) + '</span>' : '');
+          } else if(st === 502) {
+            detail = '❌ OpenAI 側エラー（502）。<br>'
+              + '<span style="color:#9fb0c8;">→ APIキーの所属プロジェクト／クレジット残高（insufficient_quota）を確認。</span>'
+              + (bodyTxt ? '<br><span style="color:#6f7f96;">' + H(bodyTxt) + '</span>' : '');
+          } else {
+            detail = '❌ エラー（HTTP ' + st + '）: ' + H(String(msg)) + (bodyTxt ? '<br><span style="color:#6f7f96;">' + H(bodyTxt) + '</span>' : '');
+          }
         } else if(r && r.data && r.data.reply) {
           detail = '✅ OK: ' + String(r.data.reply).slice(0,80);
         } else {

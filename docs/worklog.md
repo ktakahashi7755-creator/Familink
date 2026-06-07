@@ -19724,3 +19724,52 @@ OpenAIキーは従来どおりサーバSecretsのみ。
 
 ### コミット
 - メッセージ: fix(qa-debug): パネルを最小化可能にして下部ボタンを塞がないように (v20260608b)
+
+---
+
+## 2026-06-08 09:00  env: PC (Remote Control)  branch: claude/new-session-AUB3i
+
+### 作業名
+Hoku AI「Failed to send a request to the Edge Function」の原因切り分け＋診断の出し分け改善
+
+### 原因特定（重要）
+- スクショのエラーは Supabase JS の `FunctionsFetchError`＝ブラウザの fetch がそもそも失敗（HTTP応答なし）。
+- 診断パネルでは ログイン✅/プレミアム✅/allowed✅/active✅ と前提は全通過。認証・DBは動作。
+  → 「hoku 関数だけ fetch 失敗」は **関数未デプロイ**（or verify_jwt 絡みのプリフライト遮断）が濃厚。
+  関数が無いとゲートウェイの応答にCORSヘッダが付かず、ブラウザが fetch 失敗として握りつぶす＝この文言。
+- リモート環境からSupabaseへの直接curlは環境のネットワークポリシー（host_not_allowed）で検証不可。
+
+### 変更ファイル
+- app-source/familink.html（runHokuAiSelfTest のエラー出し分け）
+- docs/index.html（v20260608c へ同期）
+
+### 変更内容
+- 診断の実呼び出しエラーを HTTP ステータス有無で分岐：
+  - ステータス取得不可（FetchError＝未到達）→「関数に到達できません（未デプロイ/CORS）」＋デプロイ手順を表示
+  - 401/403 →認証（JWT）/ 500 → OPENAI_API_KEY未設定 / 502 → OpenAI側（残高等）を日本語で表示
+- 生英語メッセージの代わりに「次にやること」を明示。本文は H() でエスケープ。
+
+### テスト結果
+- node qa_full_test.js：83 PASS / 0 FAIL / 1 WARN（WARN=既存のLocalStorageキー項目、本変更と無関係）
+- app-source ⇄ docs 一致（BODY IDENTICAL 確認・v20260608c）
+
+### オーナーへの結論・確認手順（最重要）
+- アプリ側コード・関数ソース・認証・DB は正常。残るは **hoku 関数のデプロイ**。
+- Supabase CLI で次を実行（プロジェクト jrmzzizjlkrogrbtzyuz）:
+  1. `supabase login` → `supabase link --project-ref jrmzzizjlkrogrbtzyuz`
+  2. `supabase secrets set OPENAI_API_KEY=sk-...`
+  3. `supabase functions deploy hoku`（--no-verify-jwt は付けない＝JWT検証ON）
+- デプロイ後、#qa-debug の「Hoku AI 診断」を再実行 → ✅OK か、出るなら 401/500/502 で次の原因が特定可能。
+
+### 未確認事項
+- 実際に未デプロイかどうかはオーナーの Supabase ダッシュボード（Edge Functions 一覧に hoku があるか）で要確認。
+- デプロイ済みで本症状なら verify_jwt とプリフライトの相性を疑う（その場合は別途調整）。
+
+### iPhone確認ポイント
+- デプロイ後、#qa-debug 診断の「結果」が ✅OK になるか。NGなら新しい日本語ガイドが正しく出るか。
+
+### 次にやること
+- オーナーが hoku 関数をデプロイ → 診断再実行。結果（OK/401/500/502）に応じて次対応。
+
+### コミット
+- メッセージ: diag(hoku): Edge Function 未到達を「未デプロイ/CORS」と切り分け、デプロイ手順を診断表示 (v20260608c)
