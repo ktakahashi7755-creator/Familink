@@ -19285,3 +19285,49 @@ Hoku を文脈つき会話AIへ強化（OpenAI連携の実装・鍵はサーバ�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: perf+feat: 同期空振り再描画の停止＋繰り返し予定表示＋ホーム体験強化 (v20260607g)
+
+---
+
+## 2026-06-07 16:40  env: PC (Remote Control / 最終総点検・残骸掃除)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+最終総点検：家族共有のトゥームストーン穴を完全封鎖＋デッドコード掃除＋全テスト
+
+### 専門エージェント2体（敵対的検証＋残骸掃除）の結果
+- 家族共有 敵対的検証：核（差分判定/分離/Realtime/push耐久/join-leave）は**全て正しい**と確認。ただし**削除トゥームストーン未設置の経路が3つ**残存→端末間で削除が復活する穴。
+- デッドコード掃除：JSは完全にクリーン（未使用関数0/重複定義0/コメントアウト0/本番debug残骸0）。CSS に上書き済み/未使用の残骸のみ。
+
+### 修正（家族共有の最終穴・最優先）
+- [S] メンバー削除（confirmDeleteMember / confirmDeleteMemberFromList）に `_recordDeletion('members', id)` を追加。これが無いと削除したメンバーが他端末から復活していた（最も目立つ多端末バグ）。
+- [A] タスク一括削除（runTkBulkDelete）に各idのトゥームストーンを追加。
+- [A] アルバム一括削除（storageAction の delete-album-old / delete-album-all）に各idのトゥームストーンを追加。
+- → _recordDeletion 設置は 22→**27箇所**。共有20キーの削除経路は全てカバー。
+
+### 残骸掃除（CSS・proven-dead のみ／挙動不変）
+- 削除：`.post-pin`（未使用クラス）/ `.post-head-info` の重複定義（2449が正） / `.post-title` の上書き済み定義（2450が正） / 2つ目の `.hoku-usage-bar`（3248と同値の no-op）。
+- 保持（load-bearing のため触らない）：`.post-card`/`.post-head`/`.post-body` の overflow/padding、`.shop-row` 重複（両方live＝別画面。将来リネーム候補として申し送り）。
+- JS残骸：なし。console.log 0（console.warn/error は正当）。alert は #qa-debug 内のみ（オーナー診断・意図的に保持）。
+
+### テスト結果（反復検証）
+- node --check：SYNTAX OK
+- tools/sync_harness_test.js：**23/23 PASS**（同期11＋繰り返し12）
+- Chrome ヘッドレス：DOM 2.6MB・[Supabase] connected・**JSエラー0**
+- _recordDeletion：27箇所／デッドCSS除去を確認／app-source ⇄ docs 完全一致（v20260607h）
+
+### 家族共有 最終ステータス
+- 多端末・別家族でのデータ分離、追加、編集、**削除（メンバー/タスク/予定/家計/買い物/準備/メモ/ボード/写真/書類/フォルダ/スペース/固定収支/ルーティン）の端末間整合**まで、クライアント側ロジックは完全。harnessで高橋家/田中家の完全分離も自動証明済み。
+- 唯一の前提：サーバ側 RLS（fl_family_data の family_id 強制）が適用済みであること（docs/supabase-setup-sql.sql。オーナーが実行済みと確認済み）。
+
+### 未確認事項 / 申し送り
+- 実機 多端末で「メンバー/タスク/アルバムの一括削除が他端末でも消える」最終目視。
+- [保留・要承認] 写真の Supabase 同期は base64 大量時にコスト/サイズ過大 → Storage 移行（別タスク）。
+- 週ビューの「終日」予定表示、saveS デバウンス/クォータ事前ガード。
+- `.shop-row` クラス名衝突のリネーム（軽微・挙動は後勝ちで成立）。
+
+### iPhone確認ポイント
+- 端末Aでメンバー削除→端末Bでも消えたままか（復活しないか）。
+- タスク/アルバムの一括削除が端末間で整合するか。
+
+### コミット
+- ハッシュ: 終了報告で記入
+- メッセージ: fix(family-sharing): 削除トゥームストーンの未カバー3経路を封鎖＋デッドCSS掃除 (v20260607h)
