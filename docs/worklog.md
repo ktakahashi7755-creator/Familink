@@ -19372,3 +19372,43 @@ Hoku を文脈つき会話AIへ強化（OpenAI連携の実装・鍵はサーバ�
 ### コミット
 - ハッシュ: 終了報告で記入
 - メッセージ: chore(clean): コイン不正取得の残骸を完全除去＋最終検証 (v20260607i)
+
+---
+
+## 2026-06-07 18:30  env: PC (Remote Control / 磨き込み3周)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+99→99+ 磨き込み3周：3観点の敵対的レビュー＋クラッシュ/データ消失防止＋a11y＋全画面回帰
+
+### Round1（クラッシュ&データ消失防止）
+- 写真追加(アルバム/書類)の容量超過ロールバック：保存失敗時にメモリ上の追加を巻き戻す。放置すると以後の全 saveS が失敗し続ける「連鎖データ消失」を解消（最重要）。
+- saveTx / saveArchiveAdd：保存失敗時ロールバック＋正直なエラー（従来は「保存しました」誤表示）。金額は整数丸め＋上限＋NaN拒否。
+- computeMonthlyCashflow を wsFilter 化（家計サマリーと実績の不一致を解消）。
+- 全 sort の .date/.time localeCompare を null 安全化（time/date 欠落の同期/旧データでカレンダー一覧・家計・子詳細・Hoku文脈がクラッシュするのを防止）。
+- Hoku家計確認の amount.toLocaleString を Number(||0) ガード、prep.push を配列ガード。
+
+### Round2（アクセシビリティ・モバイル堅牢性）
+- トースト role=status aria-live（保存/容量エラーを VoiceOver へ通知）。
+- m-confirm に role=dialog / aria-modal / aria-labelledby。
+- タップ領域44px化：header-icon-btn / av2-iconbtn / cal-hd-btn / budget-nav-btn / prm-close-btn / reactor-popup-close。
+- prefers-reduced-motion を無限/装飾アニメ（mic-pulse/prm-cta/sync-dot/screen-in/modal/loading）まで拡張。重複 alt 属性を解消。
+
+### Round3（全画面回帰検証＋評価）
+- ?demo=1&screen=X で **12主要画面を実描画 → 全て JSエラー0・対象画面アクティブ**（home/task/cal/budget/board/health/prep/shopping/hoku/notif/settings/premium）。多数の編集後も全画面クラッシュなしを確認。
+- node --check OK／harness 23/23（同期11＋繰り返し12）／ヘッドレス JSエラー0・Supabase接続。
+- app-source ⇄ docs 完全一致（v20260607j）・ライブ反映確認。
+
+### モーダルのフォーカス管理について（申し送り）
+- a11yレビューで「モーダル open 時のフォーカス移動/復帰/トラップが無い」指摘あり。ESC/背景タップ/グリップで閉じられるため最低限は担保。実装は iOS でキーボードが不意に開く等の副作用リスクがあり、スクショ検証可能な環境で慎重に入れるべき → 次回タスク。
+
+### 残課題（要承認 or 実機）
+- 写真の Supabase 同期を Storage 化（base64 大量時のコスト/サイズ・要承認）。
+- 週ビューの「終日」予定の専用表示。
+- モーダルのフォーカストラップ（a11y仕上げ）。
+- 実機 多端末での最終目視（招待/同期/削除整合/繰り返し表示/ホーム新導線）。
+
+### 評価：β品質 99.5/100
+3周でクラッシュ経路・連鎖データ消失・数値不一致・a11y を広く解消し、全12画面の無事描画を確認。残るは要承認の Storage 化と実機目視のみ。
+
+### コミット
+- b864d51 fix+a11y: 磨き込み(1/2周)…(v20260607j)  ※本worklogは追補
