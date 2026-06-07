@@ -19585,3 +19585,44 @@ Hoku：参照（見る・聞く）発話を登録扱いしない「理解→判�
 
 ### コミット
 - メッセージ: fix(hoku): 参照発話を登録扱いしない理解→判断ガード（誤って予定/タスク追加を防止）(v20260607p)
+
+---
+
+## 2026-06-07 23:00  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+Hoku AI（OpenAI連携）をプレミアム限定で切替可能に（無料は既存Hoku・失敗時フォールバック）
+
+### 構成（要件どおり）
+Familink frontend → Supabase Edge Function（supabase/functions/hoku・構築済み）→ OpenAI API。
+OPENAI_API_KEY はサーバの Secrets のみ。フロントHTML/Gitには一切置かない（既存設計を踏襲）。
+
+### 実装（プラン分岐＝今回の主眼）
+- ヘルパー新設：`_hokuAiAllowed()`=isPremiumUser && hokuApiUrl、`_hokuChatActive()`=allowed && hokuChatMode。
+- Hoku送信/音声の AI 経路（計4箇所：sendHokuMsg会話・intent補正、voiceText、voiceCandidates）を
+  すべて上記ゲートに置換。→ **無料ユーザーは常に既存（ローカル）Hoku**、プレミアムのみ OpenAI版。
+- 会話モードのON/OFFでプレミアム内でも切替可能。トライアル終了で isPremiumUser が落ちれば自動で既存Hokuへ。
+- API失敗/タイムアウト時は従来どおり既存Hoku（音声・intent解析）へ完全フォールバック（不変）。
+- UI：設定の入口に「プレミアム限定・OpenAI連携（無料は既存Hoku）」、状態表示 AI/設定済/OFF。
+  連携モーダルにプラン状態バッジ（プレミアム=緑/無料=橙）と注記を追加。
+
+### 壊していないこと
+- 既存Hoku・音声入力・intent解析（parseHokuIntent/detectIntent/parseVoiceIntent）は不変。
+- 直前の「参照は登録しない」ガード（Wave257）も維持。
+
+### テスト結果
+- tools/sync_harness_test.js：**47/47 PASS**（プレミアムゲート T10 を5件追加：無料=AI不可/プレミアム=有効/会話OFF切替/URL未設定フォールバック）
+- node --check：SYNTAX OK／home・hoku・settings・premium 描画 JSエラー0
+- app-source ⇄ docs 一致（v20260607q）
+
+### オーナー作業（有効化に必要）
+1. Edge Function デプロイ＋Secrets（OPENAI_API_KEY／HOKU_SHARED_KEY）設定（手順は前回／README）
+2. プレミアム（またはトライアル）状態にする
+3. 設定→Hoku を AI で賢くする→URL＋共有シークレット→会話モードON で保存
+
+### iPhone確認ポイント
+- 無料プラン：AI設定をしても既存Hokuのまま動く（誤作動なし）。
+- プレミアム：URL＋合言葉設定で会話モードが効き、失敗時は既存Hokuに自動フォールバック。
+
+### コミット
+- メッセージ: feat(hoku): OpenAI版Hokuをプレミアム限定で切替可能に＋無料/失敗時は既存Hoku (v20260607q)

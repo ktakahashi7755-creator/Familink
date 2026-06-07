@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260607p';
+  var V='v20260607q';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -19175,9 +19175,9 @@ function renderSettings() {
       <div class="settings-item" onclick="openHokuApiModal()">
         <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
         <div class="settings-item-label">Hoku を AI で賢くする
-          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">OpenAI 等の API 連携（任意）</div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">プレミアム限定・OpenAI 連携（無料は既存Hoku）</div>
         </div>
-        <div class="settings-value">${(S.hokuApiUrl?'ON':'OFF')}</div><div class="settings-arrow">›</div>
+        <div class="settings-value">${(S.isPremiumUser && S.hokuApiUrl && S.hokuChatMode)?'AI':(S.hokuApiUrl?'設定済':'OFF')}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
@@ -20643,6 +20643,12 @@ function _hokuIntentFromAI(intentType, e, rawText) {
 /* 会話モードの実行：自然文 reply を返す。登録系 intent が含まれれば確認フローへ橋渡し
    （executeHokuAction は即保存せず必ず確認 UI を開く＝安全）。失敗時は undefined。
    AI が entities を返した場合はそれを直接使い、無ければローカル抽出にフォールバック。 */
+/* Wave 258: OpenAI版Hoku はプレミアム限定。無料プランは常に既存（ローカル）Hoku で動作。
+   - _hokuAiAllowed(): プレミアム かつ APIエンドポイント設定済み（intent補正/会話の前提）
+   - _hokuChatActive(): さらに会話モードON（自然文応答）。プレミアムが切替可能。
+   いずれも false のとき、または API 失敗時は既存Hoku（音声/intent解析）へ完全フォールバック。 */
+function _hokuAiAllowed()  { return !!(S.isPremiumUser && S.hokuApiUrl); }
+function _hokuChatActive() { return _hokuAiAllowed() && !!S.hokuChatMode; }
 async function _hokuTryChat(text) {
   const chat = await callHokuChat(text);
   if(!chat || typeof chat.reply !== 'string' || !chat.reply.trim()) return undefined;
@@ -20680,6 +20686,17 @@ function openHokuApiModal() {
   if(chatInp) chatInp.checked = S.hokuApiUrl ? !!S.hokuChatMode : true;
   const res = document.getElementById('hoku-api-test-result');
   if(res) res.textContent = '';
+  // プラン状態の表示（AI版はプレミアム限定）
+  const planNote = document.getElementById('hoku-api-plan-note');
+  if(planNote) {
+    if(S.isPremiumUser) {
+      planNote.style.cssText = 'font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;background:#ECFDF5;color:#067A53;border:1px solid rgba(16,185,129,.25);';
+      planNote.textContent = '現在プレミアム：AI版Hoku（会話モード）を有効化できます。';
+    } else {
+      planNote.style.cssText = 'font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;background:#FFF6E8;color:#9A5A00;border:1px solid rgba(255,159,10,.25);';
+      planNote.textContent = '現在無料プラン：AI版はプレミアム限定です。無料の間は既存Hokuで動作します（設定は保存できます）。';
+    }
+  }
   openModal('m-hoku-api');
 }
 function saveHokuApiUrl() {
@@ -20748,9 +20765,9 @@ async function sendHokuMsg(text) {
     let reply;
     let ctxIntent = null;  // 文脈更新で使うためブロック外にホイスト
 
-    // 会話モード（AI）優先：有効なら外部AIに自然文応答を依頼。成功すれば
-    // 以降のローカル判定をスキップ。失敗/無効時は従来フローへ完全フォールバック。
-    if(S.hokuChatMode && S.hokuApiUrl) {
+    // 会話モード（AI）優先：プレミアム＋設定時のみ外部AIに自然文応答を依頼。成功すれば
+    // 以降のローカル判定をスキップ。無料/失敗/無効時は従来（既存Hoku）へ完全フォールバック。
+    if(_hokuChatActive()) {
       try { reply = await _hokuTryChat(text); } catch(_) { reply = undefined; }
     }
 
@@ -20786,7 +20803,7 @@ async function sendHokuMsg(text) {
       // Wave 77: Hoku API 連携（S.hokuApiUrl 設定時のみ）。
       // API がカテゴリを補正し、項目抽出は実績あるローカル parseHokuIntent を使う。
       // API 未設定 / 失敗 / 例外 → 既存ローカルフローへ完全フォールバック。
-      if(reply == null && S.hokuApiUrl) {
+      if(reply == null && _hokuAiAllowed()) {
         try {
           const apiRes = await callHokuApi(text);
           if(apiRes && apiRes.intent && apiRes.intent !== 'unknown') {
@@ -23435,7 +23452,7 @@ function hokuHandleVoiceText(text) {
   // 会話モード：音声もテキストと同じ AI 高精度抽出を通す（クリーンな title / 日付 / 時刻）。
   // 登録系 intent が取れれば AI エンティティで確認モーダルを開く。
   // それ以外（会話的・分類不可）/ 失敗 / タイムアウトはローカル解析にフォールバック。
-  if(S.hokuChatMode && S.hokuApiUrl && typeof callHokuChat === 'function') {
+  if(_hokuChatActive() && typeof callHokuChat === 'function') {
     const _local = function() {
       _voiceParsed = parseVoiceIntent(text);
       hokuVoiceSetPhase('confirming');
@@ -23469,7 +23486,7 @@ function hokuHandleVoiceCandidates(candidates) {
   candidates = (candidates||[]).map(t => String(t||'').trim()).filter(Boolean);
   if(!candidates.length) { hokuVoiceSetPhase('error'); return; }
   // 会話モード：AI が生テキストから高精度抽出するため、最有力候補を AI 経路へ委譲
-  if(S.hokuChatMode && S.hokuApiUrl && typeof callHokuChat === 'function') {
+  if(_hokuChatActive() && typeof callHokuChat === 'function') {
     hokuHandleVoiceText(candidates[0]);
     return;
   }
@@ -25764,10 +25781,12 @@ async function _oauthSignIn(provider) {
     <div class="modal-title">Hoku を AI で賢くする（OpenAI 連携）</div>
     <div style="font-size:13px;color:var(--text-sub);line-height:1.75;margin-bottom:12px;">
       Hoku の意図判定を、外部 AI（OpenAI 等）のエンドポイントに切り替えて精度を上げられます。<br>
-      <b>URL を空にすると、これまで通り端末内のローカル判定で動きます。</b>
+      <b>AI版Hoku（会話モード）はプレミアム限定です。</b>無料プランや未設定時は、これまで通り端末内の既存Hokuで動作します。
     </div>
+    <div id="hoku-api-plan-note" style="font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;"></div>
     <div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:9px 11px;border-radius:8px;line-height:1.6;margin-bottom:14px;">
-      ・API が応答しない時は自動でローカル判定にフォールバックします<br>
+      ・無料プランでは AI版は無効（既存Hokuで動作）。プレミアムで有効化できます<br>
+      ・API が応答しない時は自動で既存Hokuにフォールバックします<br>
       ・保存前の確認モーダルは API 経由でも必ず表示されます<br>
       ・APIキーは端末に保存せず、サーバ（Supabase Edge Function 等）側に置いてください<br>
       ・導入手順と金額: docs/hoku-openai-plan.md
