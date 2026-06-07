@@ -225,7 +225,7 @@ body {
   text-overflow: ellipsis;
 }
 .header-icon-btn {
-  width: 40px; height: 40px; border-radius: var(--r-full);
+  width: 44px; height: 44px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.12); border: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 17px; color: var(--text-sub);
@@ -961,7 +961,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   padding:10px 10px; border-bottom:1px solid var(--border-light);
 }
 .av2-iconbtn {
-  flex:none; width:38px; height:38px; border-radius:50%;
+  flex:none; width:44px; height:44px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   background:var(--bg-muted); color:var(--text-sub); border:none; cursor:pointer;
   transition:var(--t-spring);
@@ -1368,7 +1368,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .cal-hd-btn {
-  width: 36px; height: 36px; border-radius: var(--r-full);
+  width: 44px; height: 44px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.10); border: none;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-sub); cursor: pointer; transition: var(--t);
@@ -1682,7 +1682,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   border-bottom: 0.5px solid rgba(60,60,67,0.18); flex-shrink: 0;
 }
 .budget-nav-btn {
-  width: 40px; height: 40px; border-radius: var(--r-full);
+  width: 44px; height: 44px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.10); border: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: var(--text-sub);
@@ -2110,6 +2110,12 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
   .hoku-character.happy::before, .hoku-character.happy::after { animation: none; opacity:0; }
   .home-coins.bump { animation: none !important; }
   .av2-float { display: none !important; }  /* アルバムのリアクション演出を抑制 */
+  /* 無限/装飾アニメも抑制（乗り物酔い・前庭障害への配慮 / WCAG 2.3.3） */
+  .prm-crown, .prm-cta-btn, .prm-hero-img, .mic-pulse, [class*="mic-pulse"],
+  .sync-dot.syncing, .loading span { animation: none !important; }
+  .screen:not(.hidden) { animation: none !important; }
+  .modal { transition: none !important; }
+  * { scroll-behavior: auto !important; }
 }
 .hoku-bubble {
   max-width: 80%; padding: 10px 14px; line-height: 1.65; font-size: 14px;
@@ -2373,6 +2379,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 /* タスクのメンバーポップアップ等で使う閉じるボタン */
 .reactor-popup-close {
   margin-left:auto; background:none; border:none;
+  min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; padding:8px;
   color:var(--text-muted); font-size:18px; cursor:pointer; line-height:1;
 }
 @keyframes slideUp {
@@ -3053,7 +3060,7 @@ nav#tabbar.hidden { display: none !important; }
   border-bottom:0.5px solid rgba(60,60,67,0.18);
 }
 .prm-close-btn {
-  width:34px; height:34px; border-radius:50%; border:none;
+  width:44px; height:44px; border-radius:50%; border:none;
   background:rgba(118,118,128,0.12); color:var(--text); font-size:17px; line-height:1;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; flex-shrink:0; transition:var(--t);
@@ -5638,7 +5645,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 <!-- Confirm Modal -->
 <div id="m-confirm" class="modal-backdrop modal-center">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <div style="text-align:center;margin-bottom:12px;color:var(--primary);" id="confirm-icon"></div>
     <div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:8px;" id="confirm-title"></div>
     <div style="font-size:14px;color:var(--text-sub);text-align:center;margin-bottom:22px;line-height:1.55;" id="confirm-msg"></div>
@@ -5685,7 +5692,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 <nav id="tabbar" class="hidden"></nav>
 
 <!-- Toast container -->
-<div id="toast-wrap"></div>
+<div id="toast-wrap" role="status" aria-live="polite" aria-atomic="false"></div>
 <!-- Wave 224: グローバルローディングオーバーレイ -->
 <div id="global-loading" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(255,255,255,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
   <div class="loading"><span></span><span></span><span></span></div>
@@ -10243,7 +10250,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">投稿がありません</div>
     </div>`;
 
@@ -10276,14 +10283,14 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">タスクはありません</div>
     </div>`;
 
   // ── 今週の予定コンテンツ ──
   const td = todayStr();
   const upcoming = wsFilter(S.events).filter(e=>e.date>=td)
-    .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||'')).slice(0,4);
+    .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||'').localeCompare(b.time||'')).slice(0,4);
   const evHTML = upcoming.length ? upcoming.map(e => {
     const isToday = e.date === td;
     const dateLabel = isToday ? '今日' : e.date.slice(5).replace('-','/');
@@ -10294,7 +10301,7 @@ function renderHome() {
     </div>`;
   }).join('')
   : `<div class="empty" style="padding:6px 0 2px;">
-      <img alt="" src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
+      <img src="${IMGS.sleep}" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">予定がありません</div>
     </div>`;
 
@@ -10868,7 +10875,7 @@ function renderCalWeek() {
       date.setDate(weekStart.getDate()+d);
       const ds = localDateStr(date);
       const dayEvs = wsFilter(S.events).filter(e=>e.time && _occursOn(e, ds))
-        .sort((a,b)=>a.time.localeCompare(b.time));
+        .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
 
       const slots = HOURS.map(h=>`<div class="cal-week-slot"></div>`).join('');
       const evBoxes = dayEvs.map(e => {
@@ -11811,7 +11818,7 @@ function renderCalList() {
   // 今日から60日分の予定を表示
   const futureEvs = wsFilter(S.events)
     .filter(e=>e.date>=td)
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
 
   const mainArea = document.getElementById('cal-main-area');
   if(!futureEvs.length) {
@@ -13110,12 +13117,12 @@ function renderBudget() {
   document.getElementById('btx-ex').classList.toggle('on', type==='expense');
   document.getElementById('btx-in').classList.toggle('on', type==='income');
 
-  const filtered = memMt.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
+  const filtered = memMt.filter(t=>t.type===type).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const listEl = document.getElementById('budget-list');
   if(!listEl) return;
   if(!filtered.length) {
     listEl.innerHTML = `<div class="empty">
-      <img alt="" src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">記録がありません</div>
       <div class="empty-desc">右下の＋ボタンで追加できます</div>
     </div>`;
@@ -13272,7 +13279,7 @@ function expandRecurringForMonth(y, m0) {
     }
   }
   // 日付昇順
-  out.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  out.sort(function(a,b){ return (a.date||"").localeCompare(b.date||""); });
   return out;
 }
 
@@ -13321,7 +13328,7 @@ function computeMonthlyCashflow(y, m0) {
   const opening = Number((S.cashflowSettings.openingBalances || {})[monthKey]);
   const openingBalance = Number.isFinite(opening) ? opening : (Number(S.cashflowSettings.defaultOpeningBalance) || 0);
   // 実績
-  const txs = (S.txs || []).filter(function(t){
+  const txs = wsFilter(S.txs || []).filter(function(t){   // 家計サマリー(wsFilter)と実績を一致させる
     if(!t || !t.date) return false;
     const d = new Date(t.date + 'T00:00:00');
     return d.getFullYear() === y && d.getMonth() === m0;
@@ -13859,22 +13866,25 @@ function setBudgetModalType(type) {
 function saveTx() {
   const id     = document.getElementById('bm-id').value;
   const type   = document.getElementById('bm-type').value;
-  const amount = parseFloat(document.getElementById('bm-amount').value);
+  const amount = Math.round(parseFloat(document.getElementById('bm-amount').value));
   const cat    = document.getElementById('bm-cat').value;
   const desc   = document.getElementById('bm-desc').value.trim();
   const date   = document.getElementById('bm-date').value;
-  if(!amount||amount<=0) { showToast('金額を入力してください','error'); return; }
+  if(!isFinite(amount) || amount<=0 || amount>1000000000) { showToast('金額を正しく入力してください','error'); return; }
   if(!date) { showToast('日付を入力してください','error'); return; }
   const member = (document.getElementById('bm-member')?.value) || S.user?.id || 'kenya';
   if(id) {
     const tx = (S.txs||[]).find(t => t.id === id);
-    if(tx) Object.assign(tx, {type, amount, cat, desc: desc||cat, date, member});
-    saveS(); closeModal('m-budget'); renderBudget();
+    let _snap = null;
+    if(tx) { _snap = Object.assign({}, tx); Object.assign(tx, {type, amount, cat, desc: desc||cat, date, member}); }
+    if(!saveS()) { if(tx && _snap) Object.assign(tx, _snap); showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error'); return; }
+    closeModal('m-budget'); renderBudget();
     showToast('保存しました');
   } else {
     if(!checkPremiumLimit('txs')) return;
     (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member,workspaceId:curWsId()});
-    saveS(); closeModal('m-budget'); renderBudget();
+    if(!saveS()) { S.txs.pop(); showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error'); return; }
+    closeModal('m-budget'); renderBudget();
     showToast('記録しました');
   }
 }
@@ -14991,7 +15001,7 @@ function _archiveCardPreview() {
   }).slice(0,3);
   if(!docs.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img alt="" src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">書類はまだありません</div></div>';
   }
   return docs.map(function(d){
@@ -15007,7 +15017,7 @@ function _albumCardPreview() {
   }).slice(0,4);
   if(!photos.length) {
     return '<div class="empty" style="padding:6px 0 2px;">'
-      + '<img alt="" src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
+      + '<img src="'+IMGS.sleep+'" alt="" style="width:72px;height:72px;object-fit:contain;opacity:.9;filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))">'
       + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">写真はまだありません</div></div>';
   }
   return '<div style="display:flex;gap:5px;padding:2px 0;">'
@@ -16733,6 +16743,7 @@ function archiveBatchAdd(ev) {
   const d = new Date();
   const dateLbl = (d.getMonth()+1) + '/' + d.getDate();
   let pending = total, failed = 0;
+  const _docLenBefore = (S.docs||[]).length;  // 容量超過時のロールバック基準
   for(let i=0; i<total; i++) {
     const idx = i;
     downscaleImageFile(files[i], 1280, 0.85).then(function(dataUrl){
@@ -16746,6 +16757,7 @@ function archiveBatchAdd(ev) {
       pending--;
       if(pending === 0) {
         const ok = saveS();
+        if(!ok) { try { if(Array.isArray(S.docs)) S.docs.length = _docLenBefore; } catch(_){} }  // 巻き戻し
         renderArchive();
         if(!ok) {
           showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error');
@@ -16783,7 +16795,12 @@ function saveArchiveAdd() {
   } else {
     S.docs.push({ id:'doc_'+uid(), title:title, cat:cat, memo:memo, photo:_archivePhotoBuf||'', folderId:folderId, createdAt:now, updatedAt:now });
   }
-  saveS();
+  const _okArc = saveS();
+  if(!_okArc) {
+    if(!_archiveEditId) { try { S.docs.pop(); } catch(_){} }   // 新規分を巻き戻し（容量超過）
+    showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error');
+    return;
+  }
   closeModal('m-archive-add');
   renderArchive();
   showToast(_archiveEditId ? '更新しました' : '保存しました','success');
@@ -16869,10 +16886,13 @@ function albumOnFilesPicked(ev) {
   let pending = total;
   let failed = 0;
   let skipped = 0;
+  const _lenBefore = (S.albumPhotos||[]).length;  // 容量超過時にロールバックする基準
   function done() {
     pending--;
     if(pending !== 0) return;
     const ok = saveS();
+    // 保存失敗（容量超過）時はメモリ上の追加を巻き戻す。放置すると以後の全 saveS が失敗し続ける
+    if(!ok) { try { if(Array.isArray(S.albumPhotos)) S.albumPhotos.length = _lenBefore; } catch(_){} }
     renderAlbum();
     if(!ok) {
       showToast("容量不足のため保存できませんでした。動画や枚数を減らすか、設定 → ストレージ管理から整理してください。","error");
@@ -17427,7 +17447,7 @@ function savePrepItem() {
   }
   item.createdAt = new Date().toISOString();
   item.workspaceId = curWsId();
-  S.prep.push(item);
+  (S.prep = S.prep || []).push(item);
   saveS(); closeModal('m-prep'); renderPrep();
   showToast('追加しました');
 }
@@ -18034,9 +18054,9 @@ function goChildDetail(id) {
   const c = MEMBERS.find(m=>m.id===id);
   if(!c) return;
   document.getElementById('cdetail-title').textContent = c.name;
-  const evs   = (S.events||[]).filter(e=>e.member===id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const evs   = (S.events||[]).filter(e=>e.member===id).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
   const tasks = (S.tasks||[]).filter(t=>(t.assignedTo||t.member)===id).slice(0,5);
-  const hlth  = (S.health||[]).filter(r=>r.child===id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const hlth  = (S.health||[]).filter(r=>r.child===id).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
 
   document.getElementById('cdetail-body').innerHTML = `
     <div class="cdetail-hero" style="background:${H(c.grad)}">
@@ -18079,7 +18099,7 @@ function renderNotif() {
   const notifs = S.notifs||[];
   if(!notifs.length) {
     el.innerHTML = `<div class="empty" style="padding:52px 24px">
-      <img alt="" src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
+      <img src="${IMGS.sleep}" alt="" style="width:64px;height:64px;object-fit:contain">
       <div class="empty-title">通知はありません</div>
     </div>`;
     return;
@@ -21234,7 +21254,7 @@ function continueAction(action, text) {
   if(action.type==='create_budget' && action.params.confidence==='low') {
     const {cat} = guessCategory(text);
     action.params.cat = cat; _pendingAction=action;
-    return `${cat}で ¥${action.params.amount.toLocaleString()}、「${action.params.title}」を家計メモに記録します。よろしいですか？`;
+    return `${cat}で ¥${Number(action.params.amount||0).toLocaleString()}、「${action.params.title}」を家計メモに記録します。よろしいですか？`;
   }
   _pendingAction=null;
   return '内容が読み取れませんでした。もう一度、別の言い方で教えていただけますか？';
@@ -23036,7 +23056,7 @@ function _hokuExecuteView(intent) {
 
   if(t === 'calendar_view') {
     const all = (S.events||[]).filter(ev => ev && ev.date && inPeriod(ev.date) && (!e.memberId || ev.member === e.memberId || ev.memberId === e.memberId));
-    all.sort((a,b)=> (a.date+a.time||'').localeCompare(b.date+b.time||''));
+    all.sort((a,b)=> (a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
     if(!all.length) return { ok:true, message: periodLabel+'の予定はまだないよ。\n\n[[ACTION_BUTTONS:calendar]]' };
     const head = periodLabel+'の予定 '+all.length+' 件あるよ。';
     const body = all.slice(0,5).map(ev => '・'+fmtDate(ev.date)+(ev.time?' '+ev.time:'')+' '+(ev.title||'(無題)')).join(NL);
@@ -24385,7 +24405,7 @@ function buildHokuContext() {
       .map(e=>({title:e.title,time:e.time||'終日',member:getMem(e.member||'').name||''}));
 
     const upcomingEvs = (S.events||[]).filter(e=>e.date>td&&e.date<=in7)
-      .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,10)
+      .sort((a,b)=>(a.date||"").localeCompare(b.date||"")).slice(0,10)
       .map(e=>({date:fmtD(e.date),title:e.title,member:getMem(e.member||'').name||''}));
 
     const tasks = (S.tasks||[]).filter(t=>t.status!=='done');
@@ -24407,11 +24427,11 @@ function buildHokuContext() {
     monthTxs.filter(t=>t.type==='expense').forEach(t=>{byCat[t.cat]=(byCat[t.cat]||0)+t.amount;});
     const topCats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5)
       .map(([cat,amount])=>({cat,amount}));
-    const recentTxs = monthTxs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3)
+    const recentTxs = monthTxs.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,3)
       .map(t=>({date:fmtD(t.date),desc:t.desc||t.cat||'',amount:t.amount,type:t.type}));
 
     const prepUrgent = (S.prep||[]).filter(p=>!p.done&&p.date&&p.date<=in3)
-      .sort((a,b)=>a.date.localeCompare(b.date)).map(p=>({text:p.text,date:fmtD(p.date)}));
+      .sort((a,b)=>(a.date||"").localeCompare(b.date||"")).map(p=>({text:p.text,date:fmtD(p.date)}));
     const prepNoDate = (S.prep||[]).filter(p=>!p.done&&!p.date).slice(0,5).map(p=>({text:p.text}));
     // Wave 48：曜日ルーティンの存在と本日候補件数も Hoku コンテキストへ
     const prepRoutinesAll = (S.prepRoutines||[]).filter(r => r.enabled !== false);
@@ -24421,7 +24441,7 @@ function buildHokuContext() {
     const _suggToday = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(td).filter(s => !s.applied) : [];
     const _suggTomo  = (typeof computePrepRoutineSuggestions === 'function') ? computePrepRoutineSuggestions(_tomoStr).filter(s => !s.applied) : [];
 
-    const healthRecs = (S.health||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4)
+    const healthRecs = (S.health||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,4)
       .map(h=>({date:fmtD(h.date),child:getMem(h.child).name||'',temp:h.temp,cond:h.cond||''}));
 
     const members = MEMBERS.map(m=>({
