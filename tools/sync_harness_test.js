@@ -34,7 +34,7 @@ const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
 function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent が呼ぶ）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
-const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent']
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent']
   .map(extractFn).join('\n\n');
 eval(srcs);
 
@@ -260,6 +260,21 @@ console.log('Familink sync harness');
   ok('T8-2 配下項目が正規boardへ付け替わり重複除去（牛乳1+食パン1）', S.boardItems.length === 2 && S.boardItems.every(i=>i.boardId==='b1'));
   ok('T8-3 セクション重複も集約', S.boardSections.length === 1 && S.boardSections[0].boardId === 'b1');
   ok('T8-4 買い物の同内容重複を除去', S.shoppingItems.length === 1);
+})();
+
+// ---- T9: Hoku 意図判定（見る系は登録しない／追加系は登録する） ----
+(function () {
+  const q = t => detectIntent(t).type;
+  // 見る・聞く（query であるべき＝カレンダー/タスクに反映しない）
+  ok('T9-1 「今日の予定を教えて」は参照', q('今日の予定を教えて') === 'query');
+  ok('T9-2 「タスク見せて」は参照', q('タスク見せて') === 'query');
+  ok('T9-3 「今週の予定は？」は参照', q('今週の予定は？') === 'query');
+  ok('T9-4 「やること何件ある？」は参照', q('やること何件ある？') === 'query');
+  ok('T9-5 「予定ある？」は参照', q('予定ある？') === 'query');
+  // 追加・登録（action であるべき）
+  ok('T9-6 「明日10時に歯医者の予定追加して」は登録', q('明日10時に歯医者の予定追加して') === 'action');
+  ok('T9-7 「牛乳買っておいて」は登録', q('牛乳買っておいて') === 'action');
+  ok('T9-8 「食費3000円使った」は登録', q('食費3000円使った') === 'action');
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');
