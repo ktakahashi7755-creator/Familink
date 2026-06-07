@@ -18491,6 +18491,17 @@ function prmStartTrial() {
    ・連続日数に応じて加算。設定で ON/OFF（OFF でもデータは消さない）
    ・コインは将来のショップ拡張の土台。getFamiCoins/addFamiCoins で読み書き
    ============================================================ */
+/* Wave 256: ログインボーナスの「本日表示済み」印。アカウント×日付で1回に限定し、
+   巨大な familink_v3 の保存が容量超過で失敗しても確実に効くよう、独立した小さなキーに直接保存する。 */
+function _lbAcctKey() {
+  return (S.supaSession && S.supaSession.id) || (S.account && S.account.email) || 'guest';
+}
+function _lbAlreadyShownToday() {
+  try { return localStorage.getItem('fl_lb_shown') === (_lbAcctKey() + '|' + todayStr()); } catch(_) { return false; }
+}
+function _lbMarkShownToday() {
+  try { localStorage.setItem('fl_lb_shown', _lbAcctKey() + '|' + todayStr()); } catch(_){}
+}
 function _ensureLoginBonus() {
   if(!S.loginBonus || typeof S.loginBonus !== 'object') {
     S.loginBonus = { lastClaimDate:'', streak:0, coins:0, enabled:true, badge30:false, dates:[] };
@@ -18535,7 +18546,9 @@ function checkLoginBonus(force) {
   // 通常は7:00より前は非表示。ただし force、または「登録済みユーザーの初回」は時間問わず必ず付与
   if(!force && now.getHours() < 7 && !(registered && firstEver)) return;
   const today = todayStr();
-  if(lb.lastClaimDate === today) return;  // 同日2回目は禁止（force でも二重付与しない）
+  // 本日このアカウントで既に表示済みなら出さない（保存失敗にも強い独立フラグ＝1日1回を厳守）
+  if(_lbAlreadyShownToday()) return;
+  if(lb.lastClaimDate === today) { _lbMarkShownToday(); return; }  // コイン受給済み → 印だけ付けて終了
 
   // 連続日数：前日に受け取っていれば +1、そうでなければ 1 にリセット
   const yesterday = addDays(today, -1);
@@ -18562,6 +18575,7 @@ function checkLoginBonus(force) {
   }
   try { saveS(); } catch(_){}
 
+  _lbMarkShownToday();   // 本日表示の印（独立キー）。容量超過で saveS が失敗しても再表示しない
   _loginBonusPending = { coins: coins, streak: lb.streak, total: lb.coins, bonusLabel: bonusLabel, badge: badge };
   _openLoginBonusModal();
   try { if(S.screen === 's-home') renderHome(); } catch(_){}  // トップのコイン数を即更新

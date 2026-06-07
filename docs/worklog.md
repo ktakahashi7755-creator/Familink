@@ -19478,3 +19478,33 @@ seedDemo がデモ初期データを `id:uid()`（毎回ランダム）で生成
 
 ### コミット
 - メッセージ: fix(dup): カスタムボード増殖＋買い物重複を集約（boardId付け替え）(v20260607l)
+
+---
+
+## 2026-06-07 20:45  env: PC (Remote Control)  branch: claude/merge-and-push-main-u44Ty (canonical)
+
+### 作業名
+ログインボーナスを「1アカウント・1日1回の表示」に厳格化
+
+### 原因
+表示済み判定は S.loginBonus.lastClaimDate（巨大な familink_v3 内）に依存。重複データ等で
+容量超過し saveS が失敗すると lastClaimDate が永続化されず、再読み込みのたびに再表示されていた。
+
+### 修正
+- 独立した小さなキー `fl_lb_shown`（値＝アカウント|日付）に「本日表示済み」を直接保存。
+  巨大blobの保存失敗に影響されず、アカウント×日付で1回だけ表示。
+- checkLoginBonus 冒頭で `_lbAlreadyShownToday()` ガード、モーダル表示時に `_lbMarkShownToday()`。
+  既にコイン受給済み（lastClaimDate=today）の場合も印だけ付けて再表示しない。
+- アカウント切替時は別アカウント扱いで当日分を表示（per-account）。
+
+### テスト結果
+- node --check：SYNTAX OK
+- 2回連続起動テスト（同プロフィール・demo）：run1=モーダルopen表示 / run2=open無し（再表示しない）を確認
+- harness：34/34 PASS（リグレッションなし）
+- app-source ⇄ docs 一致（v20260607m）
+
+### iPhone確認ポイント
+- 同じアカウントで何度開き直してもログインボーナスは1日1回だけ。翌日に再表示。
+
+### コミット
+- メッセージ: fix(login-bonus): 1アカウント1日1回に厳格化（独立キーで容量超過にも耐性）(v20260607m)
