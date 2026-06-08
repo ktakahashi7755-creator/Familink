@@ -19987,3 +19987,35 @@ Edge Function CORS 修正（invoke の preflight ブロック「Failed to send a
 
 ### コミット
 - メッセージ: fix(hoku): 参照発話(教えて欲しい等)で登録モーダルを出さない多層ガード＋プロンプト明確化
+
+---
+
+## 2026-06-08 12:10  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+Hokuエージェント画面のサジェストを2行・逆方向マーキー化＋参考例を拡充（プロUI）
+
+### 変更ファイル
+- app-source/familink.html（CSS .hoku-mq一式 / #hoku-suggs / renderHokuSuggs）
+- docs/index.html（同期 v20260608g）
+
+### 変更内容
+- サジェストチップを「上段＝右へ流れる／下段＝左へ流れる」2行の自動マーキーに刷新（参考アプリ準拠のプロUI）。
+  両端フェード(mask)、reduced-motion時は手動横スクロールに退避、タップ時(.paused)・hover時は一時停止して押しやすく。
+- 参考例を7個→16個（上8/下8）に拡充し主要機能を網羅：
+  上段(見る系・送信)＝予定/タスク/家計/空き日/体調/買い物/ボード/準備
+  下段(追加系・○○は入力欄へ差し込み)＝予定/タスク/買い物/体温/家計/メモ/お知らせ/毎週準備
+- チップ2回複製→translateX(-50%)でシームレスループ。
+
+### テスト結果
+- node qa_full_test.js：**84/84 PASS（WARN 0）**／Playwrightスクショで2行逆方向・両端フェード確認
+- tools/sync_harness_test.js：**64/64 PASS**
+- console error 0（ERR_CERT は外部CDN由来でアプリ無関係）
+- app-source ⇄ docs 一致（v20260608g）
+
+### iPhone確認ポイント
+- Hoku画面の冒頭で2行のチップが上=右/下=左にゆっくり流れるか、指で触れると止まってタップできるか。
+- 横スクロール（ページ全体）が発生しないか。
+
+### コミット
+- メッセージ: feat(hoku-ui): サジェストを2行逆方向マーキー化＋参考例を16件に拡充（プロUI）
