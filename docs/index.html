@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260608b';
+  var V='v20260608c';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -19178,7 +19178,7 @@ function renderSettings() {
         <div class="settings-item-label">Hoku を AI で賢くする
           <div style="font-size:11px;color:var(--text-muted);font-weight:400;">プレミアム限定・OpenAI 連携（無料は既存Hoku）</div>
         </div>
-        <div class="settings-value">${(S.isPremiumUser && S.hokuApiUrl && S.hokuChatMode)?'AI':(S.hokuApiUrl?'設定済':'OFF')}</div><div class="settings-arrow">›</div>
+        <div class="settings-value">${(typeof _hokuChatActive==='function' && _hokuChatActive())?'AI':(S.hokuApiUrl?'設定済':'OFF')}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
@@ -24791,7 +24791,20 @@ async function runHokuAiSelfTest() {
         var r = await sb.functions.invoke('hoku', { body: { mode:'chat', text:'接続テスト。今日が何日か一言で。', context:{ today: (typeof todayStr==='function'?todayStr():'') }, history:[] } });
         if(r && r.error) {
           var msg = (r.error && r.error.message) || String(r.error);
-          try { if(r.error.context && typeof r.error.context.json === 'function'){ var j = await r.error.context.json(); if(j) msg += ' / ' + JSON.stringify(j); } } catch(_){}
+          var reason = '';
+          try { if(r.error.context && typeof r.error.context.json === 'function'){ var j = await r.error.context.json(); if(j){ reason = j.reason || j.error || ''; msg += ' / ' + JSON.stringify(j); } } } catch(_){}
+          // reason を日本語の対処に翻訳（原因をその場で特定できるように）
+          var HINT = {
+            invalid_api_key:'OPENAI_API_KEY が不正です。secrets set を再確認してください。',
+            insufficient_quota:'OpenAI の残高/クレジット不足です。請求設定を確認してください。',
+            rate_limited:'OpenAI のレート制限です。少し待って再試行してください。',
+            openai_timeout:'OpenAI 応答が遅く打ち切りました。再試行してください。',
+            openai_unavailable:'OpenAI 側が一時的に不調です。',
+            network_error:'サーバから OpenAI への通信に失敗しました。',
+            empty_response:'OpenAI から空応答でした。',
+            'server_misconfigured: OPENAI_API_KEY 未設定':'関数に OPENAI_API_KEY が未設定です。secrets set を実行してください。'
+          };
+          if(reason && HINT[reason]) msg += '<br>→ ' + HINT[reason];
           detail = '❌ エラー: ' + msg;
         } else if(r && r.data && r.data.reply) {
           detail = '✅ OK: ' + String(r.data.reply).slice(0,80);

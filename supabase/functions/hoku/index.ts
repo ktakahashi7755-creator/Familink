@@ -68,33 +68,55 @@ weekday は「毎週○曜」のような繰り返し（prep_routine_add / recur
 intent候補: calendar_add, task_add, budget_add, recurring_budget_add, prep_add, prep_routine_add, health_add, board_post_add, notification_add, shopping_add, shopping_frequent_add, shopping_purchased, calendar_view, task_view, budget_view, health_view, prep_view, shopping_view, unknown
 entities は該当する項目だけ入れればよい（無い項目は省略可）。`;
 
-async function callOpenAI(messages: unknown[]): Promise<Record<string, unknown> | null> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.4,
-      max_tokens: 500,
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!res.ok) {
-    console.error("OpenAI error", res.status, await res.text().catch(() => ""));
-    return null;
-  }
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) return null;
+// OpenAI 呼び出し。成功時は {ok:true, data}、失敗時は {ok:false, reason} を返す。
+// reason は「APIキーを絶対に含めない」安全な分類のみ（診断で原因特定に使う）。
+type OpenAIResult = { ok: true; data: Record<string, unknown> } | { ok: false; reason: string; status?: number };
+async function callOpenAI(messages: unknown[]): Promise<OpenAIResult> {
+  // OpenAI が遅い／無応答のときはサーバ側でも打ち切る（関数のハング・無駄な課金時間を防ぐ）。
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  let res: Response;
   try {
-    return JSON.parse(content);
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        temperature: 0.4,
+        max_tokens: 500,
+        response_format: { type: "json_object" },
+      }),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    const aborted = (e as Error)?.name === "AbortError";
+    console.error("OpenAI fetch failed", aborted ? "timeout" : (e as Error)?.message);
+    return { ok: false, reason: aborted ? "openai_timeout" : "network_error" };
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    console.error("OpenAI error", res.status, errText);
+    // ステータス＋本文から原因を安全に分類（APIキーは含めない）。
+    let reason = "ai_error";
+    if (res.status === 401) reason = "invalid_api_key";
+    else if (res.status === 429) reason = /insufficient_quota/i.test(errText) ? "insufficient_quota" : "rate_limited";
+    else if (res.status >= 500) reason = "openai_unavailable";
+    return { ok: false, reason, status: res.status };
+  }
+  const data = await res.json().catch(() => null);
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) return { ok: false, reason: "empty_response" };
+  try {
+    return { ok: true, data: JSON.parse(content) };
   } catch (_) {
     // JSON でなければ素のテキストを reply として扱う
-    return { reply: String(content).slice(0, 600), intent: "unknown", confidence: 0.3 };
+    return { ok: true, data: { reply: String(content).slice(0, 600), intent: "unknown", confidence: 0.3 } };
   }
 }
 
@@ -132,8 +154,10 @@ Deno.serve(async (req: Request) => {
   }
   messages.push({ role: "user", content: text });
 
-  const out = await callOpenAI(messages);
-  if (!out) return json({ error: "ai_failed" }, 502);
+  const result = await callOpenAI(messages);
+  // reason を返すことで、アプリの #qa-debug 診断が「残高不足／鍵不正／タイムアウト」等を特定できる。
+  if (!result.ok) return json({ error: "ai_failed", reason: result.reason }, 502);
+  const out = result.data;
 
   if (wantIntentOnly) {
     return json({

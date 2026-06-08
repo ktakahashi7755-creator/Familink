@@ -19724,3 +19724,54 @@ OpenAIキーは従来どおりサーバSecretsのみ。
 
 ### コミット
 - メッセージ: fix(qa-debug): パネルを最小化可能にして下部ボタンを塞がないように (v20260608b)
+
+---
+
+## 2026-06-08 06:10  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+OpenAI API連携（AI版Hoku）の総点検・堅牢化：タイムアウト／エラー分類／設定バッジ整合
+
+### 変更ファイル
+- supabase/functions/hoku/index.ts
+- app-source/familink.html
+- docs/index.html（同期）
+- docs/worklog.md
+
+### 変更内容
+- **Edge Function 堅牢化**：OpenAI fetch に AbortController（20秒）を追加。OpenAI 無応答時に
+  関数がハングして無駄な課金時間を消費するのを防止。
+- **Edge Function エラー分類**：callOpenAI を {ok,data}/{ok,reason} 型に変更。401=invalid_api_key /
+  429=insufficient_quota or rate_limited / 5xx=openai_unavailable / timeout / network_error /
+  empty_response を安全に分類（APIキーは絶対に含めない）。502応答に reason を同梱。
+- **#qa-debug 診断強化**：reason を日本語の対処ヒントに翻訳して表示（残高不足／鍵不正／レート制限／
+  タイムアウト等をその場で特定可能に）。
+- **設定バッジのバグ修正**：設定「Hoku を AI で賢くする」の値表示を _hokuChatActive() 基準に統一。
+  これまで hokuApiUrl がある時だけ 'AI' 表示で、自動有効化設計（プレミアム＋ログインでURL空でもAI有効）
+  と矛盾し、対象ユーザーに誤って 'OFF' と表示されていた問題を修正。
+
+### 評価（OpenAI連携レビュー結論）
+- 起動チェーン（sendHokuMsg→_hokuChatActive→_hokuTryChat→callHokuChat→_hokuCallBackend→invoke）は健全。
+- 失敗時は既存ローカルHokuへ完全フォールバック（不変）。プライバシー配慮（家計金額は文脈に含めない）も維持。
+- 認証はJWT検証前提（ゼロ設定）。anonキーのみ。service_roleなし。OK。
+
+### テスト結果
+- tools/sync_harness_test.js：**47/47 PASS**
+- node qa_full_test.js（Playwright/iPhone 390x844）：**84/84 PASS**（console エラー0）
+- Edge Function：deno未導入のため手動レビュー（波括弧整合・型整合・APIキー非露出・後方互換 error:"ai_failed" 維持を確認）
+- app-source ⇄ docs 一致（v20260608c）
+
+### 未確認事項
+- 実機でのOpenAI実呼び出し（鍵・残高が必要）。#qa-debug の「Hoku AI 診断」で reason ヒントが
+  出ることをオーナー環境で確認したい。
+
+### iPhone確認ポイント
+- 設定→「Hoku を AI で賢くする」バッジが、プレミアム＋ログイン時に 'AI' と表示されるか
+- #qa-debug → 「Hoku AI 診断」でエラー時に日本語の対処ヒントが出るか
+
+### 次にやること（改善提案・要人間確認＝独断実装しない）
+- プレミアムのAI呼び出しはサーバ側レート制限なし（コスト保護の観点で将来検討。DB/KV必要＝§14.3要確認）。
+- chat失敗後にintent経路（3秒）を再試行する二重待ちの最適化（軽微）。
+
+### コミット
+- メッセージ: feat(hoku): OpenAI連携を堅牢化（タイムアウト/エラー分類/診断/バッジ整合）(v20260608c)
