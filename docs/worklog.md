@@ -19903,3 +19903,50 @@ Edge Function CORS 修正（invoke の preflight ブロック「Failed to send a
 
 ### コミット
 - メッセージ: fix(hoku): Edge FunctionのCORS許可ヘッダを拡張しinvokeのpreflightブロックを解消
+
+---
+
+## 2026-06-08 11:20  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+家族共有のプライバシー強化（個人キーを家族から読めなくする RLS）＋安定ベースのバックアップ＋総点検
+
+### バックアップ
+- 安定ベースを git タグ backup-014-hoku-openai-stable に記録（ローカル作成）。
+  ※ タグ push はリモート実行環境のプロキシ制限で不可。実バックアップは remote ブランチ
+    origin/claude/openai-api-testing-vdsHU（HEAD=be6f2f1 以降）が担保（全ページ docs/*.html 含む）。
+
+### 背景（プライバシーギャップ）
+- _pushToSupabase は全 SYNC_KEYS 行に family_id を付与してアップロード。
+- 旧 RLS family_read は「同じ family_id の行は全部読める」ため、アプリ画面では非表示でも
+  DB 直クエリで家族の誰もが他メンバーの個人キー（userProfile / hokuContext(Hoku会話文脈) /
+  isPremiumUser / cashflowSettings / notifs 等）を読めてしまう状態だった。
+
+### 変更内容
+- **RLS family_read を“最小権限”の二段に変更**（docs/supabase-setup-sql.sql ＋ app-source 埋め込みSQLコメント）：
+  ① 自分の行は data_key 問わず全部読める（多端末で自分のデータ復元）
+  ② 家族（同じ family_id）の行は「共有してよい data_key（FAMILY_SHARED_KEYS＋_deletions）だけ」読める
+  → 予定/タスク/家計/体調/買い物/ボード等の家族共有データは見えるが、個人・端末固有データは
+    本人以外（家族でも）読めない。多端末同期・家族共有はそのまま維持（非破壊）。
+- **回帰テスト追加**（クライアント第2防御の固定）：
+  T11（個人キーは他メンバーで上書きされない／取り込まない、共有キーは家族マージ）、
+  T12（別家族 family_id のデータは混ざらない）。
+
+### 確認（漏えい無しの裏取り）
+- account（メール/パスワード）/ supaSession / hokuApiKey は SYNC_KEYS に無くアップロードされない（端末内のみ）。OK。
+
+### テスト結果
+- tools/sync_harness_test.js：**56/56 PASS**（T11/T12 追加）
+- node qa_full_test.js：**84/84 PASS（WARN 0）**
+- app-source ⇄ docs 一致（v20260608e）。app-source変更は埋め込みSQLコメントのみ（実行コード非変更）。
+
+### オーナー作業（プライバシー反映に必須）
+- Supabase ダッシュボード → SQL Editor に docs/supabase-setup-sql.sql を全文貼付して Run（冪等）。
+  これで新 RLS が適用され、家族でも個人キーは読めなくなる。未実行だと旧 RLS のまま。
+
+### 申し送り（次回 / 任意の更なる強化）
+- データ最小化（個人キーを family_id=null でアップロード＋fetchを .or で取得）は、現行同期を壊さない
+  範囲で将来検討可。ただし RLS で既に読み取りは遮断済みのため優先度は低い。
+
+### コミット
+- メッセージ: feat(privacy): 家族共有のRLSを最小権限化し個人キーを家族から読めなくする＋回帰テスト

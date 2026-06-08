@@ -5911,9 +5911,15 @@ async function supaSignOut() {
      );
      alter table fl_family_data enable row level security;
 
-     -- 家族間共有のための RLS（Supabaseダッシュボードで実行）:
-     -- 読み取りは「自分の行」or「自分と同じ family_id の行（=家族）」を許可。
+     -- 家族間共有のための RLS（Supabaseダッシュボードで実行 / 正本は docs/supabase-setup-sql.sql）:
+     -- 読み取りは“最小権限”の二段：
+     --   ① 自分の行は data_key を問わず全部読める（多端末で自分のデータ復元）
+     --   ② 家族（同じ family_id）の行は「家族共有してよい data_key だけ」読める
+     -- → 予定/タスク/家計/体調/買い物/ボード等の家族共有データは見えるが、
+     --    userProfile / hokuContext / isPremiumUser / cashflowSettings / notifs 等の
+     --    個人・端末固有データは本人以外（家族でも）読めない（プライバシー保護）。
      -- 書き込みは常に自分の行のみ。自己参照RLSの再帰を避けるため SECURITY DEFINER 関数を使う。
+     -- ※ 共有キー一覧は下の FAMILY_SHARED_KEYS と必ず一致させる。
      create or replace function fl_my_family_ids()
        returns setof text language sql security definer stable as $$
          select distinct family_id from fl_family_data
@@ -5921,7 +5927,11 @@ async function supaSignOut() {
        $$;
      drop policy if exists "users_own_data" on fl_family_data;
      create policy "family_read" on fl_family_data for select
-       using (auth.uid() = user_id or family_id in (select fl_my_family_ids()));
+       using (auth.uid() = user_id or (family_id in (select fl_my_family_ids())
+         and data_key = any(array['events','tasks','txs','health','posts','announces',
+           'prep','prepRoutines','folders','docs','albumPhotos','shoppingItems','shoppingFrequent',
+           'members','customBoards','boardItems','boardSections','recurringTxs','memos','memoFolders',
+           'workspaces','_deletions'])));
      create policy "own_insert" on fl_family_data for insert with check (auth.uid() = user_id);
      create policy "own_update" on fl_family_data for update
        using (auth.uid() = user_id) with check (auth.uid() = user_id);

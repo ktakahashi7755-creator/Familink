@@ -35,7 +35,14 @@ create or replace function public.fl_my_family_ids()
   $$;
 grant execute on function public.fl_my_family_ids() to authenticated;
 
--- 2) RLS ポリシー（読み取りは自分の行 or 同じ family_id の家族の行 / 書き込みは常に自分の行のみ）
+-- 2) RLS ポリシー（書き込みは常に自分の行のみ）
+--    読み取り（family_read）は次の二段で“最小権限”にする：
+--      ① 自分の行は data_key を問わず全部読める（多端末で自分のデータを復元するため）
+--      ② 家族（同じ family_id）の行は「家族で共有してよい data_key だけ」読める
+--    → 体調・予定・家計・買い物・ボード等の“家族共有データ”は家族で見えるが、
+--       userProfile / hokuContext(Hoku会話文脈) / isPremiumUser / cashflowSettings /
+--       notifs / アバター 等の“個人・端末固有データ”は本人以外（家族でも）読めない。
+--    ※ 共有キー一覧は app-source の FAMILY_SHARED_KEYS と一致させること（変更時は両方更新）。
 drop policy if exists "users_own_data" on public.fl_family_data;  -- 旧ポリシーがあれば撤去
 drop policy if exists "family_read"   on public.fl_family_data;
 drop policy if exists "own_insert"    on public.fl_family_data;
@@ -43,7 +50,20 @@ drop policy if exists "own_update"    on public.fl_family_data;
 drop policy if exists "own_delete"    on public.fl_family_data;
 
 create policy "family_read" on public.fl_family_data for select
-  using (auth.uid() = user_id or family_id in (select public.fl_my_family_ids()));
+  using (
+    auth.uid() = user_id
+    or (
+      family_id in (select public.fl_my_family_ids())
+      and data_key = any (array[
+        'events','tasks','txs','health','posts','announces',
+        'prep','prepRoutines','folders','docs','albumPhotos',
+        'shoppingItems','shoppingFrequent','members',
+        'customBoards','boardItems','boardSections',
+        'recurringTxs','memos','memoFolders','workspaces',
+        '_deletions'
+      ])
+    )
+  );
 create policy "own_insert" on public.fl_family_data for insert
   with check (auth.uid() = user_id);
 create policy "own_update" on public.fl_family_data for update

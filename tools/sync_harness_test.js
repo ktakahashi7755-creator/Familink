@@ -302,5 +302,38 @@ console.log('Familink sync harness');
   ok('T10-5 独自URL設定時は未ログインでも可', _hokuAiAllowed() === true && _hokuChatActive() === true);
 })();
 
+// ---- T11: 家族共有プライバシー（個人キーは家族でも漏れない／共有キーは家族でマージ） ----
+//   DB側は RLS で個人キーの家族横断読み取りを禁止（docs/supabase-setup-sql.sql）。
+//   本テストはクライアント側“第2防御”：万一 個人キー行を受信しても他メンバー分は採用しないことを固定。
+(function () {
+  const FAM = 'FAMI-SECRET';
+  // クラウド行：自分(userA)と他メンバー(userB)。userProfile/hokuContext は個人キー、events は共有キー。
+  const cloud = [
+    { user_id:'userA', family_id:FAM, data_key:'userProfile', payload:{ name:'わたし' }, updated_at:'2026-06-01T00:00:00Z' },
+    { user_id:'userB', family_id:FAM, data_key:'userProfile', payload:{ name:'たろう' }, updated_at:'2026-06-09T00:00:00Z' }, // 新しいが他人＝採用しない
+    { user_id:'userB', family_id:FAM, data_key:'hokuContext', payload:{ secret:'Bの会話文脈' }, updated_at:'2026-06-09T00:00:00Z' },
+    { user_id:'userA', family_id:FAM, data_key:'events', payload:[{ id:'a1', title:'Aの予定', updatedAt:'2026-06-01T00:00:00Z' }], updated_at:'2026-06-01T00:00:00Z' },
+    { user_id:'userB', family_id:FAM, data_key:'events', payload:[{ id:'b1', title:'Bの予定', updatedAt:'2026-06-02T00:00:00Z' }], updated_at:'2026-06-02T00:00:00Z' }
+  ];
+  S = { _deletions:{}, userProfile:{ name:'わたし' } };
+  simulateFetch(cloud, FAM, 'userA');
+  ok('T11-1 個人キーuserProfileは自分の値のまま（他メンバーで上書きされない）', !!(S.userProfile && S.userProfile.name === 'わたし'));
+  ok('T11-2 個人キーhokuContextは他メンバー分を取り込まない', !S.hokuContext);
+  ok('T11-3 共有キーeventsは家族全員分マージされる', S.events.some(e=>e.id==='a1') && S.events.some(e=>e.id==='b1'));
+})();
+
+// ---- T12: 別家族のデータは混ざらない（family_id 分離） ----
+(function () {
+  const MY = 'FAMI-MINE', OTHER = 'FAMI-OTHER';
+  const cloud = [
+    { user_id:'me',    family_id:MY,    data_key:'events', payload:[{ id:'m1', title:'うちの予定', updatedAt:'2026-06-01T00:00:00Z' }], updated_at:'2026-06-01T00:00:00Z' },
+    { user_id:'other', family_id:OTHER, data_key:'events', payload:[{ id:'o1', title:'よその予定', updatedAt:'2026-06-02T00:00:00Z' }], updated_at:'2026-06-02T00:00:00Z' }
+  ];
+  S = { _deletions:{}, events:[] };
+  simulateFetch(cloud, MY, 'me');  // 取得は自分の family_id のみ（DBは RLS、クライアントは family_id フィルタ）
+  ok('T12-1 自分の家族の予定は入る', S.events.some(e=>e.id==='m1'));
+  ok('T12-2 別家族の予定は混ざらない', !S.events.some(e=>e.id==='o1'));
+})();
+
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
