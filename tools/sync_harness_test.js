@@ -35,7 +35,7 @@ function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent
 function isSupaLoggedIn() { return S.__loggedIn === true; }  // スタブ（_hokuAiAllowed が参照）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
-const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive']
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive', '_hokuLooksLikeView']
   .map(extractFn).join('\n\n');
 eval(srcs);
 
@@ -333,6 +333,21 @@ console.log('Familink sync harness');
   simulateFetch(cloud, MY, 'me');  // 取得は自分の family_id のみ（DBは RLS、クライアントは family_id フィルタ）
   ok('T12-1 自分の家族の予定は入る', S.events.some(e=>e.id==='m1'));
   ok('T12-2 別家族の予定は混ざらない', !S.events.some(e=>e.id==='o1'));
+})();
+
+// ---- T13: 参照ガード（教えて/見せて/〜欲しい は登録モーダルを出さない／追加・削除は通す） ----
+//   音声/AI/ローカルのどれが誤判定しても、明確な"質問"発話で登録モーダルを開かないための要。
+(function () {
+  const V = t => _hokuLooksLikeView(t);
+  ok('T13-1 「明日の予定を教えて欲しい」は参照ガードON', V('明日の予定を教えて欲しい') === true);
+  ok('T13-2 「今日のタスク見せて」は参照ガードON', V('今日のタスク見せて') === true);
+  ok('T13-3 「予定教えて」は参照ガードON', V('予定教えて') === true);
+  ok('T13-4 「買い物リストある？」は参照ガードON', V('買い物リストある？') === true);
+  // 追加・削除はガードOFF（通常どおり登録/削除へ）
+  ok('T13-5 「明日10時に会議追加」はガードOFF', V('明日10時に会議追加') === false);
+  ok('T13-6 「牛乳買っといて」はガードOFF', V('牛乳買っといて') === false);
+  ok('T13-7 「予定教えてから歯医者追加して」は追加優先でガードOFF', V('予定教えてから歯医者追加して') === false);
+  ok('T13-8 「明日の予定消して」はガードOFF（削除）', V('明日の予定消して') === false);
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');

@@ -19950,3 +19950,40 @@ Edge Function CORS 修正（invoke の preflight ブロック「Failed to send a
 
 ### コミット
 - メッセージ: feat(privacy): 家族共有のRLSを最小権限化し個人キーを家族から読めなくする＋回帰テスト
+
+---
+
+## 2026-06-08 11:45  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+「教えて欲しい」等の参照発話で登録モーダルが出る問題を多層ガードで根絶（音声/AI/ローカル全経路）
+
+### 背景（再発の実機報告）
+- 音声「明日の予定を教えて欲しい」で、回答ではなく「この予定を追加する？」モーダルが出る。
+- detectIntent は全 query 判定だが、(1)AIが calendar_add と誤分類 / (2)ローカル分岐の
+  parseHokuIntent 誤判定 / (3)旧クライアントのキャッシュ のいずれかで登録モーダルが開き得た。
+
+### 変更内容（app-source/familink.html）
+- **_hokuLooksLikeView(text) を新設**：教えて/見せて/〜欲しい/ある？/何件/どんな等の“質問・確認”を検出。
+  追加・削除動詞（追加/入れて/登録/買っといて/消して 等）が含まれる時は対象外。
+- **AI経路（_hokuTryChat）**：AIが _add を返しても _hokuLooksLikeView なら登録モーダルを開かず、
+  対応する _view に振り替え、返答も hokuLocalAnswer の一覧へ差し替え（誤登録を完全防止＋正確回答）。
+- **ローカル経路（sendHokuMsg）**：ADD橋渡しに `&& !_hokuLooksLikeView(text)` ガードを追加。
+- 音声は既に sendHokuMsg 統一済みのため、これで音声/テキスト/AI/ローカルの全経路で防止。
+
+### 変更内容（supabase/functions/hoku/index.ts）
+- SYSTEM_PROMPT を明確化：「教えて/教えて欲しい/見せて/確認したい/ある？…」は必ず見る系で
+  絶対に _add にしない、例「明日の予定を教えて欲しい→calendar_view」を明記。追加は依頼動詞がある時だけ。
+
+### テスト結果
+- tools/sync_harness_test.js：**64/64 PASS**（T13 参照ガードを追加：T13-1〜8）
+- node qa_full_test.js：**84/84 PASS（WARN 0）**／HTMLブラウザ読込で構文OK
+- app-source ⇄ docs 一致（v20260608f）
+
+### オーナー作業
+- クライアント修正の反映：アプリを再読込（キャッシュバスターで v20260608f に更新）。
+- AIレベルの精度向上（任意・推奨）：Edge Function を再デプロイ（SYSTEM_PROMPT更新分）。
+  ※ 再デプロイしなくてもクライアント側ガードで登録モーダルは出なくなる。
+
+### コミット
+- メッセージ: fix(hoku): 参照発話(教えて欲しい等)で登録モーダルを出さない多層ガード＋プロンプト明確化

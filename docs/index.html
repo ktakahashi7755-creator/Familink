@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260608e';
+  var V='v20260608f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -20648,25 +20648,43 @@ function _hokuIntentFromAI(intentType, e, rawText) {
 function _hokuAiAllowed()  { return !!(S.isPremiumUser && ((typeof isSupaLoggedIn==='function' && isSupaLoggedIn()) || S.hokuApiUrl)); }
 /* AI版は既定ON（opt-out）。プレミアムは設定せず賢くなる。OFFにしたい時だけ hokuAiOff=true。 */
 function _hokuChatActive() { return _hokuAiAllowed() && !S.hokuAiOff; }
+/* 明確な「参照・確認」の言い回し（教えて／見せて／何件／ある？／〜欲しい 等）を検出する安全ガード。
+   追加・削除系の動詞が含まれる場合は対象外。AI でもローカルでも、こういう"質問"の発話を
+   誤って「追加(_add)」と判定して登録モーダルを開いてしまうのを確実に防ぐ。 */
+function _hokuLooksLikeView(t) {
+  t = String(t || '');
+  const ask = /(教えて|おしえて|見せて|みせて|表示して|一覧|リスト|何件|なんけん|いくつ|どうなって|どんな|ある[?？]|あるかな|ありますか|入ってる|残ってる|確認したい|チェックして|知りたい)/;
+  const act = /(追加|入れて|登録|予定にして|セットして|メモして|買っと|買っとい|買っておい|記録して|つけといて|つけておい|消して|削除|やめ|キャンセル)/;
+  return ask.test(t) && !act.test(t);
+}
 async function _hokuTryChat(text) {
   const chat = await callHokuChat(text);
   if(!chat || typeof chat.reply !== 'string' || !chat.reply.trim()) return undefined;
   let reply = chat.reply.trim();
+  let intent = chat.intent;
+  // 安全ガード：明確な参照発話なのに AI が「追加(_add)」と返したら、登録モーダルは出さず
+  // 参照(_view)として扱う。返答も実データの一覧に差し替えて正確に答える（誤登録を完全防止）。
+  if(intent && /_add$/.test(intent) && _hokuLooksLikeView(text)) {
+    const _toView = { calendar_add:'calendar_view', task_add:'task_view', budget_add:'budget_view',
+                      health_add:'health_view', prep_add:'prep_view', shopping_add:'shopping_view' };
+    intent = _toView[intent] || 'unknown';
+    try { const la = (typeof hokuLocalAnswer === 'function') ? hokuLocalAnswer(text) : ''; if(la) reply = la; } catch(_){}
+  }
   // 見る系（_view）はAIが自然文で答えるが、ローカルと同じクイック操作チップも添える（操作感を統一）
   const _viewCat = { calendar_view:'calendar', task_view:'task', budget_view:'budget', health_view:'health', prep_view:'prep', shopping_view:'shopping' };
-  if(chat.intent && _viewCat[chat.intent] && !/\[\[ACTION_BUTTONS:/.test(reply)) {
-    reply += '\n\n[[ACTION_BUTTONS:' + _viewCat[chat.intent] + ']]';
+  if(intent && _viewCat[intent] && !/\[\[ACTION_BUTTONS:/.test(reply)) {
+    reply += '\n\n[[ACTION_BUTTONS:' + _viewCat[intent] + ']]';
   }
-  if(chat.intent && chat.intent !== 'unknown' &&
-     typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
-     /_add$/.test(chat.intent)) {
+  if(intent && intent !== 'unknown' &&
+     typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[intent] &&
+     /_add$/.test(intent)) {
     try {
       let li;
       if(chat.entities && typeof chat.entities === 'object') {
-        li = _hokuIntentFromAI(chat.intent, chat.entities, text);   // 高精度：AI 抽出を直接使う
+        li = _hokuIntentFromAI(intent, chat.entities, text);   // 高精度：AI 抽出を直接使う
       } else {
         li = parseHokuIntent(text, 'text');                          // 後方互換：ローカル抽出
-        li.intentType = chat.intent;
+        li.intentType = intent;
       }
       executeHokuAction(li);   // 確認 UI を開く（即保存しない）
     } catch(_) {}
@@ -20844,9 +20862,12 @@ async function sendHokuMsg(text) {
             const ADD_INTENTS = ['calendar_add','task_add','budget_add','prep_add','prep_routine_add','health_add','board_post_add','shopping_add','shopping_frequent_add','shopping_purchased','recurring_budget_add'];
             // 参照系 view intent も executeHokuAction で処理（hokuLocalAnswer より正確なデータ表示）
             const VIEW_INTENTS = ['calendar_view','task_view','budget_view','health_view','prep_view','shopping_view','cashflow_view','board_view'];
+            // 安全ガード：明確な参照発話（教えて/見せて/〜欲しい等）では、parseHokuIntent が
+            // 誤って登録系を返しても登録モーダルを出さない（下の hokuLocalAnswer で一覧回答する）。
             if(pi && ADD_INTENTS.indexOf(pi.intentType) >= 0
                && (pi.confidence || 0) >= 0.78
-               && (!pi.missingFields || pi.missingFields.length === 0)) {
+               && (!pi.missingFields || pi.missingFields.length === 0)
+               && !_hokuLooksLikeView(text)) {
               const r = executeHokuAction(pi);
               bridged = (r && r.message) || (typeof getHokuShortReply==='function' ? getHokuShortReply(pi.intentType) : '') || 'これで保存する？';
             } else if(pi && VIEW_INTENTS.indexOf(pi.intentType) >= 0
