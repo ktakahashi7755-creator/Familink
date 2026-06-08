@@ -19821,3 +19821,52 @@ AI版Hokuの会話品質向上：世界観維持＋「見る系」を短い会�
 
 ### コミット
 - メッセージ: feat(hoku): AI会話を世界観維持で高品質化＋見る系を箇条書き整形／QA誤WARN修正
+
+---
+
+## 2026-06-08 10:05  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+音声Hokuの誤判定修正（参照を追加扱いしない）＋安全ガード・エージェント方針強化
+
+### 変更ファイル
+- app-source/familink.html（音声経路の統一）
+- docs/index.html（同期 v20260608d）
+- supabase/functions/hoku/index.ts（SYSTEM_PROMPT）
+- tools/sync_harness_test.js（回帰テスト追加）
+
+### 背景（S級バグ）
+- 音声で「明日のタスクを教えて欲しい」と言うと、参照なのに「タスク追加」確認モーダルが出ていた。
+- 原因：音声だけ独自経路（hokuHandleVoiceText/Candidates → parseVoiceIntent → 常に m-voice-confirm）で、
+  AI有効でも view intent は _local() に落ちて parseVoiceIntent が「教えて欲しい」を追加と誤分類していた。
+
+### 変更内容
+- **音声をテキストと同じ統一パイプライン（sendHokuMsg）に通すよう変更**。これで文脈理解により
+  見る系=会話＋箇条書きで回答／登録系=確認モーダル/雑談=会話 に自動で正しく振り分く。
+  - hokuHandleVoiceText：sendHokuMsg(text) へ委譲（sendHokuMsg未定義時のみ旧確認モーダルにフォールバック）。
+  - hokuHandleVoiceCandidates：ASR第1候補を hokuHandleVoiceText へ委譲（多候補スコアリングは廃止し挙動を一本化）。
+  - detectIntent 検証：「明日のタスクを教えて欲しい/今日の予定を教えて欲しい/タスク教えて」=query、
+    「会議追加/誕生日会を予定に入れて」=action を確認。
+- **SYSTEM_PROMPT 強化**：
+  - 「家族のエージェントとして」節を追加（予定/カレンダー追加・タスク・買い物・準備・体調・家計・お知らせ・メモを横断して実行支援。参照は一覧、雑談は会話）。
+  - 「安全（厳守）」節を追加（卑猥・性的・暴力・差別・違法・危険依頼はやさしく短く断り家族の手伝いへ戻す。健全トーン維持・推測で断定しない）。
+
+### テスト結果
+- tools/sync_harness_test.js：**51/51 PASS**（T9-9〜12 で『教えて欲しい』参照・追加の回帰防止を追加）
+- node qa_full_test.js：**84/84 PASS（WARN 0）**
+- 音声関数 hokuHandleVoiceText/Candidates 構文 OK／app-source ⇄ docs 一致（v20260608d）
+- Edge Function：手動レビュー（テンプレート/波括弧整合 OK、deno未導入）
+
+### オーナー作業（反映に必要）
+- SYSTEM_PROMPT 変更の反映は `supabase functions deploy hoku`（--no-verify-jwt は付けない）。
+
+### iPhone確認ポイント
+- 音声で「明日のタスク教えて」→ 追加画面が出ず、会話＋箇条書きで一覧が返るか。
+- 音声で「明日10時に会議追加」→ これまで通り確認モーダルが出て保存できるか。
+- 卑猥/不適切な発話に「ごめん、それには答えられないな」と短く断るか（要デプロイ）。
+
+### 次にやること
+- 実機で音声→会話/一覧/登録の3挙動と、安全ガードの効きを確認。
+
+### コミット
+- メッセージ: fix(hoku): 音声を統一パイプライン化し参照の誤追加を解消＋安全ガード/エージェント方針強化

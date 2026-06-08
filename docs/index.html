@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260608c';
+  var V='v20260608d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -23441,31 +23441,16 @@ function hokuHandleVoiceText(text) {
     hokuVoiceSetPhase('error');
     return;
   }
-  hokuVoiceSetPhase('thinking');
-  // 会話モード：音声もテキストと同じ AI 高精度抽出を通す（クリーンな title / 日付 / 時刻）。
-  // 登録系 intent が取れれば AI エンティティで確認モーダルを開く。
-  // それ以外（会話的・分類不可）/ 失敗 / タイムアウトはローカル解析にフォールバック。
-  if(_hokuChatActive() && typeof callHokuChat === 'function') {
-    const _local = function() {
-      _voiceParsed = parseVoiceIntent(text);
-      hokuVoiceSetPhase('confirming');
-      voiceConfirmRender();
-      openModal('m-voice-confirm');
-    };
-    callHokuChat(text).then(function(chat) {
-      if(chat && chat.intent && chat.intent !== 'unknown' &&
-         typeof HOKU_INTENT_META !== 'undefined' && HOKU_INTENT_META[chat.intent] &&
-         /_add$/.test(chat.intent) && chat.entities) {
-        try {
-          const li = _hokuIntentFromAI(chat.intent, chat.entities, text);
-          executeHokuAction(li);  // AI エンティティで確認モーダルを開く
-        } catch(_) { _local(); }
-      } else {
-        _local();
-      }
-    }).catch(_local);
-    return;
-  }
+  hokuVoiceSetPhase('');  // ステータス表示を消す（以降はテキスト入力と同じ通常チャットとして処理）
+  // 音声入力もテキスト入力と同じ統一パイプライン（sendHokuMsg）に通す。
+  // これにより文脈・内容を理解して自動で振り分ける：
+  //   見る系（例「明日のタスク教えて」）= 会話＋箇条書きで回答（追加画面を出さない）
+  //   登録系（例「明日10時に会議追加」） = 確認モーダルを開いてから保存
+  //   雑談・相談 = そのまま会話
+  // ※ 旧実装は parseVoiceIntent へ直行し、参照（教えて/見せて）を誤って「追加」扱いして
+  //   確認モーダルを出していた。その誤判定を解消する。
+  if(typeof sendHokuMsg === 'function') { sendHokuMsg(text); return; }
+  // フォールバック（万一 sendHokuMsg 未定義のときのみ）
   _voiceParsed = parseVoiceIntent(text);
   hokuVoiceSetPhase('confirming');
   voiceConfirmRender();
@@ -23478,36 +23463,9 @@ function hokuHandleVoiceText(text) {
 function hokuHandleVoiceCandidates(candidates) {
   candidates = (candidates||[]).map(t => String(t||'').trim()).filter(Boolean);
   if(!candidates.length) { hokuVoiceSetPhase('error'); return; }
-  // 会話モード：AI が生テキストから高精度抽出するため、最有力候補を AI 経路へ委譲
-  if(_hokuChatActive() && typeof callHokuChat === 'function') {
-    hokuHandleVoiceText(candidates[0]);
-    return;
-  }
-  hokuVoiceSetPhase('thinking');
-  // 各候補を parse
-  const parses = [];
-  for(const t of candidates) {
-    try { parses.push({ text:t, v:parseVoiceIntent(t) }); }
-    catch(e) { /* skip */ }
-  }
-  if(!parses.length) { hokuVoiceSetPhase('error'); return; }
-  // 第1候補がカテゴリ確定（score>=3）ならそれを尊重して即採用
-  let best = parses[0].v;
-  const firstOK = best && best.category && (best.score||0) >= 3;
-  if(!firstOK) {
-    // 他候補で改善するか探索
-    for(let i = 1; i < parses.length; i++) {
-      const v = parses[i].v;
-      if(!v) continue;
-      // 第1がnullなら、カテゴリが付く候補を優先
-      // どちらもカテゴリ付きならスコアが高い方
-      if(v.category && (!best.category || (v.score||0) > (best.score||0))) best = v;
-    }
-  }
-  _voiceParsed = best;
-  hokuVoiceSetPhase('confirming');
-  voiceConfirmRender();
-  openModal('m-voice-confirm');
+  // 最有力候補（ASR 第1候補）をテキスト入力と同じ統一パイプラインへ委譲。
+  // 文脈理解（AI／ローカルの detectIntent・parseHokuIntent）で見る系/登録系/雑談を正しく振り分ける。
+  hokuHandleVoiceText(candidates[0]);
 }
 
 /* 確認モーダルの描画 */
