@@ -516,7 +516,8 @@ async function clearStorage(page) {
   });
   const correctKey = storageKeys.includes('familink_v3');
   log(correctKey ? 'PASS' : 'WARN', 'LocalStorage', `正規キー familink_v3 を使用 (keys: ${storageKeys.join(', ')})`);
-  const noRogueKeys = storageKeys.every(k => k === 'familink_v3' || k.startsWith('familink'));
+  // 正規キー: familink_v3 本体 / familink* / fl_*（Wave256のログインボーナス印など familink の小キー）/ sb-*（Supabase公式セッション）
+  const noRogueKeys = storageKeys.every(k => k === 'familink_v3' || k.startsWith('familink') || k.startsWith('fl_') || k.startsWith('sb-'));
   log(noRogueKeys ? 'PASS' : 'WARN', 'LocalStorage', '不正なLocalStorageキーがない');
 
   // ══════════════════════════════════════════════════════════════════
