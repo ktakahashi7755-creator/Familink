@@ -20074,3 +20074,50 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: chore(settings): 不要な2項目(AI設定/制限なしカード)とデッドコードを削除＋総点検
+
+---
+
+## 2026-06-08 17:30  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+家族共有を含む全体総点検＋安全な改善（CDN未接続時の招待UX明示／古コメント修正）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期, v20260608k）
+- docs/worklog.md
+
+### 変更内容
+- **家族共有の全面調査**（familyId生成→Supabase同期→招待/参加→Realtime→競合解決→退会）を実施。
+  アーキテクチャは健全（crypto乱数12桁コード, FAMILY_SHARED_KEYS=21キー, 行毎LWW＋tombstone, 指数バックオフ再接続）。
+- **改善①（§13.4 UI文言）**：Supabase CDN 読み込み失敗時（window._supaLoadFailed）、招待モーダル/参加モーダルが
+  「同期できる前提」のまま表示され家族共有が静かに無効化される問題に、両モーダルへ警告文を追加。
+  - m-supa-invite に supa-invite-note（amber）を新設、openSupaInviteModal で _supaLoadFailed 時に表示。
+  - openMyInviteModal の note 分岐に _supaLoadFailed 優先ブランチを追加。
+- **改善②**：機能している m-supa-invite を「スタブ」と書いた古いコメント（Wave 202）を実態に修正。
+
+### テスト結果
+- node qa_full_test.js：**84/84 PASS（WARN 0）**
+- tools/sync_harness_test.js：**68/68 PASS**
+- Playwright 実画面検証（/tmp/verify_invite.js）：
+  - 参加モーダル(CDN失敗)=警告block表示✅／招待モーダル(CDN失敗)=警告block＋FAMI-コード生成✅／正常時=警告none（既存挙動非破壊）✅
+  - ※ ERR_CERT_AUTHORITY_INVALID 2件はサンドボックスの証明書ノイズ（コード由来でない）。公式QAはJSエラー0件。
+- 全22画面 id 存在=OK／本体↔docs body一致（v20260608k）／console.log残骸=0（全て正規のerror/warn）／削除済シンボル実参照=0
+
+### 未確認事項（＝オーナー判断が必要な提案。今回は実装せず）
+- **招待コードの失効/ローテーション/有効期限なし**（trust-based）。退会はできるがコード再発行で旧コードを無効化する仕組みは未実装 → 要件・RLS設計の判断が必要（A〜B）。
+- **メンバーのオンライン/最終同期可視化なし**：誰の変更がいつ届くか不明（B, UX向上）。
+- **_deletions（tombstone）の長期肥大**：空オブジェクトGCはあるが古い墓石の自動失効なし（B, 同期エンジン変更のため要慎重）。
+- バッチpush途中失敗時の部分同期（リトライ3回で実害は低いが将来トランザクション化検討）。
+
+### iPhone確認ポイント
+- 機内モード等でオフライン時に「家族を招待する」「招待コードで参加」を開き、黄色の注意文が出るか。
+- 通常時（オンライン・未ログイン）に従来の「この端末だけに保存」案内が出るか（文言の出し分け）。
+- 参加モーダルの注意文が iPhone SE 幅で折返し崩れしないか。
+
+### 次にやること
+- オーナー判断待ち：招待コード失効/ローテーション要否（要件定義 → 実装可否）。
+- 余力があればメンバー最終同期時刻の軽表示（B）。
+
+### コミット
+- メッセージ: feat(family-share): CDN未接続時の招待/参加UXを明示＋総点検（古コメント修正）
