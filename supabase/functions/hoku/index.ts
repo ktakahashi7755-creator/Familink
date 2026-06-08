@@ -28,7 +28,9 @@ const MODEL = Deno.env.get("HOKU_MODEL") || "gpt-4o-mini"; // 安価＆十分賢
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "content-type, x-hoku-key, authorization, apikey",
+  // supabase-js(ブラウザ invoke) は x-client-info / x-supabase-api-version 等を送るため、
+  // これらを許可しないと CORS preflight でブロックされ「Failed to send a request」になる。
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hoku-key, x-supabase-api-version",
 };
 
 function json(body: unknown, status = 200): Response {

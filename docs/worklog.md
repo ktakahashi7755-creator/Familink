@@ -19870,3 +19870,36 @@ AI版Hokuの会話品質向上：世界観維持＋「見る系」を短い会�
 
 ### コミット
 - メッセージ: fix(hoku): 音声を統一パイプライン化し参照の誤追加を解消＋安全ガード/エージェント方針強化
+
+---
+
+## 2026-06-08 10:50  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+Edge Function CORS 修正（invoke の preflight ブロック「Failed to send a request」を解消）
+
+### 背景
+- Dashboard で新コードをデプロイ後、#qa-debug 診断で allowed/active=✅ なのに
+  invoke が「Failed to send a request to the Edge Function」で失敗。
+- 原因：リポジトリ版 index.ts の Access-Control-Allow-Headers が狭く（content-type, x-hoku-key, authorization, apikey）、
+  supabase-js がブラウザ invoke 時に送る x-client-info / x-supabase-api-version が未許可 → CORS preflight でブロック。
+- 過去に Dashboard 上で直接広い許可ヘッダに直されていたが、その修正が Git に未反映だった
+  （Dashboard編集とリポジトリの乖離）。私の版を貼って元の狭い設定に戻ってしまっていた。
+
+### 変更
+- supabase/functions/hoku/index.ts の CORS Access-Control-Allow-Headers を
+  「authorization, x-client-info, apikey, content-type, x-hoku-key, x-supabase-api-version」に拡張。
+
+### テスト結果
+- 波括弧整合 OK。フロント/QA は無関係（サーバ側CORSのみ）。
+
+### オーナー作業
+- 修正版 index.ts を Dashboard の Code エディタに全置換で貼付 → Deploy updates。
+- 再度 #qa-debug「Hoku AI 診断」で ✅ OK を確認。
+
+### 教訓（次回への申し送り）
+- Edge Function は「Dashboard編集」と「リポジトリ index.ts」が乖離しうる。
+  以後はリポジトリを正本とし、Dashboard で直接編集しない（するなら必ず Git へ反映）。
+
+### コミット
+- メッセージ: fix(hoku): Edge FunctionのCORS許可ヘッダを拡張しinvokeのpreflightブロックを解消
