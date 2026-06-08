@@ -1,9 +1,11 @@
 name: Deploy to GitHub Pages
 
-# トリガー：QA ブランチまたは default ブランチへの push、または手動実行
+# トリガー：公開ブランチ(main) / QA ブランチへの push、または手動実行
+# ※ 公開の正本は main。main への push で必ず GitHub Pages が再デプロイされる。
 on:
   push:
     branches:
+      - main
       - claude/familylink-unicorn-product-TzM1F
       - claude/merge-and-push-main-u44Ty
   workflow_dispatch:
