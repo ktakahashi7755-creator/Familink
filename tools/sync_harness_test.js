@@ -31,11 +31,12 @@ function extractFn(name) {
 // グローバル相当のコンテキスト
 let S = { _deletions: {} };
 const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
+const HOKU_AI_DAILY_CAP = 40;  // app-source と一致させる（フェアユース上限）
 function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent が呼ぶ）
 function isSupaLoggedIn() { return S.__loggedIn === true; }  // スタブ（_hokuAiAllowed が参照）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
-const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive', '_hokuLooksLikeView']
+const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive', '_hokuLooksLikeView', '_hokuAiUsageToday', '_hokuAiUnderCap', '_hokuBumpAiUsage']
   .map(extractFn).join('\n\n');
 eval(srcs);
 
@@ -348,6 +349,21 @@ console.log('Familink sync harness');
   ok('T13-6 「牛乳買っといて」はガードOFF', V('牛乳買っといて') === false);
   ok('T13-7 「予定教えてから歯医者追加して」は追加優先でガードOFF', V('予定教えてから歯医者追加して') === false);
   ok('T13-8 「明日の予定消して」はガードOFF（削除）', V('明日の予定消して') === false);
+})();
+
+// ---- T14: プレミアムAIのフェアユース上限（1日40通・赤字防止）----
+(function () {
+  S = { hokuAiUsage: null };
+  const under = [];
+  for (let i = 0; i < 41; i++) {
+    const u = _hokuAiUnderCap();
+    if (u) _hokuBumpAiUsage();   // AI応答に成功した想定でカウント
+    under.push(u);
+  }
+  ok('T14-1 初回はAI利用可', under[0] === true);
+  ok('T14-2 40通目まではAI利用可', under[39] === true);
+  ok('T14-3 41通目(上限超)はローカルへ', under[40] === false);
+  ok('T14-4 カウントは40で頭打ち', _hokuAiUsageToday().count === 40);
 })();
 
 console.log('\n結果: ' + pass + ' passed, ' + fail + ' failed');

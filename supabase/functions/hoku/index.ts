@@ -166,7 +166,8 @@ Deno.serve(async (req: Request) => {
 
   const messages: unknown[] = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "system", content: "現在の家族の文脈(JSON):\n" + JSON.stringify(context).slice(0, 6000) },
+    // 文脈は 3000 文字に圧縮（入力トークン＝OpenAI課金を約半減。家族案内には十分な情報量）。
+    { role: "system", content: "現在の家族の文脈(JSON):\n" + JSON.stringify(context).slice(0, 3000) },
   ];
   for (const h of history.slice(-12)) {
     const role = (h as any)?.role === "assistant" ? "assistant" : "user";

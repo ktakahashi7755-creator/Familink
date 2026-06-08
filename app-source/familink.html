@@ -7783,6 +7783,7 @@ let S = {
   hokuChatMode: false,  // （旧）会話モード手動フラグ。Wave258以降はプレミアム自動ONのため未使用
   hokuAiOff: false,     // Wave258: プレミアムのAI版Hokuを明示OFFにする opt-out（既定OFF=AI有効）
   hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
+  hokuAiUsage: null,    // プレミアムAI版Hokuの1日利用カウント(フェアユース) {date, count, noticed}
   tabConfig: null,   // タブカスタマイズ: [{id,vis}] | null=デフォルト5タブ
   widgetItems: null, // ウィジェット設定: [{type,label,enabled}] | null=デフォルト
   workspaces: null,        // ワークスペース一覧 [{id,name,type,description,allowedMemberIds,enabledFeatures,accessMode,createdAt,updatedAt}]
@@ -7812,7 +7813,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
 
 function saveS() {
   const d = {};
@@ -20658,6 +20659,26 @@ function _hokuIntentFromAI(intentType, e, rawText) {
 function _hokuAiAllowed()  { return !!(S.isPremiumUser && ((typeof isSupaLoggedIn==='function' && isSupaLoggedIn()) || S.hokuApiUrl)); }
 /* AI版は既定ON（opt-out）。プレミアムは設定せず賢くなる。OFFにしたい時だけ hokuAiOff=true。 */
 function _hokuChatActive() { return _hokuAiAllowed() && !S.hokuAiOff; }
+
+/* プレミアムAI版のフェアユース上限（OpenAI 課金の赤字防止）。
+   1日 HOKU_AI_DAILY_CAP 通までAIで応答し、超えたら“優しく”ローカルHokuへ切替。
+   ※ 端末ごとのカウント（端末を跨ぐ厳密集計はしない＝シンプル/同期エンジン非変更）。
+   通常の家族利用ではまず到達しない余裕値。到達するのは極端なヘビー利用のみ。 */
+const HOKU_AI_DAILY_CAP = 40;
+function _hokuAiUsageToday() {
+  const d = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+  if(!S.hokuAiUsage || S.hokuAiUsage.date !== d) S.hokuAiUsage = { date: d, count: 0, noticed: false };
+  return S.hokuAiUsage;
+}
+function _hokuAiUnderCap() { return _hokuAiUsageToday().count < HOKU_AI_DAILY_CAP; }
+function _hokuBumpAiUsage() { const u = _hokuAiUsageToday(); u.count++; try { saveS(); } catch(_){} }
+/* 上限到達後、その日の初回だけ優しい案内文を返す（2回目以降は黙ってローカル継続）。 */
+function _hokuAiCapNoticeOnce() {
+  const u = _hokuAiUsageToday();
+  if(u.noticed) return '';
+  u.noticed = true; try { saveS(); } catch(_){}
+  return '今日はたくさん話したね！また明日、いっぱい聞かせて😊\n\n';
+}
 /* 明確な「参照・確認」の言い回し（教えて／見せて／何件／ある？／〜欲しい 等）を検出する安全ガード。
    追加・削除系の動詞が含まれる場合は対象外。AI でもローカルでも、こういう"質問"の発話を
    誤って「追加(_add)」と判定して登録モーダルを開いてしまうのを確実に防ぐ。 */
@@ -20795,11 +20816,18 @@ async function sendHokuMsg(text) {
   try {
     let reply;
     let ctxIntent = null;  // 文脈更新で使うためブロック外にホイスト
+    let _capNotice = '';   // フェアユース上限到達時の優しい案内（その日初回のみ）
 
     // 会話モード（AI）優先：プレミアム＋設定時のみ外部AIに自然文応答を依頼。成功すれば
     // 以降のローカル判定をスキップ。無料/失敗/無効時は従来（既存Hoku）へ完全フォールバック。
+    // フェアユース上限内のときだけAIを使い、超えたら“優しく”ローカルHokuへ切替（赤字防止）。
     if(_hokuChatActive()) {
-      try { reply = await _hokuTryChat(text); } catch(_) { reply = undefined; }
+      if(_hokuAiUnderCap()) {
+        try { reply = await _hokuTryChat(text); } catch(_) { reply = undefined; }
+        if(reply !== undefined) { try { _hokuBumpAiUsage(); } catch(_){} }
+      } else {
+        _capNotice = _hokuAiCapNoticeOnce();   // 上限到達 → 以降はローカルHokuで継続
+      }
     }
 
     if(reply === undefined) {
@@ -20895,7 +20923,8 @@ async function sendHokuMsg(text) {
     } // end if(reply === undefined)（会話モードで未確定のときだけローカル判定）
 
     _hokuMsgs = _hokuMsgs.filter(m => m.role !== 'loading');
-    _hokuMsgs.push({role:'assistant', content: reply});
+    // フェアユース上限到達時は、ローカルの回答に優しい案内を一度だけ添える
+    _hokuMsgs.push({role:'assistant', content: (_capNotice || '') + (reply != null ? reply : '')});
 
     // Wave 61: 文脈を更新（直近 5 ターン）
     try {

@@ -20019,3 +20019,35 @@ Hokuエージェント画面のサジェストを2行・逆方向マーキー化
 
 ### コミット
 - メッセージ: feat(hoku-ui): サジェストを2行逆方向マーキー化＋参考例を16件に拡充（プロUI）
+
+---
+
+## 2026-06-08 13:30  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋文脈圧縮(6000→3000字)
+
+### 変更内容
+- **フェアユース上限（client）**：プレミアムAI版Hokuを1日40通までに。超えたら“優しく”ローカルHokuへ自動切替し、
+  その日の初回だけ案内文「今日はたくさん話したね！また明日、いっぱい聞かせて😊」を回答に添える（2回目以降は黙ってローカル継続）。
+  - 新state hokuAiUsage {date,count,noticed}（PERSIST追加）。HOKU_AI_DAILY_CAP=40。
+  - _hokuAiUnderCap/_hokuBumpAiUsage/_hokuAiCapNoticeOnce を追加し sendHokuMsg のAIゲートに組込。
+  - 端末ごとカウント（同期エンジンは非変更＝安全）。通常家族は到達しない余裕値。
+- **文脈圧縮（Edge Function）**：context の slice を 6000→3000 字に。入力トークン＝OpenAI課金を約半減。
+
+### 収益設計の根拠（赤字防止）
+- gpt-4o-mini 1通 約0.15〜0.25円。圧縮後さらに低下。
+- 40通/日上限＋圧縮で、毎日上限まで使う最悪ケースでも 480円(手数料後)内に収まり黒字。
+- 無料はAI不使用（コスト0）、プレミアムのみAI。
+
+### テスト結果
+- tools/sync_harness_test.js：**68/68 PASS**（T14 フェアユース上限4件追加）
+- node qa_full_test.js：**84/84 PASS（WARN 0）**／HTMLブラウザ読込で構文OK
+- app-source ⇄ docs 一致（v20260608h）
+
+### オーナー作業
+- フェアユース上限：Pages再デプロイで反映（クライアント側）。
+- 文脈圧縮：Edge Function 再デプロイで反映（supabase/functions/hoku/index.ts）。
+
+### コミット
+- メッセージ: feat(hoku): フェアユース上限(1日40通)＋文脈圧縮で赤字防止
