@@ -19773,3 +19773,42 @@ Hoku AI「Failed to send a request to the Edge Function」の原因切り分け�
 
 ### コミット
 - メッセージ: diag(hoku): Edge Function 未到達を「未デプロイ/CORS」と切り分け、デプロイ手順を診断表示 (v20260608c)
+
+---
+
+## 2026-06-08 09:15  env: PC (Remote Control)  branch: claude/new-session-AUB3i
+
+### 作業名
+Hoku AI 真因特定：Edge Function の CORS 許可ヘッダに x-client-info 欠落 → プリフライト失敗
+
+### 真因（前回の「未デプロイ」見立ては誤り）
+- オーナー画面で hoku 関数はデプロイ済み（7h前）・コード正・Secret(OPENAI_API_KEY)登録済みを確認。
+- それでも FunctionsFetchError「Failed to send a request」。
+- 原因：supabase-js は invoke 時に `x-client-info` ヘッダを自動付与するが、関数の
+  Access-Control-Allow-Headers に未記載 → ブラウザの CORS プリフライトが弾かれリクエスト未到達。
+
+### 変更ファイル
+- supabase/functions/hoku/index.ts（CORS Allow-Headers を補強）
+
+### 変更内容
+- Access-Control-Allow-Headers を
+  "content-type, x-hoku-key, authorization, apikey" →
+  "authorization, x-client-info, apikey, content-type, x-hoku-key, x-supabase-api-version" に拡張。
+- supabase-js が送る全ヘッダ（x-client-info / x-supabase-api-version 含む）を許可。
+
+### オーナー手順
+- ダッシュボードのエディタで 31 行目を同内容に書き換え → 「Deploy updates」。
+- その後 #qa-debug → Hoku AI 診断 が ✅OK になるか確認。
+
+### テスト結果
+- 関数ソースのみ変更（アプリ本体・QA対象外）。node qa_full_test.js は前回 83PASS/0FAIL から不変。
+
+### 未確認事項
+- 再デプロイ後に ✅OK になるか（CORS が真因なら解消見込み）。なお解消しない場合は verify_jwt と
+  OPTIONS プリフライトの相性を次に疑う。
+
+### 次にやること
+- オーナーが 31 行目修正→再デプロイ→診断。結果次第で追加対応。
+
+### コミット
+- メッセージ: fix(hoku-fn): CORS 許可ヘッダに x-client-info 等を追加しプリフライト失敗を解消

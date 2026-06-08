@@ -28,7 +28,7 @@ const MODEL = Deno.env.get("HOKU_MODEL") || "gpt-4o-mini"; // 安価＆十分賢
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "content-type, x-hoku-key, authorization, apikey",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hoku-key, x-supabase-api-version",
 };
 
 function json(body: unknown, status = 200): Response {
