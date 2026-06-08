@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260608i';
+  var V='v20260608j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18272,10 +18272,6 @@ function renderPremium() {
       bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
       desc:'写真、動画、書類、思い出をまとめて保存できます。',
       detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
-    { icon: _si('<path d="M12 3l1.5 4.5 4.5 1.5-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M5 17l.75 2.25L8 20l-2.25.75L5 23l-.75-2.25L2 20l2.25-.75z"/><path d="M18 2l.75 2.25L21 5l-2.25.75L18 8l-.75-2.25L15 5l2.25-.75z"/>', '#16A34A'),
-      bg:'#F0FFF4', name:'Hokuを制限なしで使える',
-      desc:'予定追加、タスク整理、買い物メモ、家計入力などをHokuに何度でも相談できます。',
-      detail:'無料プランでは1日5回まで利用できます。プレミアムでは無制限です。' },
     { icon: _si('<path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/>', '#D97706'),
       bg:'#FFFAEB', name:'プレミアムアバターが使える',
       desc:'家族メンバーごとに特別なアバターを設定できます。',
@@ -19206,13 +19202,6 @@ function renderSettings() {
       <div class="settings-item" onclick="openLegalDoc('terms')">
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>','#0A84FF')}</div>
         <div class="settings-item-label">利用規約</div><div class="settings-arrow">›</div>
-      </div>
-      <div class="settings-item" onclick="openHokuApiModal()">
-        <div class="settings-item-icon" style="background:#FAF1DC">${si('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>','#C8A35C')}</div>
-        <div class="settings-item-label">Hoku を AI で賢くする
-          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">プレミアム限定・OpenAI 連携（無料は既存Hoku）</div>
-        </div>
-        <div class="settings-value">${(typeof _hokuChatActive==='function' && _hokuChatActive())?'AI':(S.hokuApiUrl?'設定済':'OFF')}</div><div class="settings-arrow">›</div>
       </div>
       <div class="settings-item" style="cursor:default;">
         <div class="settings-item-icon" style="background:#EEF2FA">${si('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>','#5B7196')}</div>
@@ -20736,76 +20725,9 @@ async function _hokuTryChat(text) {
   return reply;
 }
 
-/* Wave 77: Hoku API 連携設定モーダル */
-function openHokuApiModal() {
-  const inp = document.getElementById('hoku-api-url-input');
-  if(inp) inp.value = (S.hokuApiUrl || '');
-  const keyInp = document.getElementById('hoku-api-key-input');
-  if(keyInp) keyInp.value = (S.hokuApiKey || '');
-  const chatInp = document.getElementById('hoku-chat-mode-input');
-  // AI版Hokuは既定ON（opt-out）。チェック=AI有効。
-  if(chatInp) chatInp.checked = !S.hokuAiOff;
-  const res = document.getElementById('hoku-api-test-result');
-  if(res) res.textContent = '';
-  // プラン状態の表示（AI版はプレミアム限定）
-  const planNote = document.getElementById('hoku-api-plan-note');
-  if(planNote) {
-    if(S.isPremiumUser) {
-      planNote.style.cssText = 'font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;background:#ECFDF5;color:#067A53;border:1px solid rgba(16,185,129,.25);';
-      planNote.textContent = ((typeof isSupaLoggedIn==='function' && isSupaLoggedIn()) ? '現在プレミアム：AI版Hokuが自動で有効です（設定不要）。' : '現在プレミアム：クラウドにログインするとAI版Hokuが自動で有効になります。');
-    } else {
-      planNote.style.cssText = 'font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;background:#FFF6E8;color:#9A5A00;border:1px solid rgba(255,159,10,.25);';
-      planNote.textContent = '現在無料プラン：AI版はプレミアム限定です。無料の間は既存Hokuで動作します（設定は保存できます）。';
-    }
-  }
-  openModal('m-hoku-api');
-}
-function saveHokuApiUrl() {
-  const inp = document.getElementById('hoku-api-url-input');
-  let url = (inp && inp.value || '').trim().replace(/\/+$/, '');
-  if(url && !/^https?:\/\//i.test(url)) {
-    showToast('URL は http(s):// で始めてください','error');
-    return;
-  }
-  const keyInp = document.getElementById('hoku-api-key-input');
-  const chatInp = document.getElementById('hoku-chat-mode-input');  // 「AI版Hokuを使う」トグル
-  S.hokuApiUrl = url;                                  // 任意（独自エンドポイント。空でOK）
-  S.hokuApiKey = (keyInp && keyInp.value || '').trim();// 任意（独自URL用の合言葉）
-  S.hokuAiOff  = !(chatInp && chatInp.checked);        // チェック=AI有効（既定）／外す=既存Hoku
-  S.hokuChatMode = !S.hokuAiOff;                        // 旧フラグも整合（互換）
-  saveS();
-  closeModal('m-hoku-api');
-  const msg = !S.isPremiumUser
-    ? '設定を保存しました（AI版はプレミアムで有効になります）'
-    : (S.hokuAiOff ? '既存Hokuに切り替えました' : 'AI版Hokuを有効にしました');
-  showToast(msg);
-  if(typeof renderSettings === 'function') renderSettings();
-}
-/* 接続テスト：入力中の URL/シークレットで実際に1回呼び、結果を表示する。
-   保存前の検証用。S を一時的に使うため、テスト後に元の値へ戻す。 */
-async function testHokuApi() {
-  const res = document.getElementById('hoku-api-test-result');
-  const url = (document.getElementById('hoku-api-url-input')||{}).value || '';
-  const key = (document.getElementById('hoku-api-key-input')||{}).value || '';
-  const u = url.trim().replace(/\/+$/, '');
-  if(!u) { if(res){ res.style.color='var(--red)'; res.textContent='URL を入力してください。'; } return; }
-  if(!/^https?:\/\//i.test(u)) { if(res){ res.style.color='var(--red)'; res.textContent='URL は http(s):// で始めてください。'; } return; }
-  if(res){ res.style.color='var(--text-muted)'; res.textContent='接続テスト中…'; }
-  const prevUrl = S.hokuApiUrl, prevKey = S.hokuApiKey;
-  S.hokuApiUrl = u; S.hokuApiKey = key.trim();
-  try {
-    const r = await callHokuApi('明日の予定を見せて');
-    if(r && typeof r.intent === 'string') {
-      if(res){ res.style.color='var(--green)'; res.textContent='✓ 接続成功（intent: '+H(r.intent)+'）。保存を押すと有効になります。'; }
-    } else {
-      if(res){ res.style.color='var(--red)'; res.textContent='✕ 応答が不正、またはタイムアウトしました。URL とサーバ側の実装をご確認ください（自動でローカル判定に戻ります）。'; }
-    }
-  } catch(e) {
-    if(res){ res.style.color='var(--red)'; res.textContent='✕ 接続に失敗しました：'+H((e&&e.message)||'unknown'); }
-  } finally {
-    S.hokuApiUrl = prevUrl; S.hokuApiKey = prevKey; // 保存は「保存」ボタンで確定
-  }
-}
+/* Wave 77 の Hoku API 連携設定モーダル(openHokuApiModal/saveHokuApiUrl/testHokuApi)は
+   ゼロ設定化(プレミアムは自動でAI有効)に伴い設定入口とともに撤去。
+   独自URL(S.hokuApiUrl)は上級者向けに _hokuCallBackend 側で引き続き利用可能。 */
 
 async function sendHokuMsg(text) {
   text = (text||'').trim();
@@ -25886,56 +25808,6 @@ async function _oauthSignIn(provider) {
         <button class="btn btn-outline btn-block" onclick="setIcsImportStep('select')">続けて取り込む</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Wave 77: Hoku API 連携設定（実験的）-->
-<div id="m-hoku-api" class="modal-backdrop hidden">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="modal-grip"></div>
-    <div class="modal-title">Hoku を AI で賢くする（OpenAI 連携）</div>
-    <div style="font-size:13px;color:var(--text-sub);line-height:1.75;margin-bottom:12px;">
-      Hoku の意図判定を、外部 AI（OpenAI 等）のエンドポイントに切り替えて精度を上げられます。<br>
-      <b>AI版Hoku（会話モード）はプレミアム限定です。</b>無料プランや未設定時は、これまで通り端末内の既存Hokuで動作します。
-    </div>
-    <div id="hoku-api-plan-note" style="font-size:12px;font-weight:700;border-radius:8px;padding:8px 11px;margin-bottom:12px;"></div>
-    <div style="font-size:11px;color:var(--text-muted);background:var(--bg-muted);padding:9px 11px;border-radius:8px;line-height:1.6;margin-bottom:14px;">
-      ・無料プランでは AI版は無効（既存Hokuで動作）。プレミアムで有効化できます<br>
-      ・API が応答しない時は自動で既存Hokuにフォールバックします<br>
-      ・保存前の確認モーダルは API 経由でも必ず表示されます<br>
-      ・APIキーは端末に保存せず、サーバ（Supabase Edge Function 等）側に置いてください<br>
-      ・導入手順と金額: docs/hoku-openai-plan.md
-    </div>
-    <div class="field">
-      <div class="field-label">エンドポイントのベース URL</div>
-      <input type="url" class="input" id="hoku-api-url-input"
-        placeholder="例: https://xxxx.supabase.co/functions/v1/hoku" inputmode="url"
-        autocomplete="off" style="font-size:13px;">
-      <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
-        （任意）通常は空欄でOK。プレミアムはログイン中に自動で有効になります。独自サーバを使う上級者のみ入力（末尾の / 不要）。
-      </div>
-    </div>
-    <div class="field">
-      <div class="field-label">共有シークレット（任意・独自URL利用時のみ）</div>
-      <input type="text" class="input" id="hoku-api-key-input"
-        placeholder="サーバ側と同じ合言葉（x-hoku-key）" autocomplete="off" style="font-size:13px;">
-      <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">
-        ※ これは OpenAI のAPIキーではありません。通常は不要（既定はログイン認証で保護）。独自URL利用時のみ、サーバの HOKU_SHARED_KEY と同じ合言葉を入力します。
-      </div>
-    </div>
-    <label style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;background:var(--bg-muted);border-radius:10px;margin:4px 0 12px;cursor:pointer;">
-      <input type="checkbox" id="hoku-chat-mode-input" style="width:18px;height:18px;flex:none;margin-top:1px;">
-      <span style="font-size:13px;color:var(--text);line-height:1.6;">
-        <b>AI版Hokuを使う</b>（プレミアム。家族の予定・タスク等の文脈を見て自然に返答）
-        <span style="display:block;font-size:11px;color:var(--text-muted);margin-top:3px;">
-          ※ ON にすると、あなたの<b>予定・タスク・買い物・準備・体調・メモ/掲示の概要</b>が AI（サーバ経由）に送信されます。<b>家計の金額は送信しません</b>。データ登録は必ず確認画面を挟みます。
-        </span>
-      </span>
-    </label>
-    <div id="hoku-api-test-result" style="font-size:12px;line-height:1.6;margin:2px 0 10px;"></div>
-    <button class="btn btn-ghost btn-block" onclick="testHokuApi()" style="margin-bottom:8px;">接続テスト</button>
-    <button class="btn btn-primary btn-block" onclick="saveHokuApiUrl()" style="margin-bottom:8px;">保存</button>
-    <button class="btn btn-ghost btn-block" onclick="closeModal('m-hoku-api')">閉じる</button>
   </div>
 </div>
 

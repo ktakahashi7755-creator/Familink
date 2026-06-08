@@ -20051,3 +20051,26 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: feat(hoku): フェアユース上限(1日40通)＋文脈圧縮で赤字防止
+
+---
+
+## 2026-06-08 16:00  env: PC (Remote Control)  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+設定の2項目を削除（ユーザー要望）＋関連デッドコード整理＋総点検
+
+### 変更内容
+- プレミアム機能カード「Hokuを制限なしで使える」を削除（フェアユース上限導入で「無制限」表記が不正確なため妥当）。
+- 設定項目「Hoku を AI で賢くする」を削除（プレミアムは設定不要でAI自動有効＝入口が不要）。
+- デッドコード整理（§12.4）：openHokuApiModal/saveHokuApiUrl/testHokuApi と モーダル m-hoku-api を撤去。
+  独自URL(S.hokuApiUrl)は上級者向けに _hokuCallBackend で引き続き利用可能（状態フィールドは維持）。
+
+### 総点検結果
+- node qa_full_test.js：**84/84 PASS（WARN 0）**
+- tools/sync_harness_test.js：**68/68 PASS**
+- Playwright実画面：設定「AI で賢くする」=消えた / プレミアム「制限なしで使える」=消えた / プレミアム画面=正常描画 / JSエラー0
+- 削除関数・ID・モーダルへの実参照0（コメントのみ残置）
+- app-source ⇄ docs 一致（v20260608j）
+
+### コミット
+- メッセージ: chore(settings): 不要な2項目(AI設定/制限なしカード)とデッドコードを削除＋総点検
