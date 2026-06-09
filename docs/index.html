@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609d';
+  var V='v20260609e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1174,7 +1174,8 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .av2-media img { cursor:zoom-in; }
 /* フル画面の写真ビューア */
 .pf-backdrop { align-items:center; justify-content:center; background:rgba(0,0,0,.94); flex-direction:column; }
-.pf-img { max-width:100vw; max-height:84vh; object-fit:contain; -webkit-touch-callout:default; transform-origin:center center; will-change:transform; touch-action:none; }
+/* 長押しで iOS の「"写真"に追加」を出すため callout を有効化・touch-action は既定のまま */
+.pf-img { max-width:100vw; max-height:84vh; object-fit:contain; -webkit-touch-callout:default !important; -webkit-user-select:auto !important; user-select:auto; touch-action:auto; pointer-events:auto; }
 .pf-close {
   position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:14px; z-index:2;
   width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
@@ -3938,7 +3939,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
       </button>
       <div id="av2-menu" class="av2-menu hidden">
-        <button onclick="albumDownloadCurrent();albumToggleMenu()">写真に保存</button>
+        <button onclick="albumDownloadCurrent();albumToggleMenu()">共有</button>
         <div class="av2-menu-folder">
           <span>フォルダ</span>
           <select id="av-folder" onchange="albumViewMoveFolder()"></select>
@@ -3974,15 +3975,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- フル画面の写真ビューア（ピンチズーム / 「写真に保存」でアルバムへ） -->
+<!-- フル画面の写真ビューア（写真を長押し→「写真に追加」で保存 / 共有はシート） -->
 <div id="m-photo-full" class="modal-backdrop hidden pf-backdrop" style="z-index:500;" onclick="closeModal('m-photo-full')">
   <button class="pf-close" onclick="closeModal('m-photo-full')" aria-label="閉じる">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
   <img id="pf-img" class="pf-img" src="" alt="写真" onclick="event.stopPropagation()">
   <div class="pf-bar" onclick="event.stopPropagation()">
-    <span class="pf-hint">「写真に保存」から端末のアルバムに保存できます</span>
-    <button class="pf-save" onclick="albumDownloadCurrent()">写真に保存</button>
+    <span class="pf-hint">写真を長押し →「&#8220;写真&#8221;に追加」で保存できます</span>
+    <button class="pf-save" onclick="albumDownloadCurrent()" aria-label="共有"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>共有</button>
   </div>
 </div>
 
@@ -4015,7 +4016,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
       <div id="m-doc-photo-title" style="font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">書類の写真</div>
       <div style="display:flex;gap:6px;flex:none;">
-        <button onclick="docPhotoDownload()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">写真に保存</button>
+        <button onclick="docPhotoDownload()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">共有</button>
         <button onclick="closeModal('m-doc-photo')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
       </div>
     </div>
@@ -16886,7 +16887,7 @@ function _archivePhotoPreviewHtml() {
   return '<img alt="書類の写真" src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
     + '<div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;font-weight:700;">'
     + '<span onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="color:var(--primary);cursor:pointer;">タップで拡大</span>'
-    + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">写真に保存</span>'
+    + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">共有</span>'
     + '</div>';
 }
 function openArchiveAdd(id) {
@@ -17447,49 +17448,11 @@ function _bindAlbumSwipe(el, onLeft, onRight) {
 function albumOpenFull() {
   const p = _curPhoto(); if(!p || p.type === 'video') return;
   const img = document.getElementById('pf-img');
-  if(img) { img.src = p.dataUrl || ''; _pfZoomReset(img); }
+  if(img) img.src = p.dataUrl || '';
   openModal('m-photo-full');
-  // ズーム中はスワイプでの写真送りを無効化（パン操作と衝突させない）
+  // 左右スワイプで写真送り（passive のみ＝iOSの長押し「写真に追加」を妨げない）
   _bindAlbumSwipe(document.getElementById('m-photo-full'),
-    function(){ if(((img&&img._z)||{}).s>1) return; albumFullGo(1); },
-    function(){ if(((img&&img._z)||{}).s>1) return; albumFullGo(-1); });
-  _bindPinchZoom(img);
-}
-/* フル画面のピンチズーム + ダブルタップ + 拡大中パン。ズーム中はスワイプ移動より優先 */
-function _pfZoomReset(img) { if(!img) return; img._z = { s:1, tx:0, ty:0 }; img.style.transform = ''; }
-function _pfDist(t) { const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
-function _bindPinchZoom(img) {
-  if(!img || img._pinchBound) return; img._pinchBound = true;
-  _pfZoomReset(img);
-  let mode='', startDist=0, startScale=1, sx=0, sy=0, lastTap=0;
-  function apply(){ const z=img._z; img.style.transform='translate('+z.tx+'px,'+z.ty+'px) scale('+z.s+')'; }
-  img.addEventListener('touchstart', function(e){
-    const z=img._z;
-    if(e.touches.length===2){ mode='pinch'; startDist=_pfDist(e.touches); startScale=z.s; }
-    else if(e.touches.length===1){
-      const now=Date.now();
-      if(now-lastTap<300){ // ダブルタップ：1x ⇄ 2.5x
-        if(z.s>1){ _pfZoomReset(img); } else { z.s=2.5; apply(); }
-        mode=''; lastTap=0; return;
-      }
-      lastTap=now;
-      mode = z.s>1 ? 'pan' : '';
-      sx=e.touches[0].clientX - z.tx; sy=e.touches[0].clientY - z.ty;
-    }
-  }, {passive:true});
-  img.addEventListener('touchmove', function(e){
-    const z=img._z;
-    if(mode==='pinch' && e.touches.length===2){
-      z.s = Math.max(1, Math.min(4, startScale*(_pfDist(e.touches)/(startDist||1))));
-      apply(); e.preventDefault();
-    } else if(mode==='pan' && e.touches.length===1 && z.s>1){
-      z.tx=e.touches[0].clientX - sx; z.ty=e.touches[0].clientY - sy; apply(); e.preventDefault();
-    }
-  }, {passive:false});
-  img.addEventListener('touchend', function(e){
-    const z=img._z;
-    if(e.touches.length===0){ if(z.s<=1){ z.tx=0; z.ty=0; apply(); } mode=''; }
-  }, {passive:true});
+    function(){ albumFullGo(1); }, function(){ albumFullGo(-1); });
 }
 /* フル画面での前後移動（写真のみ。動画はスキップ）*/
 function albumFullGo(dir) {
@@ -17499,7 +17462,7 @@ function albumFullGo(dir) {
   do { idx=(idx+dir+n)%n; tries++; const pp=(S.albumPhotos||[]).find(function(x){ return x.id===_albumViewList[idx]; }); if(pp && pp.type!=='video') break; } while(tries<n);
   _albumViewId = _albumViewList[idx];
   const p = _curPhoto(); const img = document.getElementById('pf-img');
-  if(p && p.type!=='video' && img) { img.src = p.dataUrl || ''; _pfZoomReset(img); }
+  if(p && p.type!=='video' && img) img.src = p.dataUrl || '';
   albumRenderViewer();
 }
 /* ビューアの中身（日付・メディア・リアクション・コメント）を再描画 */
