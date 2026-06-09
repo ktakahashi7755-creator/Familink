@@ -5688,7 +5688,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 </div>
 
 <!-- ===== Wave 267: 予定表を写真から読み取る（AI/OCR → 確認 → 一括登録）===== -->
-<input type="file" id="ocr-file" accept="image/*" capture="environment" style="display:none;" onchange="ocrOnFilePicked(event)">
+<!-- 撮影用（カメラ起動）/ アルバム用（ライブラリ選択）を分ける -->
+<input type="file" id="ocr-file-cam" accept="image/*" capture="environment" style="display:none;" onchange="ocrOnFilePicked(event)">
+<input type="file" id="ocr-file-lib" accept="image/*" style="display:none;" onchange="ocrOnFilePicked(event)">
 
 <!-- 説明・同意・写真選択 -->
 <div id="m-ocr-intro" class="modal-backdrop" onclick="closeModal('m-ocr-intro')">
@@ -5706,7 +5708,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <span>この写真には個人情報（お子さまの名前・園名・学校名など）が含まれる場合があります。読み取りのために画像を処理します。読み取った結果は、登録前に必ずご自身で確認できます。</span>
       </div>
       <label class="ocr-check"><input type="checkbox" id="ocr-keep-img"><span>読み取った写真をアルバムにも保存する</span></label>
-      <button class="btn btn-primary btn-block btn-lg" onclick="ocrPickPhoto()">写真を選ぶ</button>
+      <button class="btn btn-primary btn-block btn-lg" onclick="ocrPick('camera')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>写真を撮る
+      </button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="ocrPick('library')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>アルバムから選ぶ
+      </button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-ocr-intro')" style="margin-top:4px;">キャンセル</button>
     </div>
   </div>
@@ -5724,7 +5731,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <span>写真が暗いかもしれません。読み取りにくい場合は明るい場所で撮り直してください。</span>
       </div>
       <button class="btn btn-primary btn-block btn-lg" style="margin-top:12px;" onclick="ocrStartAnalyze()">解析する</button>
-      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="ocrPickPhoto()">別の写真を選ぶ</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="ocrRepick()">撮り直す / 別の写真</button>
       <button class="btn btn-ghost btn-block" style="margin-top:4px;" onclick="closeModal('m-ocr-preview')">キャンセル</button>
     </div>
   </div>
@@ -12574,13 +12581,17 @@ function openOcrIntro() {
   const keep=document.getElementById('ocr-keep-img'); if(keep) keep.checked=false;
   openModal('m-ocr-intro');
 }
-function ocrPickPhoto() {
+/* 写真を撮る(camera)／アルバムから選ぶ(library) */
+function ocrPick(mode) {
   _ocr.year = parseInt((document.getElementById('ocr-year')||{}).value,10) || new Date().getFullYear();
   _ocr.month = ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1));
   _ocr.keepImage = !!((document.getElementById('ocr-keep-img')||{}).checked);
-  const f=document.getElementById('ocr-file'); if(f) f.click();
+  const id = (mode==='camera') ? 'ocr-file-cam' : 'ocr-file-lib';
+  const f = document.getElementById(id); if(f) f.click();
 }
-/* 写真を選んだら、まず「プレビュー＋解析する」ステップを挟む（自動解析しない） */
+function ocrPickPhoto(){ ocrPick('library'); }   // 後方互換
+function ocrRepick(){ closeModal('m-ocr-preview'); openModal('m-ocr-intro'); }
+/* 写真を選んだら、まず「プレビュー（原寸・鮮明）＋解析する」ステップを挟む（自動解析しない） */
 function ocrOnFilePicked(ev) {
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = '';
@@ -12589,28 +12600,31 @@ function ocrOnFilePicked(ev) {
   const reader = new FileReader();
   reader.onload = function(){
     _ocr.image = reader.result;
-    _ocrMakePreview(_ocr.image, function(prev, dark){
-      _ocr.preview = prev; _ocr.dark = dark;
-      const img = document.getElementById('ocr-preview-img'); if(img) img.src = prev || _ocr.image;
-      const dw = document.getElementById('ocr-preview-dark'); if(dw) dw.style.display = dark ? 'flex' : 'none';
-      closeModal('m-ocr-intro');
-      openModal('m-ocr-preview');
+    // プレビューは原寸を表示（縮小サムネを出すと“画質が悪い”と誤認するため）。
+    const img = document.getElementById('ocr-preview-img'); if(img) img.src = _ocr.image;
+    const dw = document.getElementById('ocr-preview-dark'); if(dw) dw.style.display = 'none';
+    closeModal('m-ocr-intro');
+    openModal('m-ocr-preview');
+    // 履歴サムネ＋明るさ判定は裏で計算（表示はブロックしない）
+    _ocrImageMeta(_ocr.image, function(thumb, dark){
+      _ocr.preview = thumb; _ocr.dark = dark;
+      const dw2 = document.getElementById('ocr-preview-dark'); if(dw2) dw2.style.display = dark ? 'flex' : 'none';
     });
   };
   reader.onerror = function(){ showToast('写真を読み込めませんでした','error'); };
   reader.readAsDataURL(file);
 }
-/* プレビュー用サムネ生成＋明るさ判定（暗い写真の警告に使用） */
-function _ocrMakePreview(dataUrl, cb) {
+/* 履歴用サムネ(360px)＋明るさ判定（暗い写真の警告に使用）。表示用ではない。 */
+function _ocrImageMeta(dataUrl, cb) {
   try {
     const img = new Image();
     img.onload = function(){
       try {
-        const max=360; let w=img.width||max, h=img.height||max;
+        const max=360; let w=img.naturalWidth||img.width||max, h=img.naturalHeight||img.height||max;
         if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
         const c=document.createElement('canvas'); c.width=w; c.height=h; const cx=c.getContext('2d'); cx.drawImage(img,0,0,w,h);
-        let dark=false; try { const dd=cx.getImageData(0,0,w,h).data; let sum=0,n=0; for(let i=0;i<dd.length;i+=40){ sum+=dd[i]+dd[i+1]+dd[i+2]; n+=3; } dark=(sum/Math.max(1,n))<70; } catch(_){}
-        cb(c.toDataURL('image/jpeg',0.7), dark);
+        let dark=false; try { const dd=cx.getImageData(0,0,w,h).data; let sum=0,n=0; for(let i=0;i<dd.length;i+=40){ sum+=dd[i]+dd[i+1]+dd[i+2]; n+=3; } dark=(sum/Math.max(1,n))<60; } catch(_){}
+        cb(c.toDataURL('image/jpeg',0.72), dark);
       } catch(_){ cb(dataUrl,false); }
     };
     img.onerror=function(){ cb(dataUrl,false); };
@@ -12682,24 +12696,40 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   // 未ログイン/未接続：モック（外部送信なし）
   return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1000); });
 }
-/* 送信用に画像を縮小（OCR可読性を保ちつつ通信量を抑える）。dataURL→dataURL */
-function _ocrDownscaleForUpload(dataUrl) {
-  return new Promise(function(resolve){
+/* 送信用に画像を最適化（OCR可読性を最優先：高解像度＋EXIF回転反映）。dataURL→dataURL。
+   - 文字がつぶれて読めなくならないよう長辺 2400px / JPEG q0.9 を確保（旧 1600/0.82 で低画質化していた）。
+   - iPhone のカメラ写真は EXIF 回転を持つため createImageBitmap(from-image) で正しい向きに焼き込む。 */
+async function _ocrDownscaleForUpload(dataUrl) {
+  try {
+    if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0) return dataUrl;
+    const MAX=2400, Q=0.9;
+    let src=null, sw=0, sh=0, bmp=null;
+    // 1) EXIF 回転を確実に反映できる createImageBitmap を優先
     try {
-      if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0){ resolve(dataUrl); return; }
-      const img=new Image();
-      img.onload=function(){
-        try {
-          const max=1600; let w=img.width||max, h=img.height||max;
-          if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
-          const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
-          resolve(c.toDataURL('image/jpeg',0.82));
-        } catch(_){ resolve(dataUrl); }
-      };
-      img.onerror=function(){ resolve(dataUrl); };
-      img.src=dataUrl;
-    } catch(_){ resolve(dataUrl); }
-  });
+      const blob=_dataURLtoBlob(dataUrl);
+      if(blob && typeof createImageBitmap==='function'){
+        bmp=await createImageBitmap(blob, { imageOrientation:'from-image' });
+        src=bmp; sw=bmp.width; sh=bmp.height;
+      }
+    } catch(_){ bmp=null; src=null; }
+    // 2) フォールバック：Image 要素
+    if(!src){
+      const img=await new Promise(function(res){ const im=new Image(); im.onload=function(){res(im);}; im.onerror=function(){res(null);}; im.src=dataUrl; });
+      if(!img) return dataUrl;
+      src=img; sw=img.naturalWidth||img.width; sh=img.naturalHeight||img.height;
+    }
+    if(!sw||!sh){ if(bmp&&bmp.close)try{bmp.close();}catch(_){ } return dataUrl; }
+    let w=sw, h=sh;
+    if(w>MAX||h>MAX){ if(w>=h){ h=Math.round(h*MAX/w); w=MAX; } else { w=Math.round(w*MAX/h); h=MAX; } }
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    const cx=c.getContext('2d'); cx.imageSmoothingEnabled=true; cx.imageSmoothingQuality='high';
+    cx.drawImage(src,0,0,w,h);
+    if(bmp&&bmp.close)try{bmp.close();}catch(_){}
+    let out=c.toDataURL('image/jpeg',Q);
+    // サーバ上限(~8MB)に収める保険：大きすぎる時だけ品質を段階的に下げる（通常は発動しない）
+    let q2=Q; while(out.length>7400000 && q2>0.6){ q2-=0.12; out=c.toDataURL('image/jpeg',q2); }
+    return out;
+  } catch(_){ return dataUrl; }
 }
 /* モックAI結果（接続前のUI完成用）。月間予定表を解析した想定。 */
 function mockAnalyzeCalendarImage() {

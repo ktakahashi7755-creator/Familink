@@ -20823,3 +20823,39 @@ OCR読み取りの堅牢化（時刻/日付正規化・終了時刻補正）＋�
 
 ### コミット
 - メッセージ: feat(ocr): OCR専用 Edge Function calendar-scan を新設しフロントを実接続（鍵はサーバ側のみ・Hoku非干渉）
+
+---
+
+## 2026-06-09 23:10  env: iPhone経由  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+予定表スキャン総点検：撮影＆アルバム両対応＋撮影写真が低画質で読めなくなるバグ修正
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609q）
+- docs/worklog.md
+
+### 変更内容
+- **撮影／アルバム両対応**：従来は file 入力に `capture="environment"` を付けていたため iOS でカメラ固定＝アルバムから選べなかった。入力を2つに分離（`ocr-file-cam`=カメラ／`ocr-file-lib`=ライブラリ）し、説明モーダルを「写真を撮る」「アルバムから選ぶ」の2ボタンに。`ocrPick('camera'|'library')`／`ocrRepick()` を追加
+- **低画質バグの修正（主因2点）**：
+  1. プレビューに360pxのサムネを表示していた → “画質がものすごく悪い”と誤認。**プレビューは原寸画像を表示**（サムネは履歴用に裏で生成）
+  2. 解析送信用の縮小が **1600px / JPEG q0.82** と粗く、密な予定表の文字がつぶれて読めなかった → **長辺2400px / q0.9** に引き上げ、`imageSmoothingQuality='high'`。さらに **EXIF回転を `createImageBitmap({imageOrientation:'from-image'})` で正しく焼き込み**（iPhone写真の横倒れ対策）。サーバ8MB上限に収める保険（大きすぎる時のみ品質を段階調整）も追加
+- Edge Function（サーバ）は変更なし＝再デプロイ不要
+
+### テスト結果
+- 画像処理検証（Playwright）：カメラ入力=capture有／ライブラリ入力=capture無／2000px維持・4000px→2400px縮小・JPEG化・8MB未満・プレビュー原寸表示／pageerror0
+- OCR仕様：31/31 PASS、接続経路（未ログイン→モック／ログイン→calendar-scan呼び出し／エラー→失敗UX）PASS
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機 iOS でカメラ起動／アルバム選択の両方、撮影写真の実OCR可読性（2400px化の効果）
+
+### iPhone確認ポイント
+- 予定表→「写真を撮る」「アルバムから選ぶ」両方出るか／プレビューが鮮明か／実OCRで読み取れるか
+
+### 次にやること
+- 実機で撮影→解析の可読性確認。なお足りなければ長辺をさらに上げる/モデルを gpt-4o へ
+
+### コミット
+- メッセージ: fix(ocr): 撮影＆アルバム両対応＋撮影写真の低画質バグ修正（原寸プレビュー/2400px/EXIF回転）
