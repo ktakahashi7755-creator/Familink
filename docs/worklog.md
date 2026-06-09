@@ -20488,3 +20488,39 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: feat(album): 人物機能強化（追加後の人物選択/未分類の一括整理/将来AI顔認識スキャフォールド）
+
+---
+
+## 2026-06-09 14:10  env: iPhone経由  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+写真ビューア（av2）で下端（タグ/コメント/入力欄）までスクロールできないバグ修正（iOS vh 問題）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609i）
+- docs/worklog.md
+
+### 変更内容
+- **原因**：`.av2-sheet` の `max-height:94vh` と `.av2-media` の `56vh` が iOS Safari の大きいビューポート(vh)基準だったため、URLバー＋下部ツールバー表示時に実表示領域を超え、シート下端のコメント入力欄が画面外へ押し出され、タグ/コメントまで到達できなかった
+- **修正**：
+  - `.av2-sheet` を `max-height:94vh; max-height:92dvh;`（dvh 基準＝ツールバー込みの実表示高に追従。vh はフォールバック）
+  - `.av2-media` を `max-height:56vh; max-height:46dvh; flex:none;` に縮小固定し、残り領域を `.av2-scroll`(内部スクロール) に割り当て、コメント入力欄(flex:none)が常に画面内に残るよう是正
+  - img/video も 46dvh に統一
+
+### テスト結果
+- 個別検証（Playwright 375x667）：シート下端640 ≤ ビューポート667（収まる）/ コメント入力欄表示=true / av2-scroll スクロール可(755>430) / 下端スクロールでタグ到達=true / pageerror 0
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機 iOS Safari（ツールバー表示状態）での最終確認
+
+### iPhone確認ポイント
+- アルバムで写真をタップ→ビューアで下へスクロール→「タグ」「コメント」「コメント入力欄」まで届くか
+- 縦長写真でもコメント入力欄が常に画面内にあるか
+
+### 次にやること
+- 実機確認。問題なければ main へ反映して公開
+
+### コミット
+- メッセージ: fix(album): 写真ビューアの下端までスクロール不可を修正（iOS dvh 対応）

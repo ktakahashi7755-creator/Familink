@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609h';
+  var V='v20260609i';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1123,7 +1123,8 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 /* ===== Mitene 風フォトビューア（av2-*） ===== */
 .av2-backdrop { align-items:center; justify-content:center; }
 .av2-sheet {
-  width:96vw; max-width:480px; max-height:94vh;
+  width:96vw; max-width:480px;
+  max-height:94vh; max-height:92dvh;   /* iOS：ツールバー表示時も下端(コメント欄)が画面内に収まるよう dvh 基準 */
   background:var(--bg-card); color:var(--text);
   border-radius:22px; overflow:hidden;
   display:flex; flex-direction:column;
@@ -1169,9 +1170,9 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .av2-media {
   position:relative;
   background:#0d0d0f; display:flex; align-items:center; justify-content:center;
-  max-height:56vh; overflow:hidden;
+  max-height:56vh; max-height:46dvh; overflow:hidden; flex:none;
 }
-.av2-media img, .av2-media video { width:100%; max-height:56vh; object-fit:contain; display:block; }
+.av2-media img, .av2-media video { width:100%; max-height:56vh; max-height:46dvh; object-fit:contain; display:block; }
 .av2-actions {
   display:flex; align-items:center; gap:6px; flex-wrap:nowrap;
   padding:12px 14px 6px;
