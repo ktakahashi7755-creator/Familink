@@ -3925,7 +3925,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
       </button>
       <div id="av2-menu" class="av2-menu hidden">
-        <button onclick="albumDownloadCurrent();albumToggleMenu()">端末に保存</button>
+        <button onclick="albumDownloadCurrent();albumToggleMenu()">写真に保存</button>
         <div class="av2-menu-folder">
           <span>フォルダ</span>
           <select id="av-folder" onchange="albumViewMoveFolder()"></select>
@@ -3961,15 +3961,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
-<!-- フル画面の写真ビューア（長押しで端末に保存しやすく） -->
+<!-- フル画面の写真ビューア（ピンチズーム / 「写真に保存」でアルバムへ） -->
 <div id="m-photo-full" class="modal-backdrop hidden pf-backdrop" style="z-index:500;" onclick="closeModal('m-photo-full')">
   <button class="pf-close" onclick="closeModal('m-photo-full')" aria-label="閉じる">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
   <img id="pf-img" class="pf-img" src="" alt="写真" onclick="event.stopPropagation()">
   <div class="pf-bar" onclick="event.stopPropagation()">
-    <span class="pf-hint">写真を長押しすると端末に保存できます</span>
-    <button class="pf-save" onclick="albumDownloadCurrent()">端末に保存</button>
+    <span class="pf-hint">「写真に保存」から端末のアルバムに保存できます</span>
+    <button class="pf-save" onclick="albumDownloadCurrent()">写真に保存</button>
   </div>
 </div>
 
@@ -4002,7 +4002,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
       <div id="m-doc-photo-title" style="font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">書類の写真</div>
       <div style="display:flex;gap:6px;flex:none;">
-        <button onclick="docPhotoDownload()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">端末に保存</button>
+        <button onclick="docPhotoDownload()" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">写真に保存</button>
         <button onclick="closeModal('m-doc-photo')" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">閉じる</button>
       </div>
     </div>
@@ -16873,7 +16873,7 @@ function _archivePhotoPreviewHtml() {
   return '<img alt="書類の写真" src="'+H(_archivePhotoBuf)+'" onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="max-width:100%;max-height:160px;border-radius:10px;display:block;cursor:zoom-in;">'
     + '<div style="display:flex;gap:18px;margin-top:9px;font-size:12.5px;font-weight:700;">'
     + '<span onclick="openDocPhoto(_archivePhotoBuf,(document.getElementById(\'aa-title\').value||\'書類の写真\'))" style="color:var(--primary);cursor:pointer;">タップで拡大</span>'
-    + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">端末に保存</span>'
+    + '<span onclick="downloadDataUrl(_archivePhotoBuf,\'familink_\'+(document.getElementById(\'aa-title\').value||\'書類\'))" style="color:var(--primary);cursor:pointer;">写真に保存</span>'
     + '</div>';
 }
 function openArchiveAdd(id) {
@@ -17696,24 +17696,48 @@ function albumDeleteCurrent() {
 }
 
 /* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
-function downloadDataUrl(dataUrl, baseName) {
+/* ── Wave 262: iOS/Android の「写真に保存」をネイティブシートで実現 ──
+   ・対応端末（https）では Web Share API(files) を使い、共有シートの
+     「写真に追加 / 画像を保存」から端末のアルバムへ直接保存できる。
+   ・非対応（PC等）は従来どおりファイル保存にフォールバック。 */
+async function downloadDataUrl(dataUrl, baseName) {
   if(!dataUrl) { showToast('保存できるデータがありません','error'); return; }
-  try {
-    const m = String(dataUrl).match(/^data:(?:image|video)\/([a-zA-Z0-9]+)/);
-    let ext = m ? m[1].toLowerCase() : 'jpg';
-    if(ext === 'jpeg') ext = 'jpg';
-    if(ext === 'quicktime') ext = 'mov';
-    const safe = (baseName||'familink').replace(/[\\/:*?"<>|\s　]+/g,'_').slice(0,40) || 'familink';
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = safe + '.' + ext;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('端末に保存しました');
-  } catch(e) {
-    showToast('保存できませんでした。画像を長押しで保存してください','error');
+  const m = String(dataUrl).match(/^data:(image|video)\/([a-zA-Z0-9.+-]+)/);
+  let ext = m ? m[2].toLowerCase() : 'jpg';
+  if(ext === 'jpeg') ext = 'jpg';
+  if(ext === 'quicktime') ext = 'mov';
+  if(ext === 'svg+xml') ext = 'svg';
+  const safe = (baseName||'familink').replace(/[\\/:*?"<>|\s　]+/g,'_').slice(0,40) || 'familink';
+  const fname = safe + '.' + ext;
+  function fallbackDownload(blob) {
+    try {
+      const url = blob ? URL.createObjectURL(blob) : dataUrl;
+      const a = document.createElement('a');
+      a.href = url; a.download = fname; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      if(blob) setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(_){} }, 5000);
+      showToast('端末に保存しました');
+    } catch(_) {
+      showToast('保存できませんでした。写真を長押しで保存してください','error');
+    }
   }
+  let blob = null;
+  try { blob = await (await fetch(dataUrl)).blob(); } catch(_){}
+  // 1) ネイティブ共有シート（iOS:「写真に追加」/ Android:「保存」）
+  try {
+    if(blob && navigator.canShare) {
+      const file = new File([blob], fname, { type: blob.type || (m ? m[1]+'/'+m[2] : 'image/jpeg') });
+      if(navigator.canShare({ files:[file] })) {
+        await navigator.share({ files:[file] });
+        return;  // ユーザーがシートで保存/共有を完了（成功トーストはシート側に委ねる）
+      }
+    }
+  } catch(e) {
+    if(e && e.name === 'AbortError') return;  // シートをキャンセル＝何もしない
+    // それ以外の共有失敗はダウンロードにフォールバック
+  }
+  // 2) フォールバック（PC等）
+  fallbackDownload(blob);
 }
 function albumDownloadCurrent() {
   const p = (S.albumPhotos||[]).find(function(x){ return x.id===_albumViewId; });
