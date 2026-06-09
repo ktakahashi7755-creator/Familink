@@ -20682,3 +20682,42 @@ OCR読み取りの堅牢化（時刻/日付正規化・終了時刻補正）＋�
 
 ### コミット
 - メッセージ: hardening(ocr): 時刻/日付の正規化・終了時刻補正＋反映精度検証（公開ブランチ根本原因の特定）
+
+---
+
+## 2026-06-09 18:30  env: iPhone経由  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+カレンダーが固まる不具合の修正 ＋ OCR読み取り中のハング防止 ＋ 家族ボード本文の見やすさ改善
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609n）
+- docs/worklog.md
+
+### 変更内容
+- **カレンダー「固まって何も出来ない」修正（主因）**：`renderCalMonth` の pinned 判定が iOS Safari の大きいビューポート由来で `clientHeight` を過大評価し、`overflow:hidden` のまま詳細パネル（タップ結果が反映される場所）がツールバー裏＝画面外に固定され、スクロールも到達もできず固まって見えた。**実可視領域 `window.visualViewport.height` から `mainArea` の利用可能高さを算出**し、足りなければ全体スクロール（cal-det-flow）へ自動フォールバックするよう修正。これでどの端末でも詳細が必ず到達可能に
+- **OCR「読み取り中」のハング防止**：私が追加した m-ocr-loading に**キャンセル導線**（背景タップ＋キャンセルボタン）と**20秒ウォッチドッグ**を追加。万一読み取りが返らなくても画面が固まらない。`_ocr.cancelled`/`watchdog` で二重解放を防止
+- **家族ボード本文の見切れ改善**：投稿カードの `.post-body` を **2行→5行クランプ**、font-size 12.5→13.5px・line-height 1.7・`white-space:pre-wrap`（改行保持）・`word-break:break-word`。短い投稿はほぼ全文表示、長文は5行で自然に省略しタップで全文（詳細 `.bdetail-body-text` はクランプなしのまま＝非影響）
+
+### テスト結果
+- カレンダー検証（Playwright）：cramped(390x600)=全体スクロール＆詳細到達可・反映OK／tall(390x844)=ピン留めUX維持・反映OK／pageerror 0
+- 98件高密度でも描画26ms・月移動/日タップ/FAB 正常
+- ボード検証：post-body clamp=5・13.5px・横スクロール0・詳細は全文・エラー0
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 公開
+- 実公開ブランチ claude/merge-and-push-main-u44Ty へ反映しライブ更新（main は環境設定上デプロイ対象外）
+
+### 未確認事項
+- 実機 iOS でカレンダーが正常操作できるか（visualViewport 補正の体感）
+
+### iPhone確認ポイント
+- カレンダー月表示で日付タップ→下の予定詳細が見える・スクロールできる
+- 家族ボードの投稿が2行で切れず読みやすくなったか
+
+### 次にやること
+- 実機確認
+
+### コミット
+- メッセージ: fix(calendar/board): カレンダー固まり(visualViewport補正)＋OCRハング防止＋ボード本文5行化
