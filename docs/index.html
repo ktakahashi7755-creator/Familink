@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609u';
+  var V='v20260609v';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -12818,28 +12818,15 @@ async function _ocrMakeCrops(dataUrl, annual) {
       while(out.length>9000000 && q>0.6){ q-=0.12; out=c.toDataURL('image/jpeg',q); }   // サーバ10MB上限の保険
       return out;
     };
-    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体は常に1パス（全体文脈の把握用）
-    if(annual){
-      // 年間予定表：縦横比に応じた可変グリッド分割（重なり付き・全体＋最大8タイル）で
-      // 12か月ぶんの広く密な表でも、全月・全行事を1件残らず拾う。各タイルは高解像のまま解析。
-      if(Math.min(w,h) >= 700){
-        let cols=Math.max(2, Math.min(4, Math.round(w/1200)));
-        let rows=Math.max(2, Math.min(4, Math.round(h/1200)));
-        while(cols*rows > 8){ if(cols>=rows) cols--; else rows--; }   // 総タイル数（=API呼び出し）を抑える
-        const cw=w/cols, ch=h/rows, ox=Math.round(cw*0.12), oy=Math.round(ch*0.12);
-        for(let ri=0; ri<rows; ri++){
-          for(let ci=0; ci<cols; ci++){
-            const sx=Math.max(0, Math.round(ci*cw)-ox), sy=Math.max(0, Math.round(ri*ch)-oy);
-            const ex=Math.min(w, Math.round((ci+1)*cw)+ox), ey=Math.min(h, Math.round((ri+1)*ch)+oy);
-            crops.push({ img: enc(sx, sy, ex-sx, ey-sy), part:'partial' });
-          }
-        }
-      }
-    } else if(Math.min(w,h) >= 900){
-      // 通常（月間）：上下2分割（重なり付き）
-      const ovy=Math.round(h*0.10);
-      const topH=Math.min(h, Math.round(h*0.55)+ovy);
-      const botY=Math.max(0, Math.round(h*0.45)-ovy);
+    // 精度優先：全体1パスを「日付の正」とする（全グリッド＝月見出し・曜日列・日付数字が揃い、
+    // 日付ずれ/誤検出を防ぐ）。月間はこれだけ。
+    const crops=[{ img: enc(0,0,w,h), part:'' }];
+    // 年間（とても背の高い/広い表）だけ、全幅を保った上下2分割で取りこぼしを補う。
+    // 切り抜きは全幅なので曜日/月の列見出しが残り、文脈を失わない。
+    if(annual && h >= 1500){
+      const ovy=Math.round(h*0.12);
+      const topH=Math.min(h, Math.round(h*0.56)+ovy);
+      const botY=Math.max(0, Math.round(h*0.44)-ovy);
       crops.push({ img: enc(0, 0, w, topH), part:'top' });
       crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
     }
