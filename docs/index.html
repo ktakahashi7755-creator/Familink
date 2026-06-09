@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609s';
+  var V='v20260609t';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -12666,7 +12666,7 @@ function ocrStartAnalyze() {
       _ocr.cancelled = true; closeModal('m-ocr-loading');
       _ocrShowFail(['読み取りに時間がかかっています','通信状況を確認して、もう一度お試しください']);
     }
-  }, 75000);
+  }, 120000);
   const ctx = { year:_ocr.year, month:_ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
   analyzeCalendarImageWithAI(_ocr.image).then(function(aiResult){
     if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
@@ -12705,11 +12705,12 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   const sb = (typeof getSupabase==='function') ? getSupabase() : null;
   const canBackend = !!(sb && sb.functions && typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
   if(canBackend) {
-    // 取りこぼし防止：全体＋分割（年間予定表は4分割／通常は上下2分割）を並列解析しマージ＆重複除去。
+    // 取りこぼし防止：全体＋分割（年間は可変グリッド／通常は上下2分割）を解析しマージ＆重複除去。
+    // 同時実行は最大5に制限（多タイル時のレート制限・端末負荷を回避）。
     const crops = await _ocrMakeCrops(imageFileOrBase64, !!_ocr.annual);
-    const settled = await Promise.all(crops.map(function(cp){
-      return _ocrCallScan(sb, cp.img, cp.part).catch(function(){ return null; });
-    }));
+    const settled = await _ocrRunPool(crops, 5, function(cp){
+      return _ocrCallScan(sb, cp.img, cp.part);
+    });
     const oks = settled.filter(function(r){ return r && Array.isArray(r.events); });
     if(!oks.length) throw new Error('calendar-scan_all_failed');   // 全滅 → 失敗UX
     return _ocrMergeResults(oks);   // 0件でもそのまま返す（失敗UX or 結果表示は呼び出し側で判定）
@@ -12732,6 +12733,21 @@ function _ocrCallScan(sb, img, part) {
     if(r && r.data && Array.isArray(r.data.events)) return r.data;
     throw new Error('scan_bad');
   });
+}
+/* 同時実行数を制限して worker を回す（多タイル時のレート制限・負荷対策）。失敗は null。 */
+async function _ocrRunPool(items, limit, worker) {
+  const results = new Array(items.length);
+  let idx = 0;
+  async function run(){
+    while(idx < items.length){
+      const my = idx++;
+      try { results[my] = await worker(items[my]); } catch(_){ results[my] = null; }
+    }
+  }
+  const n = Math.max(1, Math.min(limit, items.length));
+  const runners = []; for(let k=0;k<n;k++) runners.push(run());
+  await Promise.all(runners);
+  return results;
 }
 /* 複数解析パスの結果を統合（同一予定は date|タイトル|開始時刻 で重複除去し、信頼度の高い方を採用） */
 function _ocrMergeResults(results) {
@@ -12776,25 +12792,30 @@ async function _ocrMakeCrops(dataUrl, annual) {
       while(out.length>9000000 && q>0.6){ q-=0.12; out=c.toDataURL('image/jpeg',q); }   // サーバ10MB上限の保険
       return out;
     };
-    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体は常に1パス
-    if(Math.min(w,h) >= 900){
-      const ovx=Math.round(w*0.10), ovy=Math.round(h*0.10);
-      if(annual){
-        // 年間予定表：上下左右の4分割（重なり付き）＝広く密な表でも全月を漏らさない
-        const midX=Math.round(w*0.5), midY=Math.round(h*0.5);
-        const lx=Math.min(w, midX+ovx), rx=Math.max(0, midX-ovx);
-        const ty=Math.min(h, midY+ovy), by=Math.max(0, midY-ovy);
-        crops.push({ img: enc(0,    0,    lx,   ty),    part:'partial' }); // 左上
-        crops.push({ img: enc(rx,   0,    w-rx, ty),    part:'partial' }); // 右上
-        crops.push({ img: enc(0,    by,   lx,   h-by),  part:'partial' }); // 左下
-        crops.push({ img: enc(rx,   by,   w-rx, h-by),  part:'partial' }); // 右下
-      } else {
-        // 通常（月間）：上下2分割
-        const topH=Math.min(h, Math.round(h*0.55)+ovy);
-        const botY=Math.max(0, Math.round(h*0.45)-ovy);
-        crops.push({ img: enc(0, 0, w, topH), part:'top' });
-        crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
+    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体は常に1パス（全体文脈の把握用）
+    if(annual){
+      // 年間予定表：縦横比に応じた可変グリッド分割（重なり付き・全体＋最大8タイル）で
+      // 12か月ぶんの広く密な表でも、全月・全行事を1件残らず拾う。各タイルは高解像のまま解析。
+      if(Math.min(w,h) >= 700){
+        let cols=Math.max(2, Math.min(4, Math.round(w/1200)));
+        let rows=Math.max(2, Math.min(4, Math.round(h/1200)));
+        while(cols*rows > 8){ if(cols>=rows) cols--; else rows--; }   // 総タイル数（=API呼び出し）を抑える
+        const cw=w/cols, ch=h/rows, ox=Math.round(cw*0.12), oy=Math.round(ch*0.12);
+        for(let ri=0; ri<rows; ri++){
+          for(let ci=0; ci<cols; ci++){
+            const sx=Math.max(0, Math.round(ci*cw)-ox), sy=Math.max(0, Math.round(ri*ch)-oy);
+            const ex=Math.min(w, Math.round((ci+1)*cw)+ox), ey=Math.min(h, Math.round((ri+1)*ch)+oy);
+            crops.push({ img: enc(sx, sy, ex-sx, ey-sy), part:'partial' });
+          }
+        }
       }
+    } else if(Math.min(w,h) >= 900){
+      // 通常（月間）：上下2分割（重なり付き）
+      const ovy=Math.round(h*0.10);
+      const topH=Math.min(h, Math.round(h*0.55)+ovy);
+      const botY=Math.max(0, Math.round(h*0.45)-ovy);
+      crops.push({ img: enc(0, 0, w, topH), part:'top' });
+      crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
     }
     if(bmp&&bmp.close)try{bmp.close();}catch(_){}
     return crops;
