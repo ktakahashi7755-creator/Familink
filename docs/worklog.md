@@ -20382,3 +20382,50 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: feat(album): 複数選択で一括 保存/移動/削除（Apple Photos級）＋下スワイプ閉じ＋相対日付
+
+---
+
+## 2026-06-09 12:00  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+アルバム世界最高峰化：右下固定の写真追加FAB ＋ Hokuの思い出そっと案内（既存の高完成度実装を磨き込み）
+
+### 現状分析（STEP1）
+既存アルバムは既に Apple Photos / Google Photos / みてね 級の体験を実装済みと確認：
+- 保存方式：写真は downscaleImageFile(1280px, q0.85) で base64 圧縮、動画は18MBまで data URL。容量超過時は追加を巻き戻し＋トースト案内（保存失敗の黙殺なし）
+- データ構造：albumPhotos = {id,dataUrl,type,takenAt,memberIds[],folderId,fav,reactions,mine[],comments[],memoryText,tags[],caption}。PERSIST/SYNC_KEYS/FAMILY_SHARED_KEYS すべてに登録済み＝家族同期・端末間削除耐久あり
+- UI：ライブラリ/思い出/アルバムの3タブ、検索（日付・名前・メモ・タグ）、スケール（すべて/年/月/日）、ヒーロー、自動メモリー（去年の今日・成長記録・お気に入り・年別）、スライドショー、人物アルバム、フォルダ4枚コラージュ表紙、複数選択（一括 共有保存/移動/削除）、フル画面ビューア（左右スワイプ・下スワイプ閉じ・長押し保存）、リアクション/コメント/メンバータグ/思い出メモ
+- 主な“穴”は2点のみ：(a) 写真追加が右上ヘッダーのみで片手追加導線が弱い (b) Familink独自のHoku思い出導線が未実装
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609g）
+- docs/worklog.md
+
+### 変更内容
+- **STEP7：右下固定の写真追加FAB**（`.alb-fab`）を新設。ヘッダー右上の追加ボタンは撤去し導線を一本化（ボタン重複を解消）。選択モード中は `body.album-selecting` で FAB／タブ／Hoku を隠しアクションバーを最前面に維持
+- **STEP5：Hokuの思い出そっと案内**（`.alb-hoku-hint`）をライブラリ上部に追加。主役にならず意味のあるときだけ1行で寄り添う：
+  - 「去年の今日は、こんな思い出がありましたよ。」→ 思い出タブへ
+  - 「最近、◯◯の写真が増えていますね。」（直近30日で最多・3枚以上）→ その人の人物アルバムへ
+  - ×で閉じるとその日は再表示しない（albumPrefs.hokuHint に YYYY-M-D|id を保存）。選択モード中・0枚時は非表示
+- `_albumSyncChrome` から旧追加ボタン参照を整理
+
+### テスト結果
+- inline script 構文チェック：2ブロックともエラーなし
+- node qa_full_test.js（Playwright 390x844）：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+- 個別検証（Playwright）：FAB存在=true / 表示=true / 選択モードで非表示=true / Hokuヒント表示=true（「去年の今日…」）/ ×で消える=true / pageerror 0（ERR_CERT は外部CDN由来でコード非依存）
+
+### 未確認事項
+- 実機 iOS で FAB の押し心地・safe-area 下端の被り（calc(82px+safe-area)）の最終確認
+- Hokuヒントの文言トーンは hoku-guideline 準拠だが実機での見え方を要確認
+
+### iPhone確認ポイント
+- アルバム右下の＋FABで片手追加できるか／選択モード中に隠れるか
+- ライブラリ上部のHokuヒントが控えめに出るか・×で閉じられるか・タップで思い出/人物へ飛ぶか
+- iPhone SE / 13 / 15 Pro Max で横スクロール0・FABが他UIと被らないか
+
+### 次にやること
+- 実機確認後、必要なら登録時の人物クイック選択（任意・非強制）や、Hokuヒントのバリエーション追加
+
+### コミット
+- メッセージ: feat(album): 右下固定の写真追加FAB＋Hokuの思い出そっと案内（片手追加と家族特化導線）

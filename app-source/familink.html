@@ -1068,8 +1068,25 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .alb-move-item { display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:var(--bg-muted); border:none; border-radius:12px; padding:12px 14px; margin-bottom:8px; font-size:15px; font-weight:700; color:var(--text); cursor:pointer; }
 .alb-move-item:active { background:var(--border-light); }
 .alb-move-item .am-dot { width:13px; height:13px; border-radius:50%; flex:none; }
-/* 選択モード中は下部タブ／Hokuを隠してアクションバーを最前面に */
-body.album-selecting #tabbar, body.album-selecting #hoku-fab { display:none !important; }
+/* 写真追加 FAB（右下固定）：忙しい親が片手で迷わず写真を足せる主導線 */
+.alb-fab {
+  position:fixed; right:20px; bottom:calc(82px + env(safe-area-inset-bottom));
+  width:56px; height:56px; border-radius:50%; background:var(--grad-primary,var(--primary)); border:none;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 20px rgba(10,132,255,.42); cursor:pointer; z-index:90;
+  transition:var(--t-spring);
+}
+.alb-fab:active { transform:scale(.9); }
+/* Hoku の思い出そっと案内（ライブラリ上部・控えめ・閉じられる）*/
+.alb-hoku-hint { display:flex; align-items:center; gap:11px; background:var(--bg-card); border:1px solid var(--border-light); border-radius:16px; padding:10px 10px 10px 12px; margin:2px 0 12px; box-shadow:0 3px 12px rgba(0,0,0,.05); cursor:pointer; transition:transform .12s ease; }
+.alb-hoku-hint:active { transform:scale(.99); }
+.alb-hoku-hint .ahh-face { width:38px; height:38px; flex:none; object-fit:contain; border-radius:50%; background:#F4F7FB; }
+.alb-hoku-hint .ahh-body { flex:1; min-width:0; }
+.alb-hoku-hint .ahh-text { font-size:13.5px; font-weight:700; color:var(--text); line-height:1.4; }
+.alb-hoku-hint .ahh-cta { font-size:12px; font-weight:700; color:var(--primary); margin-top:2px; }
+.alb-hoku-hint .ahh-x { flex:none; align-self:flex-start; width:24px; height:24px; border:none; background:none; color:var(--text-muted); font-size:17px; line-height:1; cursor:pointer; padding:0; }
+/* 選択モード中は下部タブ／Hoku／追加FABを隠してアクションバーを最前面に */
+body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecting #alb-fab { display:none !important; }
 
 /* ===== Mitene 風フォトビューア（av2-*） ===== */
 .av2-backdrop { align-items:center; justify-content:center; }
@@ -3830,12 +3847,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     </button>
     <div class="header-title" id="alb-title">アルバム</div>
     <button class="alb-headbtn" id="alb-sel-btn" onclick="albumToggleSelMode()" style="display:none;">選択</button>
-    <button class="header-icon-btn" id="alb-add-btn" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
+    <span class="header-icon-btn" aria-hidden="true" style="visibility:hidden;"></span>
   </div>
   <input type="file" id="album-file" accept="image/*,video/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
   <div class="scroll-area" id="album-body" style="flex:1;padding:12px 12px calc(98px + env(safe-area-inset-bottom));"></div>
+  <!-- 右下固定の写真追加 FAB（片手で迷わず追加：iPhone/Google Photos 風の主導線） -->
+  <button class="alb-fab" id="alb-fab" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
   <!-- Wave 264: 複数選択アクションバー -->
   <div id="alb-selbar" class="alb-selbar hidden">
     <button id="alb-sel-share" onclick="albumSelShare()" aria-label="共有・保存">
@@ -17145,11 +17164,10 @@ function renderAlbum() {
 function _albumSyncChrome() {
   const grid = _albumGridView();
   const selBtn = document.getElementById('alb-sel-btn');
-  const addBtn = document.getElementById('alb-add-btn');
   const bar = document.getElementById('alb-selbar');
   const body = document.getElementById('album-body');
   if(selBtn) { selBtn.style.display = grid ? '' : 'none'; selBtn.textContent = _albumSelMode ? '完了' : '選択'; }
-  if(addBtn) addBtn.style.display = _albumSelMode ? 'none' : '';
+  /* 追加 FAB の表示は body.album-selecting クラスで制御（選択モード中は隠す）*/
   const title = document.getElementById('alb-title');
   if(title) title.textContent = _albumSelMode ? (_albumSelCount() ? _albumSelCount()+'枚を選択' : '写真を選択') : 'アルバム';
   if(bar) bar.classList.toggle('hidden', !_albumSelMode);
@@ -17297,6 +17315,38 @@ function _albumGroup(all, scale) {
   });
   return order.map(function(k){ return map[k]; });
 }
+/* ── Wave 265: Hoku の思い出そっと案内 ──
+   主役にならず、意味のあるときだけ1行で寄り添う。閉じたらその日は再表示しない。 */
+function _albumHokuHint() {
+  const all = _allPhotosSorted();
+  if(all.length < 1) return null;
+  const pr = _albumPrefs();
+  const t = new Date();
+  const ymd = t.getFullYear()+'-'+(t.getMonth()+1)+'-'+t.getDate();
+  function dismissed(id){ return pr.hokuHint === ymd+'|'+id; }
+  // 1) 去年の今日（過去年の同月同日の写真があれば）
+  const md = (t.getMonth()+1)+'-'+t.getDate();
+  const onThisDay = all.filter(function(p){ const d=new Date(p.takenAt); return !isNaN(d) && (d.getMonth()+1)+'-'+d.getDate()===md && d.getFullYear()<t.getFullYear(); });
+  if(onThisDay.length && !dismissed('onthisday')) {
+    return { id:'onthisday', text:'去年の今日は、こんな思い出がありましたよ。', cta:'見てみる', onclick:"setAlbumTab('memory')" };
+  }
+  // 2) 最近よく写っている家族（直近30日で最多・3枚以上）
+  const since = new Date(t.getTime() - 30*24*3600*1000);
+  const recent = all.filter(function(p){ const d=new Date(p.takenAt); return !isNaN(d) && d>=since; });
+  if(recent.length >= 3) {
+    const cnt = {};
+    recent.forEach(function(p){ (p.memberIds||[]).forEach(function(id){ cnt[id]=(cnt[id]||0)+1; }); });
+    let topId='', topN=0;
+    Object.keys(cnt).forEach(function(id){ if(cnt[id]>topN){ topN=cnt[id]; topId=id; } });
+    const m = topId ? getMem(topId) : null;
+    if(m && topN >= 3 && !dismissed('surge-'+topId)) {
+      return { id:'surge-'+topId, text:'最近、'+m.name+'の写真が増えていますね。', cta:'まとめて見る', onclick:"openAlbumPersonFromHint('"+topId+"')" };
+    }
+  }
+  return null;
+}
+function openAlbumPersonFromHint(id){ const pr=_albumPrefs(); pr.tab='album'; _albumFolder=''; _albumSearchQ=''; _albumSelMode=false; _albumSel={}; _albumPersonFilter=id; saveS(); renderAlbum(); }
+function dismissAlbumHokuHint(id){ const pr=_albumPrefs(); const t=new Date(); pr.hokuHint=t.getFullYear()+'-'+(t.getMonth()+1)+'-'+t.getDate()+'|'+id; saveS(); const z=document.getElementById('alb-listzone'); if(z) z.innerHTML=_albumLibraryInner(); }
 function _albumLibraryInner() {
   const all = _allPhotosSorted();
   if(!all.length) {
@@ -17312,6 +17362,14 @@ function _albumLibraryInner() {
       + '<div class="album-grid">'+res.map(_albumCell).join('')+'</div>';
   }
   let h = '';
+  const hint = _albumSelMode ? null : _albumHokuHint();
+  if(hint) {
+    h += '<div class="alb-hoku-hint" onclick="'+hint.onclick+'">'
+      + '<img class="ahh-face" src="'+H(IMGS.hoku||'')+'" alt="Hoku" onerror="this.style.display=\'none\'">'
+      + '<div class="ahh-body"><div class="ahh-text">'+H(hint.text)+'</div><div class="ahh-cta">'+H(hint.cta)+' ›</div></div>'
+      + '<button class="ahh-x" onclick="event.stopPropagation();dismissAlbumHokuHint(\''+H(hint.id)+'\')" aria-label="閉じる">×</button>'
+      + '</div>';
+  }
   const hero = _albumSelMode ? null : all[0];
   if(hero) {
     const isVid = hero.type==='video';
