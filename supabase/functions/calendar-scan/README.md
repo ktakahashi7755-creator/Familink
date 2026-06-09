@@ -38,10 +38,15 @@ Supabase Edge Function です。**Hoku 関数とは完全に独立**しており
 supabase functions deploy calendar-scan      # JWT 検証 ON（--no-verify-jwt は付けない）
 ```
 
+### モデルと精度
+- 既定は **`gpt-4o`**（密な月間予定表の読み取り精度が高い）。アクセスできない鍵の場合は
+  自動で **`gpt-4o-mini`** にフォールバックするので、どの層の鍵でも動作する。
+- フロント側は「全体＋上下2分割」を並列で解析してマージ＆重複除去するため、20件級の密な表でも取りこぼしにくい。
+
 ### 任意の環境変数
 | 変数 | 既定 | 用途 |
 |---|---|---|
-| `CALENDAR_SCAN_MODEL` | `gpt-4o-mini` | Vision モデルの上書き（例 `gpt-4o`） |
+| `CALENDAR_SCAN_MODEL` | `gpt-4o` | Vision モデルの上書き（例 `gpt-4o-mini` に固定したい場合） |
 | `CALENDAR_SCAN_SHARED_KEY` | （未設定） | 設定時のみ `x-cal-key` 一致を追加要求（独自URL直叩き用） |
 
 ## 失敗時の戻り

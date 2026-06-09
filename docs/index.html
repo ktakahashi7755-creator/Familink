@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609q';
+  var V='v20260609r';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -12655,7 +12655,7 @@ function ocrStartAnalyze() {
       _ocr.cancelled = true; closeModal('m-ocr-loading');
       _ocrShowFail(['読み取りに時間がかかっています','通信状況を確認して、もう一度お試しください']);
     }
-  }, 50000);
+  }, 75000);
   const ctx = { year:_ocr.year, month:_ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
   analyzeCalendarImageWithAI(_ocr.image).then(function(aiResult){
     if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
@@ -12694,55 +12694,87 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   const sb = (typeof getSupabase==='function') ? getSupabase() : null;
   const canBackend = !!(sb && sb.functions && typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
   if(canBackend) {
-    const img = await _ocrDownscaleForUpload(imageFileOrBase64);   // 送信前に縮小（通信量・課金を抑制）
-    const payload = {
-      image: img,
-      year: _ocr.year || new Date().getFullYear(),
-      month: _ocr.month || (new Date().getMonth()+1),
-      existing: (S.events||[]).slice(0,50).map(function(e){ return { date:e.date, title:e.title }; })
-    };
-    const r = await _withTimeout(sb.functions.invoke('calendar-scan', { body: payload }), 47000);
-    if(r && r.error) throw new Error('calendar-scan_error');
-    if(r && r.data && Array.isArray(r.data.events)) return r.data;   // 0件でもそのまま返す＝失敗UXへ
-    throw new Error('calendar-scan_bad_response');
+    // 取りこぼし防止：全体＋（密な写真は）上下2分割を並列で解析し、結果をマージ＆重複除去。
+    const crops = await _ocrMakeCrops(imageFileOrBase64);   // [{img,part}] 1〜3パス
+    const settled = await Promise.all(crops.map(function(cp){
+      return _ocrCallScan(sb, cp.img, cp.part).catch(function(){ return null; });
+    }));
+    const oks = settled.filter(function(r){ return r && Array.isArray(r.events); });
+    if(!oks.length) throw new Error('calendar-scan_all_failed');   // 全滅 → 失敗UX
+    return _ocrMergeResults(oks);   // 0件でもそのまま返す（失敗UX or 結果表示は呼び出し側で判定）
   }
   // 未ログイン/未接続：モック（外部送信なし）
   return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1000); });
 }
-/* 送信用に画像を最適化（OCR可読性を最優先：高解像度＋EXIF回転反映）。dataURL→dataURL。
-   - 文字がつぶれて読めなくならないよう長辺 2400px / JPEG q0.9 を確保（旧 1600/0.82 で低画質化していた）。
-   - iPhone のカメラ写真は EXIF 回転を持つため createImageBitmap(from-image) で正しい向きに焼き込む。 */
-async function _ocrDownscaleForUpload(dataUrl) {
+/* calendar-scan を1画像ぶん呼ぶ */
+function _ocrCallScan(sb, img, part) {
+  const payload = {
+    image: img,
+    part: part || '',
+    year: _ocr.year || new Date().getFullYear(),
+    month: _ocr.month || (new Date().getMonth()+1),
+    existing: (S.events||[]).slice(0,50).map(function(e){ return { date:e.date, title:e.title }; })
+  };
+  return _withTimeout(sb.functions.invoke('calendar-scan', { body: payload }), 60000).then(function(r){
+    if(r && r.error) throw new Error('scan_error');
+    if(r && r.data && Array.isArray(r.data.events)) return r.data;
+    throw new Error('scan_bad');
+  });
+}
+/* 複数解析パスの結果を統合（同一予定は date|タイトル|開始時刻 で重複除去し、信頼度の高い方を採用） */
+function _ocrMergeResults(results) {
+  const map={}; let rawText=''; let conf=0;
+  results.forEach(function(r){
+    if(r.rawText && !rawText) rawText=r.rawText;
+    if(typeof r.confidence==='number') conf=Math.max(conf, r.confidence);
+    (r.events||[]).forEach(function(e){
+      if(!e || (!e.title && !e.date)) return;
+      const key=(e.date||'')+'|'+String(e.title||'').replace(/\s/g,'')+'|'+(e.allDay?'allday':(e.startTime||''));
+      const prev=map[key];
+      if(!prev || (Number(e.confidence)||0) > (Number(prev.confidence)||0)) map[key]=e;
+    });
+  });
+  const events=Object.keys(map).map(function(k){ return map[k]; })
+    .sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')) || String(a.startTime||'').localeCompare(String(b.startTime||'')); });
+  return { events:events, warnings:[], rawText:rawText, confidence: conf || (events.length?0.8:0) };
+}
+/* 解析パス用の画像を生成（[{img,part}]）。EXIF回転を反映。
+   密な写真は全体＋上下2分割（重なり付き）でも読み、取りこぼし・1日ずれを減らす。 */
+async function _ocrMakeCrops(dataUrl) {
   try {
-    if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0) return dataUrl;
-    const MAX=2400, Q=0.9;
-    let src=null, sw=0, sh=0, bmp=null;
-    // 1) EXIF 回転を確実に反映できる createImageBitmap を優先
+    if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0) return [{img:dataUrl, part:''}];
+    let src=null, w=0, h=0, bmp=null;
     try {
       const blob=_dataURLtoBlob(dataUrl);
-      if(blob && typeof createImageBitmap==='function'){
-        bmp=await createImageBitmap(blob, { imageOrientation:'from-image' });
-        src=bmp; sw=bmp.width; sh=bmp.height;
-      }
+      if(blob && typeof createImageBitmap==='function'){ bmp=await createImageBitmap(blob, { imageOrientation:'from-image' }); src=bmp; w=bmp.width; h=bmp.height; }
     } catch(_){ bmp=null; src=null; }
-    // 2) フォールバック：Image 要素
     if(!src){
-      const img=await new Promise(function(res){ const im=new Image(); im.onload=function(){res(im);}; im.onerror=function(){res(null);}; im.src=dataUrl; });
-      if(!img) return dataUrl;
-      src=img; sw=img.naturalWidth||img.width; sh=img.naturalHeight||img.height;
+      const im=await new Promise(function(res){ const x=new Image(); x.onload=function(){res(x);}; x.onerror=function(){res(null);}; x.src=dataUrl; });
+      if(!im) return [{img:dataUrl, part:''}];
+      src=im; w=im.naturalWidth||im.width; h=im.naturalHeight||im.height;
     }
-    if(!sw||!sh){ if(bmp&&bmp.close)try{bmp.close();}catch(_){ } return dataUrl; }
-    let w=sw, h=sh;
-    if(w>MAX||h>MAX){ if(w>=h){ h=Math.round(h*MAX/w); w=MAX; } else { w=Math.round(w*MAX/h); h=MAX; } }
-    const c=document.createElement('canvas'); c.width=w; c.height=h;
-    const cx=c.getContext('2d'); cx.imageSmoothingEnabled=true; cx.imageSmoothingQuality='high';
-    cx.drawImage(src,0,0,w,h);
+    if(!w||!h){ if(bmp&&bmp.close)try{bmp.close();}catch(_){ } return [{img:dataUrl, part:''}]; }
+    const enc=function(sx,sy,sw,sh){
+      const MAX=2048; let dw=sw, dh=sh;   // OpenAI高精度の有効解像度に合わせる
+      if(dw>MAX||dh>MAX){ if(dw>=dh){ dh=Math.round(dh*MAX/dw); dw=MAX; } else { dw=Math.round(dw*MAX/dh); dh=MAX; } }
+      const c=document.createElement('canvas'); c.width=dw; c.height=dh;
+      const cx=c.getContext('2d'); cx.imageSmoothingEnabled=true; cx.imageSmoothingQuality='high';
+      cx.drawImage(src, sx,sy,sw,sh, 0,0,dw,dh);
+      let out=c.toDataURL('image/jpeg',0.9); let q=0.9;
+      while(out.length>9000000 && q>0.6){ q-=0.12; out=c.toDataURL('image/jpeg',q); }   // サーバ10MB上限の保険
+      return out;
+    };
+    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体
+    if(Math.min(w,h) >= 900){                        // 実写真サイズ＝密な表とみなし上下2分割を追加
+      const ov=Math.round(h*0.10);
+      const topH=Math.min(h, Math.round(h*0.55)+ov);
+      const botY=Math.max(0, Math.round(h*0.45)-ov);
+      crops.push({ img: enc(0, 0, w, topH), part:'top' });
+      crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
+    }
     if(bmp&&bmp.close)try{bmp.close();}catch(_){}
-    let out=c.toDataURL('image/jpeg',Q);
-    // サーバ上限(~8MB)に収める保険：大きすぎる時だけ品質を段階的に下げる（通常は発動しない）
-    let q2=Q; while(out.length>7400000 && q2>0.6){ q2-=0.12; out=c.toDataURL('image/jpeg',q2); }
-    return out;
-  } catch(_){ return dataUrl; }
+    return crops;
+  } catch(_){ return [{img:dataUrl, part:''}]; }
 }
 /* モックAI結果（接続前のUI完成用）。月間予定表を解析した想定。 */
 function mockAnalyzeCalendarImage() {
