@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609e';
+  var V='v20260609f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1060,6 +1060,29 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .alb-fld-count { font-size:11.5px; color:var(--text-muted); margin-top:1px; }
 .alb-fld-add { aspect-ratio:1/1; border-radius:16px; border:1.6px dashed var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; color:var(--text-muted); cursor:pointer; background:var(--bg-muted); transition:transform .12s ease; }
 .alb-fld-add:active { transform:scale(.97); }
+
+/* Wave 264: 複数選択 / スワイプ閉じ / 仕上げ */
+.alb-headbtn { flex:none; background:none; border:none; color:var(--primary); font-size:15px; font-weight:700; padding:6px 8px; cursor:pointer; white-space:nowrap; }
+.album-cell img, .album-cell video { transition:transform .12s ease; }
+.album-cell .album-check { position:absolute; left:6px; top:6px; width:23px; height:23px; border-radius:50%; background:rgba(0,0,0,.30); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; transition:var(--t-spring); z-index:2; }
+.album-cell.sel .album-check { opacity:1; background:var(--primary); border-color:#fff; }
+.album-cell.selmode .album-check { opacity:1; }
+.album-cell.sel img, .album-cell.sel video { transform:scale(.84); border-radius:9px; }
+.alb-selhead { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 2px; }
+.alb-sel-cancel, .alb-sel-all { background:none; border:none; color:var(--primary); font-size:14px; font-weight:700; padding:6px 4px; cursor:pointer; white-space:nowrap; }
+.alb-sel-count { font-size:15px; font-weight:800; color:var(--text); }
+.alb-selbar { position:fixed; left:0; right:0; bottom:0; z-index:120; display:flex; gap:6px; justify-content:space-around; padding:9px 12px calc(11px + env(safe-area-inset-bottom)); background:var(--bg-card); border-top:1px solid var(--border-light); box-shadow:0 -6px 22px rgba(0,0,0,.10); }
+.alb-selbar.hidden { display:none; }
+.alb-selbar button { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--primary); font-size:11px; font-weight:700; cursor:pointer; padding:4px 2px; transition:var(--t-spring); }
+.alb-selbar button:active { transform:scale(.92); }
+.alb-selbar button:disabled { color:var(--text-muted); opacity:.45; }
+.alb-selbar button.danger { color:#D9534F; }
+.alb-selbar button svg { display:block; }
+.alb-move-item { display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:var(--bg-muted); border:none; border-radius:12px; padding:12px 14px; margin-bottom:8px; font-size:15px; font-weight:700; color:var(--text); cursor:pointer; }
+.alb-move-item:active { background:var(--border-light); }
+.alb-move-item .am-dot { width:13px; height:13px; border-radius:50%; flex:none; }
+/* 選択モード中は下部タブ／Hokuを隠してアクションバーを最前面に */
+body.album-selecting #tabbar, body.album-selecting #hoku-fab { display:none !important; }
 
 /* ===== Mitene 風フォトビューア（av2-*） ===== */
 .av2-backdrop { align-items:center; justify-content:center; }
@@ -3818,13 +3841,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <button class="header-icon-btn" onclick="goBack()" aria-label="戻る">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div class="header-title">アルバム</div>
-    <button class="header-icon-btn" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
+    <div class="header-title" id="alb-title">アルバム</div>
+    <button class="alb-headbtn" id="alb-sel-btn" onclick="albumToggleSelMode()" style="display:none;">選択</button>
+    <button class="header-icon-btn" id="alb-add-btn" onclick="document.getElementById('album-file').click()" aria-label="写真を追加">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
   <input type="file" id="album-file" accept="image/*,video/*" multiple style="display:none;" onchange="albumOnFilesPicked(event)">
   <div class="scroll-area" id="album-body" style="flex:1;padding:12px 12px calc(98px + env(safe-area-inset-bottom));"></div>
+  <!-- Wave 264: 複数選択アクションバー -->
+  <div id="alb-selbar" class="alb-selbar hidden">
+    <button id="alb-sel-share" onclick="albumSelShare()" aria-label="共有・保存">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+      共有・保存
+    </button>
+    <button id="alb-sel-move" onclick="albumSelMove()" aria-label="アルバムへ移動">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      アルバムへ
+    </button>
+    <button id="alb-sel-del" onclick="albumSelDelete()" class="danger" aria-label="削除">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      削除
+    </button>
+  </div>
+</div>
+
+<!-- Wave 264: 複数選択 → アルバムへ移動 ピッカー -->
+<div id="m-album-move" class="modal-backdrop" onclick="closeModal('m-album-move')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-grip"></div>
+    <div class="modal-title">アルバムへ移動</div>
+    <div class="modal-form">
+      <div id="alb-move-list"></div>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('m-album-move')" style="margin-top:4px;">キャンセル</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== Wave 160: メモ（フォルダ階層） ===== -->
@@ -8665,6 +8716,8 @@ function _syncTabActive(id) {
   if(tid) document.getElementById(tid)?.classList.add('active');
 }
 function _navApply(id) {
+  // アルバムの複数選択モードを抜ける（タブ/Hoku の表示を戻す）
+  if(id !== 's-album' && _albumSelMode) { _albumSelMode=false; _albumSel={}; document.body.classList.remove('album-selecting'); }
   S.prev = S.screen;
   showScreen(id);
   const noTab = ['s-ob', 's-login', 's-onboard', 's-premium'];
@@ -16758,14 +16811,22 @@ function saveFolderEdit() {
   if(arr.some(function(f){ return f.name === name && f.id !== _folderEdit.id; })) {
     showToast('同じ名前のフォルダがあります', 'error'); return;
   }
+  let newId = null;
   if(_folderEdit.id) {
     const f = arr.find(function(x){ return x.id === _folderEdit.id; });
     if(f) { f.name = name; f.color = _folderEdit.color; }
   } else {
-    arr.push({ id:'fld_'+uid(), name:name, color:_folderEdit.color, createdAt:new Date().toISOString() });
+    newId = 'fld_'+uid();
+    arr.push({ id:newId, name:name, color:_folderEdit.color, createdAt:new Date().toISOString() });
   }
   saveS();
   closeModal('m-folder-edit');
+  // Wave 264: 複数選択からの「新しいアルバム」作成→そのまま移動
+  if(newId && kind === 'album' && _albumPendingMove) {
+    _albumPendingMove = false;
+    albumDoMove(newId);
+    return;
+  }
   _folderRerender(kind);
   showToast(_folderEdit.id ? 'フォルダを更新しました' : 'フォルダ「'+name+'」を作成しました', 'success');
 }
@@ -17037,7 +17098,14 @@ function _albumCell(p) {
     ? '<video src="'+H(p.dataUrl)+'" muted playsinline preload="metadata"></video>'
     : '<img loading="lazy" decoding="async" src="'+H(p.dataUrl)+'" alt="" onerror="this.style.display=\'none\'">';
   const favDot = p.fav ? '<span class="album-favdot"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></svg></span>' : '';
-  return '<div class="album-cell'+(isVid?' is-video':'')+'" onclick="albumOpenView(\''+H(p.id)+'\')">'
+  if(_albumSelMode) {
+    const on = !!_albumSel[p.id];
+    return '<div class="album-cell selmode'+(isVid?' is-video':'')+(on?' sel':'')+'" data-id="'+H(p.id)+'" onclick="albumToggleSel(\''+H(p.id)+'\')">'
+      + media + favDot
+      + '<span class="album-check">'+(on?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</span>'
+      + '</div>';
+  }
+  return '<div class="album-cell'+(isVid?' is-video':'')+'" data-id="'+H(p.id)+'" onclick="albumOpenView(\''+H(p.id)+'\')">'
     + media + favDot
     + (dt ? '<span class="album-date">'+H(dt)+'</span>' : '')
     + '</div>';
@@ -17051,6 +17119,8 @@ let _albumPersonFilter = '';
 let _albumViewList = [];
 let _albumMemCache = {};
 let _albumTagEditing = false;
+let _albumSelMode = false;
+let _albumSel = {};
 function _albumPrefs() {
   if(!S.albumPrefs || typeof S.albumPrefs !== 'object') S.albumPrefs = {};
   if(['library','memory','album'].indexOf(S.albumPrefs.tab) < 0) S.albumPrefs.tab = 'library';
@@ -17063,16 +17133,42 @@ function _allPhotosSorted() {
   return (S.albumPhotos||[]).map(function(p){ return _ensurePhotoFields(p); })
     .slice().sort(function(a,b){ return (b.takenAt||'').localeCompare(a.takenAt||''); });
 }
+/* この画面が「写真グリッド」を表示している＝複数選択が使える文脈か */
+function _albumGridView() {
+  const pr = _albumPrefs();
+  if(pr.tab === 'library') return (S.albumPhotos||[]).length > 0;
+  if(pr.tab === 'album') return !!(_albumPersonFilter || _albumFolder);
+  return false;
+}
 function renderAlbum() {
   _ensureAlbum();
   const pr = _albumPrefs();
   const body = document.getElementById('album-body');
   if(!body) return;
+  // グリッド以外の画面では選択モードを自動解除
+  if(_albumSelMode && !_albumGridView()) { _albumSelMode = false; _albumSel = {}; }
   let inner;
   if(pr.tab === 'memory') inner = _albumMemoryInner();
   else if(pr.tab === 'album') inner = _albumCollectionsInner();
   else inner = _albumLibraryInner();
   body.innerHTML = _albumToolbar() + '<div id="alb-listzone">' + inner + '</div>';
+  _albumSyncChrome();
+}
+/* ヘッダー「選択」ボタン / アクションバーの表示同期 */
+function _albumSyncChrome() {
+  const grid = _albumGridView();
+  const selBtn = document.getElementById('alb-sel-btn');
+  const addBtn = document.getElementById('alb-add-btn');
+  const bar = document.getElementById('alb-selbar');
+  const body = document.getElementById('album-body');
+  if(selBtn) { selBtn.style.display = grid ? '' : 'none'; selBtn.textContent = _albumSelMode ? '完了' : '選択'; }
+  if(addBtn) addBtn.style.display = _albumSelMode ? 'none' : '';
+  const title = document.getElementById('alb-title');
+  if(title) title.textContent = _albumSelMode ? (_albumSelCount() ? _albumSelCount()+'枚を選択' : '写真を選択') : 'アルバム';
+  if(bar) bar.classList.toggle('hidden', !_albumSelMode);
+  if(body) body.style.paddingBottom = _albumSelMode ? 'calc(86px + env(safe-area-inset-bottom))' : 'calc(98px + env(safe-area-inset-bottom))';
+  document.body.classList.toggle('album-selecting', _albumSelMode);
+  _albumUpdateSelBar();
 }
 function _albumToolbar() {
   const pr = _albumPrefs();
@@ -17092,7 +17188,7 @@ function _albumToolbar() {
   }
   return h + '</div>';
 }
-function setAlbumTab(t) { const pr=_albumPrefs(); pr.tab=t; _albumFolder=''; _albumPersonFilter=''; _albumSearchQ=''; saveS(); renderAlbum(); }
+function setAlbumTab(t) { const pr=_albumPrefs(); pr.tab=t; _albumFolder=''; _albumPersonFilter=''; _albumSearchQ=''; _albumSelMode=false; _albumSel={}; saveS(); renderAlbum(); }
 function setAlbumScale(s) { const pr=_albumPrefs(); pr.scale=s; saveS(); renderAlbum(); }
 let _albSrchTimer = null;
 function onAlbumSearch(v) {
@@ -17106,6 +17202,84 @@ function onAlbumSearch(v) {
   }, 160);
 }
 function clearAlbumSearch() { _albumSearchQ=''; renderAlbum(); }
+/* ── Wave 264: 複数選択（一括 共有/保存・移動・削除）── */
+let _albumPendingMove = false;
+function _albumSelCount() { return Object.keys(_albumSel).length; }
+function _albumSelPhotos() { return (S.albumPhotos||[]).filter(function(p){ return _albumSel[p.id]; }); }
+function albumToggleSelMode() {
+  if(!_albumSelMode && !_albumGridView()) return;
+  _albumSelMode = !_albumSelMode; _albumSel = {};
+  renderAlbum();
+}
+function albumExitSel() { _albumSelMode=false; _albumSel={}; renderAlbum(); }
+function albumToggleSel(id) {
+  if(_albumSel[id]) delete _albumSel[id]; else _albumSel[id]=true;
+  const cell = document.querySelector('.album-cell[data-id="'+id+'"]');
+  if(cell) {
+    const on = !!_albumSel[id];
+    cell.classList.toggle('sel', on);
+    const chk = cell.querySelector('.album-check');
+    if(chk) chk.innerHTML = on ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+  }
+  _albumSyncChrome();
+}
+function _albumUpdateSelBar() {
+  const n = _albumSelCount();
+  ['alb-sel-share','alb-sel-move','alb-sel-del'].forEach(function(idd){ const b=document.getElementById(idd); if(b) b.disabled = (n===0); });
+}
+function albumSelDelete() {
+  const items = _albumSelPhotos(); if(!items.length) return;
+  showConfirm(items.length+'件を削除', '選択した'+items.length+'件を削除しますか？<br>この操作は取り消せません。', '削除する', function(){
+    const ids = {}; items.forEach(function(p){ ids[p.id]=true; _recordDeletion('albumPhotos', p.id); });
+    S.albumPhotos = (S.albumPhotos||[]).filter(function(p){ return !ids[p.id]; });
+    saveS(); _albumSelMode=false; _albumSel={}; renderAlbum();
+    showToast(items.length+'件を削除しました');
+  }, 'danger');
+}
+function albumSelMove() {
+  if(!_albumSelCount()) return;
+  const list = document.getElementById('alb-move-list'); if(!list) return;
+  const folders = _folderArr('album');
+  let h = '<button class="alb-move-item" onclick="albumDoMove(\'\')"><span class="am-dot" style="background:var(--text-muted);"></span>未分類（アルバムから外す）</button>';
+  folders.forEach(function(f){ h += '<button class="alb-move-item" onclick="albumDoMove(\''+H(f.id)+'\')"><span class="am-dot" style="background:'+_folderColor(f)+';"></span>'+H(f.name)+'</button>'; });
+  h += '<button class="alb-move-item" onclick="albumMoveNewFolder()" style="color:var(--primary);"><span class="am-dot" style="background:var(--primary);"></span>＋ 新しいアルバム</button>';
+  list.innerHTML = h;
+  openModal('m-album-move');
+}
+function albumDoMove(folderId) {
+  const items = _albumSelPhotos(); const n = items.length;
+  items.forEach(function(p){ p.folderId = folderId || ''; });
+  saveS(); closeModal('m-album-move');
+  _albumSelMode=false; _albumSel={}; renderAlbum();
+  const nm = folderId ? ('「'+_folderName('album',folderId)+'」') : '未分類';
+  showToast(n+'件を'+nm+'に移動しました');
+}
+function albumMoveNewFolder() {
+  if(!_albumSelCount()) return;
+  _albumPendingMove = true;
+  closeModal('m-album-move');
+  createFolder('album');   // 作成完了後 saveFolderEdit が albumDoMove を呼ぶ
+}
+async function albumSelShare() {
+  const items = _albumSelPhotos(); if(!items.length) return;
+  const files = [];
+  for(let i=0;i<items.length;i++) {
+    const p = items[i];
+    try {
+      const blob = _dataURLtoBlob(p.dataUrl);
+      const m = String(p.dataUrl).match(/^data:(image|video)\/([a-zA-Z0-9.+-]+)/);
+      let ext = m ? m[2].toLowerCase() : 'jpg'; if(ext==='jpeg') ext='jpg'; if(ext==='quicktime') ext='mov';
+      files.push(new File([blob], 'familink_'+((p.takenAt||'').slice(0,10)||'photo')+'_'+(i+1)+'.'+ext, { type: blob.type || 'image/jpeg' }));
+    } catch(_){}
+  }
+  if(files.length && navigator.canShare && navigator.canShare({ files:files }) && typeof navigator.share==='function') {
+    try { await navigator.share({ files:files }); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  // フォールバック：共有不可の環境では1枚ずつダウンロード
+  files.forEach(function(f){ try { const u=URL.createObjectURL(f); const a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(u);},6000); } catch(_){} });
+  showToast(files.length+'件を保存しました');
+}
 function _albumMatch(p, q) {
   q = String(q).toLowerCase();
   const parts = [];
@@ -17151,7 +17325,7 @@ function _albumLibraryInner() {
       + '<div class="album-grid">'+res.map(_albumCell).join('')+'</div>';
   }
   let h = '';
-  const hero = all[0];
+  const hero = _albumSelMode ? null : all[0];
   if(hero) {
     const isVid = hero.type==='video';
     h += '<div class="alb-hero" onclick="albumOpenView(\''+H(hero.id)+'\')">'
@@ -17218,6 +17392,11 @@ function _albumMemoryInner() {
 /* ── アルバム（人物 + コレクション/フォルダ）── */
 function _albumCollectionsInner() {
   const all = _allPhotosSorted();
+  if(!all.length && !_folderArr('album').length && !_albumPersonFilter && !_albumFolder) {
+    return _emptyState(_ES_ART_ALBUM, 'アルバムを作りましょう',
+      '写真を追加すると、家族ごとの「人物アルバム」や<br>「七五三」「旅行」などのアルバムを作れます。',
+      '最初の写真を追加', "document.getElementById('album-file').click()");
+  }
   if(_albumPersonFilter) {
     const m = getMem(_albumPersonFilter);
     const items = all.filter(function(p){ return (p.memberIds||[]).indexOf(_albumPersonFilter)>=0; });
@@ -17385,7 +17564,15 @@ function _avFmtDate(iso) {
   if(!iso) return '';
   const d = new Date(iso);
   if(isNaN(d)) return String(iso).slice(0,10).replace(/-/g,'/');
-  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  const now = new Date();
+  function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+  const yst = new Date(now); yst.setDate(now.getDate()-1);
+  if(sameDay(d, now)) return '今日';
+  if(sameDay(d, yst)) return '昨日';
+  // 今年なら年を省略（Apple風）
+  return (d.getFullYear()===now.getFullYear())
+    ? (d.getMonth()+1)+'月'+d.getDate()+'日'
+    : d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
 }
 function _avFmtTime(iso) {
   const d = new Date(iso);
@@ -17450,9 +17637,24 @@ function albumOpenFull() {
   const img = document.getElementById('pf-img');
   if(img) img.src = p.dataUrl || '';
   openModal('m-photo-full');
-  // 左右スワイプで写真送り（passive のみ＝iOSの長押し「写真に追加」を妨げない）
-  _bindAlbumSwipe(document.getElementById('m-photo-full'),
-    function(){ albumFullGo(1); }, function(){ albumFullGo(-1); });
+  // 左右スワイプで写真送り／下スワイプで閉じる（いずれも passive＝長押し保存を妨げない）
+  const full = document.getElementById('m-photo-full');
+  _bindAlbumSwipe(full, function(){ albumFullGo(1); }, function(){ albumFullGo(-1); });
+  _bindSwipeClose(full, function(){ closeModal('m-photo-full'); });
+}
+/* 下方向フリックで閉じる（passive のみ。長押し「写真に追加」を妨げない）*/
+function _bindSwipeClose(el, onClose) {
+  if(!el || el._closeSwipe) return; el._closeSwipe = true;
+  let x0=null, y0=null, multi=false;
+  el.addEventListener('touchstart', function(e){
+    if(e.touches.length>1){ multi=true; return; }
+    multi=false; const t=e.changedTouches[0]; x0=t.clientX; y0=t.clientY;
+  }, {passive:true});
+  el.addEventListener('touchend', function(e){
+    if(multi){ if(e.touches.length===0) multi=false; return; }
+    if(y0==null) return; const t=e.changedTouches[0]; const dx=t.clientX-x0, dy=t.clientY-y0; y0=null;
+    if(dy>90 && dy>Math.abs(dx)*1.6) onClose();
+  }, {passive:true});
 }
 /* フル画面での前後移動（写真のみ。動画はスキップ）*/
 function albumFullGo(dir) {
