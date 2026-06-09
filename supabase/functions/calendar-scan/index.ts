@@ -185,15 +185,28 @@ Deno.serve(async (req: Request) => {
   const year = Number(body.year) || now.getFullYear();
   const month = Number(body.month) || (now.getMonth() + 1);
   const existing = Array.isArray(body.existing) ? body.existing.slice(0, 50) : [];
-  const part = String(body.part ?? "");   // "top"/"bottom"/"" — フロントの分割パス用ヒント（任意）
+  const part = String(body.part ?? "");      // "top"/"bottom"/"partial"/"" — 分割パスのヒント（任意）
+  const annual = !!body.annual;              // 年間予定表（学校年度 4月〜翌3月）モード
 
-  const userText =
-    `この写真は家族の予定表です。次の文脈で、写っている予定を1件残らず抽出してください。\n` +
-    `context.year=${year}\ncontext.month=${month}\n` +
-    (part ? `この画像は予定表の${part === "top" ? "上半分" : part === "bottom" ? "下半分" : part}です（見えている範囲だけ抽出）。\n` : "") +
-    `既存の予定（重複参考・抽出対象ではない）:\n` +
-    JSON.stringify(existing).slice(0, 1200) +
-    `\n\n指定のJSON形式だけで返してください。`;
+  const partLine = part
+    ? `この画像は予定表の${part === "top" ? "上半分" : part === "bottom" ? "下半分" : "一部分"}です。見えている範囲だけ抽出し、写っていない部分の予定は出力しない。\n`
+    : "";
+
+  const userText = annual
+    ? `この写真は「年間予定表」（学校年度 4月〜翌年3月）です。写っている予定を1件残らず抽出してください。\n` +
+      `context.year=${year}（年度の開始年）\n` +
+      `重要：各予定の「月」は、その予定が属する月の見出し／段／列から必ず読む。` +
+      `4〜12月は ${year} 年、1〜3月は ${year + 1} 年として date(YYYY-MM-DD) を作る。月をまたいで取り違えない。\n` +
+      partLine +
+      `既存の予定（重複参考・抽出対象ではない）:\n` +
+      JSON.stringify(existing).slice(0, 1000) +
+      `\n\n指定のJSON形式だけで返してください。`
+    : `この写真は家族の予定表です。次の文脈で、写っている予定を1件残らず抽出してください。\n` +
+      `context.year=${year}\ncontext.month=${month}\n` +
+      partLine +
+      `既存の予定（重複参考・抽出対象ではない）:\n` +
+      JSON.stringify(existing).slice(0, 1200) +
+      `\n\n指定のJSON形式だけで返してください。`;
 
   const result = await callOpenAIVision(image, userText);
   if (!result.ok) return json({ error: "ai_failed", reason: result.reason }, 502);

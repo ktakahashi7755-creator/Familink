@@ -5700,9 +5700,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-form">
       <div class="ocr-hoku"><img src="" id="ocr-intro-hoku" alt="Hoku" onerror="this.style.display='none'"><span>年間予定表や園のお便りを撮ると、予定をまとめて登録できます。</span></div>
       <div class="field">
-        <div class="field-label">対象の年</div>
+        <div class="field-label" id="ocr-year-label">対象の年</div>
         <select class="input" id="ocr-year"></select>
+        <div id="ocr-year-hint" style="display:none;font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.5;">年度（4月始まり）の開始年を選んでください。1〜3月は翌年として登録します。</div>
       </div>
+      <label class="ocr-check"><input type="checkbox" id="ocr-annual" onchange="ocrToggleAnnual()"><span>年間予定表として読む（4月〜翌3月）</span></label>
       <div class="ocr-privacy">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>この写真には個人情報（お子さまの名前・園名・学校名など）が含まれる場合があります。読み取りのために画像を処理します。読み取った結果は、登録前に必ずご自身で確認できます。</span>
@@ -12579,13 +12581,22 @@ function openOcrIntro() {
   if(sel) { const cur=new Date().getFullYear(); let h=''; for(let yy=cur-1; yy<=cur+1; yy++){ h+='<option value="'+yy+'"'+(yy===y?' selected':'')+'>'+yy+'年</option>'; } sel.innerHTML=h; }
   const hk=document.getElementById('ocr-intro-hoku'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||'';
   const keep=document.getElementById('ocr-keep-img'); if(keep) keep.checked=false;
+  const ann=document.getElementById('ocr-annual'); if(ann) ann.checked=false;
+  ocrToggleAnnual();
   openModal('m-ocr-intro');
+}
+/* 年間予定表トグル：年フィールドの見せ方を切替（年度の年を選ぶ案内） */
+function ocrToggleAnnual() {
+  const on = !!((document.getElementById('ocr-annual')||{}).checked);
+  const lab = document.getElementById('ocr-year-label'); if(lab) lab.textContent = on ? '年度（4月始まり）' : '対象の年';
+  const hint = document.getElementById('ocr-year-hint'); if(hint) hint.style.display = on ? 'block' : 'none';
 }
 /* 写真を撮る(camera)／アルバムから選ぶ(library) */
 function ocrPick(mode) {
   _ocr.year = parseInt((document.getElementById('ocr-year')||{}).value,10) || new Date().getFullYear();
   _ocr.month = ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1));
   _ocr.keepImage = !!((document.getElementById('ocr-keep-img')||{}).checked);
+  _ocr.annual = !!((document.getElementById('ocr-annual')||{}).checked);
   const id = (mode==='camera') ? 'ocr-file-cam' : 'ocr-file-lib';
   const f = document.getElementById(id); if(f) f.click();
 }
@@ -12681,8 +12692,8 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   const sb = (typeof getSupabase==='function') ? getSupabase() : null;
   const canBackend = !!(sb && sb.functions && typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
   if(canBackend) {
-    // 取りこぼし防止：全体＋（密な写真は）上下2分割を並列で解析し、結果をマージ＆重複除去。
-    const crops = await _ocrMakeCrops(imageFileOrBase64);   // [{img,part}] 1〜3パス
+    // 取りこぼし防止：全体＋分割（年間予定表は4分割／通常は上下2分割）を並列解析しマージ＆重複除去。
+    const crops = await _ocrMakeCrops(imageFileOrBase64, !!_ocr.annual);
     const settled = await Promise.all(crops.map(function(cp){
       return _ocrCallScan(sb, cp.img, cp.part).catch(function(){ return null; });
     }));
@@ -12698,6 +12709,7 @@ function _ocrCallScan(sb, img, part) {
   const payload = {
     image: img,
     part: part || '',
+    annual: !!_ocr.annual,
     year: _ocr.year || new Date().getFullYear(),
     month: _ocr.month || (new Date().getMonth()+1),
     existing: (S.events||[]).slice(0,50).map(function(e){ return { date:e.date, title:e.title }; })
@@ -12726,8 +12738,8 @@ function _ocrMergeResults(results) {
   return { events:events, warnings:[], rawText:rawText, confidence: conf || (events.length?0.8:0) };
 }
 /* 解析パス用の画像を生成（[{img,part}]）。EXIF回転を反映。
-   密な写真は全体＋上下2分割（重なり付き）でも読み、取りこぼし・1日ずれを減らす。 */
-async function _ocrMakeCrops(dataUrl) {
+   通常：全体＋上下2分割。年間予定表：全体＋4分割（クアドラント）で広く密な表の取りこぼしを防ぐ。 */
+async function _ocrMakeCrops(dataUrl, annual) {
   try {
     if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0) return [{img:dataUrl, part:''}];
     let src=null, w=0, h=0, bmp=null;
@@ -12751,13 +12763,25 @@ async function _ocrMakeCrops(dataUrl) {
       while(out.length>9000000 && q>0.6){ q-=0.12; out=c.toDataURL('image/jpeg',q); }   // サーバ10MB上限の保険
       return out;
     };
-    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体
-    if(Math.min(w,h) >= 900){                        // 実写真サイズ＝密な表とみなし上下2分割を追加
-      const ov=Math.round(h*0.10);
-      const topH=Math.min(h, Math.round(h*0.55)+ov);
-      const botY=Math.max(0, Math.round(h*0.45)-ov);
-      crops.push({ img: enc(0, 0, w, topH), part:'top' });
-      crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
+    const crops=[{ img: enc(0,0,w,h), part:'' }];   // 全体は常に1パス
+    if(Math.min(w,h) >= 900){
+      const ovx=Math.round(w*0.10), ovy=Math.round(h*0.10);
+      if(annual){
+        // 年間予定表：上下左右の4分割（重なり付き）＝広く密な表でも全月を漏らさない
+        const midX=Math.round(w*0.5), midY=Math.round(h*0.5);
+        const lx=Math.min(w, midX+ovx), rx=Math.max(0, midX-ovx);
+        const ty=Math.min(h, midY+ovy), by=Math.max(0, midY-ovy);
+        crops.push({ img: enc(0,    0,    lx,   ty),    part:'partial' }); // 左上
+        crops.push({ img: enc(rx,   0,    w-rx, ty),    part:'partial' }); // 右上
+        crops.push({ img: enc(0,    by,   lx,   h-by),  part:'partial' }); // 左下
+        crops.push({ img: enc(rx,   by,   w-rx, h-by),  part:'partial' }); // 右下
+      } else {
+        // 通常（月間）：上下2分割
+        const topH=Math.min(h, Math.round(h*0.55)+ovy);
+        const botY=Math.max(0, Math.round(h*0.45)-ovy);
+        crops.push({ img: enc(0, 0, w, topH), part:'top' });
+        crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
+      }
     }
     if(bmp&&bmp.close)try{bmp.close();}catch(_){}
     return crops;

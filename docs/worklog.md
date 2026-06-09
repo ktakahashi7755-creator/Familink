@@ -20906,3 +20906,34 @@ OCR精度の本格改善：gpt-4o化＋網羅/グリッド/曜日自己補正プ
 
 ### コミット
 - メッセージ: feat(ocr): 精度改善（gpt-4o＋網羅/曜日補正プロンプト＋フロント複数パス解析）
+
+---
+
+## 2026-06-10 00:40  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+予定表スキャン：年間予定表（学校年度 4月〜翌3月）対応
+
+### 変更ファイル
+- supabase/functions/calendar-scan/index.ts（要・再デプロイ）
+- app-source/familink.html
+- docs/index.html（同期 v20260609s）
+- docs/worklog.md
+
+### 変更内容
+- 年間モードのトグルを説明画面に追加（ON で「年度（4月始まり）」表示＋補助文）。ocrToggleAnnual / openOcrIntro 初期化
+- 複数パスを年間用に拡張：通常=全体+上下2分割／年間=全体+4分割（クアドラント・重なり付き）。_ocrMakeCrops(dataUrl, annual)、part='partial'、payload に annual 付与
+- Edge Function: body.annual で年間プロンプトに分岐（月見出しから月を読む・4〜12月=year/1〜3月=year+1）。part(partial含む)は「一部分・見えている範囲だけ」に統一
+
+### テスト結果
+- 年間モード検証（Playwright）：10/10 PASS（トグル/ラベル・通常3/年間5パス・partial・annualフラグ・マージ）pageerror0
+- OCR総合 14/14 PASS、TS balanced、node qa_full_test.js **84/84 PASS / コンソールエラー0**
+
+### ユーザー作業（重要）
+- calendar-scan を再デプロイ（年間プロンプト有効化）。フロントは公開済み
+
+### iPhone確認ポイント
+- 年間予定表で「年間予定表として読む」ON→年度選択→全月の予定が漏れず・年が正しいか
+
+### コミット
+- メッセージ: feat(ocr): 年間予定表対応（年度トグル＋4分割パス＋年間プロンプト）
