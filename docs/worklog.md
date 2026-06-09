@@ -20429,3 +20429,62 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: feat(album): 右下固定の写真追加FAB＋Hokuの思い出そっと案内（片手追加と家族特化導線）
+
+---
+
+## 2026-06-09 13:30  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+アルバム人物機能の強化：写真追加後の人物選択 ＋ 未分類の一括整理 ＋ 将来AI顔認識用スキャフォールド（断定しない確認制）
+
+### 現状確認（STEP1）
+- albumPhotos 各要素：{id,dataUrl,type,takenAt,memberId(旧),memberIds[],caption,folderId,fav,reactions,mine[],comments[],memoryText,tags[]}。`_ensurePhotoFields` で旧 memberId→memberIds に後方互換移行済み
+- **memberIds が「確認済み人物タグ」の正本**＝今回もこれを基盤に拡張（people:{confirmed,source} 相当は memberIds=手動確定で表現）
+- 家族メンバーは MEMBERS（パパ/ママ/子ども。S.members から復元）。avHtml / getMem 完備
+- 保存：downscaleImageFile(1280,0.85)、LocalStorage familink_v3、albumPhotos は PERSIST/SYNC_KEYS/FAMILY_SHARED_KEYS に登録済み＝家族共有・端末間削除耐久あり
+- 既存で実装済み：人物アルバム（openPersonAlbum）、ビューア内メンバータグ、人物名検索 → Phase1 と STEP9 は既に充足
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609h）
+- docs/worklog.md
+
+### 変更内容
+- **STEP2/6 データ構造**：将来のAI顔認識用 `S.faceGroups = []`（{groupId,suggestedMemberId,confidence,confirmedMemberId,photoIds[]}）を追加。現在は未使用の端末内スキャフォールドで、PERSIST/SYNC_KEYS/FAMILY_SHARED_KEYS に配線（将来AIが付けた候補も家族共有できる土台）。写真の人物タグは引き続き memberIds（後方互換・古い写真も表示OK）
+- **STEP4 写真追加後の人物選択**：保存完了後に「この写真に写っている家族は？」シート（m-people-pick）を任意表示。スキップ可・強制なし。和集合で追加し既存タグを壊さない。アップロード写真に memberIds:[] を明示初期化
+- **STEP3/5 未分類の一括整理**：
+  - アルバムタブの人物行に「未分類」タイル（点線リング）を追加 → タップで未分類ビュー
+  - 未分類ビューにプライバシー説明＋整理ガイドを表示
+  - 複数選択アクションバーに「人物」ボタンを追加 → 選択写真へ家族を一括タグ付け（和集合・非破壊）
+  - 人物ピッカーは「みんな（家族全員）を選ぶ」一括選択に対応
+- **STEP6 断定しない設計**：AIで人物名を断定しない。ユーザーが選んで初めて確定。文言は確認制を徹底
+- **STEP7 プライバシー表示**：「人物の判定は確認制／人物名は家族内の整理のみ／子どもの顔写真を外部に送らない」を人物ピッカーと未分類ビューに明記
+- **STEP8 Hoku連携**：ライブラリ上部のHokuそっと案内に「未分類の写真がN枚あります。家族ごとに整理しますか？」（4枚以上）を追加 → 未分類ビューへ。断定表現なし
+
+### テスト結果
+- inline script 構文チェック：2ブロックともエラーなし
+- node qa_full_test.js（Playwright 390x844）：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+- 人物機能 個別検証（Playwright）：faceGroups配列=✓・PERSIST/SYNC/FAMILY登録=✓ / 未分類タイル表示=✓ / プライバシー説明表示=✓ / 一括タグ付けで p1,p2 にタグ付与=✓・既存タグの p0 は非破壊=✓ / 未分類0に=✓ / 人物名検索ヒット=✓ / pageerror・console error 0
+
+### 安全性確認（STEP11）
+- 子どもの顔画像を外部APIへ送る処理は追加していない（faceGroups は空・端末内のみ）
+- service_role キー不使用（変更なし）
+- 人物タグは albumPhotos.memberIds＝既存の familyId スコープ同期に乗るため別家庭に混ざらない
+- 入力はメンバー名のみ・出力は H() エスケープ経由
+- 古いデータ（memberId のみ/people なし）も _ensurePhotoFields で表示OK
+
+### 未確認事項
+- 実機 iOS で「保存後の人物シート」がトースト直後に自然に出るか（420ms 遅延の体感）
+- 大量アップロード時の人物シート表示の煩雑感（必要なら閾値や頻度調整）
+
+### iPhone確認ポイント
+- 写真追加 → 「この写真に写っている家族は？」→ 選択 or スキップ
+- アルバムタブ →「未分類」タイル → 選択 →「人物」で一括タグ → 人物アルバムに反映
+- ライブラリ上部のHoku「未分類N枚を整理しますか？」
+- iPhone SE / 15 で横スクロール0・ピッカーが片手で押せるか
+
+### 次にやること
+- 実機確認後、必要なら Phase4：端末内（外部送信なし）の簡易類似グルーピングや、faceGroups を使った「同じ人物かもしれない写真」候補UI（断定しない）
+
+### コミット
+- メッセージ: feat(album): 人物機能強化（追加後の人物選択/未分類の一括整理/将来AI顔認識スキャフォールド）
