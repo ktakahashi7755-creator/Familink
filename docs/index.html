@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609l';
+  var V='v20260609m';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -12592,15 +12592,31 @@ function _ocrMockResult(ctx) {
   ];
   return { events: events, warnings: [], rawText: '（モック）'+m+'月の予定表', confidence: 0.85 };
 }
+/* 実AI/OCRの揺れ（全角数字・「9時30分」「2026/6/8」等）を HH:MM / YYYY-MM-DD に正規化 */
+function _ocrZen2Han(s){ return (s||'').toString().replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }); }
+function _ocrNormTime(t){
+  t=_ocrZen2Han(t).trim(); if(!t) return '';
+  let m=t.match(/(\d{1,2})\s*[:：時]\s*(\d{1,2})?/);
+  if(m){ const hh=Math.min(23,parseInt(m[1],10)||0), mm=Math.min(59,parseInt(m[2]||'0',10)||0); return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+  m=t.match(/^(\d{1,2})$/); if(m){ return String(Math.min(23,parseInt(m[1],10)||0)).padStart(2,'0')+':00'; }
+  return '';
+}
+function _ocrNormDate(d){
+  d=_ocrZen2Han(d).trim(); if(!d) return '';
+  const m=d.match(/(\d{4})\D{1,2}(\d{1,2})\D{1,2}(\d{1,2})/);
+  if(m){ return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); }
+  return d.slice(0,10);
+}
 function _ocrNormalize(d) {
   d = d || {};
+  const allDay = !!d.allDay;
   return {
     id: d.id || ('draft_'+uid()),
     title: (d.title||'').toString().trim(),
-    date: (d.date||'').toString().slice(0,10),
-    startTime: (d.startTime||'').toString(),
-    endTime: (d.endTime||'').toString(),
-    allDay: !!d.allDay,
+    date: _ocrNormDate(d.date),
+    startTime: allDay ? '' : _ocrNormTime(d.startTime),
+    endTime: allDay ? '' : _ocrNormTime(d.endTime),
+    allDay: allDay,
     location: (d.location||'').toString(),
     memo: (d.memo||'').toString(),
     members: Array.isArray(d.members)?d.members.slice():[],
@@ -12718,7 +12734,12 @@ function ocrAddSelected(){
     if(!checkPremiumLimit('events')) return;
     let added=0;
     sel.forEach(function(d){
-      (S.events=S.events||[]).push({ id:uid(), title:d.title, date:d.date, time:d.allDay?'':(d.startTime||''), endTime:d.allDay?'':(d.endTime||''), member:(d.members||[])[0]||'', note:d.memo||'', repeat:'', repeatInterval:0, repeatUnit:'', color:'#0A84FF', workspaceId:curWsId(), source:'photo_ocr' });
+      const t = d.allDay ? '' : (d.startTime||'');
+      let et = d.allDay ? '' : (d.endTime||'');
+      // 終了 ≤ 開始 / 終了のみ等の不整合は 30分後に自動補正（saveEvent と同じ作法）
+      if(t && et && et <= t) et = _addMinutesToTime(t, 30);
+      if(!t) et = '';
+      (S.events=S.events||[]).push({ id:uid(), title:d.title, date:d.date, time:t, endTime:et, member:(d.members||[])[0]||'', note:d.memo||'', repeat:'', repeatInterval:0, repeatUnit:'', color:'#0A84FF', workspaceId:curWsId(), source:'photo_ocr' });
       added++;
     });
     saveS();

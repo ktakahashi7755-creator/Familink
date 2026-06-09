@@ -20643,3 +20643,42 @@ Hokuサジェストチップ（2行マーキー）のループ時の“飛び”
 
 ### コミット
 - メッセージ: feat(calendar): 予定表を写真から読み取りカレンダーへ一括登録（AI/OCR接続口＋確認画面・準備リスト連携）
+
+---
+
+## 2026-06-09 17:10  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+OCR読み取りの堅牢化（時刻/日付正規化・終了時刻補正）＋反映精度の徹底検証／公開ブランチの根本原因特定
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609m）
+- docs/worklog.md
+
+### 変更内容
+- **正規化を追加**：実AI/OCRの揺れに備え `_ocrNormTime`（"9:30"/"１４時"/"9時5分"→HH:MM）、`_ocrNormDate`（"2026/6/8"/"2026年6月8日"→YYYY-MM-DD）。`_ocrNormalize` で適用。終日は時刻を空に統一
+- **終了時刻の自動補正**：カレンダー登録時に endTime ≤ startTime を 30分後に補正（既存 saveEvent と同作法）。開始が空なら終了も空（終日整合）
+- **公開ブランチの根本原因を特定**：同じ pages.yml でも `main`=失敗／`claude/merge-and-push-main-u44Ty`=成功。github-pages 環境のデプロイ許可ブランチが後者のみ＝**実公開ブランチは claude/merge-and-push-main-u44Ty**。main へのマージだけではライブに反映されない（worklog の記載とも一致）
+
+### テスト結果
+- OCR精度・反映 個別検証（Playwright）：**21/21 PASS**
+  - 正規化（時刻4・日付2）／endTime<start 補正／タイトル欠落→終日＋警告／曜日不一致警告
+  - 反映：5件追加・遠足=終日(time='')・個人面談=15:30-16:00・_eventsOnDate で当日ヒット・source=photo_ocr×5
+  - 実描画：月の日別詳細に「遠足」表示・リストビューに OCR予定＋「終日」ラベル
+  - 重複防止：同写真の再読み取りで4件以上 dup 検出
+  - console error 0
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機の写真/カメラ起動、実OCR本接続（Edge Function）
+- 公開反映：claude/merge-and-push-main-u44Ty へ反映が必要（次ステップで実施予定）
+
+### iPhone確認ポイント
+- 予定表読み取り→確認→追加→カレンダー(月/リスト)に終日・時間付きが正しく出るか
+
+### 次にやること
+- 実公開ブランチ claude/merge-and-push-main-u44Ty へ全変更を反映し、Pages デプロイ成功＝ライブ反映を確認
+
+### コミット
+- メッセージ: hardening(ocr): 時刻/日付の正規化・終了時刻補正＋反映精度検証（公開ブランチ根本原因の特定）
