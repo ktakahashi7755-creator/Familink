@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609i';
+  var V='v20260609j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -18003,17 +18003,23 @@ function albumToggleFav() {
 function albumReact(k, ev) {
   const p = _curPhoto(); if(!p) return;
   _ensurePhotoFields(p);
-  const idx = p.mine.indexOf(k);
-  if(idx >= 0) {
-    p.mine.splice(idx,1);
-    p.reactions[k] = Math.max(0, (p.reactions[k]||0) - 1);
-    if(!p.reactions[k]) delete p.reactions[k];
-  } else {
+  const had = p.mine.indexOf(k) >= 0;
+  // 1人につきリアクションは1つ（iMessageのタップバック方式）。
+  // 既存の自分のリアクションは種類を問わずすべて外してから付け替える。
+  // （過去データで複数付いていた場合の自己修復も兼ねる）
+  p.mine.forEach(function(prev){
+    p.reactions[prev] = Math.max(0, (p.reactions[prev]||0) - 1);
+    if(!p.reactions[prev]) delete p.reactions[prev];
+  });
+  p.mine = [];
+  if(!had) {
+    // 別のリアクション or 初回 → そのリアクションに付け替え
     p.mine.push(k);
     p.reactions[k] = (p.reactions[k]||0) + 1;
     // タップ位置にふわっとリアクション演出（SVGアイコン）
     if(ev && _userGestured) { try { _avFloatReact(k, ev); } catch(_){} }
   }
+  // had === true（同じものを再タップ）の場合は解除のみ＝mine は空のまま
   saveS();
   albumRenderViewer();
 }
