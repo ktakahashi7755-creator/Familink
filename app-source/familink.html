@@ -12749,9 +12749,35 @@ function _ocrMergeResults(results) {
       if(!prev || (Number(e.confidence)||0) > (Number(prev.confidence)||0)) map[key]=e;
     });
   });
-  const events=Object.keys(map).map(function(k){ return map[k]; })
-    .sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')) || String(a.startTime||'').localeCompare(String(b.startTime||'')); });
-  return { events:events, warnings:[], rawText:rawText, confidence: conf || (events.length?0.8:0) };
+  let events=Object.keys(map).map(function(k){ return map[k]; });
+  // 複数パスで生じる「ほぼ同一予定」を控えめに統合：同じ日＋同じ時間帯で、
+  // 片方のタイトルがもう片方を内包する（表記揺れ・部分読み）場合のみ1件に集約（長い/高信頼を採用）。
+  const norm=function(t){ return String(t||'').replace(/\s/g,''); };
+  const tkey=function(e){ return (e.date||'')+'|'+(e.allDay?'allday':(e.startTime||'')); };
+  events.sort(function(a,b){ return tkey(a).localeCompare(tkey(b)); });
+  const merged=[];
+  events.forEach(function(e){
+    const et=norm(e.title);
+    let hit=null;
+    for(let i=merged.length-1;i>=0 && tkey(merged[i])===tkey(e);i--){
+      const mt=norm(merged[i].title);
+      if(et && mt && (et.indexOf(mt)>=0 || mt.indexOf(et)>=0)){ hit=merged[i]; break; }
+    }
+    if(hit){
+      const better = (et.length>norm(hit.title).length) || ((Number(e.confidence)||0)>(Number(hit.confidence)||0));
+      if(better){ // 長い/高信頼のタイトルを採用しつつ、メモ・場所は情報量の多い方を残す
+        hit.title=e.title;
+        if((e.notes||'').length>(hit.notes||'').length) hit.notes=e.notes;
+        if(!hit.location && e.location) hit.location=e.location;
+        hit.confidence=Math.max(Number(hit.confidence)||0, Number(e.confidence)||0);
+      } else {
+        if((e.notes||'').length>(hit.notes||'').length) hit.notes=e.notes;
+        if(!hit.location && e.location) hit.location=e.location;
+      }
+    } else merged.push(e);
+  });
+  merged.sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')) || String(a.startTime||'').localeCompare(String(b.startTime||'')); });
+  return { events:merged, warnings:[], rawText:rawText, confidence: conf || (merged.length?0.8:0) };
 }
 /* 解析パス用の画像を生成（[{img,part}]）。EXIF回転を反映。
    通常：全体＋上下2分割。年間予定表：全体＋4分割（クアドラント）で広く密な表の取りこぼしを防ぐ。 */
