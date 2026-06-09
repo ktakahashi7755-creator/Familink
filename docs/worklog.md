@@ -20593,3 +20593,53 @@ Hokuサジェストチップ（2行マーキー）のループ時の“飛び”
 
 ### コミット
 - メッセージ: fix(hoku): サジェストチップのループ飛びを解消（gap/paddingを撤去しmargin方式で完全シームレス化）
+
+---
+
+## 2026-06-09 16:10  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+予定表を写真から読み取りカレンダーへ一括登録するAI/OCR機能（接続口＋モックでUI完成・確認画面必須）
+
+### 現状確認（STEP1）
+- 予定構造：S.events=[{id,title,date(YYYY-MM-DD),time,endTime,member,note,repeat,repeatInterval,repeatUnit,color,workspaceId}]。終日は time='' で表現可
+- 追加：saveEvent()／openEventModal()。カレンダーは S.calY（年）/ S.calM（0始まり月）
+- 準備リスト：S.prep=[{id,workspaceId,text,cat,subject,quantity,done,date,member,memberId,source,createdAt,updatedAt}]
+- events/prep は PERSIST・SYNC_KEYS・FAMILY_SHARED_KEYS 済み＝家族同期/別家庭分離は既存基盤で担保
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609l）
+- docs/worklog.md
+
+### 変更内容（実装）
+- **導線**：カレンダー右下に「予定表」FAB（.cal-scan-fab、＋の上）を追加。既存の＋（予定追加）は非破壊
+- **同意・写真選択**（m-ocr-intro）：Hoku案内＋個人情報の説明＋対象年選択＋「写真をアルバムにも保存」任意トグル＋「写真を選ぶ」
+- **接続口**：`analyzeScheduleImageWithAI(imageData, context)` を新設。将来 Supabase Edge Function 経由で OpenAI Vision を呼ぶ前提（APIキーはHTMLに置かない）。現状はモック `_ocrMockResult` が context の年月で実在曜日の下書きを返す（外部送信なし）
+- **下書き構造**：{id:'draft_xxx', title,date,startTime,endTime,allDay,location,memo,members[],sourceType:'photo_ocr',confidence,warning,originalText,status,_sel,_dup,_prep}。確定前は S.events に混ぜない
+- **検証 `_ocrValidate`**：終日補完（時間なし→allDay）／曜日不一致（originalTextの（曜）と実曜日比較）／過去日／重複（同日・似たタイトル）／タイトル・日付欠落 を warning 化。持ち物抽出 `_ocrExtractItems`（お弁当・水筒・上履き等）
+- **確認画面**（m-ocr-review）：Hokuサマリー「N件見つけました。M件は確認が必要」／すべて選択・個別選択・信頼度バッジ・警告バナー・編集・削除／「カレンダーに追加（N件）」「やり直す」
+- **編集**（m-ocr-edit）：タイトル/日付/終日/時間/場所/対象メンバー(任意)/メモ。手動確定で信頼度↑＆曜日推測無効化
+- **登録**：選択分を S.events へ（終日は time=''）。重複があれば showConfirm「似た予定があります。追加しますか？」を1回挟む。完全自動登録はしない
+- **準備リスト連携**（m-ocr-prep）：抽出した持ち物を確認後に S.prep へ追加（自動追加禁止・ユーザー選択制）
+- **プライバシー**：外部送信前提の説明＋同意、画像は既定で破棄（任意でアルバム保存）、service_role不使用、events/prepは既存の家族スコープ同期
+
+### テスト結果
+- inline script 構文：エラー0
+- OCR個別検証（Playwright 375x667）：FAB表示／intro/年3択／下書き5件／遠足=終日・持ち物[お弁当,水筒,レジャーシート,帽子]・既存と重複検出／参観日=曜日不一致警告／要確認2件／レビュー5枚＋Hoku文言／全選択解除→1件/全件／編集で終日化＆曜日警告解消／追加5件→S.events／準備候補5→prep5件／localStorage永続化 すべて✓、console error 0
+- レイアウト（320/375/430）：横スクロール0／フッター「カレンダーに追加」表示／リスト内部スクロール ✓
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機 iOS の写真選択/カメラ起動（capture=environment）の挙動
+- 実OCR（Edge Function + Vision）未接続：現状はモック。接続時は analyzeScheduleImageWithAI の中身を差し替えるだけ
+
+### iPhone確認ポイント
+- カレンダー右下「予定表」→ 写真選択 → 読み取り中 → 確認画面 → 編集/削除/選択 → カレンダーに追加 → 準備リスト連携
+- 曜日不一致・重複・終日の警告表示、横スクロール0
+
+### 次にやること
+- Supabase Edge Function（schedule-ocr）の実装と analyzeScheduleImageWithAI の本接続（APIキーはサーバ側）
+
+### コミット
+- メッセージ: feat(calendar): 予定表を写真から読み取りカレンダーへ一括登録（AI/OCR接続口＋確認画面・準備リスト連携）
