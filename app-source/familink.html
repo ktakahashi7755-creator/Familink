@@ -12628,7 +12628,7 @@ function ocrStartAnalyze() {
       _ocr.cancelled = true; closeModal('m-ocr-loading');
       _ocrShowFail(['読み取りに時間がかかっています','通信状況を確認して、もう一度お試しください']);
     }
-  }, 20000);
+  }, 50000);
   const ctx = { year:_ocr.year, month:_ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
   analyzeCalendarImageWithAI(_ocr.image).then(function(aiResult){
     if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
@@ -12659,13 +12659,47 @@ function ocrCancelLoading(){ _ocr.cancelled = true; if(_ocr.watchdog){ clearTime
 function _ocrShowFail(lines){ const el=document.getElementById('ocr-fail-msg'); if(el) el.innerHTML=(lines||[]).map(function(l){ return '<div>'+H(l)+'</div>'; }).join(''); openModal('m-ocr-fail'); }
 function ocrFailRetry(){ closeModal('m-ocr-fail'); openOcrIntro(); }
 /* ===== API接続のための実装分離（APIキーは絶対にフロントへ置かない） =====
-   将来：OpenAI Vision API もしくは Supabase Edge Function（サーバ側でキー保持）へ接続。
-   現状：未接続。mockAnalyzeCalendarImage() にフォールバック。外部送信なし。 */
+   本番：Supabase Edge Function 'calendar-scan' 経由で OpenAI Vision を呼ぶ
+   （鍵はサーバ側 OPENAI_API_KEY のみ。フロントは関数名 invoke でユーザーJWTを自動付与）。
+   未ログイン/未接続のときだけ mockAnalyzeCalendarImage() にフォールバック（デモ用・外部送信なし）。
+   バックエンドがエラー/タイムアウトのときは throw し、呼び出し側(ocrStartAnalyze)が失敗UXを表示する。 */
 async function analyzeCalendarImageWithAI(imageFileOrBase64) {
-  // TODO(本番): サーバ側経由で解析する。例）
-  // const r = await sb.functions.invoke('calendar-ocr', { body:{ image: imageFileOrBase64 } });
-  // if(r && r.data && Array.isArray(r.data.events)) return r.data;
-  return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1200); });
+  const sb = (typeof getSupabase==='function') ? getSupabase() : null;
+  const canBackend = !!(sb && sb.functions && typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
+  if(canBackend) {
+    const img = await _ocrDownscaleForUpload(imageFileOrBase64);   // 送信前に縮小（通信量・課金を抑制）
+    const payload = {
+      image: img,
+      year: _ocr.year || new Date().getFullYear(),
+      month: _ocr.month || (new Date().getMonth()+1),
+      existing: (S.events||[]).slice(0,50).map(function(e){ return { date:e.date, title:e.title }; })
+    };
+    const r = await _withTimeout(sb.functions.invoke('calendar-scan', { body: payload }), 47000);
+    if(r && r.error) throw new Error('calendar-scan_error');
+    if(r && r.data && Array.isArray(r.data.events)) return r.data;   // 0件でもそのまま返す＝失敗UXへ
+    throw new Error('calendar-scan_bad_response');
+  }
+  // 未ログイン/未接続：モック（外部送信なし）
+  return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1000); });
+}
+/* 送信用に画像を縮小（OCR可読性を保ちつつ通信量を抑える）。dataURL→dataURL */
+function _ocrDownscaleForUpload(dataUrl) {
+  return new Promise(function(resolve){
+    try {
+      if(typeof dataUrl!=='string' || dataUrl.indexOf('data:image')!==0){ resolve(dataUrl); return; }
+      const img=new Image();
+      img.onload=function(){
+        try {
+          const max=1600; let w=img.width||max, h=img.height||max;
+          if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+          const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(c.toDataURL('image/jpeg',0.82));
+        } catch(_){ resolve(dataUrl); }
+      };
+      img.onerror=function(){ resolve(dataUrl); };
+      img.src=dataUrl;
+    } catch(_){ resolve(dataUrl); }
+  });
 }
 /* モックAI結果（接続前のUI完成用）。月間予定表を解析した想定。 */
 function mockAnalyzeCalendarImage() {

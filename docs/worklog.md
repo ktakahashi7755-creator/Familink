@@ -20769,3 +20769,57 @@ OCR読み取りの堅牢化（時刻/日付正規化・終了時刻補正）＋�
 
 ### コミット
 - メッセージ: feat(ocr): 予定表スキャンを仕様準拠化（プレビュー/API分離/ocrImports履歴/失敗UX/元画像紐付け）
+
+---
+
+## 2026-06-09 21:30  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+予定表スキャンを実OCRに本接続：OCR専用 Supabase Edge Function calendar-scan を新規作成（Hoku非干渉・鍵はサーバ側のみ）
+
+### 変更ファイル
+- supabase/functions/calendar-scan/index.ts（新規）
+- supabase/functions/calendar-scan/README.md（新規）
+- app-source/familink.html（analyzeCalendarImageWithAI を Edge Function 接続に）
+- docs/index.html（同期 v20260609p）
+- docs/worklog.md
+
+### 変更内容
+- **OCR専用 Edge Function を分離新設** `supabase/functions/calendar-scan/index.ts`
+  - OpenAI Vision(gpt-4o-mini 既定) で予定表写真→予定候補(JSON)を抽出
+  - 鍵は `Deno.env.get("OPENAI_API_KEY")`（既存 Hoku 用 Secret を共通利用）。**フロントに鍵は置かない**
+  - **Hoku 関数には一切触れず**、別エンドポイント /functions/v1/calendar-scan として独立
+  - CORS は supabase-js invoke 対応（Hokuと同方針）。既定 JWT 検証ON＝ログイン中ユーザーのみ到達。任意 CALENDAR_SCAN_SHARED_KEY/MODEL
+  - 入力 {image, year, month, existing}／返却 {events[], warnings[], rawText, confidence}（アプリの normalizeOcrEvents が解釈）
+  - 画像サイズ上限・タイムアウト45s・失敗理由を安全分類（鍵を含めない）
+- **フロント接続**：`analyzeCalendarImageWithAI()` を Edge Function 呼び出しに変更
+  - ログイン中＋接続可：送信前に画像を1600pxへ縮小 → `sb.functions.invoke('calendar-scan',…)`（_withTimeout 47s）
+  - 未ログイン/未接続：mockAnalyzeCalendarImage() にフォールバック（デモ用・外部送信なし）
+  - バックエンドのエラー/タイムアウトは throw → 失敗UX。0件はそのまま返し失敗UX
+  - 読み取り中ウォッチドッグを 20s→50s（Vision の所要時間に合わせる。手動キャンセルは即時可）
+
+### テスト結果
+- フロント接続検証（Playwright・invokeスタブ）：未ログイン→モック3件／ログイン→calendar-scan呼び出し(image+year/month+existing)／本物events採用／エラー→throw／0件→そのまま の全経路 PASS、console error 0
+- OCR仕様検証：31/31 PASS（モック経路は不変）
+- TS：brace/paren balanced（deno未導入のため型チェックは本番デプロイ時）
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### デプロイ手順（サーバ側・ユーザー作業）
+- `supabase functions deploy calendar-scan`（--no-verify-jwt は付けない）
+- OPENAI_API_KEY は登録済み Secret を共通利用（再設定不要）
+
+### セキュリティ
+- フロントに APIキー無し。鍵はサーバ環境変数のみ。service_role 不使用
+- 画像はログイン中ユーザーのJWT付きでサーバ関数へ送信→OpenAIへ（直叩き不可）
+
+### 未確認事項
+- 実機での calendar-scan デプロイ後の実OCR精度（実プリントでの抽出品質）
+
+### iPhone確認ポイント
+- ログイン状態で予定表→写真→解析→（実OCRで）読み取った予定が出るか／失敗時に撮り直し導線が出るか
+
+### 次にやること
+- calendar-scan をデプロイ → 実プリントで精度確認・プロンプト微調整
+
+### コミット
+- メッセージ: feat(ocr): OCR専用 Edge Function calendar-scan を新設しフロントを実接続（鍵はサーバ側のみ・Hoku非干渉）
