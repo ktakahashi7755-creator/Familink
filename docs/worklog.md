@@ -20253,3 +20253,41 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: fix(album): 写真保存をネイティブ共有シート化（iOS/Androidでアルバムに直接保存）
+
+---
+
+## 2026-06-09 09:55  env: iPhone経由  branch: claude/openai-api-testing-vdsHU
+
+### 作業名
+写真保存が iOS でまだダウンロードになる不具合を修正（share の同期呼び出し化）
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609d）
+- docs/worklog.md
+
+### 変更内容
+- **原因**：navigator.share の前に await fetch() を挟んでいたため、iOS Safari が
+  「ユーザー操作直後」と判定せず共有を拒否→ダウンロードにフォールバックしていた
+- **修正**：data URL を同期関数 _dataURLtoBlob() で Blob/File 化し、await を一切挟まず
+  タップ直後に navigator.share({files}) を同期で呼ぶように変更。失敗時のみ
+  ダウンロードへフォールバック、キャンセル(AbortError)は無処理
+- これで iOS は「写真に追加」、Android は「保存」シートが正しく表示される
+
+### テスト結果
+- node --check: SYNTAX OK
+- 同期share検証（Playwright file://, navigator.shareをモック）：
+  _dataURLtoBlob=image/png 70B 正常 / share が同期で呼ばれる(shareCalledSync=true) / File添付OK / pageerror0
+- 回帰 qa_full_test（file://版）：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機 iOS/Android（https）での共有シート表示と「写真に追加」保存の最終確認（実機のみ可能）
+
+### iPhone確認ポイント
+- 写真→「写真に保存」→ 共有シートに「写真に追加」が出て写真アプリへ保存できるか（ダウンロード確認が出ないこと）
+
+### 次にやること
+- 実機確認。問題なければ複数選択→一括保存へ
+
+### コミット
+- メッセージ: fix(album): iOSでshareを同期呼び出しにして写真アプリ保存を有効化

@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609c';
+  var V='v20260609d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -17709,11 +17709,28 @@ function albumDeleteCurrent() {
 }
 
 /* ── Wave 118: 画像を端末にダウンロード（書類 / アルバム共通） ── */
-/* ── Wave 262: iOS/Android の「写真に保存」をネイティブシートで実現 ──
+/* ── Wave 262/263: iOS/Android の「写真に保存」をネイティブシートで実現 ──
    ・対応端末（https）では Web Share API(files) を使い、共有シートの
      「写真に追加 / 画像を保存」から端末のアルバムへ直接保存できる。
+   ・iOS は navigator.share をユーザー操作直後に “同期で” 呼ぶ必要があるため、
+     data URL は await を挟まず同期で Blob 化してから share する（重要）。
    ・非対応（PC等）は従来どおりファイル保存にフォールバック。 */
-async function downloadDataUrl(dataUrl, baseName) {
+function _dataURLtoBlob(dataUrl) {
+  const parts = String(dataUrl).split(',');
+  const meta = parts[0] || '';
+  const mime = (meta.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream';
+  let bin;
+  if(/;base64/i.test(meta)) {
+    const b = atob(parts[1] || '');
+    const len = b.length, arr = new Uint8Array(len);
+    for(let i=0;i<len;i++) arr[i] = b.charCodeAt(i);
+    bin = arr;
+  } else {
+    bin = new TextEncoder().encode(decodeURIComponent(parts[1] || ''));
+  }
+  return new Blob([bin], { type: mime });
+}
+function downloadDataUrl(dataUrl, baseName) {
   if(!dataUrl) { showToast('保存できるデータがありません','error'); return; }
   const m = String(dataUrl).match(/^data:(image|video)\/([a-zA-Z0-9.+-]+)/);
   let ext = m ? m[2].toLowerCase() : 'jpg';
@@ -17734,20 +17751,19 @@ async function downloadDataUrl(dataUrl, baseName) {
       showToast('保存できませんでした。写真を長押しで保存してください','error');
     }
   }
-  let blob = null;
-  try { blob = await (await fetch(dataUrl)).blob(); } catch(_){}
-  // 1) ネイティブ共有シート（iOS:「写真に追加」/ Android:「保存」）
+  // 同期で Blob/File 化（await を挟まない＝iOS の user activation を維持）
+  let blob = null, file = null;
   try {
-    if(blob && navigator.canShare) {
-      const file = new File([blob], fname, { type: blob.type || (m ? m[1]+'/'+m[2] : 'image/jpeg') });
-      if(navigator.canShare({ files:[file] })) {
-        await navigator.share({ files:[file] });
-        return;  // ユーザーがシートで保存/共有を完了（成功トーストはシート側に委ねる）
-      }
-    }
-  } catch(e) {
-    if(e && e.name === 'AbortError') return;  // シートをキャンセル＝何もしない
-    // それ以外の共有失敗はダウンロードにフォールバック
+    blob = _dataURLtoBlob(dataUrl);
+    file = new File([blob], fname, { type: blob.type || (m ? m[1]+'/'+m[2] : 'image/jpeg') });
+  } catch(_){}
+  // 1) ネイティブ共有シート（iOS:「写真に追加」/ Android:「保存」）— 同期呼び出し
+  if(file && navigator.canShare && navigator.canShare({ files:[file] }) && typeof navigator.share === 'function') {
+    navigator.share({ files:[file] }).catch(function(e){
+      if(e && e.name === 'AbortError') return;      // シートをキャンセル＝何もしない
+      fallbackDownload(blob);                         // それ以外の失敗はダウンロード
+    });
+    return;
   }
   // 2) フォールバック（PC等）
   fallbackDownload(blob);
