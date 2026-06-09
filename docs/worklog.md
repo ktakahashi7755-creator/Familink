@@ -20560,3 +20560,36 @@ Hokuの赤字防止：プレミアムAIにフェアユース上限(1日40通)＋
 
 ### コミット
 - メッセージ: fix(album): リアクションを1人1つの付け替え方式に（複数同時オンを解消）
+
+---
+
+## 2026-06-09 14:55  env: iPhone経由  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+Hokuサジェストチップ（2行マーキー）のループ時の“飛び”を解消し完全シームレス化
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609k）
+- docs/worklog.md
+
+### 変更内容
+- **原因**：`.hoku-mq-track` は `arr.concat(arr)` の2複製を `translateX(-50%)` でループさせるが、トラックに `gap:7px` と `padding:0 4px` があるため -50% の位置が1コピー幅と一致せず（gap半分＋paddingのズレ）、ループ瞬間に数pxの飛び＝違和感が出ていた
+- **修正**：トラックの `gap`/`padding` を撤去し、各チップ（`.hoku-mq-track > .hoku-sugg`）に `margin-right:7px` を付与。1コピーが自己完結する幅になり、`translateX(-50%)` が複製境界に正確一致＝完全シームレス
+- 端の余白は既存の `.hoku-mq` マスクグラデーションで担保（見た目変化なし）
+
+### テスト結果
+- 個別検証（Playwright）：上段 total2368/半分1184/境界1184/**diff 0px**、下段 total2274/半分1137/境界1137/**diff 0px**（修正前は gap+padding で数pxズレ）、pageerror 0
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### 未確認事項
+- 実機 iOS でのループ目視（飛びが無くなったか）
+
+### iPhone確認ポイント
+- Hoku画面上部の2行チップが、ループ折り返しでカクつかず滑らかに流れ続けるか
+
+### 次にやること
+- 実機確認。問題なければ main へ反映して公開
+
+### コミット
+- メッセージ: fix(hoku): サジェストチップのループ飛びを解消（gap/paddingを撤去しmargin方式で完全シームレス化）

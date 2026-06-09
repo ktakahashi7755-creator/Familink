@@ -2214,7 +2214,10 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 }
 .hoku-mq-row { overflow: hidden; }
 .hoku-mq-row + .hoku-mq-row { margin-top: 7px; }
-.hoku-mq-track { display: flex; gap: 7px; width: max-content; padding: 0 4px; will-change: transform; }
+/* gap/padding は -50% ループ境界をズラし“飛び”を生むため使わず、各チップの右マージンで
+   1コピーを自己完結させる（translateX(-50%) が複製境界に正確に一致＝完全シームレス）。 */
+.hoku-mq-track { display: flex; width: max-content; will-change: transform; }
+.hoku-mq-track > .hoku-sugg { margin-right: 7px; }
 .hoku-mq-track.rtl { animation: hoku-mq-right 50s linear infinite; }
 .hoku-mq-track.ltr { animation: hoku-mq-left 50s linear infinite; }
 .hoku-mq.paused .hoku-mq-track { animation-play-state: paused; }
