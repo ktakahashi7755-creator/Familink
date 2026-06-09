@@ -1852,6 +1852,11 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-card-acts button.del { color:#D9534F; }
 .ocr-card-acts button:active { transform:scale(.96); }
 .ocr-review-foot { display:flex; gap:10px; padding-top:10px; border-top:1px solid var(--border-light); margin-top:8px; }
+.ocr-preview-wrap { width:100%; border-radius:14px; overflow:hidden; background:#0d0d0f; display:flex; align-items:center; justify-content:center; max-height:46dvh; }
+.ocr-preview-wrap img { width:100%; max-height:46dvh; object-fit:contain; display:block; }
+.ocr-fail-icon { width:60px; height:60px; margin:6px auto 0; border-radius:50%; background:#FDECEC; color:#D9534F; display:flex; align-items:center; justify-content:center; }
+.ocr-fail-msg { font-size:13.5px; color:var(--text-sub); line-height:1.7; margin-top:6px; }
+.ocr-fail-msg div { margin:2px 0; }
 
 /* ============================================================
    BOARD SCREEN
@@ -5707,6 +5712,40 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- 写真プレビュー → 解析する -->
+<div id="m-ocr-preview" class="modal-backdrop" style="z-index:500;" onclick="closeModal('m-ocr-preview')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-grip"></div>
+    <div class="modal-title">この写真を読み取りますか？</div>
+    <div class="modal-form">
+      <div class="ocr-preview-wrap"><img id="ocr-preview-img" alt="プレビュー" src=""></div>
+      <div id="ocr-preview-dark" class="ocr-warn" style="display:none;margin:8px 0 0;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>写真が暗いかもしれません。読み取りにくい場合は明るい場所で撮り直してください。</span>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" style="margin-top:12px;" onclick="ocrStartAnalyze()">解析する</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="ocrPickPhoto()">別の写真を選ぶ</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:4px;" onclick="closeModal('m-ocr-preview')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 失敗UX -->
+<div id="m-ocr-fail" class="modal-backdrop" style="z-index:530;" onclick="closeModal('m-ocr-fail')">
+  <div class="modal" onclick="event.stopPropagation()" style="text-align:center;">
+    <div class="modal-grip"></div>
+    <div class="ocr-fail-icon">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <div class="modal-title" style="margin-top:10px;">うまく読み取れませんでした</div>
+    <div id="ocr-fail-msg" class="ocr-fail-msg"></div>
+    <div class="modal-form" style="margin-top:6px;">
+      <button class="btn btn-primary btn-block btn-lg" onclick="ocrFailRetry()">撮り直す</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:4px;" onclick="closeModal('m-ocr-fail')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- 読み取り中（ハング時もキャンセル可能＝固まらない） -->
 <div id="m-ocr-loading" class="modal-backdrop" style="z-index:520;" onclick="ocrCancelLoading()">
   <div class="modal" onclick="event.stopPropagation()" style="text-align:center;">
@@ -8175,6 +8214,7 @@ let S = {
   folders: [], docs: [],         // Wave 57: 書類保管庫を再活性化（Wave 15 で UI 撤廃 → Wave 57 で復活）
   albumPhotos: [],               // Wave 57: アルバム（{id, dataUrl, takenAt, memberId, caption}）
   faceGroups: [],                // Wave 266: 将来のAI顔認識用スキャフォールド（現在は未使用・端末内のみ。{groupId, suggestedMemberId, confidence, confirmedMemberId, photoIds[]}）
+  ocrImports: [],                // Wave 268: 予定表スキャンの解析履歴（{id,createdAt,imageName,imagePreview,status,rawText,events,warnings}）
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   budgetVisibleMembers: null, // Wave 42：null=全員表示
@@ -8237,7 +8277,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
 
 function saveS() {
   const d = {};
@@ -12519,10 +12559,10 @@ function deleteCurrentEvent() {
    Wave 267 — 予定表を写真から読み取る（AI/OCR → 確認 → 一括登録）
    - 完全自動登録はしない。必ず「確認画面」を挟む。
    - API キーは HTML に置かない。将来は Supabase Edge Function 経由で OpenAI Vision を呼ぶ。
-     現時点は接続口 analyzeScheduleImageWithAI() のみ用意し、モックで UI を完成させる。
+     現時点は接続口 analyzeCalendarImageWithAI() を分離し、モックで UI を完成させる。
    - 子どもの顔/個人情報は外部送信前に説明・同意。画像は既定で破棄（任意で保存）。
    ============================================================ */
-let _ocr = { drafts: [], image: null, keepImage:false, year:0, prepCandidates: [] };
+let _ocr = { cands:[], image:null, imageName:'', preview:null, dark:false, keepImage:false, year:0, month:0, importId:'', prepCandidates:[], cancelled:false, watchdog:null };
 const _OCR_WD = ['日','月','火','水','木','金','土'];
 const _OCR_ITEMS = ['お弁当','水筒','レジャーシート','上履き','体操服','体操着','帽子','タオル','着替え','水着','絵の具','ねんど','給食袋','コップ','歯ブラシ','長靴','傘','軍手','雑巾','名札','エプロン','三角巾'];
 
@@ -12536,73 +12576,118 @@ function openOcrIntro() {
 }
 function ocrPickPhoto() {
   _ocr.year = parseInt((document.getElementById('ocr-year')||{}).value,10) || new Date().getFullYear();
+  _ocr.month = ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1));
   _ocr.keepImage = !!((document.getElementById('ocr-keep-img')||{}).checked);
   const f=document.getElementById('ocr-file'); if(f) f.click();
 }
+/* 写真を選んだら、まず「プレビュー＋解析する」ステップを挟む（自動解析しない） */
 function ocrOnFilePicked(ev) {
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = '';
   if(!file) return;
-  closeModal('m-ocr-intro');
+  _ocr.imageName = file.name || '';
+  const reader = new FileReader();
+  reader.onload = function(){
+    _ocr.image = reader.result;
+    _ocrMakePreview(_ocr.image, function(prev, dark){
+      _ocr.preview = prev; _ocr.dark = dark;
+      const img = document.getElementById('ocr-preview-img'); if(img) img.src = prev || _ocr.image;
+      const dw = document.getElementById('ocr-preview-dark'); if(dw) dw.style.display = dark ? 'flex' : 'none';
+      closeModal('m-ocr-intro');
+      openModal('m-ocr-preview');
+    });
+  };
+  reader.onerror = function(){ showToast('写真を読み込めませんでした','error'); };
+  reader.readAsDataURL(file);
+}
+/* プレビュー用サムネ生成＋明るさ判定（暗い写真の警告に使用） */
+function _ocrMakePreview(dataUrl, cb) {
+  try {
+    const img = new Image();
+    img.onload = function(){
+      try {
+        const max=360; let w=img.width||max, h=img.height||max;
+        if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+        const c=document.createElement('canvas'); c.width=w; c.height=h; const cx=c.getContext('2d'); cx.drawImage(img,0,0,w,h);
+        let dark=false; try { const dd=cx.getImageData(0,0,w,h).data; let sum=0,n=0; for(let i=0;i<dd.length;i+=40){ sum+=dd[i]+dd[i+1]+dd[i+2]; n+=3; } dark=(sum/Math.max(1,n))<70; } catch(_){}
+        cb(c.toDataURL('image/jpeg',0.7), dark);
+      } catch(_){ cb(dataUrl,false); }
+    };
+    img.onerror=function(){ cb(dataUrl,false); };
+    img.src=dataUrl;
+  } catch(_){ cb(dataUrl,false); }
+}
+/* 「解析する」→ AI解析（モック）→ 候補確認 or 失敗UX */
+function ocrStartAnalyze() {
+  closeModal('m-ocr-preview');
   openModal('m-ocr-loading');
   _ocr.cancelled = false;
-  // ウォッチドッグ：万一読み取りが返ってこなくても20秒で必ず解除（画面が固まらない）
   if(_ocr.watchdog) clearTimeout(_ocr.watchdog);
   _ocr.watchdog = setTimeout(function(){
     if(document.getElementById('m-ocr-loading').classList.contains('open')) {
       _ocr.cancelled = true; closeModal('m-ocr-loading');
-      showToast('読み取りに時間がかかっています。通信状況を確認して、もう一度お試しください','error');
+      _ocrShowFail(['読み取りに時間がかかっています','通信状況を確認して、もう一度お試しください']);
     }
   }, 20000);
-  const reader = new FileReader();
-  reader.onload = function(){
+  const ctx = { year:_ocr.year, month:_ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
+  analyzeCalendarImageWithAI(_ocr.image).then(function(aiResult){
+    if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
     if(_ocr.cancelled) return;
-    _ocr.image = reader.result;
-    const ctx = { year:_ocr.year, month:((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
-    analyzeScheduleImageWithAI(_ocr.image, ctx).then(function(res){
-      if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
-      if(_ocr.cancelled) return;
-      const drafts = (res && res.events) ? res.events : [];
-      _ocr.drafts = drafts.map(function(d){ return _ocrValidate(_ocrNormalize(d), ctx); });
-      closeModal('m-ocr-loading');
-      if(!_ocr.drafts.length) { showToast('予定を読み取れませんでした。別の写真でお試しください','info'); return; }
-      if(_ocr.keepImage && _ocr.image) ocrSaveImageToAlbum(_ocr.image);
-      _ocr.image = null;   // 画像は確認後すぐ破棄（保存は上で完了）
-      ocrRenderReview();
-      openModal('m-ocr-review');
-    }).catch(function(){
-      if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
-      if(_ocr.cancelled) return;
-      closeModal('m-ocr-loading');
-      showToast('読み取りに失敗しました。もう一度お試しください','error');
-    });
-  };
-  reader.onerror = function(){ if(_ocr.watchdog){clearTimeout(_ocr.watchdog);_ocr.watchdog=null;} closeModal('m-ocr-loading'); showToast('写真を読み込めませんでした','error'); };
-  reader.readAsDataURL(file);
+    const cands = normalizeOcrEvents(aiResult, ctx);
+    closeModal('m-ocr-loading');
+    // 解析履歴を保存（成否どちらも残す）
+    const imp = saveOcrImport({ imageName:_ocr.imageName, imagePreview:_ocr.preview||'', status: cands.length?'parsed':'empty', rawText:(aiResult&&aiResult.rawText)||'', events:cands, warnings:(aiResult&&aiResult.warnings)||[] });
+    _ocr.importId = imp ? imp.id : '';
+    if(!cands.length) {
+      _ocrShowFail(_ocr.dark
+        ? ['予定らしき情報が見つかりませんでした','画像が暗い可能性があります','明るい場所で撮り直してください']
+        : ['予定らしき情報が見つかりませんでした','文字がはっきり写るように、まっすぐ撮り直してください']);
+      return;
+    }
+    if(_ocr.keepImage && _ocr.image) ocrSaveImageToAlbum(_ocr.image);
+    _ocr.cands = cands;
+    ocrRenderReview();
+    openModal('m-ocr-review');
+  }).catch(function(){
+    if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
+    if(_ocr.cancelled) return;
+    closeModal('m-ocr-loading');
+    _ocrShowFail(['読み取れませんでした','もう一度、別の写真でお試しください']);
+  });
 }
 function ocrCancelLoading(){ _ocr.cancelled = true; if(_ocr.watchdog){ clearTimeout(_ocr.watchdog); _ocr.watchdog=null; } closeModal('m-ocr-loading'); }
-/* 将来 Supabase Edge Function 経由で OpenAI Vision 等を呼ぶ接続口。
-   入力：imageData(dataURL), context{year, month, existing[]}（将来 childNames も）
-   返却：{ events:[draft...], warnings[], rawText, confidence }
-   ※現状はモック（API 未接続・外部送信なし）。APIキーは絶対に HTML に置かない。 */
-function analyzeScheduleImageWithAI(imageData, context) {
-  // TODO(Edge Function): const r = await sb.functions.invoke('schedule-ocr', { body:{ image:imageData, year:context.year, month:context.month, existing:context.existing.map(e=>({date:e.date,title:e.title})) } });
-  return new Promise(function(resolve){ setTimeout(function(){ resolve(_ocrMockResult(context)); }, 1300); });
+function _ocrShowFail(lines){ const el=document.getElementById('ocr-fail-msg'); if(el) el.innerHTML=(lines||[]).map(function(l){ return '<div>'+H(l)+'</div>'; }).join(''); openModal('m-ocr-fail'); }
+function ocrFailRetry(){ closeModal('m-ocr-fail'); openOcrIntro(); }
+/* ===== API接続のための実装分離（APIキーは絶対にフロントへ置かない） =====
+   将来：OpenAI Vision API もしくは Supabase Edge Function（サーバ側でキー保持）へ接続。
+   現状：未接続。mockAnalyzeCalendarImage() にフォールバック。外部送信なし。 */
+async function analyzeCalendarImageWithAI(imageFileOrBase64) {
+  // TODO(本番): サーバ側経由で解析する。例）
+  // const r = await sb.functions.invoke('calendar-ocr', { body:{ image: imageFileOrBase64 } });
+  // if(r && r.data && Array.isArray(r.data.events)) return r.data;
+  return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1200); });
 }
-/* モック読み取り結果（接続前のUI完成用）。実在の曜日で日付を作り、検証ロジックを実際に通す。 */
-function _ocrMockResult(ctx) {
-  const y = ctx.year || new Date().getFullYear();
-  const m = ctx.month || (new Date().getMonth()+1);
-  const ds = function(mm,dd){ return y+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0'); };
-  const wd = function(dd){ return _OCR_WD[new Date(y, m-1, dd).getDay()]; };
-  const events = [
-    { title:'遠足', date:ds(m,18), startTime:'', endTime:'', location:'みどり公園', memo:'持ち物：お弁当・水筒・レジャーシート・帽子', originalText:m+'/18 遠足 お弁当・水筒・レジャーシート持参', confidence:0.94 },
-    { title:'個人面談', date:ds(m,22), startTime:'15:30', endTime:'16:00', location:'そら組', memo:'', originalText:m+'/22（'+wd(22)+'）個人面談 15:30〜16:00', confidence:0.9 },
-    { title:'避難訓練', date:ds(m,10), startTime:'10:00', endTime:'11:00', location:'', memo:'', originalText:m+'/10 避難訓練 10:00〜', confidence:0.87 },
-    { title:'午前保育（給食なし）', date:ds(m,25), startTime:'', endTime:'', location:'', memo:'お迎え 11:30', originalText:m+'/25 午前保育 給食なし お迎え11:30', confidence:0.82 },
-    { title:'参観日', date:ds(m,14), startTime:'09:30', endTime:'11:30', location:'', memo:'上履き持参', originalText:m+'/14（'+_OCR_WD[(new Date(y,m-1,14).getDay()+1)%7]+'）参観日 9:30', confidence:0.71 },
-  ];
-  return { events: events, warnings: [], rawText: '（モック）'+m+'月の予定表', confidence: 0.85 };
+/* モックAI結果（接続前のUI完成用）。月間予定表を解析した想定。 */
+function mockAnalyzeCalendarImage() {
+  const y = _ocr.year || new Date().getFullYear();
+  const m = _ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1));
+  const ds = function(dd){ return y+'-'+String(m).padStart(2,'0')+'-'+String(dd).padStart(2,'0'); };
+  return {
+    rawText: '（モック）'+m+'月 園だより 予定表',
+    confidence: 0.85,
+    warnings: [],
+    events: [
+      { title:'遠足', date:ds(15), allDay:true, startTime:'', endTime:'', location:'', notes:'持ち物：水筒・帽子・お弁当', confidence:0.92 },
+      { title:'午前保育', date:ds(18), startTime:'', endTime:'', location:'', notes:'', confidence:0.74, warnings:['終了時間を確認してください'] },
+      { title:'保護者会', date:ds(21), startTime:'10:00', endTime:'11:00', location:'幼稚園ホール', notes:'', confidence:0.88 },
+    ]
+  };
+}
+/* AI結果 → Familink の eventCandidate[] へ変換（検証つき） */
+function normalizeOcrEvents(aiResult, ctx) {
+  ctx = ctx || { existing:(S.events||[]) };
+  const evs = (aiResult && Array.isArray(aiResult.events)) ? aiResult.events : [];
+  return evs.map(function(d){ return _ocrValidateCand(_ocrNormCand(d), ctx); });
 }
 /* 実AI/OCRの揺れ（全角数字・「9時30分」「2026/6/8」等）を HH:MM / YYYY-MM-DD に正規化 */
 function _ocrZen2Han(s){ return (s||'').toString().replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }); }
@@ -12619,155 +12704,185 @@ function _ocrNormDate(d){
   if(m){ return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); }
   return d.slice(0,10);
 }
-function _ocrNormalize(d) {
+/* eventCandidate 形へ正規化（spec: id/title/date/startTime/endTime/allDay/location/memberId/notes/confidence/needsReview/warnings/source） */
+function _ocrNormCand(d) {
   d = d || {};
   const allDay = !!d.allDay;
   return {
-    id: d.id || ('draft_'+uid()),
+    id: 'cand_'+uid(),
     title: (d.title||'').toString().trim(),
     date: _ocrNormDate(d.date),
     startTime: allDay ? '' : _ocrNormTime(d.startTime),
     endTime: allDay ? '' : _ocrNormTime(d.endTime),
     allDay: allDay,
     location: (d.location||'').toString(),
-    memo: (d.memo||'').toString(),
-    members: Array.isArray(d.members)?d.members.slice():[],
-    sourceType: 'photo_ocr',
+    memberId: (d.memberId||'').toString(),
+    notes: (d.notes!=null ? d.notes : (d.memo||'')).toString(),
     confidence: (typeof d.confidence==='number')?d.confidence:0.7,
-    warning: null,
+    warnings: Array.isArray(d.warnings)?d.warnings.slice():[],
+    needsReview: false,
+    source: 'ocr_scan',
     originalText: (d.originalText||'').toString(),
-    status: 'pending',
     _sel: true, _dup:false, _prep:[]
   };
 }
 function _ocrSimilarTitle(a,b){ a=(a||'').replace(/\s/g,''); b=(b||'').replace(/\s/g,''); if(!a||!b) return false; return a===b || a.indexOf(b)>=0 || b.indexOf(a)>=0; }
-function _ocrExtractItems(d){ const t=(d.memo||'')+' '+(d.title||'')+' '+(d.originalText||''); const f=[]; _OCR_ITEMS.forEach(function(it){ if(t.indexOf(it)>=0 && f.indexOf(it)<0) f.push(it); }); return f; }
-/* 読み取り結果の検証：終日補完・曜日不一致・過去日・重複・タイトル/日付欠落を warning 化 */
-function _ocrValidate(d, ctx) {
-  const warns = [];
-  const dObj = d.date ? new Date(d.date+'T00:00:00') : null;
+function _ocrExtractItems(c){ const t=(c.notes||'')+' '+(c.title||'')+' '+(c.originalText||''); const f=[]; _OCR_ITEMS.forEach(function(it){ if(t.indexOf(it)>=0 && f.indexOf(it)<0) f.push(it); }); return f; }
+/* 候補の検証：終日補完・時間不明・曜日不一致・過去日・重複（日付＋類似タイトル＋同member）を warnings 化。
+   信頼度<0.85 もしくは warnings ありを needsReview=true に。 */
+function _ocrValidateCand(c, ctx) {
+  const warns = Array.isArray(c.warnings) ? c.warnings.slice() : [];
+  const dObj = c.date ? new Date(c.date+'T00:00:00') : null;
   const validDate = dObj && !isNaN(dObj.getTime());
-  if(!validDate) warns.push('日付が読み取れませんでした。確認してください');
-  if(!d.title) warns.push('タイトルが読み取れませんでした。確認してください');
-  if(!d.startTime) d.allDay = true;
+  if(!validDate) warns.push('日付が読み取れませんでした');
+  if(!c.title) warns.push('タイトルが読み取れませんでした');
+  if(!c.allDay && !c.startTime) warns.push('開始時間が読み取れませんでした');
   if(validDate) {
-    const mWk = (d.originalText||'').match(/[（(]\s*([日月火水木金土])\s*[)）]/);
-    if(mWk){ const actual=_OCR_WD[dObj.getDay()]; if(mWk[1]!==actual) warns.push('曜日が一致しません（読み取り：'+mWk[1]+'／実際：'+actual+'）。確認してください'); }
-    if(d.date < todayStr()) warns.push('過去の日付です。確認してください');
-    const dup = (ctx&&ctx.existing||[]).some(function(e){ return e.date===d.date && _ocrSimilarTitle(e.title, d.title); });
-    if(dup){ d._dup=true; warns.push('同じ日に似た予定があります'); } else { d._dup=false; }
+    const mWk = (c.originalText||'').match(/[（(]\s*([日月火水木金土])\s*[)）]/);
+    if(mWk){ const actual=_OCR_WD[dObj.getDay()]; if(mWk[1]!==actual) warns.push('曜日が一致しません（記載：'+mWk[1]+'／実際：'+actual+'）'); }
+    if(c.date < todayStr()) warns.push('過去の日付です');
+    const dup = (ctx&&ctx.existing||[]).some(function(e){ return e.date===c.date && _ocrSimilarTitle(e.title, c.title) && (!e.member || !c.memberId || e.member===c.memberId); });
+    c._dup = dup; if(dup) warns.push('同じ予定が既にあるかもしれません');
   }
-  if(d.allDay && !d.startTime) warns.push('時間が読み取れなかったため終日予定にしました');
-  d.warning = warns.length ? warns.join('\n') : null;
-  d._prep = _ocrExtractItems(d);
-  return d;
+  c.warnings = warns.filter(function(w,i){ return warns.indexOf(w)===i; });
+  c.needsReview = (c.confidence < 0.85) || c.warnings.length>0;
+  c._prep = _ocrExtractItems(c);
+  return c;
 }
-function _ocrNeedsAttention(d){ return !!(d.warning && /確認してください|似た予定/.test(d.warning)); }
+/* 解析履歴を S.ocrImports に保存（最新が先頭・最大20件） */
+function saveOcrImport(importData) {
+  try {
+    if(!Array.isArray(S.ocrImports)) S.ocrImports = [];
+    const rec = {
+      id: 'ocrimp_'+uid(),
+      createdAt: new Date().toISOString(),
+      imageName: importData.imageName || '',
+      imagePreview: importData.imagePreview || '',
+      status: importData.status || 'parsed',
+      rawText: importData.rawText || '',
+      events: (importData.events||[]).map(function(c){ return { id:c.id, title:c.title, date:c.date, startTime:c.startTime, endTime:c.endTime, allDay:c.allDay, location:c.location, memberId:c.memberId, notes:c.notes, confidence:c.confidence, needsReview:c.needsReview, warnings:c.warnings, source:c.source }; }),
+      warnings: importData.warnings || []
+    };
+    S.ocrImports.unshift(rec);
+    if(S.ocrImports.length > 20) S.ocrImports.length = 20;
+    saveS();
+    return rec;
+  } catch(_) { return null; }
+}
+function _ocrNeedsAttention(c){ return !!(c && c.needsReview); }
 function ocrRenderReview() {
   const hk=document.querySelector('#ocr-review-hoku img'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||'';
-  const n=_ocr.drafts.length, need=_ocr.drafts.filter(_ocrNeedsAttention).length;
-  const msg = need ? (n+'件の予定を見つけました。'+need+'件は確認が必要です。') : (n+'件の予定を見つけました。内容をご確認ください。');
+  const n=_ocr.cands.length, need=_ocr.cands.filter(_ocrNeedsAttention).length;
+  const msg = need ? (n+'件の予定が見つかりました。'+need+'件は確認が必要です。') : (n+'件の予定が見つかりました。内容をご確認ください。');
   const sp=document.querySelector('#ocr-review-hoku span'); if(sp) sp.textContent=msg;
-  const list=document.getElementById('ocr-list'); if(list) list.innerHTML=_ocr.drafts.map(_ocrCard).join('');
+  const list=document.getElementById('ocr-list'); if(list) list.innerHTML=_ocr.cands.map(_ocrCard).join('');
   _ocrUpdateSelBar();
 }
-function _ocrCard(d) {
-  const dObj = d.date ? new Date(d.date+'T00:00:00') : null;
+function _ocrConfTier(c){ return c.confidence>=0.85?{cls:'hi',label:'高'}:(c.confidence>=0.7?{cls:'mid',label:'確認推奨'}:{cls:'lo',label:'要修正'}); }
+function _ocrCard(c) {
+  const dObj = c.date ? new Date(c.date+'T00:00:00') : null;
   const wk = (dObj && !isNaN(dObj.getTime())) ? '（'+_OCR_WD[dObj.getDay()]+'）' : '';
-  const dateStr = d.date ? (d.date.slice(5).replace('-','/')+wk) : '日付なし';
-  const timeStr = d.allDay ? '終日' : (H(d.startTime||'')+(d.endTime?' 〜 '+H(d.endTime):''));
-  const confCls = d.confidence>=0.85?'hi':(d.confidence>=0.7?'mid':'lo');
-  const meta = [dateStr, timeStr].concat(d.location?[H(d.location)]:[]).join('<span class="dot">・</span>');
+  const dateStr = c.date ? (c.date.slice(5).replace('-','/')+wk) : '日付なし';
+  const timeStr = c.allDay ? '終日' : (c.startTime ? (H(c.startTime)+(c.endTime?' 〜 '+H(c.endTime):'')) : '時間未設定');
+  const tier = _ocrConfTier(c);
+  const mem = c.memberId ? getMem(c.memberId) : null;
+  const meta = [dateStr, timeStr].concat(c.location?[H(c.location)]:[]).concat(mem?[H(mem.name)]:[]).join('<span class="dot">・</span>');
   let warnHtml='';
-  if(d.warning){ warnHtml = d.warning.split('\n').map(function(w){ return '<div class="ocr-warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>'+H(w)+'</span></div>'; }).join(''); }
-  return '<div class="ocr-card'+(d._sel?' sel':'')+(_ocrNeedsAttention(d)?' warn':'')+'" data-id="'+H(d.id)+'">'
+  if(c.warnings && c.warnings.length){ warnHtml = c.warnings.map(function(w){ return '<div class="ocr-warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>'+H(w)+'</span></div>'; }).join(''); }
+  return '<div class="ocr-card'+(c._sel?' sel':'')+(c.needsReview?' warn':'')+'" data-id="'+H(c.id)+'">'
     + '<div class="ocr-card-top">'
-    +   '<button class="ocr-cb" onclick="ocrToggle(\''+H(d.id)+'\')" aria-label="選択">'+(d._sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</button>'
+    +   '<button class="ocr-cb" onclick="ocrToggle(\''+H(c.id)+'\')" aria-label="選択">'+(c._sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</button>'
     +   '<div class="ocr-card-body">'
-    +     '<div class="ocr-card-title">'+(d.title?H(d.title):'（タイトル未設定）')+'</div>'
+    +     '<div class="ocr-card-title">'+(c.title?H(c.title):'（タイトル未設定）')+'</div>'
     +     '<div class="ocr-card-meta">'+meta+'</div>'
-    +     (d.memo?'<div class="ocr-card-memo">'+H(d.memo)+'</div>':'')
-    +     '<span class="ocr-conf '+confCls+'">読み取り信頼度 '+Math.round(d.confidence*100)+'%</span>'
+    +     (c.notes?'<div class="ocr-card-memo">'+H(c.notes)+'</div>':'')
+    +     '<span class="ocr-conf '+tier.cls+'">信頼度 '+Math.round(c.confidence*100)+'%・'+tier.label+'</span>'
     +     warnHtml
-    +     '<div class="ocr-card-acts"><button onclick="ocrOpenEdit(\''+H(d.id)+'\')">編集</button><button class="del" onclick="ocrDelete(\''+H(d.id)+'\')">削除</button></div>'
+    +     '<div class="ocr-card-acts"><button onclick="ocrOpenEdit(\''+H(c.id)+'\')">編集</button><button class="del" onclick="ocrDelete(\''+H(c.id)+'\')">削除</button></div>'
     +   '</div>'
     + '</div></div>';
 }
-function ocrToggle(id){ const d=_ocr.drafts.find(function(x){return x.id===id;}); if(!d) return; d._sel=!d._sel; ocrRenderReview(); }
-function ocrToggleAll(){ const all=_ocr.drafts.length>0 && _ocr.drafts.every(function(d){return d._sel;}); _ocr.drafts.forEach(function(d){ d._sel=!all; }); ocrRenderReview(); }
-function _ocrSelCount(){ return _ocr.drafts.filter(function(d){return d._sel;}).length; }
+function ocrToggle(id){ const c=_ocr.cands.find(function(x){return x.id===id;}); if(!c) return; c._sel=!c._sel; ocrRenderReview(); }
+function ocrToggleAll(){ const all=_ocr.cands.length>0 && _ocr.cands.every(function(c){return c._sel;}); _ocr.cands.forEach(function(c){ c._sel=!all; }); ocrRenderReview(); }
+function _ocrSelCount(){ return _ocr.cands.filter(function(c){return c._sel;}).length; }
 function _ocrUpdateSelBar(){
-  const all=_ocr.drafts.length>0 && _ocr.drafts.every(function(d){return d._sel;});
+  const all=_ocr.cands.length>0 && _ocr.cands.every(function(c){return c._sel;});
   const b=document.getElementById('ocr-selall'); if(b) b.textContent=all?'すべて解除':'すべて選択';
-  const c=document.getElementById('ocr-selcount'); if(c) c.textContent=_ocrSelCount()+' / '+_ocr.drafts.length+' 件を選択';
-  const add=document.getElementById('ocr-add-btn'); if(add){ const n=_ocrSelCount(); add.textContent='カレンダーに追加'+(n?'（'+n+'件）':''); add.disabled=(n===0); add.style.opacity=n?'':'.5'; }
+  const c=document.getElementById('ocr-selcount'); if(c) c.textContent=_ocrSelCount()+' / '+_ocr.cands.length+' 件を選択';
+  const add=document.getElementById('ocr-add-btn'); if(add){ const n=_ocrSelCount(); add.textContent='選択した予定を追加'+(n?'（'+n+'件）':''); add.disabled=(n===0); add.style.opacity=n?'':'.5'; }
 }
 function ocrOpenEdit(id){
-  const d=_ocr.drafts.find(function(x){return x.id===id;}); if(!d) return;
-  document.getElementById('ocr-e-id').value=d.id;
-  document.getElementById('ocr-e-title').value=d.title||'';
-  document.getElementById('ocr-e-date').value=d.date||'';
-  document.getElementById('ocr-e-allday').checked=!!d.allDay;
-  document.getElementById('ocr-e-start').value=d.startTime||'';
-  document.getElementById('ocr-e-end').value=d.endTime||'';
-  document.getElementById('ocr-e-loc').value=d.location||'';
-  document.getElementById('ocr-e-memo').value=d.memo||'';
+  const c=_ocr.cands.find(function(x){return x.id===id;}); if(!c) return;
+  document.getElementById('ocr-e-id').value=c.id;
+  document.getElementById('ocr-e-title').value=c.title||'';
+  document.getElementById('ocr-e-date').value=c.date||'';
+  document.getElementById('ocr-e-allday').checked=!!c.allDay;
+  document.getElementById('ocr-e-start').value=c.startTime||'';
+  document.getElementById('ocr-e-end').value=c.endTime||'';
+  document.getElementById('ocr-e-loc').value=c.location||'';
+  document.getElementById('ocr-e-memo').value=c.notes||'';
   const ms=document.getElementById('ocr-e-member');
-  if(ms) ms.innerHTML='<option value="">家族全体</option>'+MEMBERS.map(function(m){ return '<option value="'+H(m.id)+'"'+(((d.members||[])[0]===m.id)?' selected':'')+'>'+H(m.name)+'</option>'; }).join('');
+  if(ms) ms.innerHTML='<option value="">家族全体</option>'+MEMBERS.map(function(m){ return '<option value="'+H(m.id)+'"'+((c.memberId===m.id)?' selected':'')+'>'+H(m.name)+'</option>'; }).join('');
   ocrEditAllDayToggle();
   openModal('m-ocr-edit');
 }
 function ocrEditAllDayToggle(){ const on=document.getElementById('ocr-e-allday').checked; const row=document.getElementById('ocr-e-timerow'); if(row) row.style.display=on?'none':'flex'; }
 function ocrSaveEdit(){
   const id=document.getElementById('ocr-e-id').value;
-  const d=_ocr.drafts.find(function(x){return x.id===id;}); if(!d) return;
-  d.title=document.getElementById('ocr-e-title').value.trim();
-  d.date=document.getElementById('ocr-e-date').value;
-  d.allDay=document.getElementById('ocr-e-allday').checked;
-  d.startTime=d.allDay?'':document.getElementById('ocr-e-start').value;
-  d.endTime=d.allDay?'':document.getElementById('ocr-e-end').value;
-  d.location=document.getElementById('ocr-e-loc').value.trim();
-  d.memo=document.getElementById('ocr-e-memo').value.trim();
-  const mv=document.getElementById('ocr-e-member').value; d.members=mv?[mv]:[];
-  d.confidence=Math.max(d.confidence||0,0.97);   // 人が確認・修正済み
-  d.originalText='';   // 手動確定後は曜日推測を無効化
-  _ocrValidate(d, { existing:(S.events||[]) });
+  const c=_ocr.cands.find(function(x){return x.id===id;}); if(!c) return;
+  c.title=document.getElementById('ocr-e-title').value.trim();
+  c.date=document.getElementById('ocr-e-date').value;
+  c.allDay=document.getElementById('ocr-e-allday').checked;
+  c.startTime=c.allDay?'':document.getElementById('ocr-e-start').value;
+  c.endTime=c.allDay?'':document.getElementById('ocr-e-end').value;
+  c.location=document.getElementById('ocr-e-loc').value.trim();
+  c.notes=document.getElementById('ocr-e-memo').value.trim();
+  c.memberId=document.getElementById('ocr-e-member').value || '';
+  c.warnings=[];                                 // 手動確定後はAI警告をクリア
+  c.confidence=Math.max(c.confidence||0,0.97);   // 人が確認・修正済み
+  c.originalText='';                             // 曜日推測を無効化
+  _ocrValidateCand(c, { existing:(S.events||[]) });
   closeModal('m-ocr-edit');
   ocrRenderReview();
 }
-function ocrDelete(id){ _ocr.drafts=_ocr.drafts.filter(function(x){return x.id!==id;}); if(!_ocr.drafts.length){ ocrCloseReview(); showToast('読み取り結果を削除しました','info'); return; } ocrRenderReview(); }
+function ocrDelete(id){ _ocr.cands=_ocr.cands.filter(function(x){return x.id!==id;}); if(!_ocr.cands.length){ ocrCloseReview(); showToast('読み取り結果を削除しました','info'); return; } ocrRenderReview(); }
+/* S.events へ登録（spec: registerSelectedOcrEvents）。既存スキーマにマッピング。 */
+function registerSelectedOcrEvents(cands){
+  if(!checkPremiumLimit('events')) return 0;
+  let added=0;
+  (cands||[]).forEach(function(c){
+    const t = c.allDay ? '' : (c.startTime||'');
+    let et = c.allDay ? '' : (c.endTime||'');
+    if(t && et && et <= t) et = _addMinutesToTime(t, 30);
+    if(!t) et = '';
+    (S.events=S.events||[]).push({ id:uid(), title:c.title, date:c.date, time:t, endTime:et, member:c.memberId||'', note:c.notes||'', repeat:'', repeatInterval:0, repeatUnit:'', color:'#0A84FF', workspaceId:curWsId(), source:'ocr_scan', ocrImportId:_ocr.importId||'' });
+    added++;
+  });
+  saveS();
+  return added;
+}
 function ocrAddSelected(){
-  const sel=_ocr.drafts.filter(function(d){return d._sel;});
+  const sel=_ocr.cands.filter(function(c){return c._sel;});
   if(!sel.length) return;
-  const invalid=sel.filter(function(d){ return !d.title || !d.date; });
+  const invalid=sel.filter(function(c){ return !c.title || !c.date; });
   if(invalid.length){ showToast('タイトルと日付が必要な予定があります。編集してください','error'); return; }
-  const dups=sel.filter(function(d){return d._dup;});
+  const dups=sel.filter(function(c){return c._dup;});
   const proceed=function(){
-    if(!checkPremiumLimit('events')) return;
-    let added=0;
-    sel.forEach(function(d){
-      const t = d.allDay ? '' : (d.startTime||'');
-      let et = d.allDay ? '' : (d.endTime||'');
-      // 終了 ≤ 開始 / 終了のみ等の不整合は 30分後に自動補正（saveEvent と同じ作法）
-      if(t && et && et <= t) et = _addMinutesToTime(t, 30);
-      if(!t) et = '';
-      (S.events=S.events||[]).push({ id:uid(), title:d.title, date:d.date, time:t, endTime:et, member:(d.members||[])[0]||'', note:d.memo||'', repeat:'', repeatInterval:0, repeatUnit:'', color:'#0A84FF', workspaceId:curWsId(), source:'photo_ocr' });
-      added++;
-    });
-    saveS();
+    const added = registerSelectedOcrEvents(sel);
+    if(!added) return;
     _ocr.prepCandidates=[];
-    sel.forEach(function(d){ (d._prep||[]).forEach(function(it){ _ocr.prepCandidates.push({ text:it, date:d.date, _evt:d.title, _sel:true }); }); });
+    sel.forEach(function(c){ (c._prep||[]).forEach(function(it){ _ocr.prepCandidates.push({ text:it, date:c.date, _evt:c.title, _sel:true }); }); });
     ocrCloseReview();
     if(typeof renderCal==='function') renderCal();
     if(typeof renderHome==='function') renderHome();
-    showToast(added+'件の予定をカレンダーに追加しました','success');
+    showToast('カレンダーに追加しました（'+added+'件）','success');
     if(_ocr.prepCandidates.length){ setTimeout(ocrOpenPrep, 360); }
   };
-  if(dups.length){ showConfirm('似た予定があります', dups.length+'件は同じ日に似た予定があります。<br>このまま追加しますか？', '追加する', proceed, ''); }
+  if(dups.length){ showConfirm('似た予定があります', dups.length+'件は同じ予定が既にあるかもしれません。<br>このまま追加しますか？', '追加する', proceed, ''); }
   else proceed();
 }
 function ocrCloseReview(){ closeModal('m-ocr-review'); }
-function ocrRetry(){ closeModal('m-ocr-review'); _ocr.drafts=[]; openOcrIntro(); }
+function ocrRetry(){ closeModal('m-ocr-review'); _ocr.cands=[]; openOcrIntro(); }
 function ocrOpenPrep(){ const hk=document.getElementById('ocr-prep-hoku'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||''; ocrRenderPrep(); openModal('m-ocr-prep'); }
 function ocrRenderPrep(){
   const list=document.getElementById('ocr-prep-list'); if(!list) return;

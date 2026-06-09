@@ -20721,3 +20721,51 @@ OCR読み取りの堅牢化（時刻/日付正規化・終了時刻補正）＋�
 
 ### コミット
 - メッセージ: fix(calendar/board): カレンダー固まり(visualViewport補正)＋OCRハング防止＋ボード本文5行化
+
+---
+
+## 2026-06-09 20:00  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+予定表スキャン（OCRカレンダー取込）を仕様準拠へ拡張：プレビュー＋解析開始／API分離／S.ocrImports履歴／指定モック／失敗UX／元画像保持
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（同期 v20260609o）
+- docs/worklog.md
+
+### 変更内容（依頼仕様に整合）
+- **流れ厳守**：AI解析 → 候補表示 → 確認・修正 → 一括登録。完全自動登録なし
+- **写真プレビュー＋「解析する」ステップ**を新設（m-ocr-preview）。撮影/選択→プレビュー→解析開始。暗い写真は明るさ判定で警告
+- **API実装分離（キー直書き禁止）**：`analyzeCalendarImageWithAI(imageFileOrBase64)`（将来 Edge Function/Vision、未接続時 `mockAnalyzeCalendarImage()` フォールバック）／`normalizeOcrEvents(aiResult)`／`saveOcrImport(importData)`／`registerSelectedOcrEvents(selectedCandidates)`
+- **eventCandidate 構造**：{id,title,date,startTime,endTime,allDay,location,memberId,notes,confidence,needsReview,warnings,source:'ocr_scan'}
+- **信頼度3段階**：高(≥0.85)／確認推奨(0.7–0.85)／要修正(<0.7) をカードにラベル表示
+- **警告**：日付不明・時間不明・曜日不一致・過去日・重複疑い（同日＋類似タイトル＋同member）。自動除外せずユーザーが選択
+- **指定モックデータ**：遠足(06-15/終日/持ち物 水筒・帽子・お弁当/0.92)・午前保育(06-18/時間不明/0.74/警告)・保護者会(06-21/10:00-11:00/幼稚園ホール/0.88)
+- **失敗UX**（m-ocr-fail）：読み取れません／画像が暗い可能性／予定らしき情報が見つかりません／撮り直す
+- **解析履歴 S.ocrImports**（最新先頭・最大20件、imagePreviewサムネ保持）を追加。PERSIST に 'ocrImports' を追加
+- **元画像情報の保持**：登録イベントに `ocrImportId` を付与し、履歴(サムネ)と紐付け
+- 既存 S.events スキーマにマッピング（time/endTime/member/note/color/workspaceId）、source:'ocr_scan'。既存データ非破壊
+- カレンダー右下「予定表」FAB から起動（既存＋FABは非破壊）。持ち物は準備リストへ任意追加（自動追加なし）
+
+### テスト結果
+- OCR仕様検証（Playwright）：**31/31 PASS**（API分離関数・3件モック・終日/時間付き反映・持ち物抽出・重複検出・履歴保存/永続化・確認/編集（member/notes/信頼度更新）・一括登録・ocrImportId紐付け・失敗UX）／console error 0
+- レイアウト：横スクロール0（320/375/430）・確認画面フッター表示・リスト内部スクロール（600/740/844）
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### セキュリティ
+- APIキーはフロント未配置（モックのみ）。本番はサーバ側（Supabase Edge Functions等）経由前提で関数分離
+- service_role不使用。events は既存の familyId スコープ同期、ocrImports は端末内（PERSISTのみ）
+
+### 未確認事項
+- 実機の写真/カメラ起動、実OCR本接続（analyzeCalendarImageWithAI の中身差し替え）
+
+### iPhone確認ポイント
+- 予定表FAB→写真選ぶ→プレビュー→解析する→読み取った予定→編集/選択→選択した予定を追加→カレンダー反映
+- 暗い写真の警告、重複警告、失敗UX
+
+### 次にやること
+- 実機確認 → Edge Function 本接続
+
+### コミット
+- メッセージ: feat(ocr): 予定表スキャンを仕様準拠化（プレビュー/API分離/ocrImports履歴/失敗UX/元画像紐付け）
