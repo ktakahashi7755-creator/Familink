@@ -12667,7 +12667,7 @@ function ocrStartAnalyze() {
       _ocr.cancelled = true; closeModal('m-ocr-loading');
       _ocrShowFail(['読み取りに時間がかかっています','通信状況を確認して、もう一度お試しください']);
     }
-  }, 120000);
+  }, 150000);
   const ctx = { year:_ocr.year, month:_ocr.month || ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1)), existing:(S.events||[]) };
   analyzeCalendarImageWithAI(_ocr.image).then(function(aiResult){
     if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
@@ -12827,10 +12827,12 @@ async function _ocrMakeCrops(dataUrl, annual) {
     // 高解像のタイルに分けて取りこぼしを防ぐ。各タイルは「月/日/曜日の見出しが見える予定だけ
     // 出力」(part='partial' のサーバ指示) なので、切り抜きでも日付ずれを起こしにくい。
     if(annual && Math.min(w,h) >= 700){
-      let cols=Math.max(2, Math.min(4, Math.round(w/1100)));
-      let rows=Math.max(2, Math.min(4, Math.round(h/1100)));
-      while(cols*rows > 9){ if(cols>=rows) cols--; else rows--; }   // 総タイル数（=API呼び出し）を抑える
-      const cw=w/cols, ch=h/rows, ox=Math.round(cw*0.14), oy=Math.round(ch*0.14);
+      // 月のまとまりが必ずどこかのタイルに丸ごと収まるよう、重なりを大きく(各辺30%)取る。
+      // 年間表は月が縦に積まれることが多いので、横帯(行)を多めに・列は少なめにして全幅の文脈を残す。
+      let cols=Math.max(1, Math.min(3, Math.round(w/1400)));
+      let rows=Math.max(2, Math.min(5, Math.round(h/900)));
+      while(cols*rows > 10){ if(cols>=rows) cols--; else rows--; }   // 総タイル数（=API呼び出し）を抑える
+      const cw=w/cols, ch=h/rows, ox=Math.round(cw*0.30), oy=Math.round(ch*0.30);
       for(let ri=0; ri<rows; ri++){
         for(let ci=0; ci<cols; ci++){
           const sx=Math.max(0, Math.round(ci*cw)-ox), sy=Math.max(0, Math.round(ri*ch)-oy);
