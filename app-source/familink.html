@@ -1830,6 +1830,16 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-review-modal { display:flex; flex-direction:column; max-height:88vh; max-height:88dvh; overflow:hidden; }
 .ocr-review-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
 .ocr-x { flex:none; width:34px; height:34px; border-radius:50%; background:var(--bg-muted); color:var(--text-sub); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.ocr-date-hdr { font-size:12.5px; font-weight:800; color:var(--text-sub); padding:6px 2px 2px; position:sticky; top:0; background:var(--bg-card); z-index:1; }
+.ocr-date-hdr:first-child { padding-top:0; }
+.ocr-memberbar-wrap { padding:2px 2px 6px; }
+.ocr-mb-label { font-size:11px; font-weight:700; color:var(--text-muted); margin:0 0 6px; }
+.ocr-memberbar { display:flex; flex-wrap:wrap; gap:6px; }
+.ocr-mchip { display:inline-flex; align-items:center; gap:5px; background:var(--bg-muted); border:1.5px solid transparent; border-radius:var(--r-full); padding:3px 11px 3px 4px; font-size:12.5px; font-weight:700; color:var(--text-muted); cursor:pointer; transition:var(--t-spring); }
+.ocr-mchip:active { transform:scale(.94); }
+.ocr-mchip.on { background:var(--bg-card); border-color:var(--primary); color:var(--text); }
+.ocr-mchip .av { width:22px; height:22px; font-size:10px; }
+.ocr-mchip-none { padding:3px 12px; }
 .ocr-selbar { display:flex; align-items:center; justify-content:space-between; padding:2px 2px 8px; }
 .ocr-selbar button { background:none; border:none; color:var(--primary); font-size:14px; font-weight:700; cursor:pointer; padding:4px 2px; }
 .ocr-selbar span { font-size:12.5px; color:var(--text-muted); font-weight:700; }
@@ -5787,6 +5797,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </button>
     </div>
     <div class="ocr-hoku" id="ocr-review-hoku"><img src="" alt="Hoku" onerror="this.style.display='none'"><span></span></div>
+    <div class="ocr-memberbar-wrap"><div class="ocr-mb-label">この予定表は誰のもの？（任意・全件に反映）</div><div class="ocr-memberbar" id="ocr-memberbar"></div></div>
     <div class="ocr-selbar">
       <button id="ocr-selall" onclick="ocrToggleAll()">すべて選択</button>
       <span id="ocr-selcount"></span>
@@ -12685,6 +12696,7 @@ function ocrStartAnalyze() {
     }
     if(_ocr.keepImage && _ocr.image) ocrSaveImageToAlbum(_ocr.image);
     _ocr.cands = cands;
+    _ocr.bulkMember = '';
     ocrRenderReview();
     openModal('m-ocr-review');
   }).catch(function(){
@@ -12957,8 +12969,40 @@ function ocrRenderReview() {
   const n=_ocr.cands.length, need=_ocr.cands.filter(_ocrNeedsAttention).length;
   const msg = need ? (n+'件の予定が見つかりました。'+need+'件は確認が必要です。') : (n+'件の予定が見つかりました。内容をご確認ください。');
   const sp=document.querySelector('#ocr-review-hoku span'); if(sp) sp.textContent=msg;
-  const list=document.getElementById('ocr-list'); if(list) list.innerHTML=_ocr.cands.map(_ocrCard).join('');
+  ocrRenderMemberBar();
+  // 日付ごとにグループ化して見やすく（多件でも検証しやすい）
+  const list=document.getElementById('ocr-list');
+  if(list){
+    let html='', curDate=null;
+    _ocr.cands.forEach(function(c){
+      if(c.date !== curDate){
+        curDate=c.date;
+        const d=c.date?new Date(c.date+'T00:00:00'):null;
+        const lbl=(d&&!isNaN(d.getTime())) ? ((d.getMonth()+1)+'月'+d.getDate()+'日（'+_OCR_WD[d.getDay()]+'）') : '日付なし';
+        html+='<div class="ocr-date-hdr">'+H(lbl)+'</div>';
+      }
+      html+=_ocrCard(c);
+    });
+    list.innerHTML=html;
+  }
   _ocrUpdateSelBar();
+}
+/* 「この予定表は誰のもの？」一括メンバー指定（全件の memberId に反映）。任意・あとで個別編集も可。 */
+function ocrRenderMemberBar(){
+  const bar=document.getElementById('ocr-memberbar'); if(!bar) return;
+  const ms=(typeof MEMBERS!=='undefined'?MEMBERS:[]);
+  if(!ms.length){ bar.parentNode.style.display='none'; return; }
+  bar.parentNode.style.display='';
+  const cur=_ocr.bulkMember||'';
+  bar.innerHTML = ms.map(function(m){
+    const on=cur===m.id;
+    return '<button class="ocr-mchip'+(on?' on':'')+'" onclick="ocrBulkMember(\''+H(m.id)+'\')">'+avHtml(m.id,22,10)+H(m.name)+'</button>';
+  }).join('') + '<button class="ocr-mchip ocr-mchip-none'+(cur===''?' on':'')+'" onclick="ocrBulkMember(\'\')">指定なし</button>';
+}
+function ocrBulkMember(id){
+  _ocr.bulkMember = (_ocr.bulkMember===id) ? '' : id;
+  _ocr.cands.forEach(function(c){ c.memberId = _ocr.bulkMember; });
+  ocrRenderReview();
 }
 function _ocrConfTier(c){ return c.confidence>=0.85?{cls:'hi',label:'高'}:(c.confidence>=0.7?{cls:'mid',label:'確認推奨'}:{cls:'lo',label:'要修正'}); }
 function _ocrCard(c) {
@@ -13037,7 +13081,9 @@ function registerSelectedOcrEvents(cands){
     let et = c.allDay ? '' : (c.endTime||'');
     if(t && et && et <= t) et = _addMinutesToTime(t, 30);
     if(!t) et = '';
-    (S.events=S.events||[]).push({ id:uid(), title:c.title, date:c.date, time:t, endTime:et, member:c.memberId||'', note:c.notes||'', repeat:'', repeatInterval:0, repeatUnit:'', color:'#0A84FF', workspaceId:curWsId(), source:'ocr_scan', ocrImportId:_ocr.importId||'' });
+    // メンバー指定があればその色で、無ければ既定の青で色分け
+    const col = (c.memberId && typeof getMemberColor==='function') ? getMemberColor(c.memberId) : '#0A84FF';
+    (S.events=S.events||[]).push({ id:uid(), title:c.title, date:c.date, time:t, endTime:et, member:c.memberId||'', note:c.notes||'', repeat:'', repeatInterval:0, repeatUnit:'', color:col, workspaceId:curWsId(), source:'ocr_scan', ocrImportId:_ocr.importId||'' });
     added++;
   });
   saveS();
@@ -13065,6 +13111,9 @@ function ocrAddSelected(){
     const added = registerSelectedOcrEvents(toAdd);
     _ocr.prepCandidates=[];
     toAdd.forEach(function(c){ (c._prep||[]).forEach(function(it){ _ocr.prepCandidates.push({ text:it, date:c.date, _evt:c.title, _sel:true }); }); });
+    // 追加した予定の月へジャンプ＝反映をその場で確認できる
+    const firstDate = toAdd.map(function(c){return c.date;}).filter(Boolean).sort()[0];
+    if(firstDate && typeof S!=='undefined'){ const dd=new Date(firstDate+'T00:00:00'); if(!isNaN(dd.getTime())){ S.calY=dd.getFullYear(); S.calM=dd.getMonth(); S.calSel=firstDate; } }
     ocrCloseReview();
     if(typeof renderCal==='function') renderCal();
     if(typeof renderHome==='function') renderHome();
