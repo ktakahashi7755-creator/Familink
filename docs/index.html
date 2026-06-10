@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260610b';
+  var V='v20260610c';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1845,9 +1845,13 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-x { flex:none; width:34px; height:34px; border-radius:50%; background:var(--bg-muted); color:var(--text-sub); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .ocr-date-hdr { font-size:12.5px; font-weight:800; color:var(--text-sub); padding:6px 2px 2px; position:sticky; top:0; background:var(--bg-card); z-index:1; }
 .ocr-date-hdr:first-child { padding-top:0; }
+.ocr-quota { font-size:12px; font-weight:700; color:var(--text-sub); background:var(--bg-muted); border-radius:10px; padding:8px 11px; margin-bottom:10px; text-align:center; }
+.ocr-quota b { color:var(--primary); font-size:14px; }
 .ocr-memberbar-wrap { padding:2px 2px 6px; }
-.ocr-mb-label { font-size:11px; font-weight:700; color:var(--text-muted); margin:0 0 6px; }
-.ocr-memberbar { display:flex; flex-wrap:wrap; gap:6px; }
+.ocr-mb-label { font-size:11px; font-weight:700; color:var(--text-muted); margin:0 0 5px; }
+.ocr-memberbar { display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+.ocr-memberbar::-webkit-scrollbar { display:none; }
+.ocr-memberbar .ocr-mchip { flex:none; }
 .ocr-mchip { display:inline-flex; align-items:center; gap:5px; background:var(--bg-muted); border:1.5px solid transparent; border-radius:var(--r-full); padding:3px 11px 3px 4px; font-size:12.5px; font-weight:700; color:var(--text-muted); cursor:pointer; transition:var(--t-spring); }
 .ocr-mchip:active { transform:scale(.94); }
 .ocr-mchip.on { background:var(--bg-card); border-color:var(--primary); color:var(--text); }
@@ -1856,8 +1860,8 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-selbar { display:flex; align-items:center; justify-content:space-between; padding:2px 2px 8px; }
 .ocr-selbar button { background:none; border:none; color:var(--primary); font-size:14px; font-weight:700; cursor:pointer; padding:4px 2px; }
 .ocr-selbar span { font-size:12.5px; color:var(--text-muted); font-weight:700; }
-.ocr-list { flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:10px; padding:2px; }
-.ocr-card { border:1px solid var(--border-light); border-left:4px solid #0A84FF; border-radius:12px; padding:11px 13px; background:var(--bg-card); box-shadow:0 1px 3px rgba(0,0,0,.04); transition:var(--t-spring); animation:ocrCardIn .22s ease both; }
+.ocr-list { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; display:flex; flex-direction:column; gap:8px; padding:2px; }
+.ocr-card { border:1px solid var(--border-light); border-left:4px solid #0A84FF; border-radius:12px; padding:9px 12px; background:var(--bg-card); box-shadow:0 1px 3px rgba(0,0,0,.04); transition:var(--t-spring); animation:ocrCardIn .2s ease both; }
 @keyframes ocrCardIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
 .ocr-card.sel { border-top-color:var(--primary); border-right-color:var(--primary); border-bottom-color:var(--primary); box-shadow:0 0 0 2px rgba(10,132,255,.12); }
 .ocr-card.warn { background:#FFFCF5; }
@@ -5734,6 +5738,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-title">予定表を読み取る</div>
     <div class="modal-form">
       <div class="ocr-hoku"><img src="" id="ocr-intro-hoku" alt="Hoku" onerror="this.style.display='none'"><span>予定表や園のお便りを撮ると、予定をまとめて登録できます。</span></div>
+      <div class="ocr-quota" id="ocr-quota"></div>
       <div class="field">
         <div class="field-label">予定表の種類</div>
         <div class="ocr-seg" id="ocr-seg">
@@ -8267,6 +8272,7 @@ let S = {
   albumPhotos: [],               // Wave 57: アルバム（{id, dataUrl, takenAt, memberId, caption}）
   faceGroups: [],                // Wave 266: 将来のAI顔認識用スキャフォールド（現在は未使用・端末内のみ。{groupId, suggestedMemberId, confidence, confirmedMemberId, photoIds[]}）
   ocrImports: [],                // Wave 268: 予定表スキャンの解析履歴（{id,createdAt,imageName,imagePreview,status,rawText,events,warnings}）
+  ocrScanUsage: null,            // Wave 269: 予定表スキャンの月間利用回数（無料は月30回）{ ym:'YYYY-MM', count }
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   budgetVisibleMembers: null, // Wave 42：null=全員表示
@@ -8329,7 +8335,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
 
 function saveS() {
   const d = {};
@@ -12616,6 +12622,17 @@ function deleteCurrentEvent() {
    ============================================================ */
 let _ocr = { cands:[], image:null, imageName:'', preview:null, dark:false, keepImage:false, year:0, month:0, importId:'', prepCandidates:[], cancelled:false, watchdog:null };
 const _OCR_WD = ['日','月','火','水','木','金','土'];
+/* ── 予定表スキャンの月間利用回数（無料は月30回。読み取り成功時のみ消費＝失敗は取り直し自由）── */
+const OCR_FREE_MONTHLY = 30;
+function _ocrCurYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function _ocrUsage(){ const ym=_ocrCurYM(); if(!S.ocrScanUsage || S.ocrScanUsage.ym!==ym){ S.ocrScanUsage={ ym:ym, count:0 }; } return S.ocrScanUsage; }
+function _ocrScanLeft(){ return S.isPremiumUser ? Infinity : Math.max(0, OCR_FREE_MONTHLY - _ocrUsage().count); }
+function _ocrCanScan(){ return _ocrScanLeft() > 0; }
+function _ocrIncUsage(){ if(S.isPremiumUser) return; const u=_ocrUsage(); u.count++; saveS(); }
+function _ocrShowScanLimit(){
+  if(typeof showUpgradeModal==='function') showUpgradeModal('予定表の読み取り（今月分）', OCR_FREE_MONTHLY);
+  else showToast('今月の予定表の読み取り回数（無料'+OCR_FREE_MONTHLY+'回）に達しました','error');
+}
 const _OCR_ITEMS = ['お弁当','水筒','レジャーシート','上履き','体操服','体操着','帽子','タオル','着替え','水着','絵の具','ねんど','給食袋','コップ','歯ブラシ','長靴','傘','軍手','雑巾','名札','エプロン','三角巾'];
 
 function openOcrIntro() {
@@ -12624,6 +12641,8 @@ function openOcrIntro() {
   if(sel) { const cur=new Date().getFullYear(); let h=''; for(let yy=cur-1; yy<=cur+1; yy++){ h+='<option value="'+yy+'"'+(yy===y?' selected':'')+'>'+yy+'年</option>'; } sel.innerHTML=h; }
   const hk=document.getElementById('ocr-intro-hoku'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||'';
   const keep=document.getElementById('ocr-keep-img'); if(keep) keep.checked=false;
+  const q=document.getElementById('ocr-quota');
+  if(q){ if(S.isPremiumUser){ q.style.display='none'; } else { q.style.display=''; const left=_ocrScanLeft(); q.innerHTML='今月の読み取り：あと <b>'+left+'</b> / '+OCR_FREE_MONTHLY+' 回（無料）'+(left<=0?' — <span style="color:var(--red);">上限に達しました</span>':''); } }
   ocrSetMode('monthly');
   openModal('m-ocr-intro');
 }
@@ -12690,6 +12709,8 @@ function _ocrImageMeta(dataUrl, cb) {
 }
 /* 「解析する」→ AI解析（モック）→ 候補確認 or 失敗UX */
 function ocrStartAnalyze() {
+  // 無料は月30回まで（解析前にチェック。読み取り成功時のみ消費＝失敗の取り直しは無料）
+  if(!_ocrCanScan()){ closeModal('m-ocr-preview'); _ocrShowScanLimit(); return; }
   closeModal('m-ocr-preview');
   openModal('m-ocr-loading');
   _ocr.cancelled = false;
@@ -12716,6 +12737,7 @@ function ocrStartAnalyze() {
       return;
     }
     if(_ocr.keepImage && _ocr.image) ocrSaveImageToAlbum(_ocr.image);
+    _ocrIncUsage();   // 読み取り成功＝1回消費（無料は月30回まで）
     _ocr.cands = cands;
     _ocr.bulkMember = '';
     ocrRenderReview();
@@ -13036,9 +13058,12 @@ function _ocrCard(c) {
   const col = (c.memberId && typeof getMemberColor==='function') ? getMemberColor(c.memberId) : '#0A84FF';
   const meta = [dateStr, timeStr].concat(c.location?[H(c.location)]:[]).join('<span class="dot">・</span>');
   const memTag = mem ? ' <span class="ocr-mem-tag">'+avHtml(c.memberId,18,9)+H(mem.name)+'</span>' : '';
-  const attn = c.needsReview ? '<span class="ocr-attn">'+ICON('warning',11)+'要確認</span>' : '';
-  let warnHtml='';
-  if(c.warnings && c.warnings.length){ warnHtml = c.warnings.map(function(w){ return '<div class="ocr-warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>'+H(w)+'</span></div>'; }).join(''); }
+  // 警告は1行に集約（多件でも縦に伸びすぎない）
+  let warnLine='';
+  if(c.needsReview || (c.warnings && c.warnings.length)){
+    const txt = (c.warnings && c.warnings.length) ? c.warnings.join('／') : '内容を確認してください';
+    warnLine = '<div class="ocr-warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>'+H(txt)+'</span></div>';
+  }
   return '<div class="ocr-card'+(c._sel?' sel':'')+(c.needsReview?' warn':'')+'" data-id="'+H(c.id)+'" style="border-left-color:'+col+';">'
     + '<div class="ocr-card-top">'
     +   '<button class="ocr-cb" onclick="ocrToggle(\''+H(c.id)+'\')" aria-label="選択">'+(c._sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</button>'
@@ -13046,8 +13071,7 @@ function _ocrCard(c) {
     +     '<div class="ocr-card-titlerow"><div class="ocr-card-title">'+(c.title?H(c.title):'（タイトル未設定）')+'</div><span class="ocr-conf '+tier.cls+'">'+Math.round(c.confidence*100)+'%・'+tier.label+'</span></div>'
     +     '<div class="ocr-card-meta">'+meta+memTag+'</div>'
     +     (c.notes?'<div class="ocr-card-memo">'+H(c.notes)+'</div>':'')
-    +     (attn?'<div>'+attn+'</div>':'')
-    +     warnHtml
+    +     warnLine
     +     '<div class="ocr-card-acts"><button onclick="ocrOpenEdit(\''+H(c.id)+'\')">'+ICON('pencil',13)+' 編集</button><button class="del" onclick="ocrDelete(\''+H(c.id)+'\')">'+ICON('trash',13)+' 削除</button></div>'
     +   '</div>'
     + '</div></div>';
