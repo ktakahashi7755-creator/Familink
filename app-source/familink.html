@@ -5706,8 +5706,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       <div class="field">
         <div class="field-label">予定表の種類</div>
         <div class="ocr-seg" id="ocr-seg">
-          <button type="button" class="on" data-mode="monthly" onclick="ocrSetMode('monthly')">月間</button>
           <button type="button" data-mode="weekly" onclick="ocrSetMode('weekly')">週間</button>
+          <button type="button" class="on" data-mode="monthly" onclick="ocrSetMode('monthly')">月間</button>
           <button type="button" data-mode="annual" onclick="ocrSetMode('annual')">年間</button>
         </div>
       </div>
@@ -12820,17 +12820,24 @@ async function _ocrMakeCrops(dataUrl, annual) {
       while(out.length>9000000 && q>0.6){ q-=0.12; out=c.toDataURL('image/jpeg',q); }   // サーバ10MB上限の保険
       return out;
     };
-    // 精度優先：全体1パスを「日付の正」とする（全グリッド＝月見出し・曜日列・日付数字が揃い、
-    // 日付ずれ/誤検出を防ぐ）。月間はこれだけ。
+    // 全体1パスは常に「日付の正」として使う（月見出し・曜日列・日付数字が揃った全文脈）。
+    // 月間・週間はこれだけ（小さい表＝1枚で読み切れる／日付ずれを防ぐ）。
     const crops=[{ img: enc(0,0,w,h), part:'' }];
-    // 年間（とても背の高い/広い表）だけ、全幅を保った上下2分割で取りこぼしを補う。
-    // 切り抜きは全幅なので曜日/月の列見出しが残り、文脈を失わない。
-    if(annual && h >= 1500){
-      const ovy=Math.round(h*0.12);
-      const topH=Math.min(h, Math.round(h*0.56)+ovy);
-      const botY=Math.max(0, Math.round(h*0.44)-ovy);
-      crops.push({ img: enc(0, 0, w, topH), part:'top' });
-      crops.push({ img: enc(0, botY, w, h-botY), part:'bottom' });
+    // 年間は12か月ぶんで小さい文字が多く、1枚では読み落とすため、縦横比に応じた可変グリッドで
+    // 高解像のタイルに分けて取りこぼしを防ぐ。各タイルは「月/日/曜日の見出しが見える予定だけ
+    // 出力」(part='partial' のサーバ指示) なので、切り抜きでも日付ずれを起こしにくい。
+    if(annual && Math.min(w,h) >= 700){
+      let cols=Math.max(2, Math.min(4, Math.round(w/1100)));
+      let rows=Math.max(2, Math.min(4, Math.round(h/1100)));
+      while(cols*rows > 9){ if(cols>=rows) cols--; else rows--; }   // 総タイル数（=API呼び出し）を抑える
+      const cw=w/cols, ch=h/rows, ox=Math.round(cw*0.14), oy=Math.round(ch*0.14);
+      for(let ri=0; ri<rows; ri++){
+        for(let ci=0; ci<cols; ci++){
+          const sx=Math.max(0, Math.round(ci*cw)-ox), sy=Math.max(0, Math.round(ri*ch)-oy);
+          const ex=Math.min(w, Math.round((ci+1)*cw)+ox), ey=Math.min(h, Math.round((ri+1)*ch)+oy);
+          crops.push({ img: enc(sx, sy, ex-sx, ey-sy), part:'partial' });
+        }
+      }
     }
     if(bmp&&bmp.close)try{bmp.close();}catch(_){}
     return crops;
