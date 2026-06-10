@@ -1844,10 +1844,17 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-selbar button { background:none; border:none; color:var(--primary); font-size:14px; font-weight:700; cursor:pointer; padding:4px 2px; }
 .ocr-selbar span { font-size:12.5px; color:var(--text-muted); font-weight:700; }
 .ocr-list { flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:10px; padding:2px; }
-.ocr-card { border:1.5px solid var(--border-light); border-radius:14px; padding:11px 12px; background:var(--bg-card); transition:var(--t-spring); }
-.ocr-card.sel { border-color:var(--primary); box-shadow:0 0 0 2px rgba(10,132,255,.12); }
-.ocr-card.warn { border-color:#F0C36B; }
-.ocr-card-top { display:flex; align-items:flex-start; gap:10px; }
+.ocr-card { border:1px solid var(--border-light); border-left:4px solid #0A84FF; border-radius:12px; padding:11px 13px; background:var(--bg-card); box-shadow:0 1px 3px rgba(0,0,0,.04); transition:var(--t-spring); animation:ocrCardIn .22s ease both; }
+@keyframes ocrCardIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+.ocr-card.sel { border-top-color:var(--primary); border-right-color:var(--primary); border-bottom-color:var(--primary); box-shadow:0 0 0 2px rgba(10,132,255,.12); }
+.ocr-card.warn { background:#FFFCF5; }
+.ocr-card-top { display:flex; align-items:flex-start; gap:11px; }
+.ocr-card-titlerow { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.ocr-card-titlerow .ocr-card-title { flex:1; min-width:0; }
+.ocr-card-titlerow .ocr-conf { margin-top:1px; flex:none; }
+.ocr-mem-tag { display:inline-flex; align-items:center; gap:4px; background:var(--bg-muted); border-radius:var(--r-full); padding:1px 9px 1px 2px; font-size:11px; font-weight:800; color:var(--text-sub); vertical-align:-4px; }
+.ocr-mem-tag .av { width:18px; height:18px; font-size:9px; }
+.ocr-attn { display:inline-flex; align-items:center; gap:3px; background:#FFF1DB; color:#B5731A; font-size:10px; font-weight:800; padding:2px 8px; border-radius:var(--r-full); margin-top:6px; }
 .ocr-cb { flex:none; width:24px; height:24px; border-radius:7px; border:2px solid var(--border); background:var(--bg-card); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; margin-top:1px; }
 .ocr-card.sel .ocr-cb { background:var(--primary); border-color:var(--primary); }
 .ocr-card-body { flex:1; min-width:0; }
@@ -1862,7 +1869,8 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-warn { display:flex; gap:6px; align-items:flex-start; font-size:11.5px; font-weight:700; color:#B5731A; background:#FFF6E6; border-radius:9px; padding:7px 9px; margin-top:8px; line-height:1.45; }
 .ocr-warn svg { flex:none; margin-top:1px; }
 .ocr-card-acts { display:flex; gap:6px; margin-top:9px; }
-.ocr-card-acts button { flex:1; background:var(--bg-muted); border:none; border-radius:9px; padding:7px; font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; }
+.ocr-card-acts button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; background:var(--bg-muted); border:none; border-radius:9px; padding:7px; font-size:12.5px; font-weight:700; color:var(--text-sub); cursor:pointer; }
+.ocr-card-acts button svg { width:13px; height:13px; }
 .ocr-card-acts button.del { color:#D9534F; }
 .ocr-card-acts button:active { transform:scale(.96); }
 .ocr-review-foot { display:flex; gap:10px; padding-top:10px; border-top:1px solid var(--border-light); margin-top:8px; }
@@ -13012,19 +13020,22 @@ function _ocrCard(c) {
   const timeStr = c.allDay ? '終日' : (c.startTime ? (H(c.startTime)+(c.endTime?' 〜 '+H(c.endTime):'')) : '時間未設定');
   const tier = _ocrConfTier(c);
   const mem = c.memberId ? getMem(c.memberId) : null;
-  const meta = [dateStr, timeStr].concat(c.location?[H(c.location)]:[]).concat(mem?[H(mem.name)]:[]).join('<span class="dot">・</span>');
+  const col = (c.memberId && typeof getMemberColor==='function') ? getMemberColor(c.memberId) : '#0A84FF';
+  const meta = [dateStr, timeStr].concat(c.location?[H(c.location)]:[]).join('<span class="dot">・</span>');
+  const memTag = mem ? ' <span class="ocr-mem-tag">'+avHtml(c.memberId,18,9)+H(mem.name)+'</span>' : '';
+  const attn = c.needsReview ? '<span class="ocr-attn">'+ICON('warning',11)+'要確認</span>' : '';
   let warnHtml='';
   if(c.warnings && c.warnings.length){ warnHtml = c.warnings.map(function(w){ return '<div class="ocr-warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>'+H(w)+'</span></div>'; }).join(''); }
-  return '<div class="ocr-card'+(c._sel?' sel':'')+(c.needsReview?' warn':'')+'" data-id="'+H(c.id)+'">'
+  return '<div class="ocr-card'+(c._sel?' sel':'')+(c.needsReview?' warn':'')+'" data-id="'+H(c.id)+'" style="border-left-color:'+col+';">'
     + '<div class="ocr-card-top">'
     +   '<button class="ocr-cb" onclick="ocrToggle(\''+H(c.id)+'\')" aria-label="選択">'+(c._sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</button>'
     +   '<div class="ocr-card-body">'
-    +     '<div class="ocr-card-title">'+(c.title?H(c.title):'（タイトル未設定）')+'</div>'
-    +     '<div class="ocr-card-meta">'+meta+'</div>'
+    +     '<div class="ocr-card-titlerow"><div class="ocr-card-title">'+(c.title?H(c.title):'（タイトル未設定）')+'</div><span class="ocr-conf '+tier.cls+'">'+Math.round(c.confidence*100)+'%・'+tier.label+'</span></div>'
+    +     '<div class="ocr-card-meta">'+meta+memTag+'</div>'
     +     (c.notes?'<div class="ocr-card-memo">'+H(c.notes)+'</div>':'')
-    +     '<span class="ocr-conf '+tier.cls+'">信頼度 '+Math.round(c.confidence*100)+'%・'+tier.label+'</span>'
+    +     (attn?'<div>'+attn+'</div>':'')
     +     warnHtml
-    +     '<div class="ocr-card-acts"><button onclick="ocrOpenEdit(\''+H(c.id)+'\')">編集</button><button class="del" onclick="ocrDelete(\''+H(c.id)+'\')">削除</button></div>'
+    +     '<div class="ocr-card-acts"><button onclick="ocrOpenEdit(\''+H(c.id)+'\')">'+ICON('pencil',13)+' 編集</button><button class="del" onclick="ocrDelete(\''+H(c.id)+'\')">'+ICON('trash',13)+' 削除</button></div>'
     +   '</div>'
     + '</div></div>';
 }
