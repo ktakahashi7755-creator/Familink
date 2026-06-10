@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609y';
+  var V='v20260609z';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -12719,10 +12719,10 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   const sb = (typeof getSupabase==='function') ? getSupabase() : null;
   const canBackend = !!(sb && sb.functions && typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
   if(canBackend) {
-    // 取りこぼし防止：全体＋分割（年間は可変グリッド／通常は上下2分割）を解析しマージ＆重複除去。
-    // 同時実行は最大5に制限（多タイル時のレート制限・端末負荷を回避）。
+    // 取りこぼし防止：全体＋分割（年間は可変グリッド／通常は1パス）を解析しマージ＆重複除去。
+    // 同時実行は3に抑制＋各パス1回リトライで、レート制限による「時々落ちる」ばらつきを安定化。
     const crops = await _ocrMakeCrops(imageFileOrBase64, !!_ocr.annual);
-    const settled = await _ocrRunPool(crops, 5, function(cp){
+    const settled = await _ocrRunPool(crops, 3, function(cp){
       return _ocrCallScan(sb, cp.img, cp.part);
     });
     const oks = settled.filter(function(r){ return r && Array.isArray(r.events); });
@@ -12732,8 +12732,9 @@ async function analyzeCalendarImageWithAI(imageFileOrBase64) {
   // 未ログイン/未接続：モック（外部送信なし）
   return new Promise(function(resolve){ setTimeout(function(){ resolve(mockAnalyzeCalendarImage()); }, 1000); });
 }
-/* calendar-scan を1画像ぶん呼ぶ */
-function _ocrCallScan(sb, img, part) {
+/* calendar-scan を1画像ぶん呼ぶ。失敗（レート制限・一時エラー）は1回だけリトライし、
+   読み取り結果のばらつき（タイルが時々落ちて件数が変わる）を抑える。 */
+function _ocrCallScan(sb, img, part, _retried) {
   const payload = {
     image: img,
     part: part || '',
@@ -12747,6 +12748,9 @@ function _ocrCallScan(sb, img, part) {
     if(r && r.error) throw new Error('scan_error');
     if(r && r.data && Array.isArray(r.data.events)) return r.data;
     throw new Error('scan_bad');
+  }).catch(function(e){
+    if(_ocr.cancelled || _retried) throw e;
+    return new Promise(function(res){ setTimeout(res, 1000); }).then(function(){ return _ocrCallScan(sb, img, part, true); });
   });
 }
 /* 同時実行数を制限して worker を回す（多タイル時のレート制限・負荷対策）。失敗は null。 */
@@ -13037,9 +13041,9 @@ function ocrSaveEdit(){
   ocrRenderReview();
 }
 function ocrDelete(id){ _ocr.cands=_ocr.cands.filter(function(x){return x.id!==id;}); if(!_ocr.cands.length){ ocrCloseReview(); showToast('読み取り結果を削除しました','info'); return; } ocrRenderReview(); }
-/* S.events へ登録（spec: registerSelectedOcrEvents）。既存スキーマにマッピング。 */
+/* S.events へ登録（spec: registerSelectedOcrEvents）。既存スキーマにマッピング。
+   容量チェックは呼び出し側(ocrAddSelected)で行うため、ここでは渡された分をそのまま登録する。 */
 function registerSelectedOcrEvents(cands){
-  if(!checkPremiumLimit('events')) return 0;
   let added=0;
   (cands||[]).forEach(function(c){
     const t = c.allDay ? '' : (c.startTime||'');
@@ -13059,14 +13063,28 @@ function ocrAddSelected(){
   if(invalid.length){ showToast('タイトルと日付が必要な予定があります。編集してください','error'); return; }
   const dups=sel.filter(function(c){return c._dup;});
   const proceed=function(){
-    const added = registerSelectedOcrEvents(sel);
-    if(!added) return;
+    // 無料プランの上限を考慮し「入る分だけ」追加（黙って失敗させない）
+    let blocked=0, toAdd=sel;
+    if(!S.isPremiumUser){
+      const lim=(typeof PREMIUM_LIMITS!=='undefined' && PREMIUM_LIMITS.events) ? PREMIUM_LIMITS.events.free : Infinity;
+      const cap=Math.max(0, lim-((S.events||[]).length));
+      if(sel.length>cap){ toAdd=sel.slice(0,cap); blocked=sel.length-cap; }
+    }
+    if(!toAdd.length){
+      if(typeof showUpgradeModal==='function') showUpgradeModal('イベント', (PREMIUM_LIMITS&&PREMIUM_LIMITS.events?PREMIUM_LIMITS.events.free:0));
+      else showToast('無料プランの予定の上限に達しています','error');
+      return;
+    }
+    const added = registerSelectedOcrEvents(toAdd);
     _ocr.prepCandidates=[];
-    sel.forEach(function(c){ (c._prep||[]).forEach(function(it){ _ocr.prepCandidates.push({ text:it, date:c.date, _evt:c.title, _sel:true }); }); });
+    toAdd.forEach(function(c){ (c._prep||[]).forEach(function(it){ _ocr.prepCandidates.push({ text:it, date:c.date, _evt:c.title, _sel:true }); }); });
     ocrCloseReview();
     if(typeof renderCal==='function') renderCal();
     if(typeof renderHome==='function') renderHome();
-    showToast('カレンダーに追加しました（'+added+'件）','success');
+    showToast(blocked
+      ? ('カレンダーに'+added+'件追加しました。上限のため'+blocked+'件は追加できませんでした')
+      : ('カレンダーに追加しました（'+added+'件）'),
+      blocked?'info':'success');
     if(_ocr.prepCandidates.length){ setTimeout(ocrOpenPrep, 360); }
   };
   if(dups.length){ showConfirm('似た予定があります', dups.length+'件は同じ予定が既にあるかもしれません。<br>このまま追加しますか？', '追加する', proceed, ''); }
@@ -21163,7 +21181,7 @@ function selectAvatarItem(avatarId) {
    無料プランは各キーの free 上限を超えると upgrade 促進トーストを表示する。
    ────────────────────────────────────────────────────────────── */
 const PREMIUM_LIMITS = {
-  events:       { free: 50,  label: 'イベント' },
+  events:       { free: 500, label: 'イベント' },
   tasks:        { free: 30,  label: 'タスク' },
   txs:          { free: 100, label: '家計入力' },
   health:       { free: 50,  label: '体調記録' },
