@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260610c';
+  var V='v20260610d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -20572,6 +20572,11 @@ function refreshEquippedHoku() {
     const fb = document.getElementById('hoku-fab-fb');
     if(fb) fb.style.display = 'none';
   }
+  // チャット内の既存Hokuアイコン（吹き出し横）も装備スキンへ即反映（再描画せず画像だけ差し替え）
+  if(src){
+    const chatAvs = document.querySelectorAll('#hoku-msgs .hoku-row > img');
+    Array.prototype.forEach.call(chatAvs, function(im){ im.onerror = function(){ _hokuImgFallback(im); }; im.src = src; });
+  }
 }
 function equipHokuSkin(id) {
   _ensureHokuSkins();
@@ -23496,7 +23501,7 @@ function renderHokuMsgs() {
 
   el.innerHTML = msgs.map(m => {
     if(m.role==='loading') {
-      return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
+      return `<div class="hoku-row"><img src="${equippedHokuImg()}" onerror="_hokuImgFallback(this)" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
         <div class="hoku-bubble ai"><div class="loading" style="transform:scale(.7);margin:-4px;"><span></span><span></span><span></span></div></div></div>`;
     }
     if(m.role==='user') {
@@ -23519,7 +23524,7 @@ function renderHokuMsgs() {
       }
     }
     const html = H(content).replace(/\n/g,'<br>');
-    return `<div class="hoku-row"><img src="${IMGS.hoku||IMGS.happy}" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
+    return `<div class="hoku-row"><img src="${equippedHokuImg()}" onerror="_hokuImgFallback(this)" style="width:32px;height:32px;object-fit:contain;flex-shrink:0;" alt="Hoku">
       <div class="hoku-bubble ai">${html}${actionsHTML}</div></div>`;
   }).join('');
 

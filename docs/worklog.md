@@ -21210,3 +21210,28 @@ OCR精度を「正確さ最優先」に転換：日付ずれ・誤検出の根�
 
 ### コミット
 - メッセージ: fix(ocr): 確認画面のスクロール不可を修正＋軽量化＋無料月30回制限
+
+---
+
+## 2026-06-10 14:00  env: 不明  branch: claude/familink-album-redesign-dg0plu
+
+### 作業名
+Hoku着せ替えをチャット内のHokuアイコンにも反映
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260610d)／worklog
+
+### 変更内容
+- `renderHokuMsgs` のチャット吹き出し横のHokuアイコンが `IMGS.hoku` 固定だったのを **`equippedHokuImg()`（装備スキン）** に変更（loading/assistant 両方）。onerror フォールバック付き
+- `refreshEquippedHoku` に**既存チャットアイコンの即時差し替え**を追加（`#hoku-msgs .hoku-row > img` を装備スキン画像へ）。着せ替えた瞬間に、表示中のチャットアイコンも切り替わる
+- これで FAB / ヘッダー / 空状態 / **チャット** の全箇所でHokuスキンが一貫
+
+### テスト結果
+- 着せ替え反映（Playwright）：スキン装備で既存チャットアイコン即更新・再描画後も維持・装備スキンと一致 8/8 PASS、pageerror0
+- node qa_full_test.js：**84/84 PASS / 0 FAIL / 0 WARN / コンソールエラー0件**
+
+### iPhone確認ポイント
+- ショップでHokuを着せ替え→チャット画面の吹き出し横アイコンも着せ替え版になるか（既存メッセージも）
+
+### コミット
+- メッセージ: feat(hoku): 着せ替えスキンをチャット内のHokuアイコンにも反映
