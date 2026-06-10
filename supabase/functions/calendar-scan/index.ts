@@ -2,7 +2,7 @@
 // Familink 予定表スキャン — OpenAI Vision バックエンド（Supabase Edge Function / Deno）
 //
 // 役割：アプリ(HTML)から来る {image, year, month, existing} を OpenAI Vision に渡し、
-//       園・学校・習い事の予定表/お便り/給食表の写真から「予定候補(JSON)」を1件残らず抽出して返す。
+//       園・学校・習い事の予定表/お便り/給食表の写真から「予定候補(JSON)」を正確に抽出して返す（誤検出・日付ずれを避ける）。
 //   - 鍵はサーバ側（環境変数 OPENAI_API_KEY＝既存 Hoku と共通の Secret を流用）。フロント／Gitには出さない。
 //   - Hoku 関数とは完全に別エンドポイント（/functions/v1/calendar-scan）。Hoku には触れない。
 //   - 返却（アプリの normalizeOcrEvents が解釈する形）:
@@ -191,29 +191,37 @@ Deno.serve(async (req: Request) => {
   const month = Number(body.month) || (now.getMonth() + 1);
   const existing = Array.isArray(body.existing) ? body.existing.slice(0, 50) : [];
   const part = String(body.part ?? "");      // "top"/"bottom"/"partial"/"" — 分割パスのヒント（任意）
-  const annual = !!body.annual;              // 年間予定表（学校年度 4月〜翌3月）モード
+  const annual = !!body.annual;              // 年間（学校年度 4月〜翌3月）
+  const mode = String(body.mode ?? (annual ? "annual" : "monthly"));   // monthly / weekly / annual
 
   const partLine = part
     ? `この画像は予定表の${part === "top" ? "上半分" : part === "bottom" ? "下半分" : "一部分"}の切り抜きです。` +
       `月・日付・曜日の見出しがこの切り抜き内に見えていて、何月何日か確実に判別できる予定だけを出力する。` +
       `見出しが切れていて月や日が確定できない予定は、推測せず出力しない。\n`
     : "";
+  const existingLine = `既存の予定（重複参考・抽出対象ではない）:\n` + JSON.stringify(existing).slice(0, 1000) + `\n\n指定のJSON形式だけで返してください。`;
 
-  const userText = annual
-    ? `この写真は「年間予定表」（学校年度 4月〜翌年3月）です。写っている予定を1件残らず抽出してください。\n` +
+  let userText: string;
+  if (mode === "annual") {
+    userText =
+      `この写真は「年間予定表」（学校年度 4月〜翌年3月）です。確実に読み取れる予定だけを抽出してください。\n` +
       `context.year=${year}（年度の開始年）\n` +
       `重要：各予定の「月」は、その予定が属する月の見出し／段／列から必ず読む。` +
       `4〜12月は ${year} 年、1〜3月は ${year + 1} 年として date(YYYY-MM-DD) を作る。月をまたいで取り違えない。\n` +
-      partLine +
-      `既存の予定（重複参考・抽出対象ではない）:\n` +
-      JSON.stringify(existing).slice(0, 1000) +
-      `\n\n指定のJSON形式だけで返してください。`
-    : `この写真は家族の予定表です。次の文脈で、写っている予定を1件残らず抽出してください。\n` +
+      partLine + existingLine;
+  } else if (mode === "weekly") {
+    userText =
+      `この写真は「週間予定表」（その週の数日ぶん）です。確実に読み取れる予定だけを抽出してください。\n` +
+      `各予定の日付は、写真内の日付表記（「6/9」「9日(月)」や曜日＋日付）から正確に読む。` +
+      `年が無ければ context.year=${year}、月が無ければ context.month=${month} を使う。曜日だけで日付の数字が無いものは、推測で日付を作らず出力しない。\n` +
+      `時間割のように同じ曜日列に複数項目があれば、それぞれ別の予定として、その日の日付で抽出する。\n` +
+      partLine + existingLine;
+  } else {
+    userText =
+      `この写真は「月間予定表」です。次の文脈で、確実に読み取れる予定だけを抽出してください。\n` +
       `context.year=${year}\ncontext.month=${month}\n` +
-      partLine +
-      `既存の予定（重複参考・抽出対象ではない）:\n` +
-      JSON.stringify(existing).slice(0, 1200) +
-      `\n\n指定のJSON形式だけで返してください。`;
+      partLine + existingLine;
+  }
 
   const result = await callOpenAIVision(image, userText);
   if (!result.ok) return json({ error: "ai_failed", reason: result.reason }, 502);

@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260609v';
+  var V='v20260609w';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1832,6 +1832,10 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-hoku img { width:30px; height:30px; flex:none; object-fit:contain; border-radius:50%; background:#F4F7FB; }
 .ocr-privacy { display:flex; gap:8px; align-items:flex-start; font-size:11.5px; color:var(--text-muted); line-height:1.55; background:#FFF8EC; border:1px solid #F2E3C4; border-radius:12px; padding:10px 12px; margin:6px 0 10px; }
 .ocr-privacy svg { flex:none; margin-top:1px; color:#C8902F; }
+.ocr-seg { display:flex; gap:4px; background:var(--bg-muted); border-radius:var(--r-full); padding:4px; }
+.ocr-seg button { flex:1; text-align:center; font-size:13.5px; font-weight:700; color:var(--text-muted); padding:9px 4px; border:none; background:none; border-radius:var(--r-full); cursor:pointer; transition:var(--t-spring); }
+.ocr-seg button.on { background:var(--bg-card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.ocr-seg button:active { transform:scale(.96); }
 .ocr-check { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-sub); cursor:pointer; margin:2px 0 12px; }
 .ocr-check input { width:18px; height:18px; flex:none; accent-color:var(--primary); }
 .ocr-spinner { width:40px; height:40px; margin:6px auto 0; border-radius:50%; border:3.5px solid var(--bg-muted); border-top-color:var(--primary); animation:ocrSpin .8s linear infinite; }
@@ -5711,13 +5715,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-grip"></div>
     <div class="modal-title">予定表を読み取る</div>
     <div class="modal-form">
-      <div class="ocr-hoku"><img src="" id="ocr-intro-hoku" alt="Hoku" onerror="this.style.display='none'"><span>年間予定表や園のお便りを撮ると、予定をまとめて登録できます。</span></div>
+      <div class="ocr-hoku"><img src="" id="ocr-intro-hoku" alt="Hoku" onerror="this.style.display='none'"><span>予定表や園のお便りを撮ると、予定をまとめて登録できます。</span></div>
+      <div class="field">
+        <div class="field-label">予定表の種類</div>
+        <div class="ocr-seg" id="ocr-seg">
+          <button type="button" class="on" data-mode="monthly" onclick="ocrSetMode('monthly')">月間</button>
+          <button type="button" data-mode="weekly" onclick="ocrSetMode('weekly')">週間</button>
+          <button type="button" data-mode="annual" onclick="ocrSetMode('annual')">年間</button>
+        </div>
+      </div>
       <div class="field">
         <div class="field-label" id="ocr-year-label">対象の年</div>
         <select class="input" id="ocr-year"></select>
         <div id="ocr-year-hint" style="display:none;font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.5;">年度（4月始まり）の開始年を選んでください。1〜3月は翌年として登録します。</div>
       </div>
-      <label class="ocr-check"><input type="checkbox" id="ocr-annual" onchange="ocrToggleAnnual()"><span>年間予定表として読む（4月〜翌3月）</span></label>
       <div class="ocr-privacy">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>この写真には個人情報（お子さまの名前・園名・学校名など）が含まれる場合があります。読み取りのために画像を処理します。読み取った結果は、登録前に必ずご自身で確認できます。</span>
@@ -12594,22 +12605,25 @@ function openOcrIntro() {
   if(sel) { const cur=new Date().getFullYear(); let h=''; for(let yy=cur-1; yy<=cur+1; yy++){ h+='<option value="'+yy+'"'+(yy===y?' selected':'')+'>'+yy+'年</option>'; } sel.innerHTML=h; }
   const hk=document.getElementById('ocr-intro-hoku'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||'';
   const keep=document.getElementById('ocr-keep-img'); if(keep) keep.checked=false;
-  const ann=document.getElementById('ocr-annual'); if(ann) ann.checked=false;
-  ocrToggleAnnual();
+  ocrSetMode('monthly');
   openModal('m-ocr-intro');
 }
-/* 年間予定表トグル：年フィールドの見せ方を切替（年度の年を選ぶ案内） */
-function ocrToggleAnnual() {
-  const on = !!((document.getElementById('ocr-annual')||{}).checked);
-  const lab = document.getElementById('ocr-year-label'); if(lab) lab.textContent = on ? '年度（4月始まり）' : '対象の年';
-  const hint = document.getElementById('ocr-year-hint'); if(hint) hint.style.display = on ? 'block' : 'none';
+/* 予定表の種類：月間 / 週間 / 年間。年フィールドの見せ方も切替（年間は年度） */
+function ocrSetMode(m) {
+  _ocr.mode = (['monthly','weekly','annual'].indexOf(m)>=0) ? m : 'monthly';
+  const seg=document.getElementById('ocr-seg');
+  if(seg) Array.prototype.forEach.call(seg.querySelectorAll('button'), function(btn){ btn.classList.toggle('on', btn.getAttribute('data-mode')===_ocr.mode); });
+  const annual = (_ocr.mode==='annual');
+  const lab=document.getElementById('ocr-year-label'); if(lab) lab.textContent = annual ? '年度（4月始まり）' : '対象の年';
+  const hint=document.getElementById('ocr-year-hint'); if(hint) hint.style.display = annual ? 'block' : 'none';
 }
 /* 写真を撮る(camera)／アルバムから選ぶ(library) */
 function ocrPick(mode) {
   _ocr.year = parseInt((document.getElementById('ocr-year')||{}).value,10) || new Date().getFullYear();
   _ocr.month = ((typeof S!=='undefined' && typeof S.calM==='number')? S.calM+1 : (new Date().getMonth()+1));
   _ocr.keepImage = !!((document.getElementById('ocr-keep-img')||{}).checked);
-  _ocr.annual = !!((document.getElementById('ocr-annual')||{}).checked);
+  if(['monthly','weekly','annual'].indexOf(_ocr.mode)<0) _ocr.mode='monthly';
+  _ocr.annual = (_ocr.mode==='annual');
   const id = (mode==='camera') ? 'ocr-file-cam' : 'ocr-file-lib';
   const f = document.getElementById(id); if(f) f.click();
 }
@@ -12724,6 +12738,7 @@ function _ocrCallScan(sb, img, part) {
     image: img,
     part: part || '',
     annual: !!_ocr.annual,
+    mode: _ocr.mode || 'monthly',
     year: _ocr.year || new Date().getFullYear(),
     month: _ocr.month || (new Date().getMonth()+1),
     existing: (S.events||[]).slice(0,50).map(function(e){ return { date:e.date, title:e.title }; })
