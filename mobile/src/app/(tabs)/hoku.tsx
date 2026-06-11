@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,13 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui';
+import { HokuAvatar } from '@/features/hoku/HokuAvatar';
 import { askHoku, type HokuEntities, type HokuReply } from '@/features/hoku/hokuClient';
+import { haptic } from '@/lib/haptics';
 import { todayISO } from '@/lib/utils';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
 import type { HokuMessage } from '@/types';
-
-const SUGGESTIONS = ['今日の予定を教えて', '牛乳を買い物に追加して', 'やること見せて'];
 
 export default function HokuScreen() {
   const { colors, radius } = useTheme();
@@ -28,6 +28,15 @@ export default function HokuScreen() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Suggestions adapt to the family's current data.
+  const suggestions = useMemo(() => {
+    const s: string[] = ['今日の予定を教えて'];
+    if (store.shoppingItems.some((i) => !i.done)) s.push('買うもの見せて');
+    else s.push('牛乳を買い物に追加して');
+    s.push(store.tasks.some((t) => !t.done) ? 'やること見せて' : '明日 10時に病院を予定に入れて');
+    return s;
+  }, [store.shoppingItems, store.tasks]);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -58,6 +67,9 @@ export default function HokuScreen() {
       task_add: 'add_task',
       shopping_add: 'add_shopping',
       budget_add: 'add_transaction',
+      health_add: 'add_health',
+      board_post_add: 'add_post',
+      prep_add: 'add_prep',
     };
     const type = addable[reply.intent];
     if (!type) return undefined;
@@ -68,15 +80,30 @@ export default function HokuScreen() {
     const a = msg.action;
     if (!a) return;
     const e = a.payload as HokuEntities;
-    if (a.type === 'add_event') {
-      store.addEvent({ title: e.title ?? '新しい予定', date: e.date ?? todayISO(), start: e.time, allDay: !e.time });
-    } else if (a.type === 'add_task') {
-      store.addTask({ title: e.title ?? '新しいタスク' });
-    } else if (a.type === 'add_shopping') {
-      store.addShopping(e.title ?? '買うもの');
-    } else if (a.type === 'add_transaction') {
-      store.addTx({ type: e.txType ?? 'expense', amount: e.amount ?? 0, category: e.category, date: e.date ?? todayISO() });
+    switch (a.type) {
+      case 'add_event':
+        store.addEvent({ title: e.title ?? '新しい予定', date: e.date ?? todayISO(), start: e.time, allDay: !e.time });
+        break;
+      case 'add_task':
+        store.addTask({ title: e.title ?? '新しいタスク' });
+        break;
+      case 'add_shopping':
+        store.addShopping(e.title ?? '買うもの');
+        break;
+      case 'add_transaction':
+        store.addTx({ type: e.txType ?? 'expense', amount: e.amount ?? 0, category: e.category, date: e.date ?? todayISO() });
+        break;
+      case 'add_health':
+        store.addHealth({ date: e.date ?? todayISO(), temperature: e.temperature ? parseFloat(e.temperature) : undefined, symptom: e.symptoms?.join('・') });
+        break;
+      case 'add_post':
+        store.addPost({ text: e.title ?? '' });
+        break;
+      case 'add_prep':
+        store.addPrep({ name: e.title ?? '持ち物' });
+        break;
     }
+    haptic.success();
     pushHokuMessage({ role: 'assistant', text: 'OK、入れておいたよ。' });
   }
 
@@ -87,9 +114,7 @@ export default function HokuScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}>
         <View style={styles.header}>
-          <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
-            <Ionicons name="sparkles" size={22} color={colors.primary} />
-          </View>
+          <HokuAvatar size={40} />
           <View>
             <AppText variant="headline">Hoku</AppText>
             <AppText variant="caption" muted>
@@ -101,9 +126,7 @@ export default function HokuScreen() {
         <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 12 }}>
           {hokuMessages.length === 0 && (
             <View style={{ alignItems: 'center', gap: 8, paddingVertical: 32 }}>
-              <View style={[styles.bigAvatar, { backgroundColor: colors.primaryLight }]}>
-                <Ionicons name="sparkles" size={40} color={colors.primary} />
-              </View>
+              <HokuAvatar size={84} />
               <AppText variant="title3">こんにちは、Hokuだよ</AppText>
               <AppText variant="callout" muted style={{ textAlign: 'center' }}>
                 予定や買い物、やることを{'\n'}気軽に話しかけてね。
@@ -147,7 +170,7 @@ export default function HokuScreen() {
 
         {hokuMessages.length === 0 && (
           <View style={styles.suggestRow}>
-            {SUGGESTIONS.map((s) => (
+            {suggestions.map((s) => (
               <Pressable
                 key={s}
                 onPress={() => send(s)}
@@ -181,8 +204,6 @@ export default function HokuScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  bigAvatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center' },
   bubble: { maxWidth: '82%', paddingHorizontal: 14, paddingVertical: 10 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   suggestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 },

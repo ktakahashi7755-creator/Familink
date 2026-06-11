@@ -23,7 +23,10 @@ import type {
   HokuMessage,
   KanbanColumn,
   Member,
+  Memo,
+  MemoFolder,
   PremiumState,
+  PrepItem,
   ShoppingItem,
   Task,
   Transaction,
@@ -44,6 +47,9 @@ interface FamilyState {
   shoppingItems: ShoppingItem[];
   albumPhotos: AlbumPhoto[];
   albumFolders: AlbumFolder[];
+  prep: PrepItem[];
+  memos: Memo[];
+  memoFolders: MemoFolder[];
   hokuMessages: HokuMessage[];
   premium: PremiumState;
 
@@ -86,7 +92,21 @@ interface FamilyState {
   // album
   addPhotos: (uris: string[], folderId?: string) => void;
   removePhoto: (id: string) => void;
-  addFolder: (name: string) => void;
+  removePhotos: (ids: string[]) => void;
+  movePhotos: (ids: string[], folderId?: string) => void;
+  addFolder: (name: string) => string;
+
+  // prep
+  addPrep: (p: Omit<PrepItem, 'id' | 'createdAt' | 'done'> & { done?: boolean }) => void;
+  togglePrep: (id: string) => void;
+  removePrep: (id: string) => void;
+  resetRoutinePrep: () => void;
+
+  // memo
+  addMemo: (m: Pick<Memo, 'title' | 'body'> & { folderId?: string }) => string;
+  updateMemo: (id: string, patch: Partial<Memo>) => void;
+  removeMemo: (id: string) => void;
+  addMemoFolder: (name: string) => void;
 
   // hoku
   pushHokuMessage: (m: Omit<HokuMessage, 'id' | 'createdAt'>) => HokuMessage;
@@ -121,6 +141,9 @@ export const useFamilyStore = create<FamilyState>()(
       shoppingItems: [],
       albumPhotos: [],
       albumFolders: [],
+      prep: [],
+      memos: [],
+      memoFolders: [],
       hokuMessages: [],
       premium: { isPremiumUser: false, premiumPaid: false },
 
@@ -192,8 +215,43 @@ export const useFamilyStore = create<FamilyState>()(
           ],
         })),
       removePhoto: (id) => set((s) => ({ albumPhotos: s.albumPhotos.filter((p) => p.id !== id) })),
-      addFolder: (name) =>
-        set((s) => ({ albumFolders: [...s.albumFolders, { id: uid('fld_'), name }] })),
+      removePhotos: (ids) =>
+        set((s) => ({ albumPhotos: s.albumPhotos.filter((p) => !ids.includes(p.id)) })),
+      movePhotos: (ids, folderId) =>
+        set((s) => ({
+          albumPhotos: s.albumPhotos.map((p) => (ids.includes(p.id) ? { ...p, folderId } : p)),
+        })),
+      addFolder: (name) => {
+        const id = uid('fld_');
+        set((s) => ({ albumFolders: [...s.albumFolders, { id, name }] }));
+        return id;
+      },
+
+      addPrep: (p) =>
+        set((s) => ({
+          prep: [...s.prep, { done: false, ...p, id: uid('prp_'), createdAt: now() }],
+        })),
+      togglePrep: (id) =>
+        set((s) => ({ prep: s.prep.map((p) => (p.id === id ? { ...p, done: !p.done } : p)) })),
+      removePrep: (id) => set((s) => ({ prep: s.prep.filter((p) => p.id !== id) })),
+      resetRoutinePrep: () =>
+        set((s) => ({ prep: s.prep.map((p) => (p.routine ? { ...p, done: false } : p)) })),
+
+      addMemo: (m) => {
+        const id = uid('memo_');
+        const ts = now();
+        set((s) => ({
+          memos: [{ id, title: m.title, body: m.body, folderId: m.folderId, createdAt: ts, updatedAt: ts }, ...s.memos],
+        }));
+        return id;
+      },
+      updateMemo: (id, patch) =>
+        set((s) => ({
+          memos: s.memos.map((m) => (m.id === id ? { ...m, ...patch, updatedAt: now() } : m)),
+        })),
+      removeMemo: (id) => set((s) => ({ memos: s.memos.filter((m) => m.id !== id) })),
+      addMemoFolder: (name) =>
+        set((s) => ({ memoFolders: [...s.memoFolders, { id: uid('mfld_'), name }] })),
 
       pushHokuMessage: (m) => {
         const msg: HokuMessage = { ...m, id: uid('hk_'), createdAt: now() };

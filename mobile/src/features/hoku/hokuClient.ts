@@ -20,6 +20,7 @@ export type HokuIntent =
   | 'budget_add'
   | 'health_add'
   | 'board_post_add'
+  | 'prep_add'
   | 'calendar_view'
   | 'task_view'
   | 'shopping_view'

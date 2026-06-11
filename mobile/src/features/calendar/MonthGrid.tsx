@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
+import { haptic } from '@/lib/haptics';
 import { toISODate } from '@/lib/utils';
 import type { FamilyEvent } from '@/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { eventsByDate } from './events';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -32,13 +34,9 @@ export function MonthGrid({ year, month, selected, events, onSelect }: Props) {
   const cells = buildMatrix(year, month);
   const todayIso = toISODate(new Date());
 
-  // event count per date for dot indicators
-  const byDate = new Map<string, FamilyEvent[]>();
-  for (const e of events) {
-    const arr = byDate.get(e.date) ?? [];
-    arr.push(e);
-    byDate.set(e.date, arr);
-  }
+  // event occurrences per visible date (expands recurring + multi-day)
+  const isoList = cells.map(toISODate);
+  const byDate = eventsByDate(events, isoList);
 
   return (
     <View>
@@ -61,7 +59,13 @@ export function MonthGrid({ year, month, selected, events, onSelect }: Props) {
           const isSelected = iso === selected;
           const dayEvents = byDate.get(iso) ?? [];
           return (
-            <Pressable key={iso} style={styles.cell} onPress={() => onSelect(iso)}>
+            <Pressable
+              key={iso}
+              style={styles.cell}
+              onPress={() => {
+                haptic.selection();
+                onSelect(iso);
+              }}>
               <View
                 style={[
                   styles.dayCircle,

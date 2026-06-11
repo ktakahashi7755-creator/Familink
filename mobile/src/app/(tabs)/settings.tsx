@@ -1,23 +1,56 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Segmented } from '@/components/Segmented';
 import { AppText, Button, Card } from '@/components/ui';
+import { useConfirm } from '@/components/ConfirmProvider';
+import { clearAllReminders, requestNotificationPermission, syncEventReminders } from '@/lib/notifications';
 import { memberColors } from '@/theme/tokens';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFamilyStore } from '@/store/useFamilyStore';
+import { usePrefsStore, type ThemeMode } from '@/store/usePrefsStore';
 import { useTheme } from '@/theme/ThemeContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { colors, radius } = useTheme();
   const { session, mode, signOut } = useAuthStore();
-  const { profile, setProfile, members, addMember, removeMember, premium, startTrial } =
+  const { profile, setProfile, members, addMember, removeMember, premium, events } =
     useFamilyStore();
+  const { themeMode, setThemeMode, remindersEnabled, setRemindersEnabled } = usePrefsStore();
 
   const [newMember, setNewMember] = useState('');
+
+  async function toggleReminders(value: boolean) {
+    if (value) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+      setRemindersEnabled(true);
+      await syncEventReminders(events);
+    } else {
+      setRemindersEnabled(false);
+      await clearAllReminders();
+    }
+  }
+
+  async function clearDemo() {
+    const ok = await confirm({
+      title: 'デモデータを消去',
+      message: 'サンプルの家族・予定・買い物などをすべて削除します。この操作は取り消せません。',
+      destructive: true,
+      confirmLabel: '消去する',
+    });
+    if (ok) {
+      useFamilyStore.setState({
+        members: [], events: [], tasks: [], txs: [], posts: [], health: [],
+        shoppingItems: [], prep: [], memos: [],
+      });
+    }
+  }
 
   function handleAddMember() {
     if (!newMember.trim()) return;
@@ -61,7 +94,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Premium */}
-        <Pressable onPress={() => !premium.premiumPaid && startTrial()}>
+        <Pressable onPress={() => router.push('/premium')}>
           <Card style={{ backgroundColor: premium.premiumPaid ? colors.bgCard : colors.premiumBg }}>
             <View style={styles.premiumHeader}>
               <Ionicons name="star" size={20} color={colors.premium} />
@@ -108,12 +141,46 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {/* Appearance & notifications */}
+        <Card style={{ gap: 14 }}>
+          <View>
+            <AppText variant="footnote" muted style={{ marginBottom: 8 }}>
+              テーマ
+            </AppText>
+            <Segmented<ThemeMode>
+              options={[
+                { key: 'system', label: '自動' },
+                { key: 'light', label: 'ライト' },
+                { key: 'dark', label: 'ダーク' },
+              ]}
+              value={themeMode}
+              onChange={setThemeMode}
+            />
+          </View>
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="body">予定のリマインド</AppText>
+              <AppText variant="caption" muted>
+                時刻のある予定の30分前にお知らせ
+              </AppText>
+            </View>
+            <Switch value={remindersEnabled} onValueChange={toggleReminders} />
+          </View>
+        </Card>
+
         {/* Links */}
         <Card style={{ paddingVertical: 4 }}>
           <LinkRow icon="images-outline" label="アルバム" onPress={() => router.push('/album')} />
           <LinkRow icon="cart-outline" label="買い物リスト" onPress={() => router.push('/shopping')} />
           <LinkRow icon="wallet-outline" label="家計" onPress={() => router.push('/budget')} />
+          <LinkRow icon="bag-handle-outline" label="持ち物・準備" onPress={() => router.push('/prep')} />
+          <LinkRow icon="document-text-outline" label="メモ" onPress={() => router.push('/memo')} />
           <LinkRow icon="thermometer-outline" label="体調記録" onPress={() => router.push('/health')} last />
+        </Card>
+
+        {/* Data management */}
+        <Card style={{ paddingVertical: 4 }}>
+          <LinkRow icon="trash-outline" label="デモデータを消去" onPress={clearDemo} last />
         </Card>
 
         {session && <Button title="ログアウト" variant="ghost" onPress={signOut} />}
@@ -155,6 +222,7 @@ const styles = StyleSheet.create({
   input: { padding: 12, fontSize: 16 },
   accountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   premiumHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   dot: { width: 14, height: 14, borderRadius: 7 },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, marginTop: 8 },

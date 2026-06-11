@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Button } from '@/components/ui';
+import { useConfirm } from '@/components/ConfirmProvider';
+import { haptic } from '@/lib/haptics';
 import { fromISODate, toISODate } from '@/lib/utils';
 import { memberColors } from '@/theme/tokens';
 import { useFamilyStore } from '@/store/useFamilyStore';
@@ -21,6 +23,7 @@ import { useTheme } from '@/theme/ThemeContext';
 
 export default function EventEditScreen() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { colors, radius } = useTheme();
   const params = useLocalSearchParams<{ id?: string; date?: string }>();
 
@@ -35,7 +38,16 @@ export default function EventEditScreen() {
   const [memberId, setMemberId] = useState<string | undefined>(existing?.memberId);
   const [color, setColor] = useState(existing?.color ?? memberColors[0]);
   const [note, setNote] = useState(existing?.note ?? '');
+  const [repeat, setRepeat] = useState<NonNullable<typeof existing>['repeat']>(existing?.repeat ?? 'none');
   const [showDate, setShowDate] = useState(false);
+
+  const REPEATS: { key: NonNullable<typeof repeat>; label: string }[] = [
+    { key: 'none', label: 'なし' },
+    { key: 'daily', label: '毎日' },
+    { key: 'weekly', label: '毎週' },
+    { key: 'monthly', label: '毎月' },
+    { key: 'yearly', label: '毎年' },
+  ];
 
   function save() {
     if (!title.trim()) return;
@@ -47,6 +59,7 @@ export default function EventEditScreen() {
       end: allDay ? undefined : end,
       memberId,
       color,
+      repeat,
       note: note.trim() || undefined,
     };
     if (existing) {
@@ -54,13 +67,17 @@ export default function EventEditScreen() {
     } else {
       addEvent(payload);
     }
+    haptic.success();
     router.back();
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!existing) return;
-    removeEvent(existing.id);
-    router.back();
+    const ok = await confirm({ title: 'この予定を削除しますか？', destructive: true, confirmLabel: '削除' });
+    if (ok) {
+      removeEvent(existing.id);
+      router.back();
+    }
   }
 
   return (
@@ -154,6 +171,28 @@ export default function EventEditScreen() {
             </View>
           </View>
         )}
+
+        {/* Repeat */}
+        <View style={{ gap: 8 }}>
+          <AppText variant="footnote" muted>
+            繰り返し
+          </AppText>
+          <View style={styles.chipRow}>
+            {REPEATS.map((r) => {
+              const active = r.key === repeat;
+              return (
+                <Pressable
+                  key={r.key}
+                  onPress={() => setRepeat(r.key)}
+                  style={[styles.chip, { backgroundColor: active ? colors.primary : colors.bgMuted, borderRadius: radius.full }]}>
+                  <AppText variant="footnote" color={active ? '#fff' : colors.text}>
+                    {r.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         {/* Color */}
         <View style={{ gap: 8 }}>

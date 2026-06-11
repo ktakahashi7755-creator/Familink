@@ -21,6 +21,8 @@ const QUICK_LINKS: QuickLink[] = [
   { label: '家計', icon: 'wallet', href: '/budget', tint: 'accent' },
   { label: 'アルバム', icon: 'images', href: '/album', tint: 'purple' },
   { label: '体調', icon: 'thermometer', href: '/health', tint: 'pink' },
+  { label: '持ち物', icon: 'bag-handle', href: '/prep', tint: 'indigo' },
+  { label: 'メモ', icon: 'document-text', href: '/memo', tint: 'primary' },
 ];
 
 export default function HomeScreen() {

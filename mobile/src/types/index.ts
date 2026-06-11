@@ -135,7 +135,15 @@ export interface HokuMessage {
 }
 
 export interface HokuAction {
-  type: 'add_event' | 'add_task' | 'add_shopping' | 'add_transaction' | 'none';
+  type:
+    | 'add_event'
+    | 'add_task'
+    | 'add_shopping'
+    | 'add_transaction'
+    | 'add_post'
+    | 'add_health'
+    | 'add_prep'
+    | 'none';
   payload?: Record<string, unknown>;
   confirmed?: boolean;
 }
@@ -147,6 +155,34 @@ export interface UserProfile {
   email?: string;
   avatar?: string;
   familyName?: string;
+}
+
+/** Prep / belongings checklist item (s-prep). */
+export interface PrepItem {
+  id: ID;
+  name: string;
+  done: boolean;
+  memberId?: ID;
+  /** Optional weekday for routine items (0=Sun … 6=Sat). */
+  weekday?: number;
+  routine?: boolean;
+  createdAt?: ISODateTime;
+}
+
+/** Memo (s-memo). */
+export interface Memo {
+  id: ID;
+  title: string;
+  body: string;
+  folderId?: ID;
+  pinned?: boolean;
+  updatedAt: ISODateTime;
+  createdAt: ISODateTime;
+}
+
+export interface MemoFolder {
+  id: ID;
+  name: string;
 }
 
 /** Premium / trial state. */
