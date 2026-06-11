@@ -435,7 +435,7 @@ select.input {
 }
 .modal-backdrop.open { opacity: 1; pointer-events: all; }
 /* 確認ダイアログは常に他モーダル（ショップ等）の前面に表示する */
-#m-confirm { z-index: 320; }
+#m-confirm { z-index: 700; } /* どのモーダル（OCR確認500/編集540/スライドショー600）の上でも必ず手前に出す */
 .modal {
   background: var(--bg-card); border-radius: 20px 20px 0 0;
   padding: 0 20px calc(24px + env(safe-area-inset-bottom));
@@ -1827,7 +1827,14 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-check input { width:18px; height:18px; flex:none; accent-color:var(--primary); }
 .ocr-spinner { width:40px; height:40px; margin:6px auto 0; border-radius:50%; border:3.5px solid var(--bg-muted); border-top-color:var(--primary); animation:ocrSpin .8s linear infinite; }
 @keyframes ocrSpin { to { transform:rotate(360deg); } }
-.ocr-review-modal { display:flex; flex-direction:column; max-height:88vh; max-height:88dvh; overflow:hidden; }
+.ocr-review-modal { display:flex; flex-direction:column; max-height:94vh; max-height:94dvh; overflow:hidden; }
+/* 件数が多いときにリストへ最大限の高さを渡すため、確認モーダル内の余白を圧縮 */
+.ocr-review-modal .modal-grip { margin-bottom:10px; }
+.ocr-review-modal .ocr-hoku { padding:8px 11px; margin-bottom:8px; font-size:12.5px; line-height:1.45; }
+.ocr-review-modal .ocr-hoku img { width:24px; height:24px; }
+.ocr-review-modal .ocr-memberbar-wrap { padding-bottom:4px; }
+.ocr-review-modal .ocr-mb-label { margin-bottom:3px; }
+.ocr-review-modal .ocr-selbar { padding-bottom:6px; }
 .ocr-review-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
 .ocr-x { flex:none; width:34px; height:34px; border-radius:50%; background:var(--bg-muted); color:var(--text-sub); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .ocr-date-hdr { font-size:12.5px; font-weight:800; color:var(--text-sub); padding:6px 2px 2px; position:sticky; top:0; background:var(--bg-card); z-index:1; }
@@ -13176,7 +13183,7 @@ function ocrAddSelected(){
       blocked?'info':'success');
     if(_ocr.prepCandidates.length){ setTimeout(ocrOpenPrep, 360); }
   };
-  if(dups.length){ showConfirm('似た予定があります', dups.length+'件は同じ予定が既にあるかもしれません。<br>このまま追加しますか？', '追加する', proceed, ''); }
+  if(dups.length){ showConfirm('似た予定があります', dups.length+'件は同じ予定が既にあるかもしれません。このまま追加しますか？', '追加する', proceed, ''); }
   else proceed();
 }
 function ocrCloseReview(){ closeModal('m-ocr-review'); }
@@ -18150,7 +18157,7 @@ function _albumUpdateSelBar() {
 }
 function albumSelDelete() {
   const items = _albumSelPhotos(); if(!items.length) return;
-  showConfirm(items.length+'件を削除', '選択した'+items.length+'件を削除しますか？<br>この操作は取り消せません。', '削除する', function(){
+  showConfirm(items.length+'件を削除', '選択した'+items.length+'件を削除しますか？この操作は取り消せません。', '削除する', function(){
     const ids = {}; items.forEach(function(p){ ids[p.id]=true; _recordDeletion('albumPhotos', p.id); });
     S.albumPhotos = (S.albumPhotos||[]).filter(function(p){ return !ids[p.id]; });
     saveS(); _albumSelMode=false; _albumSel={}; renderAlbum();
