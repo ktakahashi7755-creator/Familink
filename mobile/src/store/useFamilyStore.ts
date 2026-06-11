@@ -97,6 +97,7 @@ interface FamilyState {
   removePhoto: (id: string) => void;
   removePhotos: (ids: string[]) => void;
   movePhotos: (ids: string[], folderId?: string) => void;
+  toggleFavorite: (id: string) => void;
   addFolder: (name: string) => string;
 
   // prep
@@ -240,6 +241,10 @@ export const useFamilyStore = create<FamilyState>()(
       movePhotos: (ids, folderId) =>
         set((s) => ({
           albumPhotos: s.albumPhotos.map((p) => (ids.includes(p.id) ? { ...p, folderId } : p)),
+        })),
+      toggleFavorite: (id) =>
+        set((s) => ({
+          albumPhotos: s.albumPhotos.map((p) => (p.id === id ? { ...p, favorite: !p.favorite } : p)),
         })),
       addFolder: (name) => {
         const id = uid('fld_');

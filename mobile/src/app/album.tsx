@@ -2,7 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useRef, useState } from 'react';
-import { Dimensions, FlatList, Modal, Pressable, ScrollView, SectionList, StyleSheet, View } from 'react-native';
+import {
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
+  SectionList,
+  Share,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useConfirm } from '@/components/ConfirmProvider';
@@ -17,23 +28,27 @@ const GAP = 2;
 const COLS = 3;
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CELL = (SCREEN_W - GAP * (COLS - 1)) / COLS;
+const FAVORITES = '__favorites__';
 
 export default function AlbumScreen() {
   const { colors } = useTheme();
   const confirm = useConfirm();
-  const { albumPhotos, albumFolders, addPhotos, removePhotos } = useFamilyStore();
+  const { albumPhotos, albumFolders, addPhotos, removePhotos, movePhotos, toggleFavorite, addFolder } =
+    useFamilyStore();
 
-  const [folderId, setFolderId] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<string | undefined>(undefined);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [movePickerOpen, setMovePickerOpen] = useState(false);
 
-  const photos = useMemo(
-    () => (folderId ? albumPhotos.filter((p) => p.folderId === folderId) : albumPhotos),
-    [albumPhotos, folderId],
-  );
+  const photos = useMemo(() => {
+    if (filter === FAVORITES) return albumPhotos.filter((p) => p.favorite);
+    if (filter) return albumPhotos.filter((p) => p.folderId === filter);
+    return albumPhotos;
+  }, [albumPhotos, filter]);
 
-  // Group by month for section headers (newest first).
   const sections = useMemo(() => {
     const map = new Map<string, AlbumPhoto[]>();
     for (const p of photos) {
@@ -45,8 +60,6 @@ export default function AlbumScreen() {
       .map(([key, data]) => ({ title: monthLabel(key), data: chunk(data, COLS) }));
   }, [photos]);
 
-  const flatPhotos = photos;
-
   async function addFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
@@ -57,7 +70,7 @@ export default function AlbumScreen() {
       selectionLimit: 30,
     });
     if (!result.canceled) {
-      addPhotos(result.assets.map((a) => a.uri), folderId);
+      addPhotos(result.assets.map((a) => a.uri), filter && filter !== FAVORITES ? filter : undefined);
       haptic.success();
     }
   }
@@ -67,7 +80,7 @@ export default function AlbumScreen() {
     if (!perm.granted) return;
     const result = await ImagePicker.launchCameraAsync({ quality: 0.9 });
     if (!result.canceled) {
-      addPhotos(result.assets.map((a) => a.uri), folderId);
+      addPhotos(result.assets.map((a) => a.uri), filter && filter !== FAVORITES ? filter : undefined);
       haptic.success();
     }
   }
@@ -82,6 +95,11 @@ export default function AlbumScreen() {
     });
   }
 
+  function exitSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
   async function deleteSelected() {
     const ids = [...selected];
     if (!ids.length) return;
@@ -93,8 +111,7 @@ export default function AlbumScreen() {
     });
     if (ok) {
       removePhotos(ids);
-      setSelected(new Set());
-      setSelectMode(false);
+      exitSelect();
     }
   }
 
@@ -112,100 +129,127 @@ export default function AlbumScreen() {
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
-      {/* toolbar */}
       <View style={styles.toolbar}>
-        <Pressable
-          onPress={() => {
-            setSelectMode((v) => !v);
-            setSelected(new Set());
-          }}
-          hitSlop={8}>
+        <Pressable onPress={() => (selectMode ? exitSelect() : setSelectMode(true))} hitSlop={8}>
           <AppText variant="body" color={colors.primary}>
             {selectMode ? '完了' : '選択'}
           </AppText>
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 18 }}>
-          <Pressable onPress={addFromCamera} hitSlop={8}>
+          <Pressable onPress={addFromCamera} hitSlop={8} accessibilityLabel="カメラで撮影">
             <Ionicons name="camera-outline" size={24} color={colors.primary} />
           </Pressable>
-          <Pressable onPress={addFromLibrary} hitSlop={8}>
+          <Pressable onPress={addFromLibrary} hitSlop={8} accessibilityLabel="写真を追加">
             <Ionicons name="add" size={26} color={colors.primary} />
           </Pressable>
         </View>
       </View>
 
-      {/* folder chips */}
-      {albumFolders.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.folderRow}>
-          <FolderChip label="すべて" active={!folderId} onPress={() => setFolderId(undefined)} />
-          {albumFolders.map((f) => (
-            <FolderChip key={f.id} label={f.name} active={folderId === f.id} onPress={() => setFolderId(f.id)} />
-          ))}
-        </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.folderRow}>
+        <FolderChip label="すべて" active={!filter} onPress={() => setFilter(undefined)} />
+        <FolderChip label="お気に入り" icon="heart" active={filter === FAVORITES} onPress={() => setFilter(FAVORITES)} />
+        {albumFolders.map((f) => (
+          <FolderChip key={f.id} label={f.name} active={filter === f.id} onPress={() => setFilter(f.id)} />
+        ))}
+        <FolderChip label="＋ 新規" active={false} onPress={() => setNewFolderOpen(true)} dashed />
+      </ScrollView>
+
+      {photos.length === 0 ? (
+        <EmptyState icon="heart-outline" message={filter === FAVORITES ? 'お気に入りはまだありません' : 'このフォルダは空です'} />
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(row, i) => row.map((p) => p.id).join('-') + i}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <AppText variant="headline" style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+              {section.title}
+            </AppText>
+          )}
+          renderItem={({ item: row }) => (
+            <View style={{ flexDirection: 'row', gap: GAP, marginBottom: GAP }}>
+              {row.map((p) => {
+                const globalIndex = photos.findIndex((x) => x.id === p.id);
+                const isSel = selected.has(p.id);
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => (selectMode ? toggleSelect(p.id) : setViewerIndex(globalIndex))}
+                    onLongPress={() => {
+                      setSelectMode(true);
+                      toggleSelect(p.id);
+                    }}>
+                    <Image source={{ uri: p.uri }} style={{ width: CELL, height: CELL }} contentFit="cover" transition={120} />
+                    {p.favorite && !selectMode && (
+                      <Ionicons name="heart" size={14} color="#fff" style={styles.favBadge} />
+                    )}
+                    {selectMode && (
+                      <View style={[styles.checkOverlay, isSel && { backgroundColor: 'rgba(10,132,255,0.35)' }]}>
+                        <Ionicons name={isSel ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={isSel ? colors.primary : '#fff'} />
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        />
       )}
 
-      <SectionList
-        sections={sections}
-        keyExtractor={(row, i) => row.map((p) => p.id).join('-') + i}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
-          <AppText variant="headline" style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-            {section.title}
-          </AppText>
-        )}
-        renderItem={({ item: row }) => (
-          <View style={{ flexDirection: 'row', gap: GAP, marginBottom: GAP }}>
-            {row.map((p) => {
-              const globalIndex = flatPhotos.findIndex((x) => x.id === p.id);
-              const isSel = selected.has(p.id);
-              return (
-                <Pressable
-                  key={p.id}
-                  onPress={() => (selectMode ? toggleSelect(p.id) : setViewerIndex(globalIndex))}
-                  onLongPress={() => {
-                    setSelectMode(true);
-                    toggleSelect(p.id);
-                  }}>
-                  <Image source={{ uri: p.uri }} style={{ width: CELL, height: CELL }} contentFit="cover" transition={120} />
-                  {selectMode && (
-                    <View style={[styles.checkOverlay, isSel && { backgroundColor: 'rgba(10,132,255,0.35)' }]}>
-                      <Ionicons
-                        name={isSel ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={24}
-                        color={isSel ? colors.primary : '#fff'}
-                      />
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
-      />
-
-      {/* selection action bar */}
       {selectMode && selected.size > 0 && (
         <View style={[styles.actionBar, { backgroundColor: colors.bgCard, borderTopColor: colors.borderLight }]}>
           <AppText variant="body">{selected.size}枚選択中</AppText>
-          <Pressable onPress={deleteSelected} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="trash-outline" size={22} color={colors.red} />
-            <AppText variant="body" color={colors.red}>
-              削除
-            </AppText>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 20 }}>
+            <Pressable onPress={() => setMovePickerOpen(true)} hitSlop={8} style={styles.barAction}>
+              <Ionicons name="folder-outline" size={22} color={colors.primary} />
+              <AppText variant="footnote" color={colors.primary}>
+                移動
+              </AppText>
+            </Pressable>
+            <Pressable onPress={deleteSelected} hitSlop={8} style={styles.barAction}>
+              <Ionicons name="trash-outline" size={22} color={colors.red} />
+              <AppText variant="footnote" color={colors.red}>
+                削除
+              </AppText>
+            </Pressable>
+          </View>
         </View>
       )}
 
       <PhotoViewer
-        photos={flatPhotos}
+        photos={photos}
         index={viewerIndex}
         onClose={() => setViewerIndex(null)}
+        onToggleFav={toggleFavorite}
         onDelete={async (id) => {
           const ok = await confirm({ title: 'この写真を削除', destructive: true, confirmLabel: '削除' });
           if (ok) {
             removePhotos([id]);
             setViewerIndex(null);
           }
+        }}
+      />
+
+      <NameInputModal
+        visible={newFolderOpen}
+        title="新しいフォルダ"
+        placeholder="フォルダ名"
+        onClose={() => setNewFolderOpen(false)}
+        onSubmit={(name) => {
+          const id = addFolder(name);
+          setNewFolderOpen(false);
+          setFilter(id);
+        }}
+      />
+
+      <FolderPickerModal
+        visible={movePickerOpen}
+        folders={albumFolders}
+        onClose={() => setMovePickerOpen(false)}
+        onPick={(folderId) => {
+          movePhotos([...selected], folderId);
+          setMovePickerOpen(false);
+          exitSelect();
         }}
       />
     </SafeAreaView>
@@ -217,16 +261,28 @@ function PhotoViewer({
   index,
   onClose,
   onDelete,
+  onToggleFav,
 }: {
   photos: AlbumPhoto[];
   index: number | null;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onToggleFav: (id: string) => void;
 }) {
   const listRef = useRef<FlatList>(null);
   const [current, setCurrent] = useState(index ?? 0);
 
   if (index === null) return null;
+  const photo = photos[current];
+
+  async function share() {
+    if (!photo) return;
+    try {
+      await Share.share({ url: photo.uri, message: photo.caption ?? '' });
+    } catch {
+      // user cancelled / unsupported — ignore
+    }
+  }
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -243,33 +299,149 @@ function PhotoViewer({
           onMomentumScrollEnd={(e) => setCurrent(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W))}
           renderItem={({ item }) => (
             <View style={{ width: SCREEN_W, height: SCREEN_H, alignItems: 'center', justifyContent: 'center' }}>
-              <ZoomableImage uri={item.uri} width={SCREEN_W} height={SCREEN_H * 0.85} />
+              <ZoomableImage uri={item.uri} width={SCREEN_W} height={SCREEN_H * 0.82} />
             </View>
           )}
         />
         <SafeAreaView edges={['top']} style={styles.viewerBar}>
-          <Pressable onPress={onClose} hitSlop={12}>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="閉じる">
             <Ionicons name="close" size={28} color="#fff" />
           </Pressable>
-          <Pressable onPress={() => photos[current] && onDelete(photos[current].id)} hitSlop={12}>
-            <Ionicons name="trash-outline" size={26} color="#fff" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 22 }}>
+            <Pressable onPress={() => photo && onToggleFav(photo.id)} hitSlop={12} accessibilityLabel="お気に入り">
+              <Ionicons name={photo?.favorite ? 'heart' : 'heart-outline'} size={26} color={photo?.favorite ? '#FF2D55' : '#fff'} />
+            </Pressable>
+            <Pressable onPress={share} hitSlop={12} accessibilityLabel="共有">
+              <Ionicons name="share-outline" size={26} color="#fff" />
+            </Pressable>
+            <Pressable onPress={() => photo && onDelete(photo.id)} hitSlop={12} accessibilityLabel="削除">
+              <Ionicons name="trash-outline" size={26} color="#fff" />
+            </Pressable>
+          </View>
         </SafeAreaView>
       </View>
     </Modal>
   );
 }
 
-function FolderChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function FolderChip({
+  label,
+  active,
+  onPress,
+  icon,
+  dashed,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
+  dashed?: boolean;
+}) {
   const { colors, radius } = useTheme();
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.folderChip, { backgroundColor: active ? colors.primary : colors.bgMuted, borderRadius: radius.full }]}>
+      style={[
+        styles.folderChip,
+        {
+          backgroundColor: active ? colors.primary : colors.bgMuted,
+          borderRadius: radius.full,
+          borderWidth: dashed ? 1 : 0,
+          borderColor: colors.border,
+          borderStyle: dashed ? 'dashed' : 'solid',
+        },
+      ]}>
+      {icon && <Ionicons name={icon} size={13} color={active ? '#fff' : colors.text} />}
       <AppText variant="footnote" color={active ? '#fff' : colors.text}>
         {label}
       </AppText>
     </Pressable>
+  );
+}
+
+function NameInputModal({
+  visible,
+  title,
+  placeholder,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  title: string;
+  placeholder: string;
+  onClose: () => void;
+  onSubmit: (name: string) => void;
+}) {
+  const { colors, radius } = useTheme();
+  const [value, setValue] = useState('');
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.centerBackdrop}>
+        <View style={[styles.dialog, { backgroundColor: colors.bgCard, borderRadius: radius.lg }]}>
+          <AppText variant="title3" style={{ textAlign: 'center' }}>
+            {title}
+          </AppText>
+          <TextInput
+            value={value}
+            onChangeText={setValue}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textMuted}
+            autoFocus
+            style={[styles.dialogInput, { color: colors.text, backgroundColor: colors.bgInset, borderRadius: radius.sm }]}
+          />
+          <Button
+            title="作成"
+            onPress={() => {
+              if (value.trim()) {
+                onSubmit(value.trim());
+                setValue('');
+              }
+            }}
+          />
+          <Button title="キャンセル" variant="ghost" onPress={onClose} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function FolderPickerModal({
+  visible,
+  folders,
+  onClose,
+  onPick,
+}: {
+  visible: boolean;
+  folders: { id: string; name: string }[];
+  onClose: () => void;
+  onPick: (folderId?: string) => void;
+}) {
+  const { colors, radius } = useTheme();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.sheetBackdrop}>
+        <View style={[styles.sheet, { backgroundColor: colors.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }]}>
+          <View style={styles.sheetHandle} />
+          <AppText variant="title3">フォルダへ移動</AppText>
+          <Pressable onPress={() => onPick(undefined)} style={[styles.pickRow, { borderBottomColor: colors.borderLight }]}>
+            <Ionicons name="albums-outline" size={20} color={colors.textSub} />
+            <AppText variant="body">フォルダなし（すべて）</AppText>
+          </Pressable>
+          {folders.map((f) => (
+            <Pressable key={f.id} onPress={() => onPick(f.id)} style={[styles.pickRow, { borderBottomColor: colors.borderLight }]}>
+              <Ionicons name="folder-outline" size={20} color={colors.primary} />
+              <AppText variant="body">{f.name}</AppText>
+            </Pressable>
+          ))}
+          {folders.length === 0 && (
+            <AppText variant="footnote" muted style={{ paddingVertical: 8 }}>
+              フォルダがありません。アルバム上部の「＋ 新規」で作成できます。
+            </AppText>
+          )}
+          <Button title="キャンセル" variant="ghost" onPress={onClose} />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -288,9 +460,18 @@ function chunk<T>(arr: T[], size: number): T[][] {
 const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
   folderRow: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
-  folderChip: { paddingHorizontal: 16, paddingVertical: 7 },
+  folderChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 16, paddingVertical: 7 },
+  favBadge: { position: 'absolute', bottom: 4, right: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 3 },
   checkOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'flex-end', justifyContent: 'flex-start', padding: 4 },
   actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  barAction: { alignItems: 'center', gap: 2 },
   viewer: { flex: 1, backgroundColor: '#000' },
-  viewerBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
+  viewerBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8 },
+  centerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  dialog: { width: '100%', maxWidth: 360, padding: 24, gap: 12 },
+  dialogInput: { padding: 12, fontSize: 16 },
+  sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: { padding: 20, gap: 8, paddingBottom: 36 },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(120,120,128,0.4)', marginBottom: 8 },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
 });

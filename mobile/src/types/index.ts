@@ -115,6 +115,7 @@ export interface AlbumPhoto {
   takenAt?: ISODateTime;
   memberId?: ID;
   faceGroupId?: ID;
+  favorite?: boolean;
   createdAt?: ISODateTime;
 }
 

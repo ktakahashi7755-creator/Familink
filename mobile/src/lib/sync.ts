@@ -9,6 +9,8 @@
  * `useFamilyStore.familyId` or, if unset, the user's own id (solo family).
  * See ../../supabase/familink-mobile-schema.sql for the table + RLS.
  */
+import type { RealtimeChannel } from '@supabase/supabase-js';
+
 import { supabase } from '@/lib/supabase';
 import { useFamilyStore, type MergeableKey } from '@/store/useFamilyStore';
 
@@ -92,4 +94,39 @@ export async function fullSync(): Promise<SyncResult> {
   });
 
   return { ok: true, pushed, pulled };
+}
+
+/**
+ * Subscribe to a family's item changes and apply them to the local store in
+ * real time (insert/update → merge, soft-delete → remove). Returns an
+ * unsubscribe function. Mirrors the web app's `familink_family_${id}` idea.
+ */
+export function subscribeFamily(familyId: string): () => void {
+  const channel: RealtimeChannel = supabase
+    .channel(`familink_family_${familyId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'familink_items', filter: `family_id=eq.${familyId}` },
+      (payload) => {
+        const row = payload.new as ItemRow | undefined;
+        if (!row || !SYNCED_KINDS.includes(row.kind as MergeableKey)) return;
+        const kind = row.kind as MergeableKey;
+        if (row.deleted) {
+          removeLocal(kind, row.id);
+        } else {
+          useFamilyStore.getState().mergeRemote(kind, [row.data] as never);
+        }
+      },
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+function removeLocal(kind: MergeableKey, id: string) {
+  const state = useFamilyStore.getState();
+  const arr = state[kind] as { id: string }[];
+  useFamilyStore.setState({ [kind]: arr.filter((x) => x.id !== id) } as never);
 }

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Segmented } from '@/components/Segmented';
@@ -36,6 +37,18 @@ export default function SettingsScreen() {
     const r = await fullSync();
     setSyncing(false);
     setSyncMsg(r.ok ? `同期しました（送信 ${r.pushed} / 受信 ${r.pulled}）` : `同期できませんでした: ${r.error ?? '不明なエラー'}`);
+  }
+
+  async function shareInvite() {
+    const id = (joinId.trim() || familyId || session?.user.id) ?? '';
+    if (!id) return;
+    if (!familyId) setFamilyId(id);
+    const url = Linking.createURL('join', { queryParams: { family: id } });
+    try {
+      await Share.share({ message: `Familinkで家族の予定を共有しよう！このリンクから参加してね:\n${url}` });
+    } catch {
+      // cancelled
+    }
   }
 
   async function toggleReminders(value: boolean) {
@@ -127,6 +140,7 @@ export default function SettingsScreen() {
               style={[styles.input, { color: colors.text, backgroundColor: colors.bgInset, borderRadius: radius.sm }]}
             />
             <Button title="今すぐ同期" icon="sync" variant="secondary" loading={syncing} onPress={runSync} />
+            <Button title="家族を招待" icon="share-social" variant="ghost" onPress={shareInvite} />
             {syncMsg && (
               <AppText variant="caption" muted style={{ textAlign: 'center' }}>
                 {syncMsg}

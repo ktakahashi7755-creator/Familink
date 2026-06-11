@@ -2,12 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Directions, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { runOnJS } from 'react-native-reanimated';
 
 import { Segmented } from '@/components/Segmented';
 import { AppText, EmptyState, FAB } from '@/components/ui';
 import { MonthGrid } from '@/features/calendar/MonthGrid';
 import { eventsOnDate, upcomingOccurrences } from '@/features/calendar/events';
+import { holidayName } from '@/features/calendar/holidays';
 import { haptic } from '@/lib/haptics';
 import { formatDateJa, fromISODate, toISODate, todayISO, weekdayJa } from '@/lib/utils';
 import { useFamilyStore } from '@/store/useFamilyStore';
@@ -127,6 +130,7 @@ export default function CalendarScreen() {
           selected={selected}
           events={visibleEvents}
           onSelect={setSelected}
+          onShiftMonth={shiftMonth}
         />
       )}
       {view === 'week' && <WeekView selected={selected} events={visibleEvents} onSelect={setSelected} members={members} />}
@@ -143,22 +147,44 @@ function MonthView({
   selected,
   events,
   onSelect,
+  onShiftMonth,
 }: {
   cursor: { year: number; month: number };
   selected: string;
   events: FamilyEvent[];
   onSelect: (iso: string) => void;
+  onShiftMonth: (delta: number) => void;
 }) {
   const { colors, radius } = useTheme();
   const dayEvents = useMemo(() => eventsOnDate(events, selected), [events, selected]);
+  const holiday = holidayName(selected);
+
+  const flingPrev = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => runOnJS(onShiftMonth)(-1));
+  const flingNext = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => runOnJS(onShiftMonth)(1));
+  const swipe = Gesture.Exclusive(flingPrev, flingNext);
 
   return (
     <>
-      <View style={{ paddingHorizontal: 12, marginTop: 8 }}>
-        <MonthGrid year={cursor.year} month={cursor.month} selected={selected} events={events} onSelect={onSelect} />
-      </View>
+      <GestureDetector gesture={swipe}>
+        <View style={{ paddingHorizontal: 12, marginTop: 8 }}>
+          <MonthGrid year={cursor.year} month={cursor.month} selected={selected} events={events} onSelect={onSelect} />
+        </View>
+      </GestureDetector>
       <View style={[styles.daySheet, { backgroundColor: colors.bgCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }]}>
-        <AppText variant="headline">{formatDateJa(selected)}</AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <AppText variant="headline">{formatDateJa(selected)}</AppText>
+          {holiday && (
+            <View style={[styles.holidayPill, { backgroundColor: colors.redLight }]}>
+              <AppText variant="caption" color={colors.red}>
+                {holiday}
+              </AppText>
+            </View>
+          )}
+        </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 120, gap: 10, paddingTop: 8 }}>
           {dayEvents.length === 0 ? (
             <EmptyState icon="calendar-outline" message="この日の予定はまだありません" />
@@ -292,6 +318,7 @@ const styles = StyleSheet.create({
   memberRow: { gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
   memberChip: { paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5 },
   daySheet: { flex: 1, marginTop: 8, padding: 16, gap: 4 },
+  holidayPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   weekStrip: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
   weekDay: { flex: 1, alignItems: 'center', paddingVertical: 8, gap: 2 },
   weekDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 2 },
