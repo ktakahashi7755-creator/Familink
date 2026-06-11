@@ -345,7 +345,6 @@ body.modal-open #hoku-fab { opacity: 0; pointer-events: none; transition: opacit
 }
 .tab-cfg-section-label:first-child { padding-top: 0; }
 
-
 /* ============================================================
    BUTTONS (Apple HIG)
    ============================================================ */
@@ -376,10 +375,6 @@ body.modal-open #hoku-fab { opacity: 0; pointer-events: none; transition: opacit
   height: 50px; padding: 0 24px; border-radius: var(--r-full);
   background: var(--red); color: #fff; font-size: 17px; font-weight: 600;
   box-shadow: 0 3px 14px rgba(255,59,48,.25);
-}
-.btn-tinted {
-  height: 44px; padding: 0 18px; border-radius: var(--r-full);
-  background: var(--primary-light); color: var(--primary); font-size: 15px; font-weight: 600;
 }
 .btn-block { width: 100%; }
 
@@ -642,13 +637,6 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .ob2-btn-primary:active { transform: scale(.97); box-shadow: 0 2px 8px rgba(10,132,255,.20); opacity: .92; }
 .ob2-btn-primary:disabled { opacity: .6; cursor: default; }
-.ob2-btn-secondary {
-  width: 100%; height: 52px; background: rgba(255,255,255,0.92); color: var(--primary);
-  font-size: 17px; font-weight: 600; border: 1.5px solid var(--primary); border-radius: var(--r-full);
-  cursor: pointer; transition: var(--t-spring); margin-top: 10px;
-}
-.ob2-btn-secondary:active { transform: scale(.97); background: var(--primary-light); }
-.ob2-bottom-simple { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
 .ob2-divider {
   display: flex; align-items: center; gap: 12px;
   margin: 18px 0 14px; color: rgba(60,60,67,0.40); font-size: 13px; font-weight: 500;
@@ -1055,9 +1043,6 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .album-cell.sel .album-check { opacity:1; background:var(--primary); border-color:#fff; }
 .album-cell.selmode .album-check { opacity:1; }
 .album-cell.sel img, .album-cell.sel video { transform:scale(.84); border-radius:9px; }
-.alb-selhead { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 2px; }
-.alb-sel-cancel, .alb-sel-all { background:none; border:none; color:var(--primary); font-size:14px; font-weight:700; padding:6px 4px; cursor:pointer; white-space:nowrap; }
-.alb-sel-count { font-size:15px; font-weight:800; color:var(--text); }
 .alb-selbar { position:fixed; left:0; right:0; bottom:0; z-index:120; display:flex; gap:6px; justify-content:space-around; padding:9px 12px calc(11px + env(safe-area-inset-bottom)); background:var(--bg-card); border-top:1px solid var(--border-light); box-shadow:0 -6px 22px rgba(0,0,0,.10); }
 .alb-selbar.hidden { display:none; }
 .alb-selbar button { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--primary); font-size:11px; font-weight:700; cursor:pointer; padding:4px 2px; transition:var(--t-spring); }
@@ -1615,12 +1600,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   white-space: nowrap; overflow: hidden; text-overflow: clip;
   margin-bottom: 0; flex: none;          /* flexで潰れないよう固定（行が切れるのを防止） */
 }
-.cal-cell-more {
-  flex: none;
-  font-size: 11px; color: var(--text-muted);
-  font-weight: 700; text-align: right; padding-right: 3px;
-  line-height: 1.3;
-}
 /* 祝日 */
 .cal-cell.cal-holiday .cal-cell-num { color: var(--red); }
 .cal-cell.cal-today.cal-holiday .cal-cell-num { color: #fff; }
@@ -1663,13 +1642,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   font-size: 10px; font-weight: 700; color: var(--text-muted);
   background: var(--bg-muted); padding: 3px 8px; border-radius: var(--r-full);
 }
-.cal-det-add-btn {
-  height: 26px; padding: 0 10px; border-radius: var(--r-full);
-  background: var(--primary); color: #fff;
-  font-size: 11px; font-weight: 700; border: none; cursor: pointer;
-  display: flex; align-items: center; gap: 3px;
-}
-.cal-det-add-btn:active { opacity: .8; transform: scale(.95); }
 /* 詳細予定カード */
 .cal-det-card {
   display: flex; align-items: stretch;
@@ -1865,7 +1837,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .ocr-card-titlerow .ocr-conf { margin-top:1px; flex:none; }
 .ocr-mem-tag { display:inline-flex; align-items:center; gap:4px; background:var(--bg-muted); border-radius:var(--r-full); padding:1px 9px 1px 2px; font-size:11px; font-weight:800; color:var(--text-sub); vertical-align:-4px; }
 .ocr-mem-tag .av { width:18px; height:18px; font-size:9px; }
-.ocr-attn { display:inline-flex; align-items:center; gap:3px; background:#FFF1DB; color:#B5731A; font-size:10px; font-weight:800; padding:2px 8px; border-radius:var(--r-full); margin-top:6px; }
 .ocr-cb { flex:none; width:24px; height:24px; border-radius:7px; border:2px solid var(--border); background:var(--bg-card); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; margin-top:1px; }
 .ocr-card.sel .ocr-cb { background:var(--primary); border-color:var(--primary); }
 .ocr-card-body { flex:1; min-width:0; }
@@ -2087,27 +2058,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
    SETTINGS SCREEN
    ============================================================ */
 .settings-section { padding: 16px 16px 4px; }
-/* C8: 利用スタイル選択カード */
-.usage-mode-card {
-  display: block; width: 100%; text-align: left;
-  border: 1.5px solid var(--border-light); border-radius: 14px;
-  background: #fff; padding: 14px; margin-bottom: 10px;
-  cursor: pointer; transition: var(--t-spring);
-  -webkit-tap-highlight-color: transparent;
-}
-.usage-mode-card:active { transform: scale(.98); }
-.usage-mode-card.selected { border-color: var(--primary); background: var(--primary-light); }
-.usage-mode-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-.usage-mode-card-title { font-size: 15px; font-weight: 800; color: var(--text); }
-.usage-mode-card-sub {
-  font-size: 10px; font-weight: 700; color: var(--text-muted);
-  background: var(--bg-muted); border-radius: var(--r-full); padding: 2px 8px;
-}
-.usage-mode-card-badge {
-  font-size: 10px; font-weight: 700; color: #fff;
-  background: var(--primary); border-radius: var(--r-full); padding: 2px 9px;
-}
-.usage-mode-card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
 /* ワークスペースコンテキスト帯 */
 .ws-banner-wrap { display: none; background: var(--primary-light); }
 .ws-banner {
@@ -2159,11 +2109,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   letter-spacing: .1px; margin-bottom: 6px;
   padding: 0 6px;
 }
-.settings-group {
-  background: #fff; border-radius: 12px;
-  overflow: hidden; margin-bottom: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
 .settings-item {
   display: flex; align-items: center; gap: 14px;
   padding: 12px 16px; background: transparent;
@@ -2196,7 +2141,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .menu-brand-tagline { font-size:11px; color:var(--text-sub); margin-top:1px; line-height:1.5; }
 .menu-user-row { display:flex; align-items:center; gap:12px; cursor:pointer; padding:14px 0 16px; }
 .menu-user-name { font-size:15px; font-weight:700; color:var(--text); }
-.menu-user-role { font-size:11px; color:var(--text-muted); margin-top:2px; }
 .menu-nav-item { display:flex; align-items:center; gap:14px; padding:13px 14px; background:#fff; border-radius:var(--r-sm); box-shadow:var(--s-sm); margin-bottom:7px; cursor:pointer; transition:var(--t); }
 .menu-nav-item:active { opacity:.7; transform:scale(.99); }
 .menu-nav-item.active { background:var(--primary-light); box-shadow:0 2px 8px rgba(10,132,255,.15); }
@@ -2279,13 +2223,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   cursor: pointer; transition: var(--t); flex-shrink: 0;
 }
 .hoku-reset-btn:active { opacity: .7; }
-.hoku-sugg-wrap {
-  display: flex; gap: 7px; overflow-x: auto; padding: 10px 16px 8px;
-  -webkit-overflow-scrolling: touch; flex-shrink: 0; scrollbar-width: none;
-  border-bottom: 0.5px solid rgba(60,60,67,0.12);
-  max-width: 100%; box-sizing: border-box;
-}
-.hoku-sugg-wrap::-webkit-scrollbar { display: none; }
 .hoku-sugg {
   white-space: nowrap; padding: 7px 14px; border-radius: var(--r-full);
   background: rgba(255,255,255,0.92); border: 0.5px solid rgba(60,60,67,0.15);
@@ -2373,7 +2310,7 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   .home-coins.bump { animation: none !important; }
   .av2-float { display: none !important; }  /* アルバムのリアクション演出を抑制 */
   /* 無限/装飾アニメも抑制（乗り物酔い・前庭障害への配慮 / WCAG 2.3.3） */
-  .prm-crown, .prm-cta-btn, .prm-hero-img, .mic-pulse, [class*="mic-pulse"],
+  .prm-crown, .prm-cta-btn, .mic-pulse, [class*="mic-pulse"],
   .sync-dot.syncing, .loading span { animation: none !important; }
   .screen:not(.hidden) { animation: none !important; }
   .modal { transition: none !important; }
@@ -2648,7 +2585,6 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   from { transform:translateY(100%); }
   to   { transform:translateY(0); }
 }
-
 
 /* ── コメント（チャット吹き出し） ── */
 .bdetail-comment {
@@ -3308,7 +3244,6 @@ nav#tabbar.hidden { display: none !important; }
   z-index: 1;
 }
 
-
 /* ============================================================
    Premium Screen (App Store Subscription Style)
    ============================================================ */
@@ -3443,7 +3378,6 @@ nav#tabbar.hidden { display: none !important; }
   margin:0 16px 16px; background:var(--bg-muted);
   border-radius:16px; padding:18px;
 }
-.prm-terms-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:12px; }
 .prm-terms-item {
   font-size:12px; color:var(--text-sub); line-height:1.7;
   padding:0 0 0 14px; position:relative; margin-bottom:6px;
@@ -3505,14 +3439,6 @@ nav#tabbar.hidden { display: none !important; }
   font-size:12px; color:var(--primary); background:none; border:none;
   cursor:pointer; text-decoration:underline; padding:4px;
 }
-/* ad banner for free users */
-.prm-ad-banner {
-  margin:0 16px 16px; background:var(--bg-muted);
-  border:1px dashed var(--border); border-radius:12px;
-  padding:14px; text-align:center; color:var(--text-muted);
-  font-size:11px;
-}
-
 
 /* Hoku daily usage bar for free users */
 .hoku-usage-bar {
@@ -3629,7 +3555,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 /* ── Settings Premium Card: Enhanced ── */
 .menu-premium-card::before { display: none; }
 
-
 /* ── Hoku Usage Bar: Polished ── */
 .hoku-usage-upgrade {
   box-shadow: 0 2px 10px rgba(10,132,255,.3);
@@ -3638,19 +3563,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .hoku-usage-upgrade:active {
   transform: scale(.95);
   box-shadow: none;
-}
-
-/* ── Welcome Screen: Better Typography ── */
-.ob-brand-name {
-  background: var(--grad-blue-violet);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.ob-catch { letter-spacing: -.4px; }
-.ob-btn-start {
-  box-shadow: 0 6px 24px rgba(10,132,255,.42), 0 1px 4px rgba(10,132,255,.2);
-  letter-spacing: .3px;
 }
 
 /* ── Modal: Apple sheet shadow ── */
@@ -3666,7 +3578,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   animation: shimmer 2.5s linear infinite;
   color: #7A5800;
 }
-
 
 /* ── Hoku Empty State ── */
 .hoku-empty-state {
@@ -12677,7 +12588,6 @@ function ocrPick(mode) {
   const id = (mode==='camera') ? 'ocr-file-cam' : 'ocr-file-lib';
   const f = document.getElementById(id); if(f) f.click();
 }
-function ocrPickPhoto(){ ocrPick('library'); }   // 後方互換
 function ocrRepick(){ closeModal('m-ocr-preview'); openModal('m-ocr-intro'); }
 /* 写真を選んだら、まず「プレビュー（原寸・鮮明）＋解析する」ステップを挟む（自動解析しない） */
 function ocrOnFilePicked(ev) {
@@ -15091,8 +15001,7 @@ function addNotif(title, desc, icon, type) {
   if(!S.notifs) S.notifs = [];
   S.notifs.unshift({id:uid(), title, desc, icon:icon||'bell', time:todayStr(), read:false});
   saveS();
-  const badge = document.getElementById('notif-badge');
-  if(badge) badge.style.display = 'block';
+  _refreshNotifBadges();   // ホームのベルバッジ（件数）も即時更新
 }
 
 /* 通知設定モーダル */
@@ -15456,6 +15365,7 @@ function selectReaction(postId, key) {
   renderBoard();
   // 詳細画面も更新
   if(S.screen === 's-board-detail') renderBoardDetail();
+  if(S.screen === 's-home') renderHome();
 }
 
 
@@ -15876,6 +15786,7 @@ function savePost() {
   saveS(); closeModal('m-post');
   renderBoard();
   if(S.screen==='s-board-detail') renderBoardDetail();
+  if(S.screen==='s-home') renderHome();
   showToast(id?'投稿を更新しました':'投稿しました');
 }
 
@@ -15909,6 +15820,7 @@ function togglePostPin(id) {
       saveS();
       renderBoard();
       if(S.screen === 's-board-detail') renderBoardDetail();
+      if(S.screen === 's-home') renderHome();
       showToast(willPin ? 'ピン留めしました' : 'ピン留めを解除しました');
     },
     willPin ? 'pin' : 'pin'
@@ -16017,6 +15929,7 @@ function deletePostWithConfirm(postId, onAfterDelete) {
     saveS();
     if(typeof renderBoard === 'function') renderBoard();
     if(typeof onAfterDelete === 'function') onAfterDelete();
+    if(S.screen === 's-home') renderHome();
     showToast('投稿を削除しました');
   }, '');
 }
@@ -16031,6 +15944,7 @@ function deleteBoardComment(postId, commentId) {
     saveS();
     if(typeof renderBoardDetail === 'function') renderBoardDetail();
     if(typeof renderBoard === 'function') renderBoard();
+    if(S.screen === 's-home') renderHome();
     showToast('コメントを削除しました');
   }, '');
 }
@@ -16047,6 +15961,7 @@ function submitBoardComment(postId) {
   a.updatedAt = new Date().toISOString();
   saveS();
   input.value = '';
+  if(S.screen === 's-home') renderHome();
   renderBoardDetail();
   try { if(typeof renderBoard === 'function') renderBoard(); } catch(_){}  // 一覧のコメント数バッジを即時更新
   showToast('コメントを送信しました');
@@ -16660,6 +16575,7 @@ function saveMemoEdit() {
   _memoAttachBuf = [];
   _memoEditId = null;
   renderMemo();
+  if(S.screen === 's-home') renderHome();
   showToast(wasEdit ? 'メモを更新しました' : 'メモを保存しました');
 }
 function deleteMemo() {
@@ -16677,6 +16593,7 @@ function deleteMemo() {
     _memoAttachBuf = [];
     _memoEditId = null;
     renderMemo();
+    if(S.screen === 's-home') renderHome();
     showToast('メモを削除しました');
   }, 'danger');
 }
@@ -17244,6 +17161,7 @@ function saveHealth() {
   closeModal('m-health');
   renderHealth();
   if(typeof renderBoard === 'function' && S.screen === 's-board') renderBoard();
+  if(S.screen === 's-home') renderHome();
   showToast(id ? '体調記録を更新しました' : '体調を記録しました');
 }
 
@@ -17257,6 +17175,7 @@ function deleteCurrentHealth() {
     closeModal('m-health');
     renderHealth();
     if(typeof renderBoard === 'function' && S.screen === 's-board') renderBoard();
+    if(S.screen === 's-home') renderHome();
     showToast('削除しました');
   }, '');
 }
@@ -17982,6 +17901,7 @@ function saveArchiveAdd() {
   }
   closeModal('m-archive-add');
   renderArchive();
+  if(S.screen === 's-home') renderHome();
   showToast(_archiveEditId ? '更新しました' : '保存しました','success');
   _archiveEditId = null;
   _archivePhotoBuf = null;
@@ -17992,6 +17912,8 @@ function archiveDelete(id) {
     S.docs = (S.docs||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderArchive();
+    if(S.screen === 's-home') renderHome();
+    showToast('書類を削除しました','success');
   }, 'danger');
 }
 
@@ -18139,7 +18061,6 @@ function albumToggleSelMode() {
   _albumSelMode = !_albumSelMode; _albumSel = {};
   renderAlbum();
 }
-function albumExitSel() { _albumSelMode=false; _albumSel={}; renderAlbum(); }
 function albumToggleSel(id) {
   if(_albumSel[id]) delete _albumSel[id]; else _albumSel[id]=true;
   const cell = document.querySelector('.album-cell[data-id="'+id+'"]');
@@ -18581,6 +18502,7 @@ function albumOnFilesPicked(ev) {
     // 保存失敗（容量超過）時はメモリ上の追加を巻き戻す。放置すると以後の全 saveS が失敗し続ける
     if(!ok) { try { if(Array.isArray(S.albumPhotos)) S.albumPhotos.length = _lenBefore; } catch(_){} }
     renderAlbum();
+    if(S.screen === 's-home') renderHome();
     if(!ok) {
       showToast("容量不足のため保存できませんでした。動画や枚数を減らすか、設定 → ストレージ管理から整理してください。","error");
     } else if(skipped > 0) {
@@ -18949,6 +18871,8 @@ function albumDeleteCurrent() {
     _albumViewId = null;
     closeModal('m-album-view');
     renderAlbum();
+    if(S.screen === 's-home') renderHome();
+    showToast(what+'を削除しました','success');
   }, 'danger');
 }
 
@@ -20164,7 +20088,7 @@ function renderPremium() {
 
   // ── terms ─────────────────────────────────────────────────
   const termsList = [
-    '1ヶ月無料でお試しいただけます。',
+    '30日間無料でお試しいただけます。',
     '無料期間中に解約すれば料金はかかりません。',
     '無料期間終了後は、月額480円で自動更新されます。',
     'ご契約と解約は、App Storeのアカウント設定から行えます。',
@@ -20849,8 +20773,8 @@ function renderSettings() {
     ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>プレミアム会員</div>'
       + '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">すべての機能が使い放題です</div>'
     : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>Familink Premium</div>'
-      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#0A84FF">今なら1ヶ月無料</strong>で体験できます</div>'
-      +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">1ヶ月無料でためす →</button>';
+      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#0A84FF">今なら30日間無料</strong>で体験できます</div>'
+      +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">30日間無料でためす →</button>';
 
   const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#0A84FF');
   const lockIcon = si('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>','#7A6FD0');
