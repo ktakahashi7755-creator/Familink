@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260611g';
+  var V='v20260611h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5395,6 +5395,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- 初回起動：ツアーを見るか選べるウェルカム（スキップ可） -->
+<div id="m-tour-offer" class="modal-backdrop modal-center">
+  <div class="modal" style="text-align:center;max-width:340px;">
+    <img id="tour-offer-hoku" alt="Hoku" style="width:96px;height:96px;object-fit:contain;margin:6px auto 10px;display:block;" onerror="this.style.display='none'">
+    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px;">Familink へようこそ！</div>
+    <div style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:16px;">実際のボタンを順番に光らせながら、<br>使い方を約1分でご案内できます。</div>
+    <button class="tour-cta" style="margin-bottom:8px;" onclick="closeModal('m-tour-offer');setTimeout(function(){startAppTour();},260);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>
+      実演ツアーを見る（約1分）</button>
+    <button class="btn btn-ghost btn-block" onclick="closeModal('m-tour-offer')" style="min-height:44px;">スキップしてはじめる</button>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">あとから 設定 → 使い方ガイド でいつでも見られます</div>
+  </div>
+</div>
+
 <!-- 実演ツアー（スポットライトで実際のボタンを順番に案内） -->
 <div id="app-tour" class="tour-overlay hidden" onclick="tourNext()">
   <div class="tour-spot" id="tour-spot"></div>
@@ -10756,11 +10770,20 @@ function reseedDefaultDemoProfiles() {
 function renderHome() {
   const m = S.user || MEMBERS[0];
   try { applyTheme(); } catch(_){}   // ホーム背景テーマを適用
-  // Wave 104: 初回ホーム表示時に使い方ガイドを 1 度だけ表示
+  // Wave 104→改: 初回ホーム表示時に「実演ツアーを見る / スキップ」を 1 度だけ提案
   if(!S.guideSeen) {
     S.guideSeen = true;
     try { saveS(); } catch(_){}
-    setTimeout(function(){ if(typeof openGuide === 'function') openGuide(); }, 700);
+    setTimeout(function(){
+      const hk = document.getElementById('tour-offer-hoku');
+      if(hk){
+        let src = '';
+        try { src = (typeof equippedHokuImg==='function' && equippedHokuImg()) || ''; } catch(_){}
+        if(!src) { try { src = (typeof IMGS!=='undefined' && IMGS.hoku) || ''; } catch(_){} }
+        if(src) { hk.style.display = 'block'; hk.src = src; }
+      }
+      openModal('m-tour-offer');
+    }, 700);
   }
   // Wave 239: 連続使用ストリーク更新
   const _todayStr = todayStr();
@@ -20430,9 +20453,11 @@ function checkLoginBonus(force) {
 function _openLoginBonusModal() {
   const d = _loginBonusPending;
   if(!d) return;
-  // 使い方ガイドが開いている間は重ねず、閉じられてから表示する（初回起動の2枚重ね防止）
+  // 使い方ガイド・初回ウェルカム・実演ツアーの最中は重ねず、終わってから表示する（初回起動の重なり防止）
   const _guide = document.getElementById('m-guide');
-  if(_guide && _guide.classList.contains('open')) { setTimeout(_openLoginBonusModal, 700); return; }
+  const _offer = document.getElementById('m-tour-offer');
+  const _touring = (typeof _tourState !== 'undefined' && _tourState.on);
+  if((_guide && _guide.classList.contains('open')) || (_offer && _offer.classList.contains('open')) || _touring) { setTimeout(_openLoginBonusModal, 700); return; }
   const body = document.getElementById('login-bonus-body');
   if(!body) return;
   const hourGreet = (function(){ const h = new Date().getHours(); return h < 11 ? 'おはようございます' : (h < 17 ? 'こんにちは' : 'こんばんは'); })();
@@ -21245,16 +21270,31 @@ function _tourPlace(el, step) {
   document.getElementById('tour-dots').innerHTML = dots;
   document.getElementById('tour-prev').style.visibility = (i===0) ? 'hidden' : 'visible';
   document.getElementById('tour-next').textContent = (i===n-1) ? '完了' : '次へ';
-  // 吹き出しは対象と重ならない側（上下）に自動配置
+  // 吹き出しは「空きが広い側」に配置。対象が画面の大半を占める場合は下端に重ねる。
+  // 最後に実測ではみ出しを補正（アプリ内ブラウザ等の低い画面でも見切れない）
   const tip = document.getElementById('tour-tip');
-  const mid = r.top + r.height/2;
-  if(step.pos==='top' || (step.pos!=='bottom' && mid > window.innerHeight*0.52)) {
+  const spaceAbove = r.top, spaceBelow = window.innerHeight - r.bottom;
+  let side;
+  if(step.pos === 'top') side = 'above';
+  else if(step.pos === 'bottom') side = 'below';
+  else if(spaceBelow >= 250) side = 'below';
+  else if(spaceAbove >= 250) side = 'above';
+  else side = 'overlay';
+  if(side === 'above') {
     tip.style.top = 'auto';
     tip.style.bottom = Math.max(12, window.innerHeight - r.top + pad + 12) + 'px';
-  } else {
+  } else if(side === 'below') {
     tip.style.bottom = 'auto';
-    tip.style.top = Math.min(window.innerHeight - 230, r.bottom + pad + 12) + 'px';
+    tip.style.top = (r.bottom + pad + 12) + 'px';
+  } else {
+    tip.style.top = 'auto';
+    tip.style.bottom = '16px';
   }
+  requestAnimationFrame(function(){
+    const tr = tip.getBoundingClientRect();
+    if(tr.top < 10) { tip.style.bottom = 'auto'; tip.style.top = '10px'; }
+    else if(tr.bottom > window.innerHeight - 10) { tip.style.top = 'auto'; tip.style.bottom = '16px'; }
+  });
 }
 function tourNext() { if(_tourState.on) _tourShow(_tourState.i + 1, 1); }
 function tourPrev() { if(_tourState.on) _tourShow(_tourState.i - 1, -1); }
