@@ -21337,3 +21337,50 @@ mobile：目標品質へ向けた磨き込み（カレンダー/アルバム/Hok
 ### コミット
 - ハッシュ: `91cfb31`（磨き込み）, 後続コミット（Supabase 同期β）
 - メッセージ: feat(mobile): カレンダー/アルバム/Hoku 磨き込み＋4画面追加 / feat(mobile): Supabase 家族同期(β)
+
+---
+
+## 2026-06-11 14:00  env: iPhone経由（claude.ai/code リモート）  branch: claude/mobile-directory-setup-fe5s6u
+
+### 作業名
+mobile：残課題の実装（カレンダー帯/スワイプ/祝日・アルバム強化・Realtime同期/招待）＋全ページ品質レビュー
+
+### 変更ファイル
+- `mobile/src/features/calendar/`（MonthGrid スパン帯描画 / holidays.ts 新規）
+- `mobile/src/app/(tabs)/calendar.tsx`（スワイプ月送り・祝日表示）
+- `mobile/src/app/album.tsx`（フォルダ作成/移動・お気に入り・共有・ビューア再マウント修正）
+- `mobile/src/lib/sync.ts`（Realtime 購読）/ `src/app/join.tsx`（招待ディープリンク）/ `src/app/_layout.tsx`（テーマ連動ナビ・ErrorBoundary・Realtime 配線）
+- `mobile/src/app/+not-found.tsx`（新規）
+- `mobile/src/app/event-edit.tsx`（ネイティブ時刻ピッカー）/ login・budget（KeyboardAvoidingView）/ health・settings・memo（keyboardShouldPersistTaps）
+- `mobile/src/components/ui.tsx`（Button/FAB の a11y・最小48pt・FAB 触覚）
+
+### 変更内容
+- カレンダー：複数日予定をセル横断のスパン帯（レーン詰め）で描画、左右スワイプ月送り、日本の祝日（2025–2027）を赤字＋日付ビューに名称
+- アルバム：フォルダ作成/絞り込み/選択写真の移動、お気に入り（ハート＋フィルター）、共有シート、ビューアの key 再マウントで current スタール解消
+- 家族同期：Realtime 購読（`familink_family_${id}`）で insert/update/delete を自動反映、招待ディープリンク（`familink://join?family=`）＋共有＋join 画面
+- 全ページレビュー磨き込み：ナビのテーマ連動（ダークモード白浮き解消）、時刻ネイティブピッカー、触覚フィードバック横断、a11y（role/label・最小48pt）、キーボード回避、ErrorBoundary / +not-found
+
+### テスト結果
+- `npx tsc --noEmit`：**PASS（0 errors）**
+- `npx eslint "src/**/*.{ts,tsx}"`：**PASS（0 errors / 0 warnings）**
+- `npx expo export --platform ios`：**成功**（全ルート/ネイティブモジュール解決）
+- 実機/シミュレータ起動・Supabase 実通信：未実施（本環境は UI ビルド検証のみ）
+
+### 未確認事項
+- 実機での操作・見た目（スパン帯/スワイプ/ピンチズーム/Realtime/招待リンク遷移）
+- Supabase は `supabase/familink-mobile-schema.sql` 実行後に同期有効
+- 送信側の削除伝播（tombstone）・Dynamic Type 追従・アプリアイコン差し替えは残（TASKS.md）
+
+### iPhone確認ポイント
+- カレンダー：複数日予定の帯・左右スワイプ・祝日の赤字
+- アルバム：フォルダ作成/移動・お気に入り・共有
+- ダークモード時のヘッダー/背景・予定編集の時刻ピッカー・各フォームのキーボード回避
+
+### 次にやること
+- 実機起動確認とスクリーンショット取得
+- 送信側の削除同期（tombstone）・家族リアクション・アプリアイコン/スプラッシュのブランド化
+- EAS Build 設定（eas.json）と App Store 提出準備
+
+### コミット
+- ハッシュ: `d688528`（残課題）, `c4ea25f`（レビュー磨き込み）, 後続（キーボード/触覚仕上げ）
+- メッセージ: feat(mobile): 残課題実装 / polish(mobile): 全画面レビュー反映 / polish(mobile): キーボード回避・触覚の仕上げ

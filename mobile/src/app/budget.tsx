@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Button, Card, EmptyState } from '@/components/ui';
 import { Segmented } from '@/components/Segmented';
+import { haptic } from '@/lib/haptics';
 import { formatYen, todayISO } from '@/lib/utils';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -105,13 +106,14 @@ function AddTxModal({
   function save() {
     const n = parseInt(amount.replace(/[^0-9]/g, ''), 10);
     if (!n) return;
+    haptic.success();
     onSave({ type, amount: n, category, date: todayISO() });
     setAmount('');
   }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheetBackdrop}>
+      <KeyboardAvoidingView style={styles.sheetBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.sheet, { backgroundColor: colors.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }]}>
           <View style={styles.sheetHandle} />
           <AppText variant="title3">記録を追加</AppText>
@@ -146,7 +148,7 @@ function AddTxModal({
           <Button title="保存" onPress={save} />
           <Button title="キャンセル" variant="ghost" onPress={onClose} />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -98,7 +98,7 @@ export default function EventEditScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
         <TextInput
           value={title}
           onChangeText={setTitle}

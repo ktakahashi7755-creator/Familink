@@ -108,7 +108,7 @@ function MemoEditor({
             </AppText>
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
           <TextInput
             value={title}
             onChangeText={setTitle}

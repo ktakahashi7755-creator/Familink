@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Button, Card, EmptyState } from '@/components/ui';
+import { haptic } from '@/lib/haptics';
 import { formatDateJa, todayISO } from '@/lib/utils';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -26,6 +27,7 @@ export default function HealthScreen() {
       symptom: symptom.trim() || undefined,
       medication: medication.trim() || undefined,
     });
+    haptic.success();
     setTemp('');
     setSymptom('');
     setMedication('');
@@ -35,7 +37,7 @@ export default function HealthScreen() {
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Card>
           <AppText variant="footnote" muted style={{ marginBottom: 8 }}>
             今日の体調を記録
