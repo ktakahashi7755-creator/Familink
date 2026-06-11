@@ -3731,6 +3731,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .hoku-usage-upgrade::before {
   content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:44px; min-width:44px;
 }
+.task-chk, .tk-chk, .alb-srch-clr { position: relative; }
+.tk-chk::before, .alb-srch-clr::before {
+  content:""; position:absolute; top:50%; left:50%; width:44px; height:44px; transform:translate(-50%,-50%);
+}
+.task-chk::before {  /* ホームは行間が狭いため縦28pxに抑え隣の行と重ねない */
+  content:""; position:absolute; top:50%; left:50%; width:36px; height:28px; transform:translate(-50%,-50%);
+}
 .hoku-reset-btn, .prm-link, .ob2-footer-link { min-height:44px; display:inline-flex; align-items:center; }
 .ob2-link-guest { min-height:44px; display:flex; align-items:center; justify-content:center; }
 [role="button"]:focus-visible, .prep-chk:focus-visible { outline:2.5px solid var(--primary); outline-offset:2px; }
@@ -17534,6 +17541,7 @@ function shopDeleteItem(id) {
     saveS();
     renderShopping();
     renderHome();
+    showToast('削除しました','success');
   }, 'danger');
 }
 
@@ -17560,6 +17568,7 @@ function shopFreqDelete(id) {
     S.shoppingFrequent = (S.shoppingFrequent||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderShopping();
+    showToast('よく買うものから削除しました','success');
   }, 'danger');
 }
 
@@ -17598,6 +17607,7 @@ function shopHistDelete(id) {
     S.shoppingHistory = (S.shoppingHistory||[]).filter(function(x){ return x.id!==id; });
     saveS();
     renderShopping();
+    showToast('履歴を削除しました','success');
   }, 'danger');
 }
 
@@ -20367,6 +20377,9 @@ function checkLoginBonus(force) {
 function _openLoginBonusModal() {
   const d = _loginBonusPending;
   if(!d) return;
+  // 使い方ガイドが開いている間は重ねず、閉じられてから表示する（初回起動の2枚重ね防止）
+  const _guide = document.getElementById('m-guide');
+  if(_guide && _guide.classList.contains('open')) { setTimeout(_openLoginBonusModal, 700); return; }
   const body = document.getElementById('login-bonus-body');
   if(!body) return;
   const hourGreet = (function(){ const h = new Date().getHours(); return h < 11 ? 'おはようございます' : (h < 17 ? 'こんにちは' : 'こんばんは'); })();
