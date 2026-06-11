@@ -21235,3 +21235,54 @@ Hoku着せ替えをチャット内のHokuアイコンにも反映
 
 ### コミット
 - メッセージ: feat(hoku): 着せ替えスキンをチャット内のHokuアイコンにも反映
+
+---
+
+## 2026-06-11 11:30  env: iPhone経由（claude.ai/code リモート）  branch: claude/mobile-directory-setup-fe5s6u
+
+### 作業名
+`mobile/` 新規作成：React Native + Expo + TypeScript への全面刷新（基盤＋主要画面）
+
+### 変更ファイル
+- `mobile/`（新規ディレクトリ一式・59ファイル）
+  - `src/theme/`（tokens.ts / ThemeContext.tsx）, `src/lib/`（supabase / storage / utils）
+  - `src/store/`（useAuthStore / useFamilyStore）, `src/types/index.ts`
+  - `src/components/`（ui.tsx / Segmented.tsx）, `src/features/`（calendar / hoku）
+  - `src/app/`（_layout, index, onboarding, login, (tabs)×5, event-edit, album, shopping, budget, health）
+  - `app.json`（Familink ブランド・権限・Supabase extra）, `eslint.config.js`, `README.md`, `docs/MIGRATION.md`
+- ※ Web 本体（app-source/familink.html・docs/index.html）は **未変更**
+
+### 変更内容
+- 完成済み Web MVP を正本として解析し、デザイントークン（`:root` の iOS 風カラー/角丸/影）を 1:1 移植
+- Expo SDK 56 / RN 0.85 / React 19 / expo-router（typed routes）/ Zustand + AsyncStorage 永続化
+- Supabase クライアント（Web と同一プロジェクト・anon キーのみ・session を AsyncStorage 永続）
+- 認証：メール OTP ＋ ローカルモード（未ログインでも全機能可、Web 思想を踏襲）
+- Hoku：Edge Function `hoku` の契約（text/context/history → reply/intent/entities）に準拠＋オフライン応答フォールバック。intent に応じてチャット内「追加する」確認フロー
+- 主要画面実装：ホーム / 月カレンダー＋予定編集 / ボード（タスク・お知らせ）/ Hoku チャット / 設定 / アルバム（写真ピッカー＋ビューア）/ 買い物 / 家計 / 体調 / オンボーディング / ログイン
+- 移行マッピングを `mobile/docs/MIGRATION.md` に整理（22 screen → ルート、PERSIST → 型、次フェーズ優先度）
+
+### テスト結果
+- `npx tsc --noEmit`：**PASS（0 errors）**
+- `npx eslint "src/**/*.{ts,tsx}"`：**PASS（0 errors / 0 warnings）**
+- `npx expo export --platform ios`：**成功**（Hermes バンドル 4.9MB 生成。全ルート/インポート解決を確認）
+- `node qa_full_test.js`（Web の 84 テスト）：**未実施**（理由：Web 本体は無変更。今回は mobile/ の新規追加のみ）
+- 環境制約：ネットワークポリシーが Expo 版照合 API をブロックするため `expo install` / `expo lint` 不可 →
+  `bundledNativeModules.json` 固定版を npm 直 install、Lint は eslint 直実行で対応（README に明記）
+
+### 未確認事項
+- 実機での起動・操作（シミュレータ/Expo Go 未実行。本環境では UI ビルドのみ検証）
+- Supabase の OTP ログイン実通信・Hoku Edge Function 実呼び出し（要ログイン環境）
+- Supabase テーブル同期（events 等の push/pull）は未実装（MIGRATION 次フェーズ A）
+
+### iPhone確認ポイント
+- `cd mobile && npm install && npm start` → Expo Go で起動するか
+- 下タブ 5 画面の表示・カレンダーの予定追加/編集・アルバム写真追加・Hoku チャット
+- ライト/ダーク両モードの見た目（iOS トークン移植の確認）
+
+### 次にやること
+- 実機/シミュレータでの起動確認とスクリーンショット取得
+- Supabase テーブル同期（events/tasks/shopping）と Realtime 家族共有の実装
+- 準備リスト / メモ / 通知（expo-notifications）画面の移植
+
+### コミット
+- メッセージ: feat(mobile): React Native + Expo + TypeScript 版の基盤と主要画面を新規構築
