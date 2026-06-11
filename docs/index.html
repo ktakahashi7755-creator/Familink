@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260611a';
+  var V='v20260611b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8279,7 +8279,7 @@ let S = {
   albumPhotos: [],               // Wave 57: アルバム（{id, dataUrl, takenAt, memberId, caption}）
   faceGroups: [],                // Wave 266: 将来のAI顔認識用スキャフォールド（現在は未使用・端末内のみ。{groupId, suggestedMemberId, confidence, confirmedMemberId, photoIds[]}）
   ocrImports: [],                // Wave 268: 予定表スキャンの解析履歴（{id,createdAt,imageName,imagePreview,status,rawText,events,warnings}）
-  ocrScanUsage: null,            // Wave 269: 予定表スキャンの月間利用回数（無料は月30回）{ ym:'YYYY-MM', count }
+  ocrScanUsage: null,            // Wave 269: 予定表スキャンの月間利用回数（無料は月1回・プレミアムは月30回）{ ym:'YYYY-MM', count }
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   budgetVisibleMembers: null, // Wave 42：null=全員表示
@@ -12629,16 +12629,27 @@ function deleteCurrentEvent() {
    ============================================================ */
 let _ocr = { cands:[], image:null, imageName:'', preview:null, dark:false, keepImage:false, year:0, month:0, importId:'', prepCandidates:[], cancelled:false, watchdog:null };
 const _OCR_WD = ['日','月','火','水','木','金','土'];
-/* ── 予定表スキャンの月間利用回数（無料は月30回。読み取り成功時のみ消費＝失敗は取り直し自由）── */
-const OCR_FREE_MONTHLY = 30;
+/* ── 予定表スキャンの月間利用回数（無料は月1回・プレミアムは月30回。読み取り成功時のみ消費＝失敗は取り直し自由）── */
+const OCR_FREE_MONTHLY = 1;
+const OCR_PREMIUM_MONTHLY = 30;
+function _ocrMonthlyLimit(){ return S.isPremiumUser ? OCR_PREMIUM_MONTHLY : OCR_FREE_MONTHLY; }
 function _ocrCurYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function _ocrUsage(){ const ym=_ocrCurYM(); if(!S.ocrScanUsage || S.ocrScanUsage.ym!==ym){ S.ocrScanUsage={ ym:ym, count:0 }; } return S.ocrScanUsage; }
-function _ocrScanLeft(){ return S.isPremiumUser ? Infinity : Math.max(0, OCR_FREE_MONTHLY - _ocrUsage().count); }
+function _ocrScanLeft(){ return Math.max(0, _ocrMonthlyLimit() - _ocrUsage().count); }
 function _ocrCanScan(){ return _ocrScanLeft() > 0; }
-function _ocrIncUsage(){ if(S.isPremiumUser) return; const u=_ocrUsage(); u.count++; saveS(); }
+function _ocrIncUsage(){ const u=_ocrUsage(); u.count++; saveS(); }
 function _ocrShowScanLimit(){
-  if(typeof showUpgradeModal==='function') showUpgradeModal('予定表の読み取り（今月分）', OCR_FREE_MONTHLY);
-  else showToast('今月の予定表の読み取り回数（無料'+OCR_FREE_MONTHLY+'回）に達しました','error');
+  if(S.isPremiumUser){
+    // プレミアムは上限到達の案内のみ（アップグレード導線は出さない）
+    showToast('今月の予定表の読み取り上限（'+OCR_PREMIUM_MONTHLY+'回）に達しました。来月になるとまた使えます','info');
+    return;
+  }
+  if(typeof showUpgradeModal==='function'){
+    showUpgradeModal('予定表の読み取り（今月分）', OCR_FREE_MONTHLY,
+      '無料プランでは予定表の読み取りは<strong>月'+OCR_FREE_MONTHLY+'回</strong>までです。<br>プレミアムにアップグレードすると<strong>月'+OCR_PREMIUM_MONTHLY+'回</strong>まで読み取れます。');
+  } else {
+    showToast('今月の予定表の読み取り回数（無料は月'+OCR_FREE_MONTHLY+'回）に達しました','error');
+  }
 }
 const _OCR_ITEMS = ['お弁当','水筒','レジャーシート','上履き','体操服','体操着','帽子','タオル','着替え','水着','絵の具','ねんど','給食袋','コップ','歯ブラシ','長靴','傘','軍手','雑巾','名札','エプロン','三角巾'];
 
@@ -12649,7 +12660,7 @@ function openOcrIntro() {
   const hk=document.getElementById('ocr-intro-hoku'); if(hk && typeof IMGS!=='undefined') hk.src=IMGS.hoku||'';
   const keep=document.getElementById('ocr-keep-img'); if(keep) keep.checked=false;
   const q=document.getElementById('ocr-quota');
-  if(q){ if(S.isPremiumUser){ q.style.display='none'; } else { q.style.display=''; const left=_ocrScanLeft(); q.innerHTML='今月の読み取り：あと <b>'+left+'</b> / '+OCR_FREE_MONTHLY+' 回（無料）'+(left<=0?' — <span style="color:var(--red);">上限に達しました</span>':''); } }
+  if(q){ q.style.display=''; const left=_ocrScanLeft(); const lim=_ocrMonthlyLimit(); q.innerHTML='今月の読み取り：あと <b>'+left+'</b> / '+lim+' 回'+(S.isPremiumUser?'（プレミアム）':'（無料）')+(left<=0?' — <span style="color:var(--red);">上限に達しました</span>':''); }
   ocrSetMode('monthly');
   openModal('m-ocr-intro');
 }
@@ -12716,7 +12727,7 @@ function _ocrImageMeta(dataUrl, cb) {
 }
 /* 「解析する」→ AI解析（モック）→ 候補確認 or 失敗UX */
 function ocrStartAnalyze() {
-  // 無料は月30回まで（解析前にチェック。読み取り成功時のみ消費＝失敗の取り直しは無料）
+  // 無料は月1回・プレミアムは月30回（解析前にチェック。読み取り成功時のみ消費＝失敗の取り直しは無料）
   if(!_ocrCanScan()){ closeModal('m-ocr-preview'); _ocrShowScanLimit(); return; }
   closeModal('m-ocr-preview');
   openModal('m-ocr-loading');
@@ -12744,7 +12755,7 @@ function ocrStartAnalyze() {
       return;
     }
     if(_ocr.keepImage && _ocr.image) ocrSaveImageToAlbum(_ocr.image);
-    _ocrIncUsage();   // 読み取り成功＝1回消費（無料は月30回まで）
+    _ocrIncUsage();   // 読み取り成功＝1回消費（無料は月1回・プレミアムは月30回）
     _ocr.cands = cands;
     _ocr.bulkMember = '';
     ocrRenderReview();
@@ -21317,7 +21328,7 @@ function checkPremiumLimit(key) {
 }
 
 /* Wave 229: コンテキスト付きアップグレードモーダル */
-function showUpgradeModal(featureLabel, freeLimit) {
+function showUpgradeModal(featureLabel, freeLimit, customBody) {
   const overlay = document.getElementById('m-upgrade-overlay');
   const box = document.getElementById('m-upgrade-box');
   if(!overlay || !box) { go('s-premium'); return; }
@@ -21327,7 +21338,7 @@ function showUpgradeModal(featureLabel, freeLimit) {
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
       </div>
       <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;">${featureLabel}の上限に達しました</div>
-      <div style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:18px;">無料プランでは${featureLabel}は${freeLimit}件まで保存できます。<br>プレミアムにアップグレードすると<strong>無制限</strong>で使えます。</div>
+      <div style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:18px;">${customBody || `無料プランでは${featureLabel}は${freeLimit}件まで保存できます。<br>プレミアムにアップグレードすると<strong>無制限</strong>で使えます。`}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
       <button onclick="closeUpgradeModal();go('s-premium');"
