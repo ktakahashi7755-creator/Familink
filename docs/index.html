@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260611e';
+  var V='v20260611f';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5732,8 +5732,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <div class="modal" onclick="event.stopPropagation()" style="text-align:center;">
     <div class="ocr-spinner"></div>
     <div class="modal-title" style="margin-top:14px;">読み取っています…</div>
-    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-top:4px;">写真から予定を探しています。<br>少しお待ちください。</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-top:4px;">AIが写真から予定を探しています。<br>1分ほどかかることがあります。</div>
     <button class="btn btn-ghost btn-block" onclick="ocrCancelLoading()" style="margin-top:14px;">キャンセル</button>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">キャンセルしても読み取り回数は消費されません</div>
   </div>
 </div>
 
@@ -6645,10 +6646,15 @@ async function _fetchFromSupabase() {
       saveS();
       // 家族の members を取り込んだら MEMBERS グローバルを再構築（ピッカー/アバター反映）
       try { applyMembersFromS(); } catch(_){}
-      // 同期由来の再描画でスクロール位置が飛ばないよう保存→復元（家族の更新中もガクッとしない）
-      let _sy = 0; try { const _sa = document.querySelector('.screen:not(.hidden) .scroll-area'); _sy = _sa ? _sa.scrollTop : 0; } catch(_){}
-      try { go(S.screen); } catch(_){}
-      try { if(_sy) { const _sa2 = document.querySelector('.screen:not(.hidden) .scroll-area'); if(_sa2) _sa2.scrollTop = _sy; } } catch(_){}
+      // モーダルで入力中なら再描画を見送る（家族の同期で入力内容が消えるのを防ぐ。
+      // データは S に取り込み済みのため、モーダルを閉じた後の操作/遷移で反映される）
+      const _modalOpen = document.querySelector('.modal-backdrop.open');
+      if(!_modalOpen) {
+        // 同期由来の再描画でスクロール位置が飛ばないよう保存→復元（家族の更新中もガクッとしない）
+        let _sy = 0; try { const _sa = document.querySelector('.screen:not(.hidden) .scroll-area'); _sy = _sa ? _sa.scrollTop : 0; } catch(_){}
+        try { go(S.screen); } catch(_){}
+        try { if(_sy) { const _sa2 = document.querySelector('.screen:not(.hidden) .scroll-area'); if(_sa2) _sa2.scrollTop = _sy; } } catch(_){}
+      }
     }
     window._lastSyncError = '';
     _setSyncDot('synced');
@@ -7862,9 +7868,10 @@ function doSupaInviteSubmit() {
     return;
   }
   if(raw === S.familyId) {
-    if(errEl) errEl.textContent = 'これはあなた自身の招待コードです';
+    if(errEl) errEl.textContent = 'このコードには既に参加しています';
     return;
   }
+  const _applyJoin = function() {
   _setFamilyId(raw);
   closeModal('m-supa-invite');
   closeModal('m-supa-auth');
@@ -7893,6 +7900,16 @@ function doSupaInviteSubmit() {
   } else {
     _enterApp(true);
   }
+  };
+  // 既に別の家族に参加中なら、黙って切り替えず必ず確認する（家族の取り違え防止）
+  if(S.familyId && S.familyId !== raw) {
+    closeModal('m-supa-invite');
+    showConfirm('別の家族に切り替え',
+      '現在「'+S.familyId+'」に参加中です。新しいコード「'+raw+'」の家族に切り替えますか？端末内のデータは消えませんが、共有先が新しい家族に変わります。',
+      '切り替える', _applyJoin, 'warning');
+    return;
+  }
+  _applyJoin();
 }
 
 /* 家族グループから抜ける（コードをリセット）。クラウド上の自分の行の family_id を
@@ -12681,7 +12698,9 @@ function ocrStartAnalyze() {
     if(_ocr.watchdog) { clearTimeout(_ocr.watchdog); _ocr.watchdog=null; }
     if(_ocr.cancelled) return;
     closeModal('m-ocr-loading');
-    _ocrShowFail(['読み取れませんでした','もう一度、別の写真でお試しください']);
+    _ocrShowFail(navigator.onLine
+      ? ['読み取れませんでした','もう一度、別の写真でお試しください']
+      : ['インターネットに接続されていません','接続を確認して、もう一度お試しください']);
   });
 }
 function ocrCancelLoading(){ _ocr.cancelled = true; if(_ocr.watchdog){ clearTimeout(_ocr.watchdog); _ocr.watchdog=null; } closeModal('m-ocr-loading'); }
@@ -12876,6 +12895,13 @@ function _ocrNormDate(d){
   if(m){ return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); }
   return d.slice(0,10);
 }
+/* 実在する日付か（2/30 等は JS の Date が 3/2 へ繰り上げるため、成分一致まで確認する） */
+function _ocrDateIsReal(s){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||''); if(!m) return false;
+  const y=+m[1], mo=+m[2], d=+m[3];
+  const dt=new Date(y, mo-1, d);
+  return dt.getFullYear()===y && dt.getMonth()===mo-1 && dt.getDate()===d;
+}
 /* eventCandidate 形へ正規化（spec: id/title/date/startTime/endTime/allDay/location/memberId/notes/confidence/needsReview/warnings/source） */
 function _ocrNormCand(d) {
   d = d || {};
@@ -12904,8 +12930,8 @@ function _ocrExtractItems(c){ const t=(c.notes||'')+' '+(c.title||'')+' '+(c.ori
    信頼度<0.85 もしくは warnings ありを needsReview=true に。 */
 function _ocrValidateCand(c, ctx) {
   const warns = Array.isArray(c.warnings) ? c.warnings.slice() : [];
-  const dObj = c.date ? new Date(c.date+'T00:00:00') : null;
-  const validDate = dObj && !isNaN(dObj.getTime());
+  const validDate = _ocrDateIsReal(c.date);
+  const dObj = validDate ? new Date(c.date+'T00:00:00') : null;
   if(!validDate) warns.push('日付が読み取れませんでした');
   if(!c.title) warns.push('タイトルが読み取れませんでした');
   if(!c.allDay && !c.startTime) warns.push('開始時間が読み取れませんでした');
@@ -12949,6 +12975,8 @@ function ocrRenderReview() {
   const sp=document.querySelector('#ocr-review-hoku span'); if(sp) sp.textContent=msg;
   ocrRenderMemberBar();
   // 日付ごとにグループ化して見やすく（多件でも検証しやすい）
+  // 編集で日付が変わっても見出しが崩れないよう、描画前に日付順へ整列（日付なしは最後）
+  _ocr.cands.sort(function(a,b){ return String(a.date||'9999-99-99').localeCompare(String(b.date||'9999-99-99')); });
   const list=document.getElementById('ocr-list');
   if(list){
     let html='', curDate=null;
@@ -13075,8 +13103,9 @@ function registerSelectedOcrEvents(cands){
 function ocrAddSelected(){
   const sel=_ocr.cands.filter(function(c){return c._sel;});
   if(!sel.length) return;
-  const invalid=sel.filter(function(c){ return !c.title || !c.date; });
-  if(invalid.length){ showToast('タイトルと日付が必要な予定があります。編集してください','error'); return; }
+  // タイトル・日付の存在に加え、日付の実在（2/30 等は Date が繰り上げるため成分一致で確認）
+  const invalid=sel.filter(function(c){ return !c.title || !_ocrDateIsReal(c.date); });
+  if(invalid.length){ showToast('タイトルと正しい日付が必要な予定があります。編集してください','error'); return; }
   const dups=sel.filter(function(c){return c._dup;});
   const proceed=function(){
     // 無料プランの上限を考慮し「入る分だけ」追加（黙って失敗させない）
@@ -20864,13 +20893,13 @@ function renderSettings() {
           <div class="settings-item" onclick="openMyInviteModal()">
             <div class="settings-item-icon" style="background:#F0FDF4">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#22C55E')}</div>
             <div class="settings-item-label">家族を招待する
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'コードを生成して家族に共有'}</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'あなたが最初の1人。コードを作って家族に送る'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
           <div class="settings-item" onclick="openSupaInviteModal()">
             <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#F59E0B')}</div>
             <div class="settings-item-label">招待コードで参加
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族から受け取ったコードで参加'}</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族からもらったコードをここで入力'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
           ${S.familyId ? `<div class="settings-item" onclick="leaveFamilyGroup()">
@@ -20898,13 +20927,13 @@ function renderSettings() {
         : `<div class="settings-item" onclick="openMyInviteModal()">
             <div class="settings-item-icon" style="background:#F0FDF4">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#22C55E')}</div>
             <div class="settings-item-label">家族を招待する
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'コードを生成して家族に共有'}</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '招待コード: '+S.familyId : 'あなたが最初の1人。コードを作って家族に送る'}</div>
             </div><div class="settings-arrow">›</div>
           </div>
           <div class="settings-item" onclick="openSupaInviteModal()">
             <div class="settings-item-icon" style="background:#FFF7ED">${si('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>','#F59E0B')}</div>
             <div class="settings-item-label">招待コードで参加
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族から受け取ったコードで参加'}</div>
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">${S.familyId ? '参加中: '+S.familyId : '家族からもらったコードをここで入力'}</div>
             </div><div class="settings-arrow">›</div>
           </div>`}
     </div>
