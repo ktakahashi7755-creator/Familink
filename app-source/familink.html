@@ -3661,6 +3661,53 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 [role="button"]:focus-visible, .prep-chk:focus-visible { outline:2.5px solid var(--primary); outline-offset:2px; }
 @media (max-width:375px){ .home-mode-btn{ max-width:84px; } }
 
+/* ── 実演ツアー（スポットライト式 使い方ガイド） ── */
+.tour-overlay { position:fixed; inset:0; z-index:850; }
+.tour-overlay.hidden { display:none; }
+.tour-spot {
+  position:absolute; border-radius:14px; pointer-events:none;
+  box-shadow:0 0 0 200vmax rgba(15,23,42,.62);
+  border:2.5px solid rgba(255,255,255,.95);
+  transition:all .38s cubic-bezier(.4,0,.2,1);
+  animation:tourPulse 2s ease-in-out infinite;
+}
+@keyframes tourPulse {
+  0%,100% { box-shadow:0 0 0 200vmax rgba(15,23,42,.62), 0 0 0 0 rgba(10,132,255,.45); }
+  50%      { box-shadow:0 0 0 200vmax rgba(15,23,42,.62), 0 0 0 9px rgba(10,132,255,0); }
+}
+.tour-tip {
+  position:absolute; left:12px; right:12px; max-width:360px; margin:0 auto;
+  background:var(--bg-card); border-radius:18px; padding:15px 16px 13px;
+  box-shadow:0 12px 40px rgba(15,23,42,.3);
+  animation:tourTipIn .3s cubic-bezier(.34,1.3,.5,1) both;
+}
+@keyframes tourTipIn { from { opacity:0; transform:translateY(8px) scale(.97); } to { opacity:1; transform:none; } }
+.tour-tip-head { display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+.tour-tip-head img { width:38px; height:38px; object-fit:contain; flex:none; }
+.tour-step-no { font-size:10.5px; font-weight:800; color:var(--primary); letter-spacing:.6px; }
+.tour-title { font-size:15.5px; font-weight:800; color:var(--text); line-height:1.35; }
+.tour-text { font-size:13px; line-height:1.7; color:var(--text-sub); }
+.tour-dots { display:flex; gap:5px; justify-content:center; margin:11px 0 2px; }
+.tour-dot { width:6px; height:6px; border-radius:50%; background:var(--border); transition:var(--t); }
+.tour-dot.on { background:var(--primary); width:16px; border-radius:3px; }
+.tour-btns { display:flex; align-items:center; gap:8px; margin-top:9px; }
+.tour-skip { background:none; border:none; color:var(--text-muted); font-size:12.5px; font-weight:600; padding:10px 6px; min-height:44px; cursor:pointer; }
+.tour-prev { background:var(--bg-muted); border:none; color:var(--text-sub); font-size:13.5px; font-weight:700; padding:10px 16px; min-height:44px; border-radius:var(--r-full); cursor:pointer; }
+.tour-next { background:var(--primary); border:none; color:#fff; font-size:14px; font-weight:800; padding:10px 22px; min-height:44px; border-radius:var(--r-full); cursor:pointer; }
+.tour-next:active { transform:scale(.96); }
+.tour-cta {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+  background:linear-gradient(135deg,#0A84FF,#3FA0FF); color:#fff; border:none;
+  border-radius:14px; padding:14px; font-size:14.5px; font-weight:800; cursor:pointer;
+  box-shadow:0 4px 14px rgba(10,132,255,.3); margin-bottom:14px; min-height:50px;
+}
+.tour-cta:active { transform:scale(.98); }
+.tour-sec-play {
+  display:inline-flex; align-items:center; gap:4px; margin-top:7px;
+  background:var(--primary-light); color:var(--primary); border:none;
+  border-radius:var(--r-full); padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; min-height:30px;
+}
+
 </style>
 </head>
 <body>
@@ -5332,6 +5379,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-title">Familink の使い方</div>
     <div id="guide-body" style="overflow-y:auto;flex:1;margin:4px -4px 12px;padding:0 4px;"></div>
     <button class="btn btn-primary btn-block" onclick="closeModal('m-guide')">とじる</button>
+  </div>
+</div>
+
+<!-- 実演ツアー（スポットライトで実際のボタンを順番に案内） -->
+<div id="app-tour" class="tour-overlay hidden" onclick="tourNext()">
+  <div class="tour-spot" id="tour-spot"></div>
+  <div class="tour-tip" id="tour-tip" onclick="event.stopPropagation()">
+    <div class="tour-tip-head">
+      <img id="tour-hoku" src="" alt="Hoku" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:0;">
+        <div class="tour-step-no" id="tour-step-no"></div>
+        <div class="tour-title" id="tour-title"></div>
+      </div>
+    </div>
+    <div class="tour-text" id="tour-text"></div>
+    <div class="tour-dots" id="tour-dots"></div>
+    <div class="tour-btns">
+      <button class="tour-skip" onclick="endAppTour()">終了</button>
+      <div style="flex:1"></div>
+      <button class="tour-prev" id="tour-prev" onclick="event.stopPropagation();tourPrev()">戻る</button>
+      <button class="tour-next" id="tour-next" onclick="event.stopPropagation();tourNext()">次へ</button>
+    </div>
   </div>
 </div>
 
@@ -21065,31 +21134,128 @@ function renderSettings() {
    Wave 104 — 使い方ガイド（チュートリアル）
    ============================================================ */
 function openGuide() {
-  const sec = (icon, color, bg, title, desc) =>
+  const sec = (icon, color, bg, title, desc, tourScreen) =>
     '<div style="display:flex;gap:12px;padding:13px 14px;background:#fff;border:1px solid var(--border-light);border-radius:14px;margin-bottom:9px;">'
     + '<div style="flex:none;width:42px;height:42px;border-radius:12px;background:'+bg+';color:'+color+';display:flex;align-items:center;justify-content:center;">'+ICON(icon,22)+'</div>'
     + '<div style="flex:1;min-width:0;">'
     +   '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">'+title+'</div>'
     +   '<div style="font-size:12px;line-height:1.65;color:var(--text-sub);">'+desc+'</div>'
+    +   (tourScreen ? '<button class="tour-sec-play" onclick="closeModal(\'m-guide\');setTimeout(function(){startAppTour(\''+tourScreen+'\');},260);">▶ この画面で実演を見る</button>' : '')
     + '</div></div>';
   const body = document.getElementById('guide-body');
   if(body) body.innerHTML =
-      '<div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:var(--bg-muted);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
-    + 'Familink は、家族の予定・やること・家計・体調をひとつにまとめるアプリです。画面下のタブで各機能に移動できます。</div>'
-    + sec('home','#3F73C8','#EBF4FF','ホーム','今日の予定・やること・気になることがひと目で。1 日の始まりに、まずここを確認しましょう。')
-    + sec('calendar','#3F73C8','#EBF4FF','カレンダー（予定）','家族の予定を月・週・リストで表示。＋ボタンで追加でき、担当者ごとに色分けされます。')
-    + sec('check','#3A9E6B','#DCFCE7','タスク','「やること」を家族で共有。担当・期限・優先度を設定でき、終わったらチェックします。')
-    + sec('wallet','#B8902F','#FFF8DC','家計','日々の支出・収入をカテゴリ別に記録。月のサマリや資金繰りの見通しも確認できます。')
-    + sec('thermometer','#D05858','#FFE8E8','体調','体温・症状・薬・受診の記録を時系列で残し、あとから家族で振り返れます。')
-    + sec('cart','#C8743A','#FFF0E3','買い物リスト','買うものをリスト化。よく買うものを登録しておけば、ワンタップで追加できます。')
-    + sec('chat','#7C5BD0','#F0EBFF','家族ボード','連絡事項やできごとを家族で共有。コメントやリアクションでやり取りできます。')
-    + sec('sparkle','#C8A35C','#FAF1DC','Hoku に話しかける','「明日15時に歯医者」のように話しかけるだけ。予定・タスク・家計などへ自動でふり分け、確認してから保存します。「明日の歯医者の予定消して」で削除もできます。')
+      '<button class="tour-cta" onclick="closeModal(\'m-guide\');setTimeout(function(){startAppTour();},260);">'
+    + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>'
+    + '実演ツアーをはじめる（約1分）</button>'
+    + '<div style="font-size:12px;line-height:1.7;color:var(--text-sub);background:var(--bg-muted);border-radius:12px;padding:12px 14px;margin-bottom:14px;">'
+    + 'Familink は、家族の予定・やること・家計・体調をひとつにまとめるアプリです。画面下のタブで各機能に移動できます。実際のボタンを順番に光らせて案内する「実演ツアー」がおすすめです。</div>'
+    + sec('home','#3F73C8','#EBF4FF','ホーム','今日の予定・やること・気になることがひと目で。左上で共有用/自分用スペースの切り替え、右上のベルで通知を確認できます。','s-home')
+    + sec('calendar','#3F73C8','#EBF4FF','カレンダー（予定）','家族の予定を月・週・リストで表示。右下の＋で追加、📷ボタンで紙の予定表をAI読み取り、「連携」でGoogle/iPhoneカレンダーもまとめられます。','s-cal')
+    + sec('check','#3A9E6B','#DCFCE7','タスク','「やること」を家族で共有。右上の＋で追加し、担当・期限・優先度を設定。終わったら丸をチェックします。','s-task')
+    + sec('wallet','#B8902F','#FFF8DC','家計','右下の＋から支出・収入をカテゴリ別に記録。月のサマリや資金繰りの見通しも確認できます。','s-budget')
+    + sec('thermometer','#D05858','#FFE8E8','体調','右上の＋から体温・症状・薬・受診を記録。時系列で残り、あとから家族で振り返れます。','s-health')
+    + sec('cart','#C8743A','#FFF0E3','買い物リスト','右上の＋で買うものを追加。「よく購入するもの」に登録しておけばワンタップで追加できます。','s-shopping')
+    + sec('chat','#7C5BD0','#F0EBFF','家族ボード','右上の＋で連絡事項やできごとを投稿。コメントやリアクションでやり取りできます。','s-board')
+    + sec('sparkle','#C8A35C','#FAF1DC','Hoku に話しかける','「明日15時に歯医者」のように話しかけるだけ。予定・タスク・家計などへ自動でふり分け、確認してから保存します。「明日の歯医者の予定消して」で削除もできます。','s-hoku')
     + sec('bulb','#B8902F','#FFF8DC','便利なヒント','・マイクボタンで音声入力ができます<br>・各項目はタップで編集・削除<br>・設定 →「データの書き出し / 読み込み」で端末間の引き継ぎができます');
   // 末尾：プレミアムの状態と解約導線（ガイド下部の控えめな位置）
   const _premSec = _guidePremiumSection();
   if(body && _premSec) { const _pd = document.createElement('div'); _pd.innerHTML = _premSec; body.appendChild(_pd); }
   openModal('m-guide');
 }
+/* ── 実演ツアー：実際のボタンをスポットライトで順番に強調しながら案内する ──
+   startAppTour()          … 全画面ツアー（約20ステップ）
+   startAppTour('s-cal')   … その画面のステップだけ実演
+   対象が見つからないステップは自動スキップ（画面仕様変更に強い） */
+const APP_TOUR_STEPS = [
+  { s:'s-home',     sel:'#home-mode-btn', title:'スペースの切り替え', text:'家族と共有する「共有用」と、自分だけの「自分用」をワンタップで切り替えられます。' },
+  { s:'s-home',     sel:'#home-coins-btn', title:'ファミコイン', text:'毎日アプリを開くと貯まるコインです。ファミショップでHokuの着せ替えに使えます。' },
+  { s:'s-home',     sel:'#home-bell-btn', title:'通知', text:'家族の新しい投稿や予定の変更がここに届きます。タップすると通知一覧へ移動します。' },
+  { s:'s-home',     sel:'#s-home .home-board-scroll', title:'ホームのカード', text:'予定・やること・家族ボードなど「今日の家族」をまとめて確認。カードをタップするとその画面に移動します。', pad:0 },
+  { s:'s-home',     sel:'#tabbar', title:'下のタブバー', text:'ホーム・やること・カレンダー・家計・ボードへいつでも移動できます。タブの並びは設定で変えられます。' },
+  { s:'s-task',     sel:'#s-task .header button[aria-label="タスクを追加"]', title:'やることの追加', text:'＋を押すとタスクを追加できます。担当者・期限・くり返し・優先度も設定できます。' },
+  { s:'s-task',     sel:'#s-task .tk-filter-btn', title:'やることの絞り込み', text:'「今日」「今週」「期限切れ」「完了済み」でさっと絞り込めます。' },
+  { s:'s-cal',      sel:'#s-cal .cal-view-tabs', title:'カレンダーの表示切替', text:'月・週・リストの3つの見え方を切り替えられます。' },
+  { s:'s-cal',      sel:'#s-cal button[aria-label="カレンダーを連携する"]', title:'カレンダー連携', text:'Google・iPhoneカレンダーの予定をFamilinkへまとめる入口です。' },
+  { s:'s-cal',      sel:'#s-cal .cal-scan-fab', title:'予定表をカメラで読み取り', text:'学校だよりや習い事の予定表を撮影すると、AIが予定を読み取ってまとめて登録できます。' },
+  { s:'s-cal',      sel:'#s-cal .cal-fab-btn', title:'予定の追加', text:'＋から予定を追加。日時・担当・色分け・くり返しを設定できます。' },
+  { s:'s-budget',   sel:'#s-budget .fab', title:'収支の記録', text:'＋から支出・収入をカテゴリ別に記録。月のまとめや資金繰りの見通しも自動で集計されます。' },
+  { s:'s-board',    sel:'#board-add-btn', title:'家族ボードに投稿', text:'連絡事項やできごとを投稿して家族に共有。コメントやリアクションでやり取りできます。' },
+  { s:'s-shopping', sel:'#s-shopping .header button[aria-label="買い物を追加"]', title:'買い物の追加', text:'買うものをリストに追加。買えたら丸をチェックすると購入履歴に移ります。' },
+  { s:'s-shopping', sel:'#s-shopping [data-shop-tab="frequent"]', title:'よく購入するもの', text:'定番の品を登録しておけば、ワンタップでリストに追加できます。' },
+  { s:'s-health',   sel:'#s-health .header button[aria-label="体調を記録"]', title:'体調の記録', text:'＋から体温・症状・薬を記録。家族みんなの体調を時系列で見守れます。' },
+  { s:'s-hoku',     sel:'#hoku-input', title:'Hokuに話しかける', text:'「明日15時に歯医者」と送るだけで予定を登録。やることや家計の記録、「明日の予定教えて」もOKです。', pos:'top' },
+  { s:'s-settings', sel:'.settings-item[onclick="openMyInviteModal()"]', title:'家族を招待', text:'招待コードを作って家族に送れば、予定もやることもみんなで共有できます。' },
+  { s:'s-settings', sel:'.settings-item[onclick="openGuide()"]', title:'いつでもこのガイドへ', text:'迷ったら 設定 →「使い方ガイド」へ。実演ツアーは何度でも見られます。これでツアーは終了です！' },
+];
+let _tourState = { on:false, i:0, steps:[], from:'' };
+function startAppTour(filterScreen) {
+  try { document.querySelectorAll('.modal-backdrop.open').forEach(function(m){ closeModal(m.id); }); } catch(_){}
+  const steps = filterScreen ? APP_TOUR_STEPS.filter(function(st){ return st.s===filterScreen; }) : APP_TOUR_STEPS.slice();
+  if(!steps.length) return;
+  _tourState = { on:true, i:0, steps:steps, from:S.screen };
+  const hk = document.getElementById('tour-hoku');
+  if(hk){ try { hk.src = (typeof equippedHokuImg==='function' && equippedHokuImg()) || IMGS.hoku || ''; hk.style.display=''; } catch(_){ hk.src = (typeof IMGS!=='undefined' && IMGS.hoku) || ''; } }
+  document.getElementById('app-tour').classList.remove('hidden');
+  _tourShow(0, 1);
+}
+function _tourShow(i, dir) {
+  const st = _tourState; if(!st.on) return;
+  if(i < 0) { i = 0; dir = 1; }
+  if(i >= st.steps.length) { endAppTour(true); return; }
+  st.i = i;
+  const step = st.steps[i];
+  if(S.screen !== step.s) { try { go(step.s); } catch(_){} }
+  setTimeout(function(){
+    if(!st.on || st.i !== i) return;
+    let el = null;
+    try { el = document.querySelector(step.sel); } catch(_){}
+    const visible = el && el.getClientRects().length > 0 && el.getBoundingClientRect().width > 0;
+    if(!visible) { _tourShow(i + (dir||1), dir||1); return; }   // 対象なし → 自動スキップ
+    try { el.scrollIntoView({block:'center'}); } catch(_){}
+    requestAnimationFrame(function(){ if(st.on && st.i===i) _tourPlace(el, step); });
+  }, S.screen===step.s ? 80 : 430);
+}
+function _tourPlace(el, step) {
+  const r = el.getBoundingClientRect();
+  const pad = (typeof step.pad==='number') ? step.pad : 6;
+  const spot = document.getElementById('tour-spot');
+  spot.style.left   = Math.max(4, r.left - pad) + 'px';
+  spot.style.top    = Math.max(4, r.top - pad) + 'px';
+  spot.style.width  = Math.min(window.innerWidth - 8, r.width + pad*2) + 'px';
+  spot.style.height = (r.height + pad*2) + 'px';
+  const st = _tourState, n = st.steps.length, i = st.i;
+  document.getElementById('tour-step-no').textContent = 'STEP ' + (i+1) + ' / ' + n;
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-text').textContent = step.text;
+  let dots = ''; for(let d=0; d<n; d++) dots += '<span class="tour-dot'+(d===i?' on':'')+'"></span>';
+  document.getElementById('tour-dots').innerHTML = dots;
+  document.getElementById('tour-prev').style.visibility = (i===0) ? 'hidden' : 'visible';
+  document.getElementById('tour-next').textContent = (i===n-1) ? '完了' : '次へ';
+  // 吹き出しは対象と重ならない側（上下）に自動配置
+  const tip = document.getElementById('tour-tip');
+  const mid = r.top + r.height/2;
+  if(step.pos==='top' || (step.pos!=='bottom' && mid > window.innerHeight*0.52)) {
+    tip.style.top = 'auto';
+    tip.style.bottom = Math.max(12, window.innerHeight - r.top + pad + 12) + 'px';
+  } else {
+    tip.style.bottom = 'auto';
+    tip.style.top = Math.min(window.innerHeight - 230, r.bottom + pad + 12) + 'px';
+  }
+}
+function tourNext() { if(_tourState.on) _tourShow(_tourState.i + 1, 1); }
+function tourPrev() { if(_tourState.on) _tourShow(_tourState.i - 1, -1); }
+function endAppTour(completed) {
+  if(!_tourState.on) return;
+  _tourState.on = false;
+  document.getElementById('app-tour').classList.add('hidden');
+  if(completed) {
+    try { go('s-home'); } catch(_){}
+    showToast('ツアー完了！設定 → 使い方ガイドからいつでも見直せます','success');
+  }
+}
+window.addEventListener('resize', function(){ if(_tourState.on) _tourShow(_tourState.i, 1); });
+
 /* ガイド末尾のプレミアム欄（解約導線）— 有料会員のみ表示、無料会員には非表示 */
 function _guidePremiumSection() {
   if(!S.isPremiumUser) return '';
