@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260611c';
+  var V='v20260611d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -13046,7 +13046,9 @@ function ocrRenderReview() {
       if(c.date !== curDate){
         curDate=c.date;
         const d=c.date?new Date(c.date+'T00:00:00'):null;
-        const lbl=(d&&!isNaN(d.getTime())) ? ((d.getMonth()+1)+'月'+d.getDate()+'日（'+_OCR_WD[d.getDay()]+'）') : '日付なし';
+        // 今年以外（年間予定表の年跨ぎ等）は年も表示して誤解を防ぐ
+        const yPre=(d&&!isNaN(d.getTime())&&d.getFullYear()!==new Date().getFullYear())?(d.getFullYear()+'年'):'';
+        const lbl=(d&&!isNaN(d.getTime())) ? (yPre+(d.getMonth()+1)+'月'+d.getDate()+'日（'+_OCR_WD[d.getDay()]+'）') : '日付なし';
         html+='<div class="ocr-date-hdr">'+H(lbl)+'</div>';
       }
       html+=_ocrCard(c);
@@ -13074,14 +13076,12 @@ function ocrBulkMember(id){
 }
 function _ocrConfTier(c){ return c.confidence>=0.85?{cls:'hi',label:'高'}:(c.confidence>=0.7?{cls:'mid',label:'確認推奨'}:{cls:'lo',label:'要修正'}); }
 function _ocrCard(c) {
-  const dObj = c.date ? new Date(c.date+'T00:00:00') : null;
-  const wk = (dObj && !isNaN(dObj.getTime())) ? '（'+_OCR_WD[dObj.getDay()]+'）' : '';
-  const dateStr = c.date ? (c.date.slice(5).replace('-','/')+wk) : '日付なし';
+  // 日付はグループ見出しに表示済みのため、カード内は時刻・場所のみ（重複表示をやめる）
   const timeStr = c.allDay ? '終日' : (c.startTime ? (H(c.startTime)+(c.endTime?' 〜 '+H(c.endTime):'')) : '時間未設定');
   const tier = _ocrConfTier(c);
   const mem = c.memberId ? getMem(c.memberId) : null;
   const col = (c.memberId && typeof getMemberColor==='function') ? getMemberColor(c.memberId) : '#0A84FF';
-  const meta = [dateStr, timeStr].concat(c.location?[H(c.location)]:[]).join('<span class="dot">・</span>');
+  const meta = [timeStr].concat(c.location?[H(c.location)]:[]).join('<span class="dot">・</span>');
   const memTag = mem ? ' <span class="ocr-mem-tag">'+avHtml(c.memberId,18,9)+H(mem.name)+'</span>' : '';
   // 警告は1行に集約（多件でも縦に伸びすぎない）
   let warnLine='';
