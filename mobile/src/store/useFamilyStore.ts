@@ -36,6 +36,9 @@ import type {
 interface FamilyState {
   hydrated: boolean;
 
+  /** Family scope id for Supabase sharing. Undefined = solo (owner's id used). */
+  familyId?: string;
+
   profile: UserProfile;
   members: Member[];
   events: FamilyEvent[];
@@ -115,7 +118,24 @@ interface FamilyState {
   // premium
   setPremium: (patch: Partial<PremiumState>) => void;
   startTrial: () => void;
+
+  // family sharing
+  setFamilyId: (id?: string) => void;
+  /** Merge remote items into a collection (additive, by id). */
+  mergeRemote: <K extends MergeableKey>(kind: K, items: FamilyState[K]) => void;
 }
+
+/** Collections that participate in Supabase sync. */
+export type MergeableKey =
+  | 'events'
+  | 'tasks'
+  | 'txs'
+  | 'posts'
+  | 'health'
+  | 'shoppingItems'
+  | 'members'
+  | 'prep'
+  | 'memos';
 
 const DEFAULT_KANBAN: KanbanColumn[] = [
   { id: 'todo', title: 'やること' },
@@ -265,6 +285,17 @@ export const useFamilyStore = create<FamilyState>()(
         set((s) => ({
           premium: { ...s.premium, trialStartedAt: s.premium.trialStartedAt ?? now() },
         })),
+
+      setFamilyId: (familyId) => set({ familyId }),
+      mergeRemote: (kind, items) =>
+        set((s) => {
+          const existing = s[kind] as { id: string }[];
+          const byId = new Map(existing.map((x) => [x.id, x]));
+          for (const item of items as { id: string }[]) {
+            byId.set(item.id, item);
+          }
+          return { [kind]: [...byId.values()] } as unknown as Partial<FamilyState>;
+        }),
     }),
     {
       name: 'family',

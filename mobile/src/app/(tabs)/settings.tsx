@@ -8,6 +8,7 @@ import { Segmented } from '@/components/Segmented';
 import { AppText, Button, Card } from '@/components/ui';
 import { useConfirm } from '@/components/ConfirmProvider';
 import { clearAllReminders, requestNotificationPermission, syncEventReminders } from '@/lib/notifications';
+import { fullSync } from '@/lib/sync';
 import { memberColors } from '@/theme/tokens';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFamilyStore } from '@/store/useFamilyStore';
@@ -19,11 +20,23 @@ export default function SettingsScreen() {
   const confirm = useConfirm();
   const { colors, radius } = useTheme();
   const { session, mode, signOut } = useAuthStore();
-  const { profile, setProfile, members, addMember, removeMember, premium, events } =
+  const { profile, setProfile, members, addMember, removeMember, premium, events, familyId, setFamilyId } =
     useFamilyStore();
   const { themeMode, setThemeMode, remindersEnabled, setRemindersEnabled } = usePrefsStore();
 
   const [newMember, setNewMember] = useState('');
+  const [joinId, setJoinId] = useState(familyId ?? '');
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  async function runSync() {
+    setSyncing(true);
+    setSyncMsg(null);
+    if (joinId.trim() && joinId.trim() !== familyId) setFamilyId(joinId.trim());
+    const r = await fullSync();
+    setSyncing(false);
+    setSyncMsg(r.ok ? `同期しました（送信 ${r.pushed} / 受信 ${r.pulled}）` : `同期できませんでした: ${r.error ?? '不明なエラー'}`);
+  }
 
   async function toggleReminders(value: boolean) {
     if (value) {
@@ -92,6 +105,35 @@ export default function SettingsScreen() {
             <Button title="ログインして家族と共有" variant="secondary" icon="log-in" onPress={() => router.push('/login')} style={{ marginTop: 10 }} />
           )}
         </Card>
+
+        {/* Family sharing (β) — only when signed in */}
+        {session && (
+          <Card style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="people" size={16} color={colors.primary} />
+              <AppText variant="footnote" muted>
+                家族と共有（β）
+              </AppText>
+            </View>
+            <AppText variant="caption" muted>
+              家族IDを共有すると、同じデータを家族の端末と同期できます。空欄なら自分のIDが使われます。
+            </AppText>
+            <TextInput
+              value={joinId}
+              onChangeText={setJoinId}
+              placeholder="家族ID（任意）"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              style={[styles.input, { color: colors.text, backgroundColor: colors.bgInset, borderRadius: radius.sm }]}
+            />
+            <Button title="今すぐ同期" icon="sync" variant="secondary" loading={syncing} onPress={runSync} />
+            {syncMsg && (
+              <AppText variant="caption" muted style={{ textAlign: 'center' }}>
+                {syncMsg}
+              </AppText>
+            )}
+          </Card>
+        )}
 
         {/* Premium */}
         <Pressable onPress={() => router.push('/premium')}>

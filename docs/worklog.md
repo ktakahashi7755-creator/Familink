@@ -21286,3 +21286,54 @@ Hoku着せ替えをチャット内のHokuアイコンにも反映
 
 ### コミット
 - メッセージ: feat(mobile): React Native + Expo + TypeScript 版の基盤と主要画面を新規構築
+
+---
+
+## 2026-06-11 12:30  env: iPhone経由（claude.ai/code リモート）  branch: claude/mobile-directory-setup-fe5s6u
+
+### 作業名
+mobile：目標品質へ向けた磨き込み（カレンダー/アルバム/Hoku 強化＋新規4画面＋Supabase同期β）
+
+### 変更ファイル
+- `mobile/docs/TASKS.md`（全面タスクボード新規）
+- `mobile/src/app/(tabs)/`（calendar 全面改修 / hoku 強化 / settings 拡張 / index クイックリンク追加）
+- `mobile/src/app/`（event-edit に繰り返し・確認削除 / prep・memo・premium 新規 / album 全面改修）
+- `mobile/src/features/calendar/events.ts`（繰り返し・複数日の展開エンジン）/ MonthGrid 改修
+- `mobile/src/features/album/ZoomableImage.tsx` / `features/hoku/HokuAvatar.tsx`
+- `mobile/src/components/`（PressableScale / ConfirmProvider / Segmented）
+- `mobile/src/lib/`（haptics / notifications / seed / sync）/ `store/usePrefsStore.ts` / useFamilyStore 拡張
+- `supabase/familink-mobile-schema.sql`（家族共有テーブル＋RLS・追加のみ）
+
+### 変更内容
+- 基盤：ハイドレーションゲート＋スプラッシュ、Haptics、共通 Confirm（二段階削除 §13.6）、テーマ切替（自動/ライト/ダーク）、初回デモデータ投入、reanimated 押下/呼吸/ズーム
+- カレンダー：月/週/リストの3ビュー、メンバー色フィルター、繰り返し（日/週/月/年）と複数日の展開、今日へ戻る、予定編集に繰り返し選択
+- アルバム：月セクション、複数選択→まとめて削除、カメラ撮影、フルスクリーン（左右ページング＋ピンチズーム＋ダブルタップ）
+- Hoku：呼吸する常駐アバター、文脈連動クイック提案、全 intent（予定/タスク/買い物/家計/体調/お知らせ/持ち物）の追加フロー
+- 新規画面：持ち物・準備（ルーティン）/ メモ / プレミアム（β表記 §13.5）
+- 通知：時刻のある予定の30分前リマインド（expo-notifications・設定でON/OFF）
+- Supabase 同期（β）：generic `familink_items` テーブル＋RLS、`sync.ts`（追加マージ・手動実行）、設定に「家族と共有」UI（家族ID＋今すぐ同期）
+
+### テスト結果
+- `npx tsc --noEmit`：**PASS（0 errors）**
+- `npx eslint "src/**/*.{ts,tsx}"`：**PASS（0 errors / 0 warnings）**
+- `npx expo export --platform ios`：**成功**（Hermes 5.1MB・全ルート/ネイティブモジュール解決を確認）
+- 実機/シミュレータ起動・Supabase 実通信：未実施（本環境は UI ビルド検証のみ）
+
+### 未確認事項
+- Supabase 同期は `familink-mobile-schema.sql` を SQL エディタで実行後に有効。実通信・RLS 動作は要実機検証
+- カレンダーの複数日「帯」描画、アルバムのフォルダ作成/移動 UI、左右スワイプ月送りは TASKS.md に残課題として記載
+
+### iPhone確認ポイント
+- カレンダー3ビュー切替・繰り返し予定・メンバーフィルター
+- アルバムのピンチズーム・複数選択削除・カメラ
+- Hoku アバターの呼吸・「○○を追加して」の確認フロー
+- 設定のテーマ切替・予定リマインドのトグル・家族と共有(β)
+
+### 次にやること
+- 実機/シミュレータ起動確認とスクリーンショット
+- Supabase 同期の Realtime 自動反映・削除同期・家族招待
+- 祝日表示・アクセシビリティ・アプリアイコン/スプラッシュのブランド差し替え
+
+### コミット
+- ハッシュ: `91cfb31`（磨き込み）, 後続コミット（Supabase 同期β）
+- メッセージ: feat(mobile): カレンダー/アルバム/Hoku 磨き込み＋4画面追加 / feat(mobile): Supabase 家族同期(β)

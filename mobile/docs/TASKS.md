@@ -51,9 +51,11 @@
 - ☑ プレミアム画面（s-premium：プラン・トライアル・課金導線 β 表記）
 
 ## 5. Supabase 同期・家族共有（A）
-- ◐ テーブル設計（events/tasks/txs/posts/health/shopping/members）+ 同期サービス雛形
-- ☐ push/pull 同期（楽観的更新・競合解決）
-- ☐ Realtime 反映（`familink_family_${familyId}`）
+- ☑ テーブル設計＋RLS（`supabase/familink-mobile-schema.sql`：generic `familink_items`）
+- ☑ push/pull 同期サービス（`src/lib/sync.ts`・追加マージ・手動実行・β）
+- ☑ 設定に「家族と共有(β)」UI（家族ID入力＋今すぐ同期）
+- ☐ 競合解決の精緻化（updated_at LWW・削除同期 `deleted` フラグ運用）
+- ☐ Realtime 自動反映（`familink_items` を購読）
 - ☐ 家族招待（招待コード / ディープリンク）
 
 ## 6. リリース品質（A/B）
