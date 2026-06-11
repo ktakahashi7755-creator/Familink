@@ -217,6 +217,7 @@ export default function AlbumScreen() {
       )}
 
       <PhotoViewer
+        key={viewerIndex ?? 'closed'}
         photos={photos}
         index={viewerIndex}
         onClose={() => setViewerIndex(null)}

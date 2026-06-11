@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
+import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeContext';
 
 /** Full-screen background container with safe-area handling. */
@@ -137,12 +138,16 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
       style={({ pressed }) => [
         {
           backgroundColor: bg,
           borderRadius: radius.md,
           paddingVertical: 14,
           paddingHorizontal: 18,
+          minHeight: 48,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -167,18 +172,25 @@ export function Button({
 export function FAB({
   onPress,
   icon = 'add',
+  label = '追加',
 }: {
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
+  label?: string;
 }) {
   const { colors, shadow } = useTheme();
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        haptic.light();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => [
         styles.fab,
         shadow.lg,
-        { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+        { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] },
       ]}>
       <Ionicons name={icon} size={28} color="#fff" />
     </Pressable>

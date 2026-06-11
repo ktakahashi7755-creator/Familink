@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, EmptyState } from '@/components/ui';
+import { haptic } from '@/lib/haptics';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -19,6 +20,7 @@ export default function ShoppingScreen() {
   function submit() {
     if (!text.trim()) return;
     addShopping(text.trim());
+    haptic.light();
     setText('');
   }
 
@@ -46,7 +48,7 @@ export default function ShoppingScreen() {
         ) : (
           <>
             {left.map((i) => (
-              <Row key={i.id} name={i.name} done={false} onToggle={() => toggleShopping(i.id)} onDelete={() => removeShopping(i.id)} />
+              <Row key={i.id} name={i.name} done={false} onToggle={() => { haptic.selection(); toggleShopping(i.id); }} onDelete={() => removeShopping(i.id)} />
             ))}
             {done.length > 0 && (
               <View style={styles.doneHeader}>
@@ -61,7 +63,7 @@ export default function ShoppingScreen() {
               </View>
             )}
             {done.map((i) => (
-              <Row key={i.id} name={i.name} done onToggle={() => toggleShopping(i.id)} onDelete={() => removeShopping(i.id)} />
+              <Row key={i.id} name={i.name} done onToggle={() => { haptic.selection(); toggleShopping(i.id); }} onDelete={() => removeShopping(i.id)} />
             ))}
           </>
         )}

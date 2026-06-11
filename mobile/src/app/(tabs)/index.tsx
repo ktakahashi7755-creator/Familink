@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Card } from '@/components/ui';
+import { haptic } from '@/lib/haptics';
 import { formatDateJa, todayISO } from '@/lib/utils';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -144,8 +145,16 @@ export default function HomeScreen() {
           {QUICK_LINKS.map((q) => (
             <Pressable
               key={q.href}
-              onPress={() => router.push(q.href as never)}
-              style={[styles.quickCell, { backgroundColor: colors.bgCard, borderRadius: radius.md }]}>
+              accessibilityRole="button"
+              accessibilityLabel={q.label}
+              onPress={() => {
+                haptic.light();
+                router.push(q.href as never);
+              }}
+              style={({ pressed }) => [
+                styles.quickCell,
+                { backgroundColor: colors.bgCard, borderRadius: radius.md, opacity: pressed ? 0.7 : 1 },
+              ]}>
               <View style={[styles.quickIcon, { backgroundColor: tintMap[q.tint] + '22' }]}>
                 <Ionicons name={q.icon} size={24} color={tintMap[q.tint]} />
               </View>

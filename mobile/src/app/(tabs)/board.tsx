@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Card, EmptyState } from '@/components/ui';
 import { Segmented } from '@/components/Segmented';
+import { haptic } from '@/lib/haptics';
 import { useFamilyStore } from '@/store/useFamilyStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -49,6 +50,7 @@ function TasksPane() {
   function submit() {
     if (!text.trim()) return;
     addTask({ title: text.trim() });
+    haptic.light();
     setText('');
   }
 
@@ -75,7 +77,7 @@ function TasksPane() {
         ) : (
           <>
             {open.map((t) => (
-              <TaskRow key={t.id} title={t.title} done={false} onToggle={() => toggleTask(t.id)} onDelete={() => removeTask(t.id)} />
+              <TaskRow key={t.id} title={t.title} done={false} onToggle={() => { haptic.selection(); toggleTask(t.id); }} onDelete={() => removeTask(t.id)} />
             ))}
             {done.length > 0 && (
               <AppText variant="footnote" muted style={{ marginTop: 12 }}>
@@ -83,7 +85,7 @@ function TasksPane() {
               </AppText>
             )}
             {done.map((t) => (
-              <TaskRow key={t.id} title={t.title} done onToggle={() => toggleTask(t.id)} onDelete={() => removeTask(t.id)} />
+              <TaskRow key={t.id} title={t.title} done onToggle={() => { haptic.selection(); toggleTask(t.id); }} onDelete={() => removeTask(t.id)} />
             ))}
           </>
         )}

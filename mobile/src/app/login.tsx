@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, Button } from '@/components/ui';
@@ -54,7 +54,7 @@ export default function LoginScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.body}>
+      <KeyboardAvoidingView style={styles.body} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight }]}>
           <Ionicons name="mail" size={48} color={colors.primary} />
         </View>
@@ -116,7 +116,7 @@ export default function LoginScreen() {
             あとで（この端末だけで使う）
           </AppText>
         </Pressable>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

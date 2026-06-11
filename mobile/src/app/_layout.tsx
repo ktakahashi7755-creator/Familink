@@ -54,26 +54,44 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <ConfirmProvider>
-            <StatusBar style="auto" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="join" />
-              <Stack.Screen name="login" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="event-edit" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="album" options={{ headerShown: true, title: 'アルバム' }} />
-              <Stack.Screen name="shopping" options={{ headerShown: true, title: '買い物リスト' }} />
-              <Stack.Screen name="budget" options={{ headerShown: true, title: '家計' }} />
-              <Stack.Screen name="health" options={{ headerShown: true, title: '体調記録' }} />
-              <Stack.Screen name="prep" options={{ headerShown: true, title: '持ち物・準備' }} />
-              <Stack.Screen name="memo" options={{ headerShown: true, title: 'メモ' }} />
-              <Stack.Screen name="premium" options={{ presentation: 'modal' }} />
-            </Stack>
+            <RootNavigator />
           </ConfirmProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** Themed navigator so headers + screen backgrounds match light/dark. */
+function RootNavigator() {
+  const { colors, isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerStyle: { backgroundColor: colors.bgCard },
+          headerTintColor: colors.primary,
+          headerTitleStyle: { color: colors.text },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.bg },
+        }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="join" />
+        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="event-edit" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="album" options={{ headerShown: true, title: 'アルバム' }} />
+        <Stack.Screen name="shopping" options={{ headerShown: true, title: '買い物リスト' }} />
+        <Stack.Screen name="budget" options={{ headerShown: true, title: '家計' }} />
+        <Stack.Screen name="health" options={{ headerShown: true, title: '体調記録' }} />
+        <Stack.Screen name="prep" options={{ headerShown: true, title: '持ち物・準備' }} />
+        <Stack.Screen name="memo" options={{ headerShown: true, title: 'メモ' }} />
+        <Stack.Screen name="premium" options={{ presentation: 'modal' }} />
+      </Stack>
+    </>
   );
 }
 

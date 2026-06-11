@@ -40,6 +40,8 @@ export default function EventEditScreen() {
   const [note, setNote] = useState(existing?.note ?? '');
   const [repeat, setRepeat] = useState<NonNullable<typeof existing>['repeat']>(existing?.repeat ?? 'none');
   const [showDate, setShowDate] = useState(false);
+  const [showStart, setShowStart] = useState(false);
+  const [showEnd, setShowEnd] = useState(false);
 
   const REPEATS: { key: NonNullable<typeof repeat>; label: string }[] = [
     { key: 'none', label: 'なし' },
@@ -139,9 +141,38 @@ export default function EventEditScreen() {
         </View>
 
         {!allDay && (
-          <View style={styles.timeRow}>
-            <TimeField label="開始" value={start} onChange={setStart} />
-            <TimeField label="終了" value={end} onChange={setEnd} />
+          <View style={[styles.timeCard, { backgroundColor: colors.bgCard, borderRadius: radius.md }]}>
+            <Pressable onPress={() => { setShowEnd(false); setShowStart((v) => !v); }} style={styles.timeRowItem}>
+              <AppText variant="body" style={{ flex: 1 }}>開始</AppText>
+              <AppText variant="body" color={colors.primary}>{start}</AppText>
+            </Pressable>
+            {showStart && (
+              <DateTimePicker
+                value={timeToDate(start)}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_, d) => {
+                  if (Platform.OS !== 'ios') setShowStart(false);
+                  if (d) setStart(fmtTime(d));
+                }}
+              />
+            )}
+            <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+            <Pressable onPress={() => { setShowStart(false); setShowEnd((v) => !v); }} style={styles.timeRowItem}>
+              <AppText variant="body" style={{ flex: 1 }}>終了</AppText>
+              <AppText variant="body" color={colors.primary}>{end}</AppText>
+            </Pressable>
+            {showEnd && (
+              <DateTimePicker
+                value={timeToDate(end)}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_, d) => {
+                  if (Platform.OS !== 'ios') setShowEnd(false);
+                  if (d) setEnd(fmtTime(d));
+                }}
+              />
+            )}
           </View>
         )}
 
@@ -224,24 +255,15 @@ export default function EventEditScreen() {
   );
 }
 
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const { colors, radius } = useTheme();
-  return (
-    <View style={[styles.timeField, { backgroundColor: colors.bgCard, borderRadius: radius.md }]}>
-      <AppText variant="footnote" muted>
-        {label}
-      </AppText>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder="HH:mm"
-        placeholderTextColor={colors.textMuted}
-        keyboardType="numbers-and-punctuation"
-        maxLength={5}
-        style={{ color: colors.text, fontSize: 22, fontWeight: '600' }}
-      />
-    </View>
-  );
+function timeToDate(t: string): Date {
+  const [h, m] = t.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d;
+}
+
+function fmtTime(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 const styles = StyleSheet.create({
@@ -254,8 +276,9 @@ const styles = StyleSheet.create({
   },
   titleInput: { fontSize: 20, fontWeight: '600', padding: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  timeRow: { flexDirection: 'row', gap: 12 },
-  timeField: { flex: 1, padding: 16, gap: 4 },
+  timeCard: { paddingHorizontal: 16 },
+  timeRowItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
+  divider: { height: StyleSheet.hairlineWidth },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8 },
   swatch: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
