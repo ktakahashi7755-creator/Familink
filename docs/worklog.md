@@ -21890,3 +21890,33 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-12 21:40  env: 不明  branch: main
+
+### 作業名
+最終磨き込み：PWA/共有メタの実バグ修正（LINE共有サムネ・Androidホーム追加・manifest）
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260613b)／docs/manifest.json／docs/icon-256.png(新規)／worklog
+
+### 変更内容（以前の調査で発見済み・未修正だった4件をクローズ）
+- **manifest.json**: start_url "/"→"/Familink/"（GitHub Pagesサブパス対応＝Androidホーム追加が正しいURLで開く）、
+  scope追加、theme_color #4A90E2→#0A84FF（アプリのprimaryと統一）
+- **manifest icons**: 1×1プレースホルダ→実物の256×256（apple-touch-iconから抽出した docs/icon-256.png）
+- **og:image 追加**: LINE/SNS共有時にHokuアイコンのサムネイルが出る（絶対URL・og:url/og:site_name/twitter:cardも追加）
+- apple-touch-icon（iOS用・実画像256×256）は既存のまま正常
+
+### テスト結果
+- PWA/OGメタ検証 6/6 PASS・manifest妥当性✅・回帰 QA84＋Vitest23 全緑
+
+### iPhone確認ポイント
+- LINEでアプリURLを共有→Hokuアイコンのサムネが出るか（反映に時間がかかる場合あり）
+- Android端末があれば「ホーム画面に追加」→アイコンと起動URLが正しいか
+
+### 次にやること
+- T-072(OAuth/パスワード再設定)・T-073(Edge Functionレート制限)＝要ダッシュボード設定/再デプロイ
+
+### コミット
+- 本コミット
