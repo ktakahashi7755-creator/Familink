@@ -21670,3 +21670,55 @@ OCR確認画面の日付表示の違和感を解消（カード内の日付重�
 
 ### コミット
 - メッセージ: `security: 商用リリース前監査→ログアウトのデータ保護/削除の正直化/共有キー整合/連打防止/動画上限`
+
+---
+
+## 2026-06-12 06:30  env: 不明  branch: main
+
+### 作業名
+商用リリース セキュリティ・データ分離タスク（Critical/High）を1件ずつ実装・検証
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260612d)／docs/ROADMAP.md(新規)／docs/AUDIT.md(新規)／docs/security-tests.sql(新規)／docs/supabase-setup-sql.sql／docs/supabase-invites-sql.sql(新規)／docs/supabase-storage-policy.sql(新規)／tools/qa_fileval_test.js・qa_authguard_test.js(新規)／worklog
+
+### 前提（事実確認）
+- バックエンドは Supabase 1テーブル fl_family_data（key-value JSONB）。個別業務テーブルは無い。
+- Supabase Storage は未使用（アルバムは base64 を JSONB 同期）→ 画像分離は fl_family_data RLS に一元化。
+- 指定の docs/ROADMAP.md / AUDIT.md は不在のため新規作成し、チェックボックス運用。
+
+### 実装・検証（**実 PostgreSQL 16 を起動し RLS を実際に適用して別ユーザー検証**）
+- **C1 RLS堅牢化**: data_key長/family_id形式の CHECK制約を追加（NOT VALID）。検証SQL(docs/security-tests.sql)
+  で B=同家族は共有キーのみ可・private不可、C=別家族は完全遮断、偽装INSERT拒否、不正値CHECK拒否を全実証。
+- **C3 シークレット露出ゼロ**: anon/publishableキーのみ。service_role/sk-/OpenAIキー非搭載を機械検証。
+- **H2 ファイルアップロード検証**: _validateUploadFile() を新設し全入口（アルバム/書類/メモ/アバター/OCR/JSON）へ適用。
+  exe偽装・PDF・txt・巨大ファイルを取り込み前に拒否。テスト16件PASS。
+- **H4 認証ガード**: 未ログインは s-ob 固定・タブバー非表示・?screen= バイパス不可を実証（7件）。
+- **H1 Storageバケットポリシー**: 将来移行用テンプレ(docs/supabase-storage-policy.sql)を作成し、storageスキーマを
+  シムして別家族の写真が読めないことを実証。現状バケット未使用＝N/Aだが移行に備え納品。
+- **H3/C2 招待の使い捨て化**: fl_family_invites＋redeem_family_invite() RPC（期限付き・1回限り・行ロック）を
+  新設(docs/supabase-invites-sql.sql)。実Postgresで「他家族の招待発行拒否/使い捨て/期限切れ失敗/不存在失敗/
+  被招待者は直接SELECT不可」を全実証。family_id無期限ベアラの露出窓を機構的に解消。
+
+### テスト結果
+- クライアント全スイート **212/212 PASS**・pageerror 0（84+36+22+10+16+7+8+18+11）
+- サーバRLS/招待/Storage: ローカルPostgres16で別ユーザー検証を全合格
+
+### 残存リスク（正直な報告）
+- **C2クライアント実装**: 招待トークン機構(H3)はサーバ側で完成・検証済みだが、app-source側で
+  「family_id直接共有→トークン redeem」へ切替える配線はSupabaseへのSQL適用後に有効化が必要（後続）。
+  現状は旧FAMI-直接コード（強エントロピー32^12）で運用＝実害は限定的だが露出窓は無期限のまま。
+- **OAuth実機/パスワード再設定UI/Edge Functionサーバレート制限/auth.users完全削除**: 前回 docs/
+  commercial-release-blockers.md に記載のとおり、Supabaseダッシュボード設定・サーバ再デプロイ・実機が必要。
+- 本リポジトリには認証情報を置かないため、本番Supabaseでの最終実行はユーザー環境で docs/security-tests.sql /
+  supabase-invites-sql.sql / supabase-storage-policy.sql を Run して再確認すること。
+
+### iPhone確認ポイント
+- 不正ファイル（拡張子偽装等）をアルバム/書類に選んでも弾かれるか
+- 未ログイン時に家計等のデータ画面が一切見えないか
+
+### 次にやること
+- （要人間確認）本番Supabaseへ supabase-setup-sql / invites / storage を適用 → セルフテスト実行
+- （後続）招待トークン redeem のクライアント配線
+
+### コミット
+- faf0037 (C1,C3) / fb1e29b (H2) / 73f4817 (H1,H3,H4,C2)
