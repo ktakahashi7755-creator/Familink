@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260612j';
+  var V='v20260612k';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1522,18 +1522,40 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   width: 30px; height: 36px; border: none; background: none;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-muted); cursor: pointer; transition: var(--t);
+  position: relative;
 }
+.cal-mn-btn::before { content:""; position:absolute; top:50%; left:50%; width:44px; height:44px; transform:translate(-50%,-50%); }
 .cal-mn-btn:active { color: var(--primary); transform: scale(.9); }
+/* 終日トグル（落ち着いたライン調スイッチ） */
+.ev-allday-row {
+  display:flex; align-items:center; min-height:44px; cursor:pointer;
+  border-top:1px solid var(--border-light); border-bottom:1px solid var(--border-light);
+  margin:2px 0 10px; padding:4px 2px;
+}
+.ev-allday-label { flex:1; font-size:14px; font-weight:600; color:var(--text); }
+.ev-allday-row input { position:absolute; opacity:0; width:0; height:0; }
+.ev-allday-switch {
+  flex:none; width:46px; height:28px; border-radius:14px; background:var(--border);
+  position:relative; transition:var(--t);
+}
+.ev-allday-switch::after {
+  content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:var(--t-spring);
+}
+.ev-allday-row input:checked + .ev-allday-switch { background:var(--primary); }
+.ev-allday-row input:checked + .ev-allday-switch::after { transform:translateX(18px); }
+.ev-allday-row input:focus-visible + .ev-allday-switch { outline:2.5px solid var(--primary); outline-offset:2px; }
 .cal-hd-title {
   font-size: 17px;
   font-weight: 700; color: var(--text);
   min-width: 96px; text-align: center; letter-spacing: -0.3px;
 }
 .cal-today-pill {
-  padding: 7px 13px; border-radius: var(--r-full);
+  padding: 0 13px; min-height: 44px; border-radius: var(--r-full);
   background: rgba(10,132,255,0.1); border: none;
   color: var(--primary); font-size: 12px; font-weight: 600;
   cursor: pointer; transition: var(--t); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .cal-today-pill:active { background: var(--primary); color: #fff; }
 
@@ -1544,9 +1566,9 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   flex-shrink: 0;
 }
 .cal-vtab {
-  flex: 1; height: 34px; border: none;
+  flex: 1; min-height: 44px; border: none;
   border-radius: var(--r-full); background: rgba(118,118,128,0.10);
-  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
   cursor: pointer; transition: var(--t);
 }
 .cal-vtab.active { background: var(--primary); color: #fff; }
@@ -5735,7 +5757,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <div class="field-label">日付 <span style="color:var(--red)">*</span></div>
         <input class="input" id="ev-date" type="date">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <label class="ev-allday-row" for="ev-allday">
+        <span class="ev-allday-label">終日</span>
+        <input type="checkbox" id="ev-allday" onchange="evAllDayToggle()">
+        <span class="ev-allday-switch" aria-hidden="true"></span>
+      </label>
+      <div id="ev-time-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field">
           <div class="field-label">開始</div>
           <input class="input" id="ev-time" type="time" value="09:00">
@@ -12763,8 +12790,10 @@ function openEventModal(evId) {
     document.getElementById('ev-id').value    = ev.id;
     document.getElementById('ev-title').value = ev.title;
     document.getElementById('ev-date').value  = ev.date;
-    document.getElementById('ev-time').value  = ev.time;
-    if(endEl) endEl.value = ev.endTime || _addMinutesToTime(ev.time, 30);
+    const _ad = document.getElementById('ev-allday'); if(_ad) _ad.checked = !!ev.allDay;
+    document.getElementById('ev-time').value  = ev.time || '09:00';
+    if(endEl) endEl.value = ev.endTime || _addMinutesToTime(ev.time || '09:00', 30);
+    evAllDayToggle();
     document.getElementById('ev-member').value= ev.member;
     document.getElementById('ev-note').value  = ev.note||'';
     document.getElementById('ev-repeat').value= ev.repeat||'';
@@ -12783,8 +12812,10 @@ function openEventModal(evId) {
     document.getElementById('ev-id').value    = '';
     document.getElementById('ev-title').value = '';
     document.getElementById('ev-date').value  = preDate || S.calSel || todayStr();
+    const _ad2 = document.getElementById('ev-allday'); if(_ad2) _ad2.checked = false;
     document.getElementById('ev-time').value  = preTime || '09:00';
     if(endEl) endEl.value = preEnd || _addMinutesToTime(preTime || '09:00', 30);
+    evAllDayToggle();
     document.getElementById('ev-note').value  = '';
     document.getElementById('ev-repeat').value= '';
     document.getElementById('ev-repeat-interval').value = 2;
@@ -12811,6 +12842,12 @@ function evRepeatChange() {
   const v = document.getElementById('ev-repeat').value;
   const row = document.getElementById('ev-repeat-custom');
   if(row) row.style.display = (v === 'custom') ? 'flex' : 'none';
+}
+/* 終日トグル：ONで開始/終了時刻欄を隠す */
+function evAllDayToggle() {
+  const on = !!(document.getElementById('ev-allday') || {}).checked;
+  const tf = document.getElementById('ev-time-fields');
+  if(tf) tf.style.display = on ? 'none' : 'grid';
 }
 /* 予定の繰り返しラベル */
 function _repeatLabel(e) {
@@ -12858,9 +12895,10 @@ function _eventsOnDate(arr, ds) {
 function saveEvent() {
   const title  = document.getElementById('ev-title').value.trim();
   const date   = document.getElementById('ev-date').value;
-  const time   = document.getElementById('ev-time').value;
+  const allDay = !!(document.getElementById('ev-allday') || {}).checked;
+  let time     = allDay ? '' : document.getElementById('ev-time').value;
   const endEl  = document.getElementById('ev-endtime');
-  let endTime  = endEl ? endEl.value : '';
+  let endTime  = allDay ? '' : (endEl ? endEl.value : '');
   const member = document.getElementById('ev-member').value;
   const note   = document.getElementById('ev-note').value.trim();
   const repeat = document.getElementById('ev-repeat').value || '';
@@ -12883,11 +12921,11 @@ function saveEvent() {
 
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
-    if(ev) Object.assign(ev, {title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
+    if(ev) Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
     showToast('予定を更新しました');
   } else {
     if(!checkPremiumLimit('events')) return;
-    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
+    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
