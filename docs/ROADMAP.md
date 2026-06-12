@@ -70,9 +70,9 @@ Supabase エラーの日本語共通化 / オフライン・リトライ導線 /
 
 # パフォーマンス（Performance）
 
-- [ ] **PERF-1 バンドル/依存の点検** — 単一HTML構成（npm依存ゼロ・CDNはSupabase/Fontsのみ）を確認し、
+- [x] **PERF-1 バンドル/依存の点検** — 単一HTML構成（npm依存ゼロ・CDNはSupabase/Fontsのみ）を確認し、
       不要依存・重い処理を点検。非同期/遅延読み込みで初期表示を軽量化。
-- [ ] **PERF-2 画像の遅延読み込み・リサイズ** — アルバム等の img に loading="lazy"、取り込み時リサイズ確認。
-- [ ] **PERF-3 Supabaseクエリ見直し** — N+1・不要カラム・インデックス。fetchの列指定とインデックスSQL。
-- [ ] **PERF-4 モバイル計測（PERF.md）** — 計測（Lighthouse 不可環境では Playwright 指標）を
+- [x] **PERF-2 画像の遅延読み込み・リサイズ** — アルバム等の img に loading="lazy"、取り込み時リサイズ確認。
+- [x] **PERF-3 Supabaseクエリ見直し** — N+1・不要カラム・インデックス。fetchの列指定とインデックスSQL。
+- [x] **PERF-4 モバイル計測（PERF.md）** — 計測（Lighthouse 不可環境では Playwright 指標）を
       改善前後で docs/PERF.md に記録。

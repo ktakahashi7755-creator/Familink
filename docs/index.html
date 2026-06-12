@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260612n';
+  var V='v20260612o';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -16618,7 +16618,7 @@ function _albumCardPreview() {
         _ensurePhotoFields(p);
         const media = (p.type === 'video')
           ? '<video src="'+H(p.dataUrl)+'" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>'
-          : '<img src="'+H(p.dataUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
+          : '<img loading="lazy" decoding="async" src="'+H(p.dataUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
         return '<div style="position:relative;flex:1;height:54px;border-radius:8px;overflow:hidden;background:var(--bg-muted);">'
           + media
           + (p.type==='video' ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 24 24" fill="#fff"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>' : '')
