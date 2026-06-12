@@ -61,7 +61,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   await page.screenshot({ path: '/tmp/tour2-offer.png' });
   // スキップ → ボーナスが後から出る
   await page.evaluate(() => { const b = [...document.querySelectorAll('#m-tour-offer button')].find(x => /スキップ/.test(x.textContent)); b.click(); });
-  await page.waitForTimeout(1100);
+  await page.waitForTimeout(1700);
   const afterSkip = await page.evaluate(() => ({
     offer: document.getElementById('m-tour-offer').classList.contains('open'),
     bonus: document.getElementById('m-login-bonus').classList.contains('open'),
@@ -94,7 +94,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   t('初回→ツアー開始: ツアーが起動', touring.on);
   t('ツアー中: ボーナスは出ない', !touring.bonus);
   await page.evaluate(() => endAppTour());
-  await page.waitForTimeout(1100);
+  await page.waitForTimeout(1700);
   const afterTour = await page.evaluate(() => document.getElementById('m-login-bonus').classList.contains('open'));
   t('ツアー終了後: ログインボーナスが表示される', afterTour);
   out.forEach(x => console.log(x));

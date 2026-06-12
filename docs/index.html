@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260612a';
+  var V='v20260612b';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -4849,7 +4849,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 </div>
 
 <!-- Wave 202/204/205: Supabase Auth — mode により表示が切替
-     既定 mode は 'otp'（メールで 6 桁コードを受け取って入力するだけ。リンククリック不要・file:// でも動く） -->
+     既定 mode は 'otp'（メールで 6桁コードを受け取って入力するだけ。リンククリック不要・file:// でも動く） -->
 <div id="m-supa-auth" class="modal-backdrop hidden">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-grip"></div>
@@ -4862,7 +4862,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div id="supa-auth-otp-wrap">
       <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
         メールアドレスを入力すると、<b>ログイン用メール</b>をお送りします。<br>
-        メール内の<b>「Sign in」リンク</b>をタップ、または<b>6 桁コード</b>を入力するとログイン完了。パスワード不要です。
+        メール内の<b>「Sign in」リンク</b>をタップ、または<b>6桁コード</b>を入力するとログイン完了。パスワード不要です。
       </p>
       <div class="modal-form" style="gap:4px;">
         <label class="form-label" for="supa-otp-email">メールアドレス</label>
@@ -4881,7 +4881,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       </div>
     </div>
 
-    <!-- otp-code モード：送信後、6 桁コード入力 OR Magic Link 貼り付け -->
+    <!-- otp-code モード：送信後、6桁コード入力 OR Magic Link 貼り付け -->
     <div id="supa-auth-otp-code-wrap" style="display:none;">
       <div style="text-align:center;padding:10px 8px 4px;">
         <!-- Wave 214: 📧 絵文字を SVG 封筒に置換 -->
@@ -4898,12 +4898,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <p style="font-size:13px;color:#1E3A8A;line-height:1.7;margin:0 0 6px;font-weight:700;">メールの中身は次のいずれか</p>
         <ol style="font-size:12px;color:#1E40AF;line-height:1.7;margin:0;padding-left:20px;">
           <li><b>「Sign in」リンク</b>がある場合 → リンクをタップでログイン</li>
-          <li><b>6 桁の数字コード</b>がある場合 → 下の枠に入力</li>
+          <li><b>6桁のコード</b>がある場合 → 下の枠に入力</li>
           <li><b>リンクと URL の両方</b>がある場合 → どちらでも OK</li>
         </ol>
       </div>
       <div class="modal-form" style="gap:4px;">
-        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">6 桁コード または リンクの URL を貼り付け</label>
+        <label class="form-label" for="supa-otp-code" style="margin-top:8px;">6桁コード または リンクの URL を貼り付け</label>
         <input type="text" id="supa-otp-code" class="form-input"
                placeholder="000000 もしくはリンク URL"
                inputmode="text" autocomplete="one-time-code"
@@ -4935,7 +4935,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <p id="supa-auth-email-hint" style="font-size:11px;color:#B45309;line-height:1.5;margin:4px 2px 0;display:none;">
           <!-- 動的：ドメイン typo 警告 -->
         </p>
-        <label class="form-label" for="supa-auth-pass" id="supa-auth-pass-label" style="margin-top:12px;">パスワード（6 文字以上）</label>
+        <label class="form-label" for="supa-auth-pass" id="supa-auth-pass-label" style="margin-top:12px;">パスワード（6文字以上）</label>
         <div id="supa-auth-pass-wrap" class="pw-wrap" style="position:relative;">
           <input type="password" id="supa-auth-pass" class="form-input" placeholder="パスワード" autocomplete="current-password" maxlength="120" enterkeyhint="go">
           <button type="button" class="pw-eye" aria-label="パスワードを表示/非表示" onclick="togglePw('supa-auth-pass', this)">
@@ -6910,7 +6910,7 @@ function doSupaLocalSignup() {
     return;
   }
   if(pass.length < 6) {
-    showToast('パスワードは 6 文字以上にしてください','error');
+    showToast('パスワードは6文字以上にしてください','error');
     try { document.getElementById('supa-auth-pass')?.focus(); } catch(_){}
     return;
   }
@@ -7029,7 +7029,7 @@ function setSupaAuthMode(mode) {
   const showPass = !isReset;
   if(passLabel) passLabel.style.display = showPass ? '' : 'none';
   if(passWrap)  passWrap.style.display  = showPass ? '' : 'none';
-  if(passLabel) passLabel.textContent = isUp ? 'パスワード（6 文字以上）' : 'パスワード';
+  if(passLabel) passLabel.textContent = isUp ? 'パスワード（6文字以上）' : 'パスワード';
 
   // 入力 autocomplete を文脈に合わせる
   const passInp = document.getElementById('supa-auth-pass');
@@ -7153,7 +7153,7 @@ async function doSupaAuthSubmit() {
     return;
   }
   if(_supaAuthMode !== 'reset' && pass.length < 6) {
-    showToast('パスワードは 6 文字以上にしてください','error');
+    showToast('パスワードは6文字以上にしてください','error');
     const p = document.getElementById('supa-auth-pass'); if(p) try { p.focus(); } catch(_){}
     return;
   }
@@ -7293,10 +7293,10 @@ async function supaResetPassword(email) {
 }
 
 /* ============================================================
-   Wave 205 — OTP（6 桁コード）ログイン
+   Wave 205 — OTP（6桁コード）ログイン
 
    - signInWithOtp({ email, options:{ shouldCreateUser:true } })
-     既存 / 新規どちらでも 6 桁コードがメールで届く
+     既存 / 新規どちらでも 6桁コードがメールで届く
    - verifyOtp({ email, token, type:'email' }) でセッション確立
    - URL リダイレクト不要なので file:// やどんなホストでも動く
    ============================================================ */
@@ -7388,7 +7388,7 @@ async function doSupaSendOtp() {
       'ログインメールを送信しました',
       '<b>' + H(email) + '</b> 宛にログイン用メールを送信しました。<br>'
       + '🔗 メール内の <b>「Sign in」リンク</b>をタップ、または<br>'
-      + '🔢 <b>6 桁コード</b>がある場合は次画面の枠に入力。<br>'
+      + '🔢 <b>6桁コード</b>がある場合は次画面の枠に入力。<br>'
       + '数分以内に届かない場合は、<b>迷惑メールフォルダ</b>もご確認ください。');
     // コード入力欄に自動フォーカス
     setTimeout(() => {
@@ -7427,7 +7427,7 @@ async function doSupaVerifyOtp() {
   const raw = (document.getElementById('supa-otp-code').value || '').trim();
   if(!email) { showToast('送信先メールアドレスが不明です','error'); return; }
   if(!raw) {
-    showToast('6 桁コードまたはリンク URL を入力してください','error');
+    showToast('6桁コードまたはリンク URL を入力してください','error');
     const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
     return;
   }
@@ -7462,10 +7462,10 @@ async function doSupaVerifyOtp() {
       showToast('ログインに失敗しました','error');
       return;
     }
-    // 2) 6 桁コード
+    // 2) 6桁コード
     const code = raw.replace(/\D/g, '');
     if(code.length !== 6) {
-      showToast('6 桁の数字コードを入力するか、メール内のリンク URL を貼り付けてください','error');
+      showToast('6桁のコードを入力するか、メール内のリンク URL を貼り付けてください','error');
       const c = document.getElementById('supa-otp-code'); if(c) try { c.focus(); } catch(_){}
       return;
     }
@@ -7735,7 +7735,7 @@ function renderSupaDiag() {
        +  '<p style="font-size:12px;font-weight:700;color:#92400E;margin:0 0 6px;">よくある原因と対処</p>'
        +  '<ul style="font-size:11px;color:#92400E;line-height:1.7;margin:0;padding-left:18px;">'
        +    '<li><b>メールが届かない</b>：迷惑メールフォルダを確認 / メアド誤りなら入力し直し / Supabase 無料 SMTP は <b>1 時間 2 通 / 1 日 4 通</b>までの制限あり</li>'
-       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6 桁）」</b>方式が確実です。メールで届く 6 桁の数字を直接入力してください</li>'
+       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6桁）」</b>方式が確実です。メールで届く 6桁の数字を直接入力してください</li>'
        +    '<li><b>テスト用ドメイン（@gmail.test 等）</b>は受け付けられません。実在するメールアドレスをお使いください</li>'
        +    '<li><b>パスワードでログインできない</b>：「メールでコードを受け取る」をお試しください（既存アカウントでも使えます。パスワード不要）</li>'
        +    '<li><b>ネットワーク不安定</b>：CDN（cdn.jsdelivr.net）と Supabase API への通信が必要です</li>'
@@ -7759,7 +7759,7 @@ function renderSupaDiag() {
   body.innerHTML = html;
 }
 
-/* OTP コード入力：6 桁揃ったら自動で検証する（任意の便利機能） */
+/* OTP コード入力：6桁揃ったら自動で検証する（任意の便利機能） */
 document.addEventListener('input', function(e){
   if(!e.target || !e.target.id) return;
   if(e.target.id === 'supa-otp-email') {
@@ -7797,7 +7797,7 @@ document.addEventListener('input', function(e){
     }
     const cleaned = v.replace(/\D/g, '').slice(0, 6);
     if(cleaned !== e.target.value) e.target.value = cleaned;
-    // 6 桁揃ったら自動検証
+    // 6桁揃ったら自動検証
     if(cleaned.length === 6 && typeof doSupaVerifyOtp === 'function') {
       if(!e.target._verifying) {
         e.target._verifying = true;
@@ -12673,7 +12673,7 @@ function _ocrShowScanLimit(){
     showUpgradeModal('予定表の読み取り（今月分）', OCR_FREE_MONTHLY,
       '無料プランでは予定表の読み取りは<strong>月'+OCR_FREE_MONTHLY+'回</strong>までです。<br>プレミアムにアップグレードすると<strong>月'+OCR_PREMIUM_MONTHLY+'回</strong>まで読み取れます。');
   } else {
-    showToast('今月の予定表の読み取り回数（無料は月'+OCR_FREE_MONTHLY+'回）に達しました','error');
+    showToast('今月の予定表の読み取り上限（無料は月'+OCR_FREE_MONTHLY+'回）に達しました','error');
   }
 }
 const _OCR_ITEMS = ['お弁当','水筒','レジャーシート','上履き','体操服','体操着','帽子','タオル','着替え','水着','絵の具','ねんど','給食袋','コップ','歯ブラシ','長靴','傘','軍手','雑巾','名札','エプロン','三角巾'];
@@ -17223,7 +17223,7 @@ function saveHealth() {
   const time = document.getElementById('hm-time').value || '';
   const tempRaw = document.getElementById('hm-temp').value;
   const temp = tempRaw ? parseFloat(tempRaw) : '';
-  if(tempRaw && (isNaN(temp) || temp < 34 || temp > 42)) { showToast('体温は 34〜42 ℃ の範囲で入力してください','error'); return; }
+  if(tempRaw && (isNaN(temp) || temp < 34 || temp > 42)) { showToast('体温は34〜42℃の範囲で入力してください','error'); return; }
   const status = document.getElementById('hm-status').value || '元気';
   const symptoms = _hmSelectedSymptoms.slice();
   const extra = (document.getElementById('hm-symptoms-extra').value || '').trim();
@@ -17992,7 +17992,7 @@ function archiveBatchAdd(ev) {
         if(!ok) {
           showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error');
         } else if(failed > 0) {
-          showToast((total - failed)+' 件追加 / '+failed+' 件は読込失敗','info');
+          showToast((total - failed)+' 件追加 / '+failed+' 件は読み込み失敗','info');
         } else {
           showToast(total+' 件の書類を追加しました','success');
         }
@@ -18640,7 +18640,7 @@ function albumOnFilesPicked(ev) {
     } else if(skipped > 0) {
       showToast('動画が大きすぎて追加できないものがありました（端末版は短い動画のみ対応）','info');
     } else if(failed > 0) {
-      showToast((total - failed)+' 件追加 / '+failed+' 件は読込失敗','info');
+      showToast((total - failed)+' 件追加 / '+failed+' 件は読み込み失敗','info');
     } else {
       showToast(total+' 件追加しました','success');
     }
@@ -19641,7 +19641,7 @@ function seedPrepSampleRoutines(memberHint) {
     {dayOfWeek:'wed', title:'音楽の教科書', category:'教科書',       subject:'音楽',  quantity:'1冊'},
     {dayOfWeek:'wed', title:'鍵盤ハーモニカ', category:'教材',       subject:'音楽',  quantity:'1台'}
   ];
-  showConfirm('サンプルを追加', memName+'のサンプル時間割（月・火・水の主要持ち物 12 件）を追加しますか？後から自由に編集・削除できます。', '追加する', () => {
+  showConfirm('サンプルを追加', memName+'のサンプル時間割（月・火・水の主要持ち物12件）を追加しますか？後から自由に編集・削除できます。', '追加する', () => {
     let added = 0;
     for(const s of samples) {
       const dup = (S.prepRoutines||[]).some(function(r){
