@@ -12957,9 +12957,12 @@ function deleteCurrentEvent() {
 let _ocr = { cands:[], image:null, imageName:'', preview:null, dark:false, keepImage:false, year:0, month:0, importId:'', prepCandidates:[], cancelled:false, watchdog:null };
 const _OCR_WD = ['日','月','火','水','木','金','土'];
 /* ── 予定表スキャンの月間利用回数（無料は月1回・プレミアムは月30回。読み取り成功時のみ消費＝失敗は取り直し自由）── */
-const OCR_FREE_MONTHLY = 1;
+/* OCR 月次上限は PREMIUM_FEATURES（機能境界の正本）から取得する */
+function _ocrFreeMonthly(){ return (typeof PREMIUM_FEATURES!=='undefined') ? PREMIUM_FEATURES.ocr.free : 1; }
+function _ocrPremiumMonthly(){ return (typeof PREMIUM_FEATURES!=='undefined') ? PREMIUM_FEATURES.ocr.premium : 30; }
+const OCR_FREE_MONTHLY = 1;           // 後方互換の別名（文言生成で参照）。正本は PREMIUM_FEATURES.ocr
 const OCR_PREMIUM_MONTHLY = 30;
-function _ocrMonthlyLimit(){ return S.isPremiumUser ? OCR_PREMIUM_MONTHLY : OCR_FREE_MONTHLY; }
+function _ocrMonthlyLimit(){ return isPremium() ? _ocrPremiumMonthly() : _ocrFreeMonthly(); }
 function _ocrCurYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function _ocrUsage(){ const ym=_ocrCurYM(); if(!S.ocrScanUsage || S.ocrScanUsage.ym!==ym){ S.ocrScanUsage={ ym:ym, count:0 }; } return S.ocrScanUsage; }
 function _ocrScanLeft(){ return Math.max(0, _ocrMonthlyLimit() - _ocrUsage().count); }
@@ -21075,7 +21078,8 @@ function _hokuDailyLimit() {
   const today = todayStr();  // JST 基準（利用枠表示と統一。UTCだと深夜帯にズレる）
   const du = S.hokuDailyUsage;
   const bonus = (du && du.date === today && typeof du.bonus === 'number' && du.bonus > 0) ? du.bonus : 0;
-  return 5 + bonus; // 基本5 + 当日購入ボーナス（負値は無視し、最低でも5を保証）
+  const base = (typeof PREMIUM_FEATURES !== 'undefined') ? PREMIUM_FEATURES.hokuDaily.free : 5;
+  return base + bonus; // 基本(正本=PREMIUM_FEATURES.hokuDaily) + 当日購入ボーナス
 }
 /* Hoku 保存時にメンバー未指定だった場合の保険。kenya/seito の決め打ちは
    カスタム家族では存在せず「？」の迷子アバターになるため、必ず実在メンバーへ解決する。 */
@@ -21832,6 +21836,28 @@ function selectAvatarItem(avatarId) {
    checkPremiumLimit(key) → true = OK, false = 上限超過（トースト表示済み）
    無料プランは各キーの free 上限を超えると upgrade 促進トーストを表示する。
    ────────────────────────────────────────────────────────────── */
+/* ============================================================
+   無料 / プレミアムの機能境界 — 唯一の正本（Single Source of Truth）
+   ・件数制限は PREMIUM_LIMITS、回数/機能境界は PREMIUM_FEATURES に集約。
+   ・プレミアム判定は必ず isPremium() を通す（直接 S.isPremiumUser を見ない）。
+   ・OCR月次・Hoku日次など散在していた境界値をここへ統合。
+   ============================================================ */
+const PREMIUM_FEATURES = {
+  ocr:       { free: 1,  premium: 30, label: '予定表の読み取り（月）' },
+  hokuDaily: { free: 5,              label: 'Hokuの相談（1日）' },   // premium は無制限
+  adFree:    { premiumOnly: true,    label: '広告なし' },
+  themes:    { premiumOnly: true,    label: 'テーマ着せ替え' },
+};
+/* プレミアム状態の唯一の判定アクセサ。課金済み(premiumPaid)＋トライアルを
+   _refreshTrialStatus が S.isPremiumUser に集約済み。将来はサーバ権利(BILL-3)を優先参照する。 */
+function isPremium() {
+  // サーバ権利が取得できていればそれを最優先（クライアント改ざんに依存しない）
+  if(typeof S !== 'undefined' && S._serverEntitlement && typeof S._serverEntitlement.premium === 'boolean') {
+    return S._serverEntitlement.premium;
+  }
+  return !!(typeof S !== 'undefined' && S.isPremiumUser);
+}
+
 const PREMIUM_LIMITS = {
   events:       { free: 500, label: 'イベント' },
   tasks:        { free: 30,  label: 'タスク' },
@@ -21845,7 +21871,7 @@ const PREMIUM_LIMITS = {
 };
 
 function checkPremiumLimit(key) {
-  if(S.isPremiumUser) return true;
+  if(isPremium()) return true;   // 正本アクセサで判定（サーバ権利優先）
   const limit = PREMIUM_LIMITS[key];
   if(!limit) return true;
   const arr = S[key];
