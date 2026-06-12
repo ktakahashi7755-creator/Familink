@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260612c';
+  var V='v20260612d';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8494,6 +8494,9 @@ function _exportFamilinkInternal(includePhotos) {
 function importFamilinkDataFromFile(ev) {
   const f = ev.target.files && ev.target.files[0];
   if(!f) return;
+  // JSON 以外・異常に巨大なファイルは取り込まない（DoS/誤選択対策・上限20MB）
+  const _v = _validateUploadFile(f, 'json', 20 * 1024 * 1024);
+  if(!_v.ok) { showToast(_v.reason, 'error'); ev.target.value=''; return; }
   const reader = new FileReader();
   reader.onload = function() {
     try {
@@ -8790,6 +8793,31 @@ function loadS() {
    ============================================================ */
 const H = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+/* ── ファイルアップロード検証（accept 属性に依存しない多層防御）──
+   kind: 'image' | 'video' | 'imageOrVideo' | 'json'
+   MIME型・拡張子・サイズの三点で判定し、非対応は理由付きで false を返す。
+   呼び出し側は false 時に取り込みを中断する。 */
+function _validateUploadFile(file, kind, maxBytes) {
+  if(!file) return { ok:false, reason:'ファイルが選択されていません' };
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  const ext = name.indexOf('.') >= 0 ? name.slice(name.lastIndexOf('.')) : '';
+  const IMG_EXT = ['.jpg','.jpeg','.png','.gif','.webp','.heic','.heif','.bmp'];
+  const VID_EXT = ['.mp4','.mov','.m4v','.webm','.3gp','.3gpp'];
+  const isImg = type.indexOf('image/') === 0 || IMG_EXT.indexOf(ext) >= 0;
+  const isVid = type.indexOf('video/') === 0 || VID_EXT.indexOf(ext) >= 0;
+  let okType = false, label = '';
+  if(kind === 'image')        { okType = isImg && !isVid;       label = '画像'; }
+  else if(kind === 'video')   { okType = isVid;                 label = '動画'; }
+  else if(kind === 'imageOrVideo') { okType = isImg || isVid;   label = '画像または動画'; }
+  else if(kind === 'json')    { okType = (type.indexOf('json')>=0 || ext === '.json'); label = 'JSON'; }
+  if(!okType) return { ok:false, reason: label+'ファイルを選んでください（対応外の形式です）' };
+  if(typeof maxBytes === 'number' && maxBytes > 0 && file.size > maxBytes) {
+    return { ok:false, reason: label+'のサイズが大きすぎます（上限 '+Math.round(maxBytes/1024/1024)+'MB）' };
+  }
+  return { ok:true, isImage:isImg, isVideo:isVid };
+}
 /* ローカルタイムゾーンで YYYY-MM-DD を返す（JST 等で UTC 変換ズレを回避） */
 function localDateStr(d) {
   d = d || new Date();
@@ -12756,6 +12784,8 @@ function ocrOnFilePicked(ev) {
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = '';
   if(!file) return;
+  const _v = _validateUploadFile(file, 'image', 20 * 1024 * 1024);
+  if(!_v.ok) { showToast(_v.reason, 'error'); return; }
   _ocr.imageName = file.name || '';
   const reader = new FileReader();
   reader.onload = function(){
@@ -16711,8 +16741,11 @@ function _renderMemoAttach() {
   area.innerHTML = h;
 }
 function memoOnPhotoPicked(ev) {
-  const files = ev.target.files;
+  let files = ev.target.files;
   if(!files || !files.length) return;
+  // 画像以外・巨大ファイルは取り込み前に除外（accept 属性に依存しない検証）
+  files = Array.prototype.filter.call(files, function(f){ return _validateUploadFile(f, 'image', 20*1024*1024).ok; });
+  if(!files.length) { showToast('画像ファイルを選んでください（対応外の形式です）','error'); ev.target.value=''; return; }
   let pending = files.length;
   for(let i=0; i<files.length; i++) {
     downscaleImageFile(files[i], 1280, 0.85).then(function(dataUrl){
@@ -18008,8 +18041,11 @@ function openArchiveAddMode() {
 /* 複数の写真からまとめて書類を作成（各写真 = 1 書類） */
 function archiveBatchAdd(ev) {
   _ensureArchive();
-  const files = ev.target.files;
+  let files = ev.target.files;
   if(!files || !files.length) return;
+  // 画像以外・巨大ファイルは取り込み前に除外（accept 属性に依存しない検証）
+  files = Array.prototype.filter.call(files, function(f){ return _validateUploadFile(f, 'image', 20*1024*1024).ok; });
+  if(!files.length) { showToast('画像ファイルを選んでください（対応外の形式です）','error'); ev.target.value=''; return; }
   const total = files.length;
   const folderId = _archiveFolder || '';
   const d = new Date();
@@ -18046,6 +18082,8 @@ function archiveBatchAdd(ev) {
 function archiveOnPhotoPicked(ev) {
   const f = ev.target.files && ev.target.files[0];
   if(!f) return;
+  const _v = _validateUploadFile(f, 'image', 20 * 1024 * 1024);
+  if(!_v.ok) { showToast(_v.reason, 'error'); ev.target.value=''; return; }
   // Wave 58: ダウンスケール → 容量を抑制
   downscaleImageFile(f, 1280, 0.85).then(function(dataUrl){
     _archivePhotoBuf = dataUrl;
@@ -18694,7 +18732,10 @@ function albumOnFilesPicked(ev) {
   // Wave 252: 写真はダウンスケール、動画は data URL でそのまま保存（容量保護つき）
   for(let i=0; i<total; i++) {
     const f = files[i];
-    const isVideo = (f.type||'').indexOf('video/') === 0;
+    // accept 属性に依存せず、画像/動画以外（不正ファイル）は取り込まない
+    const _v = _validateUploadFile(f, 'imageOrVideo', 0);
+    if(!_v.ok) { skipped++; done(); continue; }
+    const isVideo = _v.isVideo;
     if(isVideo) {
       // 端末内（LocalStorage 約5MB）保存のため、base64 で約1.35倍に膨らむ動画は
       // 3MB 超を受け付けない（受理しても保存時に容量超過で必ず失敗するため、先に弾く）。
@@ -21676,6 +21717,8 @@ function confirmAvatarSelect() {
 function onAvatarPhotoPicked(ev) {
   const f = ev && ev.target && ev.target.files && ev.target.files[0];
   if(!f) return;
+  const _v = _validateUploadFile(f, 'image', 20 * 1024 * 1024);
+  if(!_v.ok) { showToast(_v.reason, 'error'); if(ev.target) ev.target.value=''; return; }
   if(!_avatarSelectTarget) { showToast('対象メンバーが指定されていません','error'); return; }
   showToast('写真を読み込み中…','info');   // 圧縮中のフリーズ感を防ぐ即時フィードバック
   // Wave 58 の downscale 関数で 1280px / JPEG 0.85 へ自動圧縮
