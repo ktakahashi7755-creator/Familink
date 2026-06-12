@@ -6876,6 +6876,7 @@ async function _fetchFromSupabase() {
     }
     window._lastSyncError = '';
     _setSyncDot('synced');
+    try { _syncPremiumFromServer(); } catch(_){}   // BILL-3: サーバ権利を反映（課金状態の真正性）
     if(_refetchFamily) { try { _fetchFromSupabase(); } catch(_){} }
     /* Wave 233: Realtimeチャンネルをまだ開いていなければ開始 */
     if(!_realtimeChannel) {
@@ -20694,6 +20695,25 @@ function isInTrial() {
    都度再計算し、S.isPremiumUser（アプリ全体のゲート判定）に反映する。
    トライアル満了時は確実に無料へ戻す（旧実装は isPremiumUser=true で早期 return し
    満了が永久に検出されない不具合があった）。 */
+/* サーバ側の課金権利を取得して S._serverEntitlement に反映する（BILL-3）。
+   fl_my_premium ビュー（本人の有効な権利のみ）を読む。サーバが書いた権利のみが真。
+   取得できれば isPremium() はこれを最優先で参照し、クライアント改ざんに依存しない。
+   未デプロイ/オフライン/未ログイン時は何もしない（ローカルのトライアル判定にフォールバック）。 */
+async function _syncPremiumFromServer() {
+  try {
+    if(typeof isSupaLoggedIn !== 'function' || !isSupaLoggedIn()) return;
+    const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+    if(!sb) return;
+    const res = await sb.from('fl_my_premium').select('premium,expires_at').maybeSingle();
+    if(res && !res.error && res.data && typeof res.data.premium === 'boolean') {
+      S._serverEntitlement = { premium: res.data.premium, expiresAt: res.data.expires_at || null };
+      // サーバ権利に合わせてローカルのキャッシュ表示も更新（UIの一貫性）
+      try { if(typeof renderPremium === 'function' && S.screen === 's-premium') renderPremium(); } catch(_){}
+    }
+    // テーブル/ビュー未デプロイ時は res.error が返るが、握りつぶしてローカル判定を継続
+  } catch(_) { /* ネットワーク等 → ローカル判定にフォールバック */ }
+}
+
 function _refreshTrialStatus() {
   // 移行: premiumPaid 未定義の既存ユーザーを判定（トライアル中でないのに premium=
   //       旧 activatePremiumDemo / dev トグルで課金扱いされた人 → 課金済みとして保全）
@@ -21902,18 +21922,18 @@ function showUpgradeModal(featureLabel, freeLimit, customBody) {
       <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FF8C00);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
       </div>
-      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;">${featureLabel}の上限に達しました</div>
-      <div style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:18px;">${customBody || `無料プランでは${featureLabel}は${freeLimit}件まで保存できます。<br>プレミアムにアップグレードすると<strong>無制限</strong>で使えます。`}</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;">${featureLabel}をもっと残しませんか</div>
+      <div style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:18px;">${customBody || `無料プランでは${featureLabel}を${freeLimit}件まで保存できます。<br>プレミアムなら家族の記録を気にせず、ずっと残しておけます。`}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
       <button onclick="closeUpgradeModal();go('s-premium');"
         style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD700,#FF8C00);color:#fff;font-size:15px;font-weight:800;border:none;border-radius:14px;cursor:pointer;">
         30日間 無料でためす
-        <div style="font-size:11px;font-weight:500;margin-top:2px;">クレジットカード不要・今すぐ開始</div>
+        <div style="font-size:11px;font-weight:500;margin-top:2px;">無料体験中は料金がかからず、いつでもやめられます</div>
       </button>
       <button onclick="closeUpgradeModal();"
         style="width:100%;padding:12px;background:transparent;color:var(--text-sub);font-size:13px;border:none;cursor:pointer;">
-        あとで
+        今はこのままでいい
       </button>
     </div>`;
   overlay.style.display = 'flex';
