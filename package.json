@@ -1,0 +1,11 @@
+{
+  "name": "familink",
+  "private": true,
+  "scripts": {
+    "test:unit": "vitest run",
+    "test:qa": "node qa_full_test.js"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
+  }
+}
