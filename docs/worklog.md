@@ -21722,3 +21722,49 @@ OCR確認画面の日付表示の違和感を解消（カード内の日付重�
 
 ### コミット
 - faf0037 (C1,C3) / fb1e29b (H2) / 73f4817 (H1,H3,H4,C2)
+
+---
+
+## 2026-06-12 09:00  env: 不明  branch: main
+
+### 作業名
+エラー処理・安定性カテゴリ（E1〜E5）を優先度順に実装・検証
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260612j)／docs/ROADMAP.md／worklog／
+  tools/qa_errbound_test.js・qa_netbanner_test.js・qa_supaerr_test.js・qa_doublesubmit_test.js・qa_3states_test.js（新規5本）／tools/qa_ext_test.js（ロック解除待ち追加）
+
+### 実装（5基準すべて達成）
+- **E1 Error Boundary**: refresh(id) を try/catch で包み、1画面の描画例外でも空白/壊れ画面を出さず、
+  画面に重ねるオーバーレイで落ち着いたエラー（Hoku＋「もう一度試す」「ホームに戻る」）を表示。
+  再試行も失敗なら全画面復旧オーバーレイ(#app-crash・再読み込み)へ。起動失敗で真っ白でも本番で復旧画面。
+  技術用語は一切出さない。10件PASS。
+- **E2 オフライン/通信失敗のリトライ導線**: _setSyncDot から落ち着いたバナーを駆動。オフライン時は
+  自動同期案内、同期失敗時は「再試行」ボタン。online/offline検知で復帰時に自動再同期＋Realtime張り直し。
+  クラウド利用者のみ表示・×で同セッション非再表示。12件PASS。
+- **E3 Supabaseエラーの共通日本語化**: _supaErr の未マップ時フォールバックを生英語→汎用日本語に。
+  ユーザー向けに生e.messageを出していた3箇所を日本語化（原文はconsoleのみ）。技術用語露出ゼロ。4件PASS。
+- **E4 フォーム二重送信防止**: _lockSubmit() を新設し savePost/saveEvent/saveTaskEdit/saveTx/saveHealth/
+  saveMemoEdit のバリデーション後・変更直前に700ms再入防止。失敗時はロックせず即再送信可。6件PASS。
+- **E5 loading/empty/error の3状態**: 全8リスト画面の空状態に「次の行動」誘導があることを実証。
+  Hoku応答のloading/解消、OCR読み取り中モーダル、同期error/offlineバナーを確認。13件PASS。
+  （board空状態はseedAnnouncesでデモ再投入されるため通常未到達だが、実装は正しいことをシード無効化で実証）
+
+### テスト結果
+- 全スイート **214/214 PASS**・pageerror 0
+  （QA84＋拡張36＋表示値22＋ErrorBoundary10＋オフライン12＋E3:4＋E4:6＋E5:13＋ファイル16＋認証7、ほか境界10は別途）
+
+### 未確認事項
+- なし（ローカルファースト構成のため同期ローカルデータにloadingは不要。非同期＝Supabase同期/Hoku/OCRに
+  loading・errorを担保済み）
+
+### iPhone確認ポイント
+- 万一画面が壊れた時に落ち着いたエラー＋「もう一度試す」が出るか
+- 機内モードで同期が「オフラインです」バナー＋復帰で自動同期するか
+- 保存ボタン連打で重複作成されないか
+
+### 次にやること
+- 実機確認。残りC2クライアント配線（招待トークンredeem）はSupabase SQL適用後の後続。
+
+### コミット
+- 18720da(E1)/e4f3d6e(E2)/ceed075(E3)/d0465a4(E4)/本コミット(E5)

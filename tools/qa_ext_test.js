@@ -89,7 +89,8 @@ function summarize(results) {
     t('予定追加: カレンダーDOMに反映', document.getElementById('s-cal').textContent.includes('拡張QA予定'));
     go('s-home'); await new Promise(r2 => setTimeout(r2, 200));
     t('予定追加: ホームの今後の予定に反映', document.getElementById('s-home').textContent.includes('拡張QA予定'));
-    // 編集
+    // 編集（二重送信ロック解除待ち）
+    await new Promise(r2 => setTimeout(r2, 760));
     go('s-cal'); await new Promise(r2 => setTimeout(r2, 150));
     openEventModal(ev.id);
     document.getElementById('ev-title').value = '拡張QA予定改';
