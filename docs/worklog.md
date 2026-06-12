@@ -21854,3 +21854,39 @@ OCR確認画面の日付表示の違和感を解消（カード内の日付重�
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-12 16:00  env: 不明  branch: main
+
+### 作業名
+T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トークンredeemのクライアント配線
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260613a)／docs/ROADMAP.md／tools/qa_invite_token_test.js(新規16件)／worklog
+
+### 変更内容
+- **T-070**: ユーザーが本番Supabaseで supabase-apply-all.sql を実行し「Success. No rows returned」確認
+  （途中、チャットの説明文ごと貼り付けて構文エラー→SQLのみ再掲で解決）
+- **T-071 招待の使い捨て化（クライアント配線）**:
+  - 発行: openMyInviteModal が INV-トークンを発行して fl_family_invites に登録（72時間有効・1回限り表示・
+    「もう1人を招待」ボタン）。失敗時は従来 FAMI- コードへフォールバック（後方互換・ローカル専用でも招待可能）
+  - 参加: doSupaInviteSubmit が INV- は redeem_family_invite RPC→返った family_id で参加。
+    FAMI- は従来どおり（段階移行）。別家族参加中は**redeem前に**切替確認（トークンを無駄に消費しない）。
+    無効/期限切れ/使用済みは優しい日本語、未ログインはログイン案内
+  - これにより family_id の無期限ベアラ露出が解消（A-C2/T-002 クローズ）
+
+### テスト結果
+- 新規 tools/qa_invite_token_test.js: **16/16 PASS**（発行/登録/期限/コピー/redeem成功/無効/切替確認/
+  キャンセル未消費/FAMI後方互換/不正形式/未ログイン案内）
+- 回帰: QA84・fam_ocr・ext・release・e2e_flow・Vitest23 すべて緑
+
+### iPhone確認ポイント（2台で）
+- 端末A: 設定→家族を招待する→「INV-」コードが出るか（72時間・1回限り表記）
+- 端末B: そのコードで参加→予定が同期されるか／同じコードの2回目使用が拒否されるか
+
+### 次にやること
+- 実機2台での招待→同期テスト。残はT-072(OAuth/パスワード再設定)・T-073(Edge Functionレート制限)
+
+### コミット
+- 本コミット

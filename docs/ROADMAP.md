@@ -7,7 +7,7 @@
 ## セキュリティ・データ分離
 
 - [x] **T-001 RLS 網羅・堅牢化** — 完了条件: fl_family_data の SELECT/INSERT/UPDATE/DELETE で家族ID外アクセス不可＋CHECK制約。検証SQLが緑（docs/security-tests.sql・ローカルPG16）。
-- [~] **T-002 招待コードの露出窓を閉じる** — 完了条件: 使い捨て招待機構の納品＋クライアント配線で family_id 直接共有を廃止。機構✅／配線は本番SQL適用後（残）。
+- [x] **T-002 招待コードの露出窓を閉じる** — 完了条件: 使い捨て招待機構＋クライアント配線（発行=INVトークン/参加=redeem・FAMI後方互換）。✅
 - [x] **T-003 シークレット露出ゼロ** — 完了条件: service_role/sk-/OpenAIキー非搭載を機械検証。
 - [x] **T-004 Storage バケットポリシー** — 完了条件: 現状未使用を確認＋将来移行用RLSひな型を用意・検証。
 - [x] **T-005 ファイルアップロード検証** — 完了条件: 全入口で非画像/非動画/巨大/JSON偽装を取り込み前に拒否（テスト緑）。
@@ -57,7 +57,7 @@
 
 ## 残作業（本番デプロイ/実機が前提・要人間確認）
 
-- [ ] **T-070 本番Supabaseへ SQL 適用** — 完了条件: supabase-setup/invites/entitlements/perf-indexes を Run し #qa-debug セルフテスト緑。
-- [ ] **T-071 招待トークン redeem のクライアント配線** — 完了条件: family_id 直接共有を廃しトークン redeem 経由に（T-002 完全クローズ）。
+- [x] **T-070 本番Supabaseへ SQL 適用** — 完了条件: supabase-setup/invites/entitlements/perf-indexes を Run し #qa-debug セルフテスト緑。
+- [x] **T-071 招待トークン redeem のクライアント配線** — 完了条件: family_id 直接共有を廃しトークン redeem 経由に（T-002 完全クローズ）。
 - [ ] **T-072 OAuth実機検証＋パスワード再設定UI** — 完了条件: GitHub Pages本番でGoogle/Apple往復成功、再設定フォーム動作（docs/commercial-release-blockers.md）。
 - [ ] **T-073 Edge Functionサーバ側レート制限** — 完了条件: per-userレート制限で429返却・OpenAI使用量監視。

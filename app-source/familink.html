@@ -5127,7 +5127,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     </p>
     <div class="modal-form" style="gap:4px;">
       <label class="form-label">招待コード</label>
-      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: FAMI-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="24" style="letter-spacing:1.5px;text-transform:uppercase;">
+      <input type="text" id="supa-invite-code" class="form-input" placeholder="例: INV-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="24" style="letter-spacing:1.5px;text-transform:uppercase;">
       <div id="supa-invite-err" style="font-size:12px;color:var(--red);min-height:16px;margin-top:4px;"></div>
     </div>
     <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin:4px 0 4px;">
@@ -5151,8 +5151,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     </p>
     <div style="background:var(--bg-muted);border-radius:14px;padding:18px;text-align:center;margin-bottom:12px;">
       <div id="my-invite-code" style="font-size:19px;font-weight:800;letter-spacing:1.5px;color:var(--primary);font-family:monospace;word-break:break-all;line-height:1.4;"></div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">このコードをご家族に伝えてください</div>
+      <div id="my-invite-sub" style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6;">このコードをご家族に伝えてください</div>
     </div>
+    <button class="btn btn-ghost btn-block" onclick="openMyInviteModal()" style="margin:-4px 0 10px;font-size:12.5px;color:var(--primary);">もう1人を招待する（新しいコードを発行）</button>
     <div id="my-invite-login-note" style="display:none;font-size:11.5px;line-height:1.6;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>
     <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
       このコードは<b>信頼できる家族だけ</b>に共有してください。コードを知っている人は家族の予定や情報を見られます。
@@ -8041,19 +8042,68 @@ function openSupaInviteModal() {
   openModal('m-supa-invite');
 }
 
-function openMyInviteModal() {
+/* 招待トークン（INV-）の生成。家族コードと同じ暗号乱数・紛らわしい文字除外。 */
+function _generateInviteToken() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  try {
+    const buf = new Uint32Array(12);
+    crypto.getRandomValues(buf);
+    for(let i=0;i<12;i++) out += chars[buf[i] % chars.length];
+  } catch(_) {
+    for(let i=0;i<12;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  }
+  return 'INV-' + out.replace(/(.{4})(?=.)/g, '$1-');
+}
+/* 使い捨て招待トークンを発行して fl_family_invites に登録する（72時間有効・1回限り）。
+   失敗時（未ログイン/テーブル未適用/オフライン）は ok:false → 呼び出し側は FAMI- に
+   フォールバックする（後方互換・段階移行）。 */
+async function _issueInviteToken() {
+  try {
+    if(typeof isSupaLoggedIn !== 'function' || !isSupaLoggedIn()) return { ok:false };
+    const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+    if(!sb || !S.familyId) return { ok:false };
+    const token = _generateInviteToken();
+    const expires = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
+    const res = await sb.from('fl_family_invites').insert({
+      token: token, family_id: S.familyId,
+      created_by: S.supaSession.id, expires_at: expires,
+    });
+    if(res && res.error) return { ok:false };
+    return { ok:true, token: token };
+  } catch(_) { return { ok:false }; }
+}
+
+let _curInviteCode = '';   // 表示中の招待コード（コピー対象。トークン優先）
+async function openMyInviteModal() {
   if(!S.familyId) {
     _setFamilyId(_generateFamilyId());
     // 自分のデータに family_id を付与してクラウドへ反映（家族が取得できるように）
     if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
   }
   const el = document.getElementById('my-invite-code');
-  if(el) el.textContent = S.familyId;
+  const sub = document.getElementById('my-invite-sub');
+  // まず開いて「発行中…」を見せる（体感を待たせない）
+  _curInviteCode = S.familyId || '';
+  if(el) el.textContent = '発行中…';
+  if(sub) sub.textContent = '';
+  openModal('m-my-invite');
+  // 使い捨てトークンの発行を試みる（成功すれば family_id は配らない）
+  const r = await _issueInviteToken();
+  if(r.ok) {
+    _curInviteCode = r.token;
+    if(el) el.textContent = r.token;
+    if(sub) sub.textContent = 'このコードは 72時間・1回限り 有効です。招待する家族1人につき1つ発行してください。';
+  } else {
+    // フォールバック: 従来の家族コード（ローカル専用・未適用環境でも招待は止めない）
+    _curInviteCode = S.familyId || '';
+    if(el) el.textContent = _curInviteCode;
+    if(sub) sub.textContent = 'このコードをご家族に伝えてください';
+  }
   // ログイン状態に応じた案内：未ログインだとコードは端末内のみで実際の同期は起きない
   const note = document.getElementById('my-invite-login-note');
   if(note) {
     if(window._supaLoadFailed) {
-      // CDN 失敗＝クラウド未接続。コードは作れても同期は接続復帰後になることを明示
       note.style.display = 'block';
       note.textContent = 'いまクラウドに接続できていません。コードは作成できますが、家族との同期は接続が戻ってから行われます。';
     } else if(isSupaLoggedIn()) {
@@ -8063,11 +8113,10 @@ function openMyInviteModal() {
       note.textContent = 'いまはこの端末だけにコードを保存しています。設定からクラウドにログインすると、家族と実際に予定やタスクが同期されます。';
     }
   }
-  openModal('m-my-invite');
 }
 
 function copyMyInviteCode() {
-  const code = S.familyId || '';
+  const code = _curInviteCode || S.familyId || '';
   try {
     if(navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code);
@@ -8088,16 +8137,19 @@ function doSupaInviteSubmit() {
   const errEl = document.getElementById('supa-invite-err');
   if(errEl) errEl.textContent = '';
   if(!raw) { if(errEl) errEl.textContent = '招待コードを入力してください'; return; }
-  if(!/^FAMI-[A-Z0-9]{4}(-[A-Z0-9]{4})*$/.test(raw)) {  // 旧 FAMI-XXXX と新 FAMI-XXXX-XXXX-XXXX 両対応
-    if(errEl) errEl.textContent = '「FAMI-XXXX」の形式で入力してください';
+  const isToken = /^INV-[A-Z0-9]{4}(-[A-Z0-9]{4})*$/.test(raw);    // 使い捨て招待トークン
+  const isLegacy = /^FAMI-[A-Z0-9]{4}(-[A-Z0-9]{4})*$/.test(raw);  // 旧 家族コード（後方互換）
+  if(!isToken && !isLegacy) {
+    if(errEl) errEl.textContent = '「INV-XXXX」または「FAMI-XXXX」の形式で入力してください';
     return;
   }
-  if(raw === S.familyId) {
+  if(isLegacy && raw === S.familyId) {
     if(errEl) errEl.textContent = 'このコードには既に参加しています';
     return;
   }
-  const _applyJoin = function() {
-  _setFamilyId(raw);
+  // famId が確定してから参加処理を実行する（トークンは redeem 後に判明する）
+  const _applyJoin = function(famId) {
+  _setFamilyId(famId);
   closeModal('m-supa-invite');
   closeModal('m-supa-auth');
   // 既にアプリ利用中（設定から参加）か、入口フロー（新規）かで挙動を分ける。
@@ -8126,15 +8178,45 @@ function doSupaInviteSubmit() {
     _enterApp(true);
   }
   };
-  // 既に別の家族に参加中なら、黙って切り替えず必ず確認する（家族の取り違え防止）
-  if(S.familyId && S.familyId !== raw) {
+
+  /* ── トークン（INV-）: redeem RPC で family_id を取得して参加 ──
+     ・redeem は1回限り消費のため、「別家族への切替確認」は redeem の前に行う。
+     ・未ログインでは消費できない（オフライン保存も不可）ため、先にログインを案内。 */
+  const _joinByToken = function() {
+    if(!isSupaLoggedIn() || typeof getSupabase !== 'function' || !getSupabase()) {
+      if(errEl) errEl.textContent = '招待コードでの参加にはログインが必要です。先に「クラウドにログイン」してください';
+      return;
+    }
+    if(errEl) errEl.textContent = '';
+    const btnNote = errEl; if(btnNote) btnNote.textContent = '確認しています…';
+    getSupabase().rpc('redeem_family_invite', { p_token: raw }).then(function(res){
+      if(res && !res.error && typeof res.data === 'string' && /^FAMI-/.test(res.data)) {
+        if(res.data === S.familyId) {
+          if(btnNote) btnNote.textContent = 'この家族には既に参加しています';
+          return;
+        }
+        _applyJoin(res.data);
+      } else {
+        if(btnNote) btnNote.textContent = 'この招待コードは無効か、期限切れ・使用済みです。ご家族に新しいコードを発行してもらってください';
+      }
+    }).catch(function(){
+      if(btnNote) btnNote.textContent = '通信に失敗しました。電波の良い場所でもう一度お試しください';
+    });
+  };
+
+  // 既に別の家族に参加中なら、黙って切り替えず必ず確認する（家族の取り違え防止）。
+  // トークンの場合は famId 未確定のため、汎用の切替確認を redeem 前に出す（消費を防ぐ）。
+  if(S.familyId && (isToken || raw !== S.familyId)) {
     closeModal('m-supa-invite');
-    showConfirm('別の家族に切り替え',
-      '現在「'+S.familyId+'」に参加中です。新しいコード「'+raw+'」の家族に切り替えますか？端末内のデータは消えませんが、共有先が新しい家族に変わります。',
-      '切り替える', _applyJoin, 'warning');
+    const msg = isToken
+      ? '現在「'+S.familyId+'」に参加中です。この招待で別の家族に切り替えますか？端末内のデータは消えませんが、共有先が新しい家族に変わります。'
+      : '現在「'+S.familyId+'」に参加中です。新しいコード「'+raw+'」の家族に切り替えますか？端末内のデータは消えませんが、共有先が新しい家族に変わります。';
+    showConfirm('別の家族に切り替え', msg, '切り替える',
+      isToken ? _joinByToken : function(){ _applyJoin(raw); }, 'warning');
     return;
   }
-  _applyJoin();
+  if(isToken) { _joinByToken(); return; }
+  _applyJoin(raw);
 }
 
 /* 家族グループから抜ける（コードをリセット）。クラウド上の自分の行の family_id を
