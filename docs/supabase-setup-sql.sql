@@ -26,6 +26,19 @@ create table if not exists public.fl_family_data (
 );
 alter table public.fl_family_data enable row level security;
 
+-- 0b) 堅牢化 CHECK 制約（データ分離の前提を DB レベルで担保）
+--     ・data_key は 1〜64 文字（空キー・異常長キーを拒否）
+--     ・family_id は FAMI- 形式 または null（不正な family_id 値の混入を抑止）
+--     既存行を壊さないよう NOT VALID（以後の INSERT/UPDATE にのみ適用）。
+alter table public.fl_family_data drop constraint if exists fl_data_key_chk;
+alter table public.fl_family_data drop constraint if exists fl_family_id_chk;
+alter table public.fl_family_data
+  add constraint fl_data_key_chk
+  check (data_key is not null and char_length(data_key) between 1 and 64) not valid;
+alter table public.fl_family_data
+  add constraint fl_family_id_chk
+  check (family_id is null or family_id ~ '^FAMI-[A-Z0-9-]{4,40}$') not valid;
+
 -- 1) 自分の family_id を返す補助関数（SECURITY DEFINER で RLS 再帰を回避）
 create or replace function public.fl_my_family_ids()
   returns setof text language sql security definer stable
