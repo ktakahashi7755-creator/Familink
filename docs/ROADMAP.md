@@ -18,3 +18,24 @@
 ## 進め方
 各タスク: 方針宣言 → 実装 → テスト（RLSは検証SQL、client は Playwright）→ バグ修正 →
 チェック更新＆コミット。サーバ反映/実機が必要な項目は SQL/設計を納品し、その旨を明記。
+
+---
+
+# エラー処理・安定性（Error Handling & Stability）
+
+詳細な状態は worklog 参照。基準: 落ち着いたエラー画面 / loading・empty・error の3状態 /
+Supabase エラーの日本語共通化 / オフライン・リトライ導線 / 二重送信防止・ロールバック。
+
+- [x] **E1 Error Boundary（画面レンダリング保護＋クラッシュ復旧画面）** —
+      refresh(id) の各画面描画を try/catch で包み、失敗時は世界観に合う落ち着いた
+      インライン・エラー（「もう一度試す」）を表示。致命時は全画面の復旧オーバーレイ
+      （「再読み込み」）。本番でも有効化。
+- [ ] **E2 オフライン／通信失敗のリトライ導線** — online/offline 検知と、同期失敗時の
+      落ち着いたバナー＋「再試行」。navigator.onLine と sync 失敗を可視化。
+- [ ] **E3 Supabase エラーの共通日本語ハンドラ徹底** — ユーザー向けは必ず _supaErr で
+      日本語化し技術用語を出さない。同期失敗の握りつぶしを優しい通知に。
+- [ ] **E4 フォーム二重送信防止** — savePost/saveEvent/saveTaskEdit/saveTx/saveHealth/
+      saveMemoEdit 等の保存に再入防止ロック（連打での重複作成を防ぐ）。
+- [ ] **E5 loading / empty / error の3状態整備** — 非同期（同期・AI・OCR）に loading と
+      error、全リストに「次に何をすればいいか」が分かる empty を担保（不足分を補完）。
+

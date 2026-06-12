@@ -3708,6 +3708,50 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   border-radius:var(--r-full); padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; min-height:30px;
 }
 
+/* ── エラー処理：落ち着いたエラー状態 ── */
+.err-panel {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:48px 24px; gap:6px; min-height:240px;
+}
+.err-panel img { width:72px; height:72px; object-fit:contain; opacity:.92; margin-bottom:4px; }
+.err-panel .err-title { font-size:16px; font-weight:800; color:var(--text); }
+.err-panel .err-text { font-size:13px; line-height:1.7; color:var(--text-sub); max-width:280px; }
+.err-panel .err-retry {
+  margin-top:12px; background:var(--primary); color:#fff; border:none; border-radius:var(--r-full);
+  padding:11px 26px; font-size:14px; font-weight:800; cursor:pointer; min-height:44px;
+}
+.err-panel .err-retry:active { transform:scale(.96); }
+/* 致命時の全画面復旧オーバーレイ */
+#app-crash {
+  position:fixed; inset:0; z-index:9000; background:var(--bg, #F3F5F9);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:32px 24px; gap:8px;
+}
+#app-crash.show { display:flex; }
+#app-crash img { width:88px; height:88px; object-fit:contain; margin-bottom:6px; }
+#app-crash .crash-title { font-size:18px; font-weight:800; color:var(--text, #1A2440); }
+#app-crash .crash-text { font-size:13.5px; line-height:1.7; color:var(--text-sub, #5A6478); max-width:300px; }
+#app-crash .crash-btn {
+  margin-top:14px; background:linear-gradient(135deg,#0A84FF,#3FA0FF); color:#fff; border:none;
+  border-radius:14px; padding:14px 30px; font-size:15px; font-weight:800; cursor:pointer; min-height:50px;
+}
+#app-crash .crash-btn:active { transform:scale(.97); }
+/* オフライン／通信失敗バナー */
+#net-banner {
+  position:fixed; left:12px; right:12px; z-index:880;
+  bottom:calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom) + 10px);
+  background:var(--bg-card); border:1px solid var(--border-light);
+  box-shadow:0 6px 24px rgba(15,23,42,.16); border-radius:14px;
+  padding:11px 14px; display:none; align-items:center; gap:10px;
+  animation:netBannerIn .28s ease both;
+}
+#net-banner.show { display:flex; }
+@keyframes netBannerIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+#net-banner .net-ic { flex:none; width:30px; height:30px; border-radius:50%; background:#FFF1DB; color:#B5731A; display:flex; align-items:center; justify-content:center; }
+#net-banner .net-msg { flex:1; min-width:0; font-size:12.5px; font-weight:600; color:var(--text-sub); line-height:1.5; }
+#net-banner .net-retry { flex:none; background:var(--primary); color:#fff; border:none; border-radius:var(--r-full); padding:8px 16px; font-size:12.5px; font-weight:800; cursor:pointer; min-height:36px; }
+#net-banner .net-x { flex:none; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:4px 6px; min-height:36px; }
+
 </style>
 </head>
 <body>
@@ -5395,6 +5439,24 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 </div>
 
 <!-- 実演ツアー（スポットライトで実際のボタンを順番に案内） -->
+<!-- 致命的エラー時の復旧オーバーレイ（落ち着いた世界観） -->
+<div id="app-crash" role="alertdialog" aria-live="assertive">
+  <img id="app-crash-hoku" alt="Hoku" onerror="this.style.display='none'">
+  <div class="crash-title">うまく表示できませんでした</div>
+  <div class="crash-text">一時的な問題が発生したようです。<br>お手数ですが、再読み込みしてお試しください。<br>大切なデータは端末に保存されています。</div>
+  <button class="crash-btn" onclick="location.reload()">再読み込みする</button>
+</div>
+
+<!-- オフライン／通信失敗バナー -->
+<div id="net-banner" role="status">
+  <span class="net-ic">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+  </span>
+  <span class="net-msg" id="net-banner-msg">オフラインです。通信が戻ると自動で同期します。</span>
+  <button class="net-retry" id="net-banner-retry" onclick="retrySyncNow()" style="display:none;">再試行</button>
+  <button class="net-x" onclick="document.getElementById('net-banner').classList.remove('show')" aria-label="閉じる">×</button>
+</div>
+
 <div id="app-tour" class="tour-overlay hidden" onclick="tourNext()">
   <div class="tour-spot" id="tour-spot"></div>
   <div class="tour-tip" id="tour-tip" onclick="event.stopPropagation()">
@@ -9161,7 +9223,7 @@ function switchTab(id) {
   _syncTabActive(id);
 }
 
-function refresh(id) {
+function _refreshDispatch(id) {
   switch(id) {
     case 's-home':    renderHome(); break;
     case 's-task':    renderTaskScreen(); break;
@@ -9183,6 +9245,60 @@ function refresh(id) {
     case 's-premium':  renderPremium(); break;
     case 's-login':    updateLoginGreeting(); break;
   }
+}
+
+/* Error Boundary: 1画面の描画が例外を投げても、空白や壊れた画面を出さず、
+   その画面内に落ち着いたエラー（「もう一度試す」）を表示する。 */
+function refresh(id) {
+  try {
+    _refreshDispatch(id);
+  } catch(e) {
+    try { console.error('[Familink] render error on ' + id + ':', e && e.message); } catch(_){}
+    _showScreenError(id);
+  }
+}
+
+/* 画面内のエラーを「上に重ねる」オーバーレイで表示（画面構造を壊さないため、
+   修復後の再描画で確実に元に戻せる）。retry でオーバーレイを外して再描画する。 */
+function _showScreenError(id) {
+  const el = document.getElementById(id);
+  if(!el) { _showAppCrash(); return; }
+  const old = el.querySelector(':scope > .err-overlay');
+  if(old) old.remove();
+  if(getComputedStyle(el).position === 'static') el.style.position = 'relative';
+  const hoku = (typeof IMGS !== 'undefined' && (IMGS.hoku || IMGS.happy)) || '';
+  const ov = document.createElement('div');
+  ov.className = 'err-overlay';
+  ov.style.cssText = 'position:absolute;inset:0;z-index:50;background:var(--bg,#F3F5F9);display:flex;';
+  ov.innerHTML =
+      '<div class="err-panel" style="margin:auto;">'
+    + (hoku ? '<img src="' + hoku + '" alt="Hoku" onerror="this.style.display=\'none\'">' : '')
+    + '<div class="err-title">うまく表示できませんでした</div>'
+    + '<div class="err-text">一時的な問題が起きたようです。<br>「もう一度試す」を押すか、ホームに戻ってお試しください。</div>'
+    + '<button class="err-retry" onclick="_retryScreen(\'' + H(id) + '\')">もう一度試す</button>'
+    + '<button class="err-retry" style="margin-top:8px;background:var(--bg-muted);color:var(--text-sub);" onclick="go(\'s-home\')">ホームに戻る</button>'
+    + '</div>';
+  el.appendChild(ov);
+}
+function _retryScreen(id) {
+  const el = document.getElementById(id);
+  const ov = el && el.querySelector(':scope > .err-overlay');
+  if(ov) ov.remove();   // 先にオーバーレイを外してから再描画
+  try {
+    _refreshDispatch(id);
+  } catch(e) {
+    try { console.error('[Familink] retry failed on ' + id + ':', e && e.message); } catch(_){}
+    _showAppCrash();   // 再試行でも失敗 → 全画面復旧へエスカレーション
+  }
+}
+/* 致命時：全画面の復旧オーバーレイ（再読み込み導線） */
+function _showAppCrash() {
+  try {
+    const hk = document.getElementById('app-crash-hoku');
+    if(hk && typeof IMGS !== 'undefined' && (IMGS.hoku || IMGS.happy)) hk.src = IMGS.hoku || IMGS.happy;
+    const c = document.getElementById('app-crash');
+    if(c) c.classList.add('show');
+  } catch(_){ try { location.reload(); } catch(__){} }
 }
 
 function updateLoginGreeting() {
@@ -28266,12 +28382,21 @@ async function _oauthSignIn(provider) {
    ──────────────────────────────────────────────────────────── */
 (function() {
   const _isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  /* 起動が完了して画面が1枚でも表示できているか。未表示のまま例外＝致命とみなす。 */
+  function _appLooksAlive() {
+    try {
+      return !!document.querySelector('.screen:not(.hidden)') ||
+             !!document.querySelector('#s-ob:not(.hidden)');
+    } catch(_){ return true; }
+  }
   window.addEventListener('error', function(e) {
     if(!e || !e.error) return;
     console.error('[Familink] Uncaught error:', e.error);
     if(_isDev) {
       try { showToast('JS Error: ' + (e.error.message || e.error), 'error'); } catch(_){}
     }
+    // 本番でも、画面が一枚も出ていない（＝起動失敗で真っ白）なら復旧画面を出す
+    if(!_appLooksAlive()) { try { _showAppCrash(); } catch(_){} }
   });
   window.addEventListener('unhandledrejection', function(e) {
     if(!e || !e.reason) return;
