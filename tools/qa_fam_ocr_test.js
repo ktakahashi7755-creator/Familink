@@ -21,19 +21,19 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
     S.familyId = null; S.familyIdOwner = null; S.familyIdSetByUser = false;
     openSupaInviteModal();
     document.getElementById('supa-invite-code').value = 'FAMI-TEST-AAAA-BBBB';
-    doSupaInviteSubmit(); await wait(300);
+    try{_inviteSubmitLock=0;}catch(_){} doSupaInviteSubmit(); await wait(300);
     t('参加(家族なし): 即時に familyId 設定', S.familyId === 'FAMI-TEST-AAAA-BBBB');
     t('参加(家族なし): 確認ダイアログは出ない', !document.getElementById('m-confirm').classList.contains('open'));
     // 同じコード再入力 → 文言
     openSupaInviteModal();
     document.getElementById('supa-invite-code').value = 'FAMI-TEST-AAAA-BBBB';
-    doSupaInviteSubmit(); await wait(150);
+    try{_inviteSubmitLock=0;}catch(_){} doSupaInviteSubmit(); await wait(150);
     t('同一コード: 「既に参加しています」', document.getElementById('supa-invite-err').textContent.includes('既に参加'));
     closeModal('m-supa-invite');
     // 別の家族コード → 確認ダイアログ
     openSupaInviteModal();
     document.getElementById('supa-invite-code').value = 'FAMI-CCCC-DDDD-EEEE';
-    doSupaInviteSubmit(); await wait(350);
+    try{_inviteSubmitLock=0;}catch(_){} doSupaInviteSubmit(); await wait(350);
     const conf = document.getElementById('m-confirm');
     t('別家族コード: 確認ダイアログが出る', conf.classList.contains('open'));
     t('別家族コード: 確認まで familyId 不変', S.familyId === 'FAMI-TEST-AAAA-BBBB');
@@ -44,7 +44,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
     // もう一度 → 切り替える
     openSupaInviteModal();
     document.getElementById('supa-invite-code').value = 'FAMI-CCCC-DDDD-EEEE';
-    doSupaInviteSubmit(); await wait(350);
+    try{_inviteSubmitLock=0;}catch(_){} doSupaInviteSubmit(); await wait(350);
     const okBtn = [...document.querySelectorAll('#m-confirm button')].find(b => /切り替える/.test(b.textContent));
     t('確認ボタン「切り替える」がある', !!okBtn);
     if (okBtn) okBtn.click(); await wait(400);
@@ -52,7 +52,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
     // 不正形式
     openSupaInviteModal();
     document.getElementById('supa-invite-code').value = 'HELLO-WORLD';
-    doSupaInviteSubmit(); await wait(150);
+    try{_inviteSubmitLock=0;}catch(_){} doSupaInviteSubmit(); await wait(150);
     t('不正形式は拒否', document.getElementById('supa-invite-err').textContent.includes('FAMI'));
     closeModal('m-supa-invite');
     // 設定の新文言

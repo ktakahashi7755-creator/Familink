@@ -6489,8 +6489,10 @@ const SYNC_KEYS = [
    これ以外（端末/本人固有：tabConfig / homeOrder / userProfile / isPremiumUser /
    通知 / アバター / Hoku 文脈 等）は他メンバーの値で上書きせず、自分の行のみ採用する。 */
 const FAMILY_SHARED_KEYS = [
+  // ※ サーバ側 RLS（docs/supabase-setup-sql.sql の family_read ポリシー）の許可キーと
+  //    完全一致させること。faceGroups は未実装・未使用のため共有対象から除外している。
   'events','tasks','txs','health','posts','announces',
-  'prep','prepRoutines','folders','docs','albumPhotos','faceGroups',
+  'prep','prepRoutines','folders','docs','albumPhotos',
   'shoppingItems','shoppingFrequent','members',
   'customBoards','boardItems','boardSections',
   'recurringTxs','memos','memoFolders','workspaces'
@@ -7926,7 +7928,12 @@ function copyMyInviteCode() {
   } catch(e) { showToast('コードを長押しでコピーしてください', 'info'); }
 }
 
+let _inviteSubmitLock = 0;
 function doSupaInviteSubmit() {
+  // 連打・自動化による総当たり的な送信を抑止（1.2秒のクールダウン）
+  const _now = Date.now();
+  if(_now - _inviteSubmitLock < 1200) return;
+  _inviteSubmitLock = _now;
   const raw = (document.getElementById('supa-invite-code').value || '').trim().toUpperCase();
   const errEl = document.getElementById('supa-invite-err');
   if(errEl) errEl.textContent = '';
@@ -9886,15 +9893,42 @@ function saveProfileEdit() {
 }
 
 function doLogout() {
-  showConfirm('ログアウト','ログアウトしますか？','ログアウトする', async () => {
+  const _cloud = (typeof isSupaLoggedIn==='function' && isSupaLoggedIn());
+  const _msg = _cloud
+    ? 'ログアウトしますか？この端末に表示されている家族のデータは消去されます（クラウドに保存済みのため、次回ログインで元に戻ります）。共有端末でも安心してお使いいただけます。'
+    : 'ログアウトしますか？';
+  showConfirm('ログアウト', _msg, 'ログアウトする', async () => {
     try { stopRealtimeSync(); } catch(_){}
     try { await supaSignOut(); } catch(_){}
     S.loggedIn = false; S.user = null;
     saveS();
+    // 共有端末対策：クラウド利用者はログアウト時に端末内の家族データを消去する。
+    // （データはクラウドにあるため再ログインで完全復元。ローカル専用利用者は端末が唯一の
+    //   保管先のため消さず、設定→「ローカルデータを削除」で明示操作できる）
+    if(_cloud) {
+      try { _wipeLocalDataKeepDevice(); } catch(_){}
+      location.reload();
+      return;
+    }
     document.getElementById('tabbar').classList.add('hidden');
     showScreen('s-ob');
     showToast('ログアウトしました');
   }, '');
+}
+
+/* familink_v3 から「家族/個人のコンテンツ」を消し、端末・アプリ設定だけ残す。
+   共有端末でのログアウト時に他者へデータが見えないようにする（クラウド利用者向け）。 */
+function _wipeLocalDataKeepDevice() {
+  // 端末固有・再ログインに必要・UX設定は保持（中身のデータではない）
+  const KEEP = ['account','activeTheme','guideSeen','tabConfig','notifPrefs',
+                'browserNotifEnabled','supaEntryChoice','demoProfilesSeeded',
+                'defaultCustomBoardsSeeded','shoppingMigrated'];
+  let cur = {};
+  try { cur = JSON.parse(localStorage.getItem('familink_v3') || '{}') || {}; } catch(_){ cur = {}; }
+  const keep = {};
+  KEEP.forEach(function(k){ if(cur[k] !== undefined) keep[k] = cur[k]; });
+  try { localStorage.setItem('familink_v3', JSON.stringify(keep)); }
+  catch(_){ try { localStorage.removeItem('familink_v3'); } catch(__){} }
 }
 
 /* Wave 226: アカウント削除（App Store要件） */
@@ -9910,23 +9944,31 @@ function confirmDeleteAccount() {
         '完全に削除する',
         async () => {
           showLoading('アカウントを削除中...');
+          const sb = getSupabase();
+          const hadCloud = !!(sb && isSupaLoggedIn());
+          let cloudDeleted = !hadCloud;   // クラウド未使用なら「クラウド削除は不要＝完了」扱い
           try {
-            const sb = getSupabase();
-            if(sb && isSupaLoggedIn()) {
+            if(hadCloud) {
               try {
                 const uid = S.supaSession && S.supaSession.id;
                 if(uid) {
-                  await sb.from('fl_family_data').delete().eq('user_id', uid);
+                  const res = await sb.from('fl_family_data').delete().eq('user_id', uid);
+                  cloudDeleted = !(res && res.error);   // 実際に成功したかを確認
                 }
                 await sb.auth.signOut();
-              } catch(e) { console.error('delete account:', e && e.message); }
+              } catch(e) { console.error('delete account:', e && e.message); cloudDeleted = false; }
             }
           } finally {
             hideLoading();
           }
+          // ローカルは常に消去（退会の意思）。ただし結果報告は正直に出し分ける。
           localStorage.removeItem('familink_v3');
-          showToast('アカウントとデータを削除しました');
-          setTimeout(() => location.reload(), 1200);
+          if(cloudDeleted) {
+            showToast('アカウントとデータを削除しました');
+          } else {
+            showToast('この端末のデータは削除しましたが、クラウド側の削除に失敗しました。通信環境の良い場所で再度ログインしてお試しください','error');
+          }
+          setTimeout(() => location.reload(), cloudDeleted ? 1200 : 2600);
         },
         ''
       );
@@ -18625,7 +18667,7 @@ function albumOnFilesPicked(ev) {
     if(!ok) {
       showToast("容量不足のため保存できませんでした。動画や枚数を減らすか、設定 → ストレージ管理から整理してください。","error");
     } else if(skipped > 0) {
-      showToast('動画が大きすぎて追加できないものがありました（端末版は短い動画のみ対応）','info');
+      showToast('大きすぎる動画は追加できませんでした（端末保存のため3MB以下の短い動画のみ対応）','info');
     } else if(failed > 0) {
       showToast((total - failed)+' 件追加 / '+failed+' 件は読み込み失敗','info');
     } else {
@@ -18641,8 +18683,9 @@ function albumOnFilesPicked(ev) {
     const f = files[i];
     const isVideo = (f.type||'').indexOf('video/') === 0;
     if(isVideo) {
-      // 端末内（LocalStorage）保存のため大きすぎる動画はスキップ（base64で約1.35倍に膨らむ）
-      if(f.size > 18 * 1024 * 1024) { skipped++; done(); continue; }
+      // 端末内（LocalStorage 約5MB）保存のため、base64 で約1.35倍に膨らむ動画は
+      // 3MB 超を受け付けない（受理しても保存時に容量超過で必ず失敗するため、先に弾く）。
+      if(f.size > 3 * 1024 * 1024) { skipped++; done(); continue; }
       const fr = new FileReader();
       fr.onload = function(){
         const dataUrl = fr.result;
