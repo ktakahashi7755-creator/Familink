@@ -34,7 +34,7 @@ Supabase エラーの日本語共通化 / オフライン・リトライ導線 /
       落ち着いたバナー＋「再試行」。navigator.onLine と sync 失敗を可視化。
 - [x] **E3 Supabase エラーの共通日本語ハンドラ徹底** — ユーザー向けは必ず _supaErr で
       日本語化し技術用語を出さない。同期失敗の握りつぶしを優しい通知に。
-- [ ] **E4 フォーム二重送信防止** — savePost/saveEvent/saveTaskEdit/saveTx/saveHealth/
+- [x] **E4 フォーム二重送信防止** — savePost/saveEvent/saveTaskEdit/saveTx/saveHealth/
       saveMemoEdit 等の保存に再入防止ロック（連打での重複作成を防ぐ）。
 - [ ] **E5 loading / empty / error の3状態整備** — 非同期（同期・AI・OCR）に loading と
       error、全リストに「次に何をすればいいか」が分かる empty を担保（不足分を補完）。

@@ -8901,6 +8901,19 @@ function loadS() {
 const H = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+/* ── フォーム二重送信防止（連打での重複作成を防ぐ）──
+   バリデーション通過後・データ変更直前に呼ぶ。同一キーで 700ms 以内の
+   2回目以降の呼び出しは false を返す（＝処理を中断させる）。
+   バリデーション前に呼ばないことで、入力修正後の即時再送信は妨げない。 */
+const _submitLocks = {};
+function _lockSubmit(key, ms) {
+  const now = Date.now();
+  const last = _submitLocks[key] || 0;
+  if(now - last < (ms || 700)) return false;
+  _submitLocks[key] = now;
+  return true;
+}
+
 /* ── ファイルアップロード検証（accept 属性に依存しない多層防御）──
    kind: 'image' | 'video' | 'imageOrVideo' | 'json'
    MIME型・拡張子・サイズの三点で判定し、非対応は理由付きで false を返す。
@@ -12848,6 +12861,7 @@ function saveEvent() {
 
   if(!title) { showToast('タイトルを入力してください','error'); return; }
   if(!date)  { showToast('日付を入力してください','error'); return; }
+  if(!_lockSubmit('saveEvent')) return;   // 連打による重複作成を防ぐ
 
   // 終了時刻 ≤ 開始時刻なら 30 分後に自動補正
   if(time && endTime && endTime <= time) {
@@ -14291,6 +14305,7 @@ function selectTeMember(id){
 function saveTaskEdit(){
   const title=document.getElementById('te-title').value.trim();
   if(!title){showToast('タスク名を入力してください','error');return;}
+  if(!_lockSubmit('saveTaskEdit')) return;   // 連打による重複作成を防ぐ
   const id=document.getElementById('te-id').value;
   const now=todayStr();
   const repeat=document.getElementById('te-repeat').value||'';
@@ -15315,6 +15330,7 @@ function saveTx() {
   const date   = document.getElementById('bm-date').value;
   if(!isFinite(amount) || amount<=0 || amount>1000000000) { showToast('金額を正しく入力してください','error'); return; }
   if(!date) { showToast('日付を入力してください','error'); return; }
+  if(!_lockSubmit('saveTx')) return;   // 連打による重複作成を防ぐ
   const member = (document.getElementById('bm-member')?.value) || S.user?.id || 'kenya';
   if(id) {
     const tx = (S.txs||[]).find(t => t.id === id);
@@ -16126,6 +16142,7 @@ function selectPostTarget(id) {
 function savePost() {
   const title   = document.getElementById('post-title').value.trim();
   if(!title) { showToast('タイトルを入力してください','error'); return; }
+  if(!_lockSubmit('savePost')) return;   // 連打による重複投稿を防ぐ
   const body    = document.getElementById('post-body').value.trim(); // 任意
   const id      = document.getElementById('post-id').value;
   const cat     = document.getElementById('post-cat').value;
@@ -16926,6 +16943,7 @@ function saveMemoEdit() {
   const title = document.getElementById('memo-title').value.trim();
   const bodyv = document.getElementById('memo-body').value;
   if(!title && !bodyv.trim() && !_memoAttachBuf.length) { showToast('タイトル・本文・写真のいずれかを入力してください','error'); return; }
+  if(!_lockSubmit('saveMemoEdit')) return;   // 連打による重複作成を防ぐ
   const now = new Date().toISOString();
   const fsel = document.getElementById('memo-folder-select');
   const fid = fsel ? fsel.value : (_memoFolder||'');
@@ -17460,6 +17478,7 @@ function saveHealth() {
   const tempRaw = document.getElementById('hm-temp').value;
   const temp = tempRaw ? parseFloat(tempRaw) : '';
   if(tempRaw && (isNaN(temp) || temp < 34 || temp > 42)) { showToast('体温は34〜42℃の範囲で入力してください','error'); return; }
+  if(!_lockSubmit('saveHealth')) return;   // 連打による重複記録を防ぐ
   const status = document.getElementById('hm-status').value || '元気';
   const symptoms = _hmSelectedSymptoms.slice();
   const extra = (document.getElementById('hm-symptoms-extra').value || '').trim();
