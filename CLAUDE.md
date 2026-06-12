@@ -4,6 +4,61 @@
 
 ---
 
+## 0. プロジェクト要点（最初に読む・以後の実装はすべて本ファイルの原則に従う）
+
+> **本ファイルは Familink の開発憲法である。以後のすべての実装・変更は本ファイルの原則
+> （技術的不変条件・デザイン原則・セキュリティ原則）に必ず従うこと。**
+> 個別指示が原則と衝突する場合は §9 に従い、worklog に理由を残す。
+
+### 技術スタック
+- **本体**: 単一 HTML（`app-source/familink.html`）／**Vanilla JS / CSS**／フレームワーク・バンドラなし。
+- **公開**: GitHub Pages（`docs/index.html`＝本体＋先頭の Service Worker＋キャッシュバスター）。
+- **保存**: ブラウザ LocalStorage（主キー `familink_v3`）。写真は base64。
+- **クラウド**: Supabase（CDN `@supabase/supabase-js@2`・**anon キーのみ**）。テーブルは
+  `fl_family_data`（key-value JSONB）＋ `fl_family_invites` / `fl_entitlements`（SQL は docs/）。
+- **サーバ処理**: Supabase Edge Functions（TypeScript/Deno）= Hoku応答 / 予定表OCR。
+- **依存**: npm 依存ゼロ。CDN は Supabase と Google Fonts のみ。新規追加は要人間確認（§12.1）。
+
+### 起動 / ビルド / テストコマンド
+ビルド工程は無い（単一HTML）。ローカル確認とテストは以下。
+```sh
+# ローカルサーバ（プレビュー）
+python3 -m http.server 9000 --bind 127.0.0.1 --directory app-source
+
+# QA 自動テスト（Playwright・84件）
+node qa_full_test.js
+
+# ユニットテスト（Vitest・実コード抽出・23件）
+npm run test:unit        # = npx vitest run
+
+# 追加スイート（Playwright・tools/ 配下）— カレンダー/課金/エラー処理/結合フロー等
+node tools/qa_<name>_test.js
+```
+- 実装・修正後は **`node qa_full_test.js` で 84/84 PASS を確認してからコミット**（§2/§14.5）。
+- 公開前は **app-source → docs を §12.3 の手順で同期**する。
+- RLS 等の SQL は本番 Supabase 適用が前提（検証用: `docs/security-tests.sql`、ローカル Postgres で検証可）。
+
+### デザイン原則（世界観・絶対遵守）
+- **装飾的な絵文字を使わない**（🎉✨等の多用禁止）。アイコンは**ラインアイコン（SVG stroke）**で統一。
+- **落ち着いた配色**（派手・原色の乱用禁止）、**十分な余白**、角丸・影・フォントの統一。
+- **簡潔でやさしい日本語コピー**（です・ます調を基調・押し付けがましくしない）。
+- **老若男女が迷わない UI**: スマホ片手操作・**タップ領域 44px 以上**・3秒で理解できる画面。
+- 子どもっぽくしすぎず、温かく・安心感のある家族向けトーン（詳細 §10.5 / docs/ui-ux-guideline.md）。
+
+### セキュリティ原則（最優先・絶対遵守）
+- **パスワード・認証コード（OTP）は必ず本人が入力**する。アプリが代行・推測・平文保存しない。
+- **家族間データの完全分離**: 別家族のデータは読み書き不可。サーバ側 RLS で担保し、
+  クライアント判定に依存しない（`fl_family_data` の RLS／`docs/security-tests.sql` で実証）。
+- **課金状態はサーバ権利（`fl_entitlements`）を正本**とし、クライアントの改ざんで付与できない。
+- 入力は `H()` でエスケープ（XSS）。ファイルは種別・サイズ検証。秘密鍵（service_role 等）は搭載しない。
+- 詳細は §13 / docs/AUDIT.md / docs/security-tests.sql。
+
+### ドキュメントの正本
+- 運用ルール=本 CLAUDE.md ／ 監査=`docs/AUDIT.md` ／ タスク=`docs/ROADMAP.md` ／
+  履歴=`docs/worklog.md` ／ リリース=`docs/RELEASE-CHECKLIST.md` ／ 性能=`docs/PERF.md`。
+
+---
+
 ## 1. 作業開始プロトコル（必須）
 
 新しいセッションでコードに触れる前に、以下を**この順番**で必ず実行します。未確認のまま編集を始めてはいけません。
