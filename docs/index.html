@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260612f';
+  var V='v20260612g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5467,7 +5467,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   </span>
   <span class="net-msg" id="net-banner-msg">オフラインです。通信が戻ると自動で同期します。</span>
   <button class="net-retry" id="net-banner-retry" onclick="retrySyncNow()" style="display:none;">再試行</button>
-  <button class="net-x" onclick="document.getElementById('net-banner').classList.remove('show')" aria-label="閉じる">×</button>
+  <button class="net-x" onclick="_netBannerDismissed=true;document.getElementById('net-banner').classList.remove('show')" aria-label="閉じる">×</button>
 </div>
 
 <div id="app-tour" class="tour-overlay hidden" onclick="tourNext()">
@@ -6578,9 +6578,63 @@ let _isSyncing = false;
 
 function _setSyncDot(state) {
   const dot = document.getElementById('sync-status-dot');
-  if(!dot) return;
-  dot.className = 'sync-dot ' + state;
+  if(dot) dot.className = 'sync-dot ' + state;
+  try { _updateNetBanner(state); } catch(_){}
 }
+
+/* オフライン／通信失敗バナーの出し分け（クラウド利用者のみ）。
+   ユーザーが手動で閉じた場合は同一セッション中は再表示しない（うるさくしない）。 */
+let _netBannerDismissed = false;
+function _updateNetBanner(state) {
+  const b = document.getElementById('net-banner');
+  if(!b) return;
+  // クラウド未ログイン（ローカル専用）には出さない
+  if(typeof isSupaLoggedIn === 'function' && !isSupaLoggedIn()) { b.classList.remove('show'); return; }
+  const msg = document.getElementById('net-banner-msg');
+  const retry = document.getElementById('net-banner-retry');
+  if(!navigator.onLine) {
+    if(msg) msg.textContent = 'オフラインです。通信が戻ると自動で同期します。';
+    if(retry) retry.style.display = 'none';
+    if(!_netBannerDismissed) b.classList.add('show');
+  } else if(state === 'error') {
+    if(msg) msg.textContent = '同期に失敗しました。通信環境をご確認のうえ再試行してください。';
+    if(retry) retry.style.display = '';
+    if(!_netBannerDismissed) b.classList.add('show');
+  } else {
+    // synced / syncing / offline(=未ログイン) は隠す。回復したら閉じたフラグも解除。
+    b.classList.remove('show');
+    if(state === 'synced') _netBannerDismissed = false;
+  }
+}
+/* 「再試行」: クラウドへ再同期を試みる */
+function retrySyncNow() {
+  const b = document.getElementById('net-banner');
+  if(!navigator.onLine) { try { showToast('まだオフラインです。通信が回復してから再試行してください','info'); } catch(_){} return; }
+  if(typeof isSupaLoggedIn === 'function' && !isSupaLoggedIn()) { if(b) b.classList.remove('show'); return; }
+  _setSyncDot('syncing');
+  try { if(b) b.classList.remove('show'); } catch(_){}
+  Promise.resolve()
+    .then(function(){ if(typeof _fetchFromSupabase === 'function') return _fetchFromSupabase(); })
+    .then(function(){ if(typeof _pushToSupabase === 'function') return _pushToSupabase(); })
+    .then(function(){ try { showToast('同期しました','success'); } catch(_){} })
+    .catch(function(){ _setSyncDot('error'); });
+}
+/* オンライン/オフラインの変化を検知してバナーと同期を駆動 */
+(function(){
+  window.addEventListener('offline', function(){ try { _updateNetBanner('offline-event'); } catch(_){} });
+  window.addEventListener('online', function(){
+    _netBannerDismissed = false;
+    try {
+      if(typeof isSupaLoggedIn === 'function' && isSupaLoggedIn()) {
+        _setSyncDot('syncing');
+        if(typeof _ensureRealtime === 'function') _ensureRealtime();
+        if(typeof _fetchFromSupabase === 'function') _fetchFromSupabase().catch(function(){ _setSyncDot('error'); });
+      } else {
+        _updateNetBanner('synced');
+      }
+    } catch(_){}
+  });
+})();
 
 function _scheduleSyncToSupabase() {
   if(!isSupaLoggedIn()) { _setSyncDot('offline'); return; }
