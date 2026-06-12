@@ -6400,7 +6400,9 @@ function _supaErr(e) {
   if(/(rate limit|too many|over.*limit)/i.test(msg)) return 'リクエストが多すぎます。1〜2分おいて再度お試しください。';
   if(/(Failed to fetch|NetworkError|ENOTFOUND|net::|connection)/i.test(msg)) return 'ネットワークに接続できませんでした。通信状況をご確認ください。';
   if(/(disabled|not allowed)/i.test(msg)) return 'この操作は現在許可されていません。';
-  return msg || '不明なエラーが発生しました。';
+  // 未マップのエラーは生の英語メッセージを出さず、原文はコンソールにのみ残す
+  try { if(msg) console.error('[supaErr unmapped]', msg); } catch(_){}
+  return 'うまく処理できませんでした。通信環境をご確認のうえ、もう一度お試しください。';
 }
 
 /* ── サインアップ（メール + パスワード） ── */
@@ -7027,7 +7029,8 @@ function doSupaLocalSignup() {
       createdAt: (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10),
     };
   } catch(e) {
-    showToast('ローカル作成に失敗しました：' + e.message, 'error');
+    try { console.error('local account create:', e && e.message); } catch(_){}
+    showToast('アカウントを作成できませんでした。お手数ですが、もう一度お試しください。', 'error');
     return;
   }
   S.supaEntryChoice = 'guest';
@@ -8577,7 +8580,7 @@ function _exportFamilinkInternal(includePhotos) {
   }
   let json;
   try { json = JSON.stringify(payload, null, 2); }
-  catch(e) { showToast('書き出しに失敗しました：' + e.message,'error'); return; }
+  catch(e) { try { console.error('export failed:', e && e.message); } catch(_){} showToast('データを書き出せませんでした。お手数ですが、もう一度お試しください。','error'); return; }
   const blob = new Blob([json], {type:'application/json;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
@@ -8633,7 +8636,8 @@ function importFamilinkDataFromFile(ev) {
         showToast(imported + ' 種類のデータを読み込みました','success');
       }, 'danger');
     } catch(e) {
-      showToast('JSON の解析に失敗しました：' + e.message,'error');
+      try { console.error('import parse failed:', e && e.message); } catch(_){}
+      showToast('ファイルを読み込めませんでした。Familink で書き出したファイルかご確認ください。','error');
     }
   };
   reader.onerror = function() { showToast('ファイルの読み込みに失敗しました','error'); };

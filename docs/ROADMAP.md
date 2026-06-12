@@ -32,7 +32,7 @@ Supabase エラーの日本語共通化 / オフライン・リトライ導線 /
       （「再読み込み」）。本番でも有効化。
 - [x] **E2 オフライン／通信失敗のリトライ導線** — online/offline 検知と、同期失敗時の
       落ち着いたバナー＋「再試行」。navigator.onLine と sync 失敗を可視化。
-- [ ] **E3 Supabase エラーの共通日本語ハンドラ徹底** — ユーザー向けは必ず _supaErr で
+- [x] **E3 Supabase エラーの共通日本語ハンドラ徹底** — ユーザー向けは必ず _supaErr で
       日本語化し技術用語を出さない。同期失敗の握りつぶしを優しい通知に。
 - [ ] **E4 フォーム二重送信防止** — savePost/saveEvent/saveTaskEdit/saveTx/saveHealth/
       saveMemoEdit 等の保存に再入防止ロック（連打での重複作成を防ぐ）。
