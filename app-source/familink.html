@@ -4340,6 +4340,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   <!-- ワークスペース帯 -->
   <div class="ws-banner-wrap" id="ws-banner-cal"></div>
 
+  <!-- メンバーフィルタ（家族の誰の予定かを絞り込み） -->
+  <div id="cal-member-bar"></div>
+
   <!-- 曜日ヘッダー -->
   <div class="cal-dow-bar" id="cal-dow-bar">
     <div class="cal-dow-c dow-sun">日</div>
@@ -8439,6 +8442,7 @@ let S = {
   kanbanCols: [], // (Wave 15) カンバン機能撤廃により未使用
   tkVisibleMembers: null, // null=全員表示
   budgetVisibleMembers: null, // Wave 42：null=全員表示
+  calVisibleMembers: null, // カレンダー：null=全員表示
   _boardPostId: null,
   userPhotos: {}, // { memberId: 'data:image/...' } - カスタム写真
   userAvatars: {}, // { memberId: 'avatar_baby_01' } - 公式アバターID
@@ -8498,7 +8502,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
 
 function saveS() {
   const d = {};
@@ -10383,7 +10387,7 @@ const DEMO_PROFILE_FIELDS = [
   'events','tasks','txs','announces','posts','health','prep','prepRoutines','notifs',
   'shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab',
   'customBoards','boardItems','boardSections','boardCustomTabs','defaultCustomBoardsSeeded',
-  'recurringTxs','cashflowSettings','budgetVisibleMembers','tkVisibleMembers',
+  'recurringTxs','cashflowSettings','budgetVisibleMembers','tkVisibleMembers','calVisibleMembers',
   'homeOrder','memos','memoFolders','tabConfig','widgetItems',
   'budgetY','budgetM','budgetTab','shoppingMigrated'
 ];
@@ -11531,6 +11535,7 @@ function _holidayName(ds) { return JP_HOLIDAYS[ds] || ''; }
 
 function renderCal() {
   renderWsBanner('ws-banner-cal');
+  try { const _mb = document.getElementById('cal-member-bar'); if(_mb) _mb.innerHTML = _calMemberBarHtml(); } catch(_){}
   const view = S.calView || 'month';
   document.getElementById('cal-month-title').textContent = `${S.calY}年${S.calM+1}月`;
   ['month','week','list'].forEach(v => {
@@ -11580,7 +11585,7 @@ function renderCalMonth() {
   const pinned = detailSpace >= 170;
 
   const cells = [];
-  const _calEv = wsFilter(S.events);  // ループ外で1回（O(n^2)回避）。繰り返しは表示用に展開
+  const _calEv = _calFilteredEvents();  // ループ外で1回（O(n^2)回避）。繰り返しは表示用に展開
 
   // 前月残り日
   for(let i=0; i<firstDay; i++) {
@@ -11643,7 +11648,7 @@ function renderCalDetail(ds) {
   // cal-det-panel-inner: renderCalMonth で毎回生成される
   const panel = document.getElementById('cal-det-panel-inner');
   if(!panel) return;
-  const evs = _eventsOnDate(wsFilter(S.events), ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const evs = _eventsOnDate(_calFilteredEvents(), ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const lbl = jpDate(ds);
 
   const hol = _holidayName(ds);
@@ -11731,7 +11736,7 @@ function renderCalWeek() {
       const date = new Date(weekStart);
       date.setDate(weekStart.getDate()+d);
       const ds = localDateStr(date);
-      const dayEvs = wsFilter(S.events).filter(e=>e.time && _occursOn(e, ds))
+      const dayEvs = _calFilteredEvents().filter(e=>e.time && _occursOn(e, ds))
         .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
 
       const slots = HOURS.map(h=>`<div class="cal-week-slot"></div>`).join('');
@@ -12673,7 +12678,7 @@ function renderCalList() {
   if(ma) { ma.style.overflow = ''; ma.style.display = ''; ma.style.flexDirection = ''; ma.style.paddingBottom = ''; }
   const td = todayStr();
   // 今日から60日分の予定を表示
-  const futureEvs = wsFilter(S.events)
+  const futureEvs = _calFilteredEvents()
     .filter(e=>e.date>=td)
     .sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.time||'').localeCompare(b.time||''));
 
@@ -12772,7 +12777,12 @@ function openEventModal(evId) {
   const endEl = document.getElementById('ev-endtime');
   if(evId) {
     const ev = (S.events||[]).find(e=>e.id===evId);
-    if(!ev) return;
+    if(!ev) {
+      // 削除済み予定の参照（他端末の削除と競合）→ 無反応にせず案内して再描画
+      try { showToast('この予定は見つかりませんでした','info'); } catch(_){}
+      try { renderCal(); } catch(_){}
+      return;
+    }
     document.getElementById('m-event-title').textContent = '予定を編集';
     document.getElementById('ev-id').value    = ev.id;
     document.getElementById('ev-title').value = ev.title;
@@ -12908,8 +12918,16 @@ function saveEvent() {
 
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
-    if(ev) Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
-    showToast('予定を更新しました');
+    if(ev) {
+      Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
+      showToast('予定を更新しました');
+    } else {
+      // 同時編集：編集中に他の端末/家族がこの予定を削除した → 偽の「更新」を出さず案内
+      closeModal('m-event');
+      showToast('この予定は削除されたため更新できませんでした','info');
+      renderCal(); renderHome();
+      return;
+    }
   } else {
     if(!checkPremiumLimit('events')) return;
     (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
@@ -12920,6 +12938,7 @@ function saveEvent() {
 
 function deleteCurrentEvent() {
   const eid = document.getElementById('ev-id').value;
+  if(!eid) { closeModal('m-event'); return; }   // ID 無し（不整合）→ 安全に閉じる
   showConfirm('予定を削除','この予定を削除しますか？','削除する', () => {
     _recordDeletion('events', eid);
     S.events = (S.events||[]).filter(e=>e.id!==eid);
@@ -13721,6 +13740,60 @@ function applyTkFilters(tasks){
     if(ad !== bd) return ad - bd;
     return (a.order||0)-(b.order||0);
   });
+}
+
+/* カレンダーのメンバー表示フィルタ。null/空=全員表示。 */
+function getCalVisibleMembers() {
+  const valid = MEMBERS.map(m=>m.id);
+  if(!S.calVisibleMembers || !S.calVisibleMembers.length) return valid;
+  const seen = {};
+  return S.calVisibleMembers.filter(function(id){
+    if(seen[id] || valid.indexOf(id) < 0) return false;
+    seen[id] = true; return true;
+  });
+}
+/* ワークスペース＋メンバーフィルタを適用した予定一覧。担当なし(member空)は常に表示。 */
+function _calFilteredEvents() {
+  const evs = wsFilter(S.events);
+  if(!S.calVisibleMembers || !S.calVisibleMembers.length) return evs;  // 全員表示
+  const vis = getCalVisibleMembers();
+  if(vis.length === MEMBERS.length) return evs;
+  return evs.filter(function(e){ return !e.member || vis.indexOf(e.member) >= 0; });
+}
+function toggleCalMemberVisible(id) {
+  const isAll = !S.calVisibleMembers || !S.calVisibleMembers.length;
+  let next;
+  if(isAll) {
+    // 全員表示中に1人タップ → その人だけに絞る（見たい人にフォーカス）
+    next = [id];
+  } else {
+    const cur = getCalVisibleMembers();
+    next = (cur.indexOf(id) >= 0) ? cur.filter(function(x){ return x !== id; }) : cur.concat([id]);
+  }
+  if(!next.length || next.length === MEMBERS.length) { S.calVisibleMembers = null; }
+  else { S.calVisibleMembers = next; }
+  try { saveS(); } catch(_){}
+  renderCal();
+}
+function setCalVisibleMembers(ids) {
+  S.calVisibleMembers = (ids && ids.length) ? ids : null;
+  try { saveS(); } catch(_){}
+  renderCal();
+}
+/* カレンダーのメンバーフィルタバーHTML（task/prep と同じ落ち着いた意匠） */
+function _calMemberBarHtml() {
+  if(!MEMBERS || MEMBERS.length <= 1) return '';
+  const vis = getCalVisibleMembers();
+  const allActive = !S.calVisibleMembers || !S.calVisibleMembers.length || vis.length === MEMBERS.length;
+  let h = '<div id="cal-member-chips" style="display:flex;gap:8px;padding:8px 14px 6px;overflow-x:auto;scrollbar-width:none;align-items:center;">';
+  h += '<button class="te-mem-btn" onclick="setCalVisibleMembers(null)" aria-pressed="'+(allActive?'true':'false')+'" style="flex-shrink:0;min-height:36px;border-radius:var(--r-full);padding:0 14px;font-size:12px;font-weight:700;background:'+(allActive?'var(--primary)':'transparent')+';color:'+(allActive?'#fff':'var(--text)')+';border:1px solid '+(allActive?'var(--primary)':'var(--border)')+';cursor:pointer;">全員</button>';
+  for(const m of MEMBERS) {
+    const on = !allActive && vis.indexOf(m.id) >= 0;
+    h += '<button class="te-mem-btn" data-cmid="'+H(m.id)+'" onclick="toggleCalMemberVisible(\''+H(m.id)+'\')" aria-pressed="'+(on?'true':'false')+'" style="flex-shrink:0;display:flex;align-items:center;gap:6px;min-height:36px;border-radius:var(--r-full);padding:0 12px 0 5px;font-size:12px;font-weight:700;background:'+(on?'rgba(10,132,255,0.08)':'transparent')+';color:var(--text);border:1px solid '+(on?'var(--primary)':'var(--border)')+';cursor:pointer;opacity:'+(allActive||on?'1':'0.55')+';">'
+       + avHtml(m.id, 24, 10) + '<span>'+H(m.name)+'</span></button>';
+  }
+  h += '</div>';
+  return h;
 }
 
 function getTkVisibleMembers() {

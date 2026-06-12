@@ -21768,3 +21768,36 @@ OCR確認画面の日付表示の違和感を解消（カード内の日付重�
 
 ### コミット
 - 18720da(E1)/e4f3d6e(E2)/ceed075(E3)/d0465a4(E4)/本コミット(E5)
+
+---
+
+## 2026-06-12 11:00  env: 不明  branch: main
+
+### 作業名
+カレンダー商用品質化（CAL-1〜4）：終日予定/タップ44px/メンバーフィルタ/整合性ガード
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260612l)／docs/ROADMAP.md／worklog／
+  tools/qa_cal_allday_test.js・qa_cal_taptarget_test.js・qa_cal_memberfilter_test.js・qa_cal_integrity_test.js（新規4本）
+
+### 実装（世界観厳守：装飾なし・ライン調・落ち着いた配色・余白）
+- **CAL-1 終日予定**: 予定モーダルにライン調トグル追加。ONで時刻欄を隠しallDay:true/time空で保存。
+  月/週/リストで「終日」表示。編集往復で復元。10件PASS。
+- **CAL-2 タップ44px**: 月送り(.cal-mn-btn)を::beforeで44px、ビュー切替/今日・連携ピルをmin-height44pxに。6件PASS。
+- **CAL-3 メンバーフィルタ**: calVisibleMembers を新設(PERSIST/デモ снапに追加)。ビュー切替下に家族チップ行。
+  全員表示中に1人タップ→その人に絞る(isolate)、追加/解除/全員リセット。担当なし予定は常に表示。
+  月/週/リスト全ビュー反映。11件PASS。
+- **CAL-4 整合性ガード**: 削除済みID参照(openEventModal)で無反応→案内+再描画。編集中に他端末削除→
+  saveEventで偽「更新」を出さず案内して閉じる。ID無しdeleteは安全に閉じる。繰り返しはクローンid維持でシリーズ反映。10件PASS。
+
+### テスト結果
+- カレンダー新規 37件 + 全体回帰(84+拡張36+表示値22+境界10) すべてPASS・pageerror 0
+
+### iPhone確認ポイント
+- 終日トグルON/OFFで時刻欄が出入りするか／メンバーチップで誰の予定か絞れるか／月送り・タブが押しやすいか
+
+### 次にやること
+- プレミアム課金導線・パフォーマンス（ユーザー新規依頼）に着手
+
+### コミット
+- 本コミット(CAL-1〜4)
