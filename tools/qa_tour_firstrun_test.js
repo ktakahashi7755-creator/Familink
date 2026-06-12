@@ -8,6 +8,11 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   let page = await browser.newPage({ viewport: { width: 375, height: 560 } });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message.split('\n')[0]));
+  // 時刻依存を排除：ボーナスの「7時前は非表示」仕様をテストでは常にパスさせる
+  await page.addInitScript(() => {
+    const orig = Date.prototype.getHours;
+    Date.prototype.getHours = function(){ const h = orig.call(this); return (h < 7) ? 10 : h; };
+  });
   await page.goto('http://127.0.0.1:9000/familink.html', { waitUntil: 'load' });
   await page.evaluate(() => localStorage.setItem('familink_v3', JSON.stringify({ loggedIn: true, onboardCompleted: true, user: { id: 'kenya', name: 'パパ', role: 'parent' }, screen: 's-home', guideSeen: true })));
   await page.reload({ waitUntil: 'load' });
@@ -35,9 +40,14 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   // ── 2) 初回起動フロー：ウェルカム提案 → スキップ / ツアー開始 ──
   page = await browser.newPage({ viewport: { width: 375, height: 812 } });
   page.on('pageerror', e => errs.push(e.message.split('\n')[0]));
+  // 時刻依存を排除：ボーナスの「7時前は非表示」仕様をテストでは常にパスさせる
+  await page.addInitScript(() => {
+    const orig = Date.prototype.getHours;
+    Date.prototype.getHours = function(){ const h = orig.call(this); return (h < 7) ? 10 : h; };
+  });
   await page.goto('http://127.0.0.1:9000/familink.html', { waitUntil: 'load' });
   // guideSeen を未設定にして初回状態を再現
-  await page.evaluate(() => localStorage.setItem('familink_v3', JSON.stringify({ loggedIn: true, onboardCompleted: true, user: { id: 'kenya', name: 'パパ', role: 'parent' }, screen: 's-home' })));
+  await page.evaluate(() => { localStorage.removeItem('fl_lb_shown'); localStorage.setItem('familink_v3', JSON.stringify({ loggedIn: true, onboardCompleted: true, user: { id: 'kenya', name: 'パパ', role: 'parent' }, screen: 's-home' })); });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1700);
   const firstState = await page.evaluate(() => ({
@@ -69,8 +79,13 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   // ── 3) 初回 → 「ツアーを見る」でツアーが始まり、終了後にボーナス ──
   page = await browser.newPage({ viewport: { width: 375, height: 812 } });
   page.on('pageerror', e => errs.push(e.message.split('\n')[0]));
+  // 時刻依存を排除：ボーナスの「7時前は非表示」仕様をテストでは常にパスさせる
+  await page.addInitScript(() => {
+    const orig = Date.prototype.getHours;
+    Date.prototype.getHours = function(){ const h = orig.call(this); return (h < 7) ? 10 : h; };
+  });
   await page.goto('http://127.0.0.1:9000/familink.html', { waitUntil: 'load' });
-  await page.evaluate(() => localStorage.setItem('familink_v3', JSON.stringify({ loggedIn: true, onboardCompleted: true, user: { id: 'kenya', name: 'パパ', role: 'parent' }, screen: 's-home' })));
+  await page.evaluate(() => { localStorage.removeItem('fl_lb_shown'); localStorage.setItem('familink_v3', JSON.stringify({ loggedIn: true, onboardCompleted: true, user: { id: 'kenya', name: 'パパ', role: 'parent' }, screen: 's-home' })); });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(1700);
   await page.evaluate(() => { const b = [...document.querySelectorAll('#m-tour-offer button')].find(x => /実演ツアーを見る/.test(x.textContent)); b.click(); });
