@@ -6356,7 +6356,8 @@ function initSupabase() {
         S.supaSession = { id: sess.user.id, email: sess.user.email || '' };
         try { saveS(); } catch(_) {}
         try { if(typeof _reconcileFamilyIdForLogin === 'function') _reconcileFamilyIdForLogin(); } catch(_) {}
-        try { _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{}); } catch(_) {}
+        // 取得後に必ず送信＝端末のデータも自動でクラウドへ
+        try { _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} }).catch(_=>{}); } catch(_) {}
       }
       try { if(typeof refreshSupaUI === 'function') refreshSupaUI(); } catch(_) {}
     }).catch(()=>{});
@@ -6372,7 +6373,7 @@ function initSupabase() {
             try {
               try { closeModal('m-supa-auth'); } catch(_){}
               try { if(typeof _reconcileFamilyIdForLogin === 'function') _reconcileFamilyIdForLogin(); } catch(_) {}
-              _fetchFromSupabase().then(function(){ if(S.familyId){ try{ _pushToSupabase(); }catch(_){} } }).catch(_=>{});
+              _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} }).catch(_=>{});  // 取得後に必ず送信＝端末のデータも自動でクラウドへ
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
                 showToast('Magic Link でログインしました', 'success');
                 _enterApp(true);
@@ -21500,17 +21501,11 @@ function renderSettings() {
               <div style="font-size:11px;color:var(--text-muted);font-weight:400;">コードを解除して単独利用に戻す</div>
             </div><div class="settings-arrow">›</div>
           </div>` : ''}
-          <div class="settings-item" onclick="syncToSupabase()">
-            <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M12 2v20M5 15l7 7 7-7"/>','#10B981')}</div>
-            <div class="settings-item-label">クラウドへ送信
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">端末のデータをクラウドに保存する</div>
-            </div><div class="settings-arrow">›</div>
-          </div>
-          <div class="settings-item" onclick="syncFromSupabase()">
-            <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M12 22V2M5 9l7-7 7 7"/>','#0A84FF')}</div>
-            <div class="settings-item-label">クラウドから取得
-              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">クラウドの最新データを端末に反映する</div>
-            </div><div class="settings-arrow">›</div>
+          <div class="settings-item" style="cursor:default;">
+            <div class="settings-item-icon" style="background:#ECFDF5">${si('<path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/>','#10B981')}</div>
+            <div class="settings-item-label">自動同期：オン
+              <div style="font-size:11px;color:var(--text-muted);font-weight:400;">保存と同時にクラウドへ反映され、家族の変更も自動で届きます</div>
+            </div>
           </div>
           <div class="settings-item" onclick="showConfirm('クラウドからログアウト','クラウドからログアウトします。端末内のデータ（ローカル保存）は削除されません。','ログアウトする', () => { supaSignOut().then(()=>showToast('クラウドからログアウトしました')); }, 'warning')">
             <div class="settings-item-icon" style="background:#FFE8E8">${si('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>','#FF6B6B')}</div>
@@ -28662,12 +28657,11 @@ async function _oauthSignIn(provider) {
       _fetchFromSupabase().catch(_=>{});   // フォーカス時も最新を取得（家族の変更を即反映）
     }
   });
-  /* 家族共有の確実化：表示中・ログイン中・家族参加中は常時 20 秒ごとに取得する保険。
-     Realtime は「購読成功でもテーブル未公開だとイベントが来ない」ことがあるため、
-     購読状態に関わらずポーリングして 2台・3台・4台でも確実に共有が反映されるようにする。
+  /* 自動同期の確実化：表示中・ログイン中は常時 20 秒ごとに取得する保険。
+     家族参加の有無に関わらず実行＝同一アカウントの複数端末でも“何も押さず”最新になる。
      （Realtime 有効時は変更を即時反映＋このポーリングが取りこぼしを補完） */
   setInterval(function() {
-    if(document.visibilityState === 'visible' && isSupaLoggedIn() && navigator.onLine && S.familyId) {
+    if(document.visibilityState === 'visible' && isSupaLoggedIn() && navigator.onLine) {
       _fetchFromSupabase().catch(_=>{});
     }
   }, 20000);
