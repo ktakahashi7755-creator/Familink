@@ -5159,6 +5159,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     </div>
     <button class="btn btn-ghost btn-block" onclick="openMyInviteModal()" style="margin:-4px 0 10px;font-size:12.5px;color:var(--primary);">もう1人を招待する（新しいコードを発行）</button>
     <div id="my-invite-login-note" style="display:none;font-size:11.5px;line-height:1.6;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>
+    <button id="my-invite-login-cta" class="btn btn-primary btn-block" style="display:none;margin-bottom:10px;" onclick="closeModal('m-my-invite');openSupaAuthModal('signin');">クラウドにログインして家族共有を有効にする</button>
     <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
       このコードは<b>信頼できる家族だけ</b>に共有してください。コードを知っている人は家族の予定や情報を見られます。
     </div>
@@ -8069,11 +8070,21 @@ async function _issueInviteToken() {
     if(!sb || !S.familyId) return { ok:false };
     const token = _generateInviteToken();
     const expires = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
-    const res = await sb.from('fl_family_invites').insert({
-      token: token, family_id: S.familyId,
-      created_by: S.supaSession.id, expires_at: expires,
-    });
-    if(res && res.error) return { ok:false };
+    const row = { token: token, family_id: S.familyId,
+                  created_by: S.supaSession.id, expires_at: expires };
+    // RLS は「自分のクラウド行にその family_id があること」を要求するため、
+    // 先に自分のデータを push してから招待を登録する（コード生成直後でも確実に通す）
+    try { await _pushToSupabase(); } catch(_){}
+    let res = await sb.from('fl_family_invites').insert(row);
+    if(res && res.error) {
+      // 旧データ等で family_id 行がまだ無い場合に備え、push 後にもう一度だけ再試行
+      try { await _pushToSupabase(); } catch(_){}
+      res = await sb.from('fl_family_invites').insert(row);
+    }
+    if(res && res.error) {
+      try { console.error('[invite] issue failed:', res.error.message); } catch(_){}
+      return { ok:false };
+    }
     return { ok:true, token: token };
   } catch(_) { return { ok:false }; }
 }
@@ -8106,15 +8117,19 @@ async function openMyInviteModal() {
   }
   // ログイン状態に応じた案内：未ログインだとコードは端末内のみで実際の同期は起きない
   const note = document.getElementById('my-invite-login-note');
+  const cta = document.getElementById('my-invite-login-cta');
   if(note) {
     if(window._supaLoadFailed) {
       note.style.display = 'block';
       note.textContent = 'いまクラウドに接続できていません。コードは作成できますが、家族との同期は接続が戻ってから行われます。';
+      if(cta) cta.style.display = 'none';
     } else if(isSupaLoggedIn()) {
       note.style.display = 'none'; note.textContent = '';
+      if(cta) cta.style.display = 'none';
     } else {
       note.style.display = 'block';
-      note.textContent = 'いまはこの端末だけにコードを保存しています。設定からクラウドにログインすると、家族と実際に予定やタスクが同期されます。';
+      note.textContent = 'まだクラウドにログインしていないため、このコードでは家族と同期されません。下のボタンからログインしてください。';
+      if(cta) cta.style.display = 'block';
     }
   }
 }
@@ -27988,17 +28003,10 @@ async function ob2Login() {
   if(!_validEmail(email)) { if(errEl) errEl.textContent = 'メールアドレスの形式が正しくありません'; return; }
   if(!pass)  { if(errEl) errEl.textContent = 'パスワードを入力してください'; return; }
 
-  // 1) ローカルアカウントが一致すれば即ログイン（オフラインでも確実に入れる）
-  if(typeof hasAccount === 'function' && hasAccount()
-     && S.account.email === _normEmail(email)
-     && S.account.passHash === _hashStr(pass)) {
-    _enterApp(true);
-    return;
-  }
-
-  // 2) クラウドログインを試す（接続できる場合のみ）
+  // 1) クラウドログインを最優先（家族共有の正本はクラウド。ローカル一致を先にすると
+  //    クラウド未接続のまま入室し「同期されない」事故になるため、順序を厳守する）
   const sb = getSupabase();
-  if(sb) {
+  if(sb && navigator.onLine !== false) {
     if(btn) { btn.disabled = true; btn.textContent = 'ログイン中...'; }
     showLoading('ログイン中...');
     const r = await supaSignIn(email, pass);
@@ -28019,11 +28027,19 @@ async function ob2Login() {
       if(!S.loggedIn) _enterApp(true);
       return;
     }
-    // クラウドで認証失敗（誤パス / 未登録 / 確認待ち）
+    // クラウドで認証失敗（誤パス / 未登録 / 確認待ち）→ ローカルへ黙って落とさず案内する
     const msg = (r && r.error) ? _supaErr(r.error)
-              : (hasAccount() ? 'メールアドレスまたはパスワードが正しくありません'
-                              : 'ログインできませんでした。アカウントが未作成の場合は下の「新規登録」から作成してください。');
+              : 'ログインできませんでした。メールアドレス・パスワードをご確認ください。';
     if(errEl) errEl.textContent = msg;
+    return;
+  }
+
+  // 2) クラウド未接続（CDN失敗/オフライン）時のみ、ローカルアカウントでフォールバック入室
+  if(typeof hasAccount === 'function' && hasAccount()
+     && S.account.email === _normEmail(email)
+     && S.account.passHash === _hashStr(pass)) {
+    showToast('オフラインのため端末内データでログインしました。接続が戻るとクラウドと同期されます','info');
+    _enterApp(true);
     return;
   }
 
