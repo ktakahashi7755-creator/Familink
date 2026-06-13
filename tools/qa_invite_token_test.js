@@ -31,15 +31,12 @@ let pass=0, fail=0; const L=r=>{const ok=r.startsWith('PASS');ok?pass++:fail++;c
     };
     window.getSupabase = () => stub;
 
-    /* ── 発行側: トークンが発行・表示・登録される ── */
+    /* ── 発行: 招待モーダルはリンク方式（INVトークンはバックエンド機構として温存） ── */
     S.familyId='FAMI-MYFM-MYFM-MYFM'; S.familyIdOwner=S.supaSession.id; saveS();
     await openMyInviteModal(); await wait(250);
     const shown=document.getElementById('my-invite-code').textContent;
-    t('発行: INV-トークンが表示される ('+shown.slice(0,9)+'...)', /^INV-[A-Z0-9-]+$/.test(shown));
-    t('発行: fl_family_invites にinsertされる', inserted.some(x=>x.table==='fl_family_invites'&&x.row.token===shown&&x.row.family_id==='FAMI-MYFM-MYFM-MYFM'));
-    t('発行: 有効期限が約72時間後', (()=>{const e=inserted.find(x=>x.table==='fl_family_invites');const dt=new Date(e.row.expires_at)-Date.now();return dt>71*3600e3&&dt<73*3600e3;})());
-    t('発行: 72時間・1回限りの案内表示', /72時間|1回限り/.test(document.getElementById('my-invite-sub').textContent));
-    t('発行: コピー対象がトークン', _curInviteCode===shown);
+    t('発行: 招待モーダルはリンクを表示（?join=）', /\\?join=FAMI-MYFM-MYFM-MYFM$/.test(shown));
+    t('発行: _generateInviteToken は INV 形式を生成（機構温存）', /^INV-[A-Z0-9-]+$/.test(_generateInviteToken()));
     closeModal('m-my-invite');
 
     /* ── 参加側: INVトークン redeem 成功（家族なし状態から） ── */

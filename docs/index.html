@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613d';
+  var V='v20260613e';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5164,20 +5164,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="modal-grip"></div>
     <div class="modal-title">家族を招待する</div>
     <p style="font-size:12px;color:var(--text-sub);line-height:1.6;margin:0 0 14px;">
-      下のコードをご家族に共有してください。同じコードで参加した方と予定・やることを共有できます。
+      下の「招待リンクを送る」を押して、LINE などでご家族に送ってください。<br>家族はリンクを開いてログインするだけで、自動で参加・同期されます。
     </p>
-    <div style="background:var(--bg-muted);border-radius:14px;padding:18px;text-align:center;margin-bottom:12px;">
-      <div id="my-invite-code" style="font-size:19px;font-weight:800;letter-spacing:1.5px;color:var(--primary);font-family:monospace;word-break:break-all;line-height:1.4;"></div>
-      <div id="my-invite-sub" style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6;">このコードをご家族に伝えてください</div>
+    <div style="background:var(--bg-muted);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">招待リンク</div>
+      <div id="my-invite-code" style="font-size:13px;font-weight:600;color:var(--primary);font-family:monospace;word-break:break-all;line-height:1.5;"></div>
+      <div id="my-invite-sub" style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;"></div>
     </div>
-    <button class="btn btn-ghost btn-block" onclick="openMyInviteModal()" style="margin:-4px 0 10px;font-size:12.5px;color:var(--primary);">もう1人を招待する（新しいコードを発行）</button>
     <div id="my-invite-login-note" style="display:none;font-size:11.5px;line-height:1.6;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,0.25);border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>
     <button id="my-invite-login-cta" class="btn btn-primary btn-block" style="display:none;margin-bottom:10px;" onclick="closeModal('m-my-invite');openSupaAuthModal('signin');">クラウドにログインして家族共有を有効にする</button>
     <div style="font-size:11.5px;line-height:1.6;color:var(--text-sub);background:var(--bg-muted);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-      このコードは<b>信頼できる家族だけ</b>に共有してください。コードを知っている人は家族の予定や情報を見られます。
+      この招待リンクは<b>信頼できる家族だけ</b>に送ってください。リンクを知っている人は家族の予定や情報を見られます。
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary btn-block" onclick="copyMyInviteCode()">コードをコピー</button>
+      <button class="btn btn-primary btn-block" onclick="shareInviteLink()">招待リンクを送る</button>
       <button class="btn btn-ghost btn-block" onclick="closeModal('m-my-invite')">閉じる</button>
     </div>
   </div>
@@ -6386,7 +6386,8 @@ function initSupabase() {
             try {
               try { closeModal('m-supa-auth'); } catch(_){}
               try { if(typeof _reconcileFamilyIdForLogin === 'function') _reconcileFamilyIdForLogin(); } catch(_) {}
-              _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} }).catch(_=>{});  // 取得後に必ず送信＝端末のデータも自動でクラウドへ
+              // 取得後に必ず送信＝端末のデータも自動でクラウドへ。さらに招待リンク経由なら自動参加。
+              _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} try{ _processPendingJoin(); }catch(_){} }).catch(_=>{ try{ _processPendingJoin(); }catch(_){} });
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
                 showToast('Magic Link でログインしました', 'success');
                 _enterApp(true);
@@ -8061,6 +8062,69 @@ function openSupaInviteModal() {
   openModal('m-supa-invite');
 }
 
+/* ============================================================
+   招待リンク方式（最重要・他アプリと同じ体験）:
+   ・発行側は「リンクをコピー」して LINE 等で家族に送るだけ。
+   ・受け取った家族はリンクを開く → ログイン → 自動で家族に参加・同期。
+   ・コードの手入力や「送信/取得」操作は一切不要。
+   リンク例: https://.../Familink/?join=FAMI-XXXX-XXXX-XXXX
+   ============================================================ */
+let _pendingJoinCode = '';   // ログイン待ちの参加コード（リンク経由）
+
+/* 招待リンクのフルURLを作る（共有用） */
+function _buildInviteLink() {
+  const base = location.origin + location.pathname;
+  return base + '?join=' + (S.familyId || '');
+}
+
+/* 起動時に ?join=CODE を捕捉して保留に積む。URL は履歴から除去（再実行・共有事故を防ぐ）。 */
+function _captureJoinFromUrl() {
+  try {
+    const params = new URLSearchParams(location.search || '');
+    let code = (params.get('join') || '').trim().toUpperCase();
+    if(!code) {
+      // localStorage に前回保留が残っていれば拾う（OAuth/Magic Link で再読込された場合）
+      try { code = (localStorage.getItem('fl_pending_join') || '').trim().toUpperCase(); } catch(_){}
+    }
+    if(code && /^FAMI-[A-Z0-9-]{4,}$/.test(code)) {
+      _pendingJoinCode = code;
+      try { localStorage.setItem('fl_pending_join', code); } catch(_){}
+    }
+    // URL から join を消す（残すと共有/再読込で意図せず再参加）
+    if(params.get('join')) {
+      params.delete('join');
+      const clean = location.pathname + (params.toString() ? ('?' + params.toString()) : '') + (location.hash || '');
+      try { history.replaceState(null, '', clean); } catch(_){}
+    }
+  } catch(_){}
+}
+
+/* 保留中の参加コードを実行する。クラウドにログイン済みのときだけ実行。
+   ・自分の現在の家族と同じならスキップ。
+   ・set → push（自分の行に family_id 付与）→ fetch（家族のデータ取得）の順で確実に同期。 */
+async function _processPendingJoin() {
+  const code = _pendingJoinCode;
+  if(!code) return;
+  if(typeof isSupaLoggedIn !== 'function' || !isSupaLoggedIn()) return;  // ログイン後に再実行される
+  if(code === S.familyId) { _clearPendingJoin(); return; }   // 既に同じ家族
+  try {
+    _setFamilyId(code);   // familyId 確定（owner=自分・setByUser=true）
+    showToast('家族に参加しています…', 'info');
+    if(typeof _pushToSupabase === 'function') { try { await _pushToSupabase(); } catch(_){} }
+    if(typeof _fetchFromSupabase === 'function') { try { await _fetchFromSupabase(); } catch(_){} }
+    _clearPendingJoin();
+    showToast('家族に参加しました。データを同期しました', 'success');
+    try { if(typeof renderSettings === 'function') renderSettings(); } catch(_){}
+    try { go(S.screen || 's-home'); } catch(_){}
+  } catch(_) {
+    // 失敗時は保留を残し、次のログイン/同期機会に再試行
+  }
+}
+function _clearPendingJoin() {
+  _pendingJoinCode = '';
+  try { localStorage.removeItem('fl_pending_join'); } catch(_){}
+}
+
 /* 招待トークン（INV-）の生成。家族コードと同じ暗号乱数・紛らわしい文字除外。 */
 function _generateInviteToken() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -8107,29 +8171,18 @@ let _curInviteCode = '';   // 表示中の招待コード（コピー対象。�
 async function openMyInviteModal() {
   if(!S.familyId) {
     _setFamilyId(_generateFamilyId());
-    // 自分のデータに family_id を付与してクラウドへ反映（家族が取得できるように）
-    if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
   }
   const el = document.getElementById('my-invite-code');
   const sub = document.getElementById('my-invite-sub');
-  // まず開いて「発行中…」を見せる（体感を待たせない）
-  _curInviteCode = S.familyId || '';
-  if(el) el.textContent = '発行中…';
-  if(sub) sub.textContent = '';
+  // 招待リンク（family_id 直結＝最も確実。受け手はリンクを開くだけ）
+  const link = _buildInviteLink();
+  _curInviteCode = link;
+  if(el) el.textContent = link;
+  if(sub) sub.textContent = '「招待リンクを送る」で LINE などに共有できます';
   openModal('m-my-invite');
-  // 使い捨てトークンの発行を試みる（成功すれば family_id は配らない）
-  const r = await _issueInviteToken();
-  if(r.ok) {
-    _curInviteCode = r.token;
-    if(el) el.textContent = r.token;
-    if(sub) sub.textContent = 'このコードは 72時間・1回限り 有効です。招待する家族1人につき1つ発行してください。';
-  } else {
-    // フォールバック: 従来の家族コード（ローカル専用・未適用環境でも招待は止めない）
-    _curInviteCode = S.familyId || '';
-    if(el) el.textContent = _curInviteCode;
-    if(sub) sub.textContent = 'このコードをご家族に伝えてください';
-  }
-  // ログイン状態に応じた案内：未ログインだとコードは端末内のみで実際の同期は起きない
+  // 自分のデータに family_id を付与してクラウドへ反映（家族が開いたとき取得できるように）
+  if(isSupaLoggedIn()) { try { await _pushToSupabase(); } catch(_){} }
+  // ログイン状態に応じた案内：未ログインだと共有しても同期されない
   const note = document.getElementById('my-invite-login-note');
   const cta = document.getElementById('my-invite-login-cta');
   if(note) {
@@ -8142,7 +8195,7 @@ async function openMyInviteModal() {
       if(cta) cta.style.display = 'none';
     } else {
       note.style.display = 'block';
-      note.textContent = 'まだクラウドにログインしていないため、このコードでは家族と同期されません。下のボタンからログインしてください。';
+      note.textContent = 'まだクラウドにログインしていないため、このリンクでは家族と同期されません。下のボタンからログインしてください。';
       if(cta) cta.style.display = 'block';
     }
   }
@@ -8153,11 +8206,30 @@ function copyMyInviteCode() {
   try {
     if(navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(code);
-      showToast('招待コードをコピーしました');
+      showToast('招待リンクをコピーしました');
     } else {
-      showToast('コードを長押しでコピーしてください', 'info');
+      showToast('リンクを長押しでコピーしてください', 'info');
     }
-  } catch(e) { showToast('コードを長押しでコピーしてください', 'info'); }
+  } catch(e) { showToast('リンクを長押しでコピーしてください', 'info'); }
+}
+/* 招待リンクを共有（ネイティブ共有シート→失敗時はクリップボードへコピー） */
+async function shareInviteLink() {
+  const link = _buildInviteLink();
+  const text = 'Familink で家族の予定を共有しましょう。下のリンクを開いてログインするだけで参加できます。\n' + link;
+  try {
+    if(navigator.share) {
+      await navigator.share({ title: 'Familink 家族への招待', text: text, url: link });
+      return;
+    }
+  } catch(_) { /* 共有キャンセル等 → コピーへフォールバック */ }
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(link);
+      showToast('招待リンクをコピーしました。LINE などに貼り付けて送ってください', 'success');
+      return;
+    }
+  } catch(_){}
+  showToast('リンクを長押しでコピーして送ってください', 'info');
 }
 
 let _inviteSubmitLock = 0;
@@ -9584,6 +9656,8 @@ function _enterApp(greet) {
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
   if(greet) showToast(`${displayName()}さん、ようこそ`);
+  // 招待リンク経由でログインしたら自動で家族参加（接続確立を待って実行）
+  if(_pendingJoinCode) { setTimeout(function(){ try { _processPendingJoin(); } catch(_){} }, 1600); }
   // Wave 250: 初回ログイン時も Hoku ログインボーナスをチェック
   setTimeout(function(){ try { checkLoginBonus(); } catch(_){} }, 1000);
   // Wave 237: OS通知チェッカーを起動
@@ -9825,6 +9899,7 @@ function ob2Done() {
   renderTabBar();
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
+  if(_pendingJoinCode) { setTimeout(function(){ try { _processPendingJoin(); } catch(_){} }, 1600); }  // 招待リンク→新規→完了で自動参加
   const dn = displayName();
   showToast(`${dn}さん、ようこそ Familink へ`);
   // 新規登録（アカウント作成済み）でオンボーディング完了時は、時間帯に関わらず必ずログインボーナスを付与
@@ -9837,6 +9912,7 @@ function ob2Skip() {
   renderTabBar();
   document.getElementById('tabbar').classList.remove('hidden');
   switchTab('s-home');
+  if(_pendingJoinCode) { setTimeout(function(){ try { _processPendingJoin(); } catch(_){} }, 1600); }  // 招待リンク→新規→スキップで自動参加
   showToast('オンボーディングをスキップしました');
   // 新規登録（アカウント作成済み）でスキップ時も必ずログインボーナスを付与
   if(S.account || isSupaLoggedIn()) setTimeout(function(){ try { checkLoginBonus(true); } catch(_){} }, 900);
@@ -27116,6 +27192,8 @@ function init() {
   migrateTaskData(); // タスクデータ移行
   seedDefaultCustomBoards(); // 既定 6 ボードを担保
   migrateShoppingFromBoardItems(); // Wave 60.11: 旧 boardItems → S.shoppingItems
+  // 招待リンク ?join=CODE を捕捉（ログイン済みなら後段で自動参加・未ログインなら保留）
+  try { _captureJoinFromUrl(); } catch(_){}
   // Wave 65: ?demo=1 でピッチデッキ用の自動ログイン + デモシード
   const params = new URLSearchParams(location.search || '');
   const demoMode = params.get('demo') === '1';
@@ -27132,6 +27210,8 @@ function init() {
     const screen = params.get('screen');
     const allowed = ['s-home','s-task','s-cal','s-budget','s-board','s-health','s-prep','s-shopping','s-hoku','s-notif','s-settings'];
     switchTab(allowed.indexOf(screen) >= 0 ? screen : 's-home');
+    // 招待リンク経由でログイン済みなら自動で家族参加（少し遅らせて Supabase 接続を待つ）
+    if(_pendingJoinCode) { setTimeout(function(){ try { _processPendingJoin(); } catch(_){} }, 1500); }
     // Wave 250: 起動時に Hoku ログインボーナスをチェック（7時以降・同日初回のみ表示）
     setTimeout(function(){ try { checkLoginBonus(); } catch(_){} }, 900);
     // Wave 65: ?chrome=off で tabbar / FAB を隠してスクショ風に見せる
