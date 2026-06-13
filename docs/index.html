@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613g';
+  var V='v20260613h';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -3828,6 +3828,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
              autocomplete="email" inputmode="email">
     </div>
     <button class="ob2-btn-primary" id="ob2-otp-btn" onclick="ob2StartOtp()">メールでログイン / 新規登録</button>
+    <div id="ob2-err" class="ob2-err"></div>
     <div class="ob2-otp-hint">パスワードは不要です。届いたメールのコードを入力するだけで、ご家族のデータがすぐに同期されます。</div>
 
     <div class="ob2-divider"><span>または</span></div>
@@ -3853,7 +3854,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
-      <div id="ob2-err" class="ob2-err"></div>
       <button class="ob2-btn-secondary" id="ob2-login-btn" onclick="ob2Login()">パスワードでログイン</button>
     </div>
     <a class="ob2-link-guest" onclick="supaEntryClickGuest()">ログインせずに体験する</a>
@@ -28114,16 +28114,17 @@ function ob2StartOtp() {
   const errEl = document.getElementById('ob2-err');
   if(errEl) errEl.textContent = '';
   if(email && !_validEmail(email)) {
-    if(errEl) { errEl.textContent = 'メールアドレスの形式が正しくありません'; }
-    const sec = document.getElementById('ob2-pass-section');
-    if(sec && (sec.style.display === 'none' || !sec.style.display)) ob2TogglePassLogin();
+    if(errEl) errEl.textContent = 'メールアドレスの形式が正しくありません';
     try { document.getElementById('ob2-email')?.focus(); } catch(_){}
     return;
   }
   openSupaAuthModal('otp');
+  // 入力済みメールを引き継ぐ。クラウド未接続時はモーダルが signup へ強制切替されるため、
+  // OTP欄とパスワード登録欄の両方に入れて、どのモードで開いても消えないようにする。
   if(email) {
-    const el = document.getElementById('supa-otp-email');
-    if(el) el.value = email;
+    ['supa-otp-email','supa-auth-email'].forEach(function(id){
+      const el = document.getElementById(id); if(el) el.value = email;
+    });
   }
 }
 /* 既存ユーザー向けにパスワードログイン欄を開閉する */
