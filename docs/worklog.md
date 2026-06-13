@@ -22049,3 +22049,47 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+## 2026-06-13 (継続)  env: 不明（claude.ai/code リモート）  branch: claude/familink-redesign-audit-usdim4
+
+### 作業名
+オンボーディングのログインをOTP（メールコード・パスワード不要）優先に再設計。端末Bで新規作成→ログインできない問題の解消。
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（v20260613g へ同期）
+- docs/worklog.md
+
+### 変更内容
+- 起動画面 s-ob の主導線を「メールでログイン / 新規登録」（OTPコード方式・パスワード不要）に変更
+  - ob2StartOtp(): メール入力を OTP モーダルへ引き継いで開く（新規・既存どちらもこの1本で完結）
+  - パスワードログインは折りたたみの副導線へ降格（ob2TogglePassLogin()・既存ユーザー向け）
+  - 「新規登録」専用リンクは廃止（OTP導線が新規も兼ねるため）
+- 狙い: Supabase の「Confirm email」設定（ON だとパスワード新規登録で即ログインできない）に
+  左右されず、コード入力だけで即ログイン・即同期できる経路を主役にする
+- CSS追加: .ob2-otp-hint / .ob2-btn-secondary / .ob2-pass-section
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（コンソールエラー0件）
+- 追加の対象確認（Playwright手動スクリプト）:
+  - s-ob表示・OTPボタン表示・パスワード欄初期非表示・OTPボタンでモーダル起動・
+    入力メールのOTP欄プリフィル・パスワード欄トグル開閉・pageerror 0件 すべてOK
+
+### 未確認事項
+- 本番Supabaseに対する実機OTP往復は未検証（私の環境からは Supabase ホストへ通信不可）
+- 無料SMTPは1時間2通までのレート制限あり。連続試行時は時間を置く必要
+
+### iPhone確認ポイント（最重要）
+1. 端末B: 起動画面でメール入力→「メールでログイン / 新規登録」→届いたコード入力→入室できるか
+2. 端末A→Bで予定追加が自動反映されるか（家族同期）
+3. うまくいかない場合: Supabase「Confirm email」OFF を推奨（恒久対策）
+
+### デプロイ注意（重要）
+- GitHub Pages は main / 指定デプロイブランチからのみ公開（.github/workflows/pages.yml）
+- 本コミットは claude/familink-redesign-audit-usdim4 へ。**実機リンク更新には main への反映が必要**
+
+### 次にやること
+- 実機でOTPログイン確認。NGなら原因レイヤー特定（メール未達/コード不一致/同期）
+
+### コミット
+- 本コミット
