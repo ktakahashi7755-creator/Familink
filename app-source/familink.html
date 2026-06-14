@@ -1425,6 +1425,44 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 12px; margin-bottom: 14px;
 }
+/* 編集できるお知らせ/メモ（ホーム上部・クラウド同期） */
+.home-note-card {
+  background: #fff; border: 1px solid var(--border-light, rgba(0,0,0,.08));
+  border-radius: 14px; padding: 12px 14px; margin: 0 0 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+}
+.home-note-card.empty {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  color: var(--text-muted); background: var(--bg-muted, #f5f6f8);
+  border: 1px dashed rgba(0,0,0,.14); cursor: pointer;
+  min-height: 44px; font-size: 13px; font-weight: 600;
+}
+.home-note-card.empty:active { transform: scale(.99); }
+.home-note-ic { flex: none; display: flex; color: var(--text-muted); }
+.home-note-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.home-note-title { font-size: 12px; font-weight: 700; color: var(--text-sub, #6b7280); letter-spacing: .2px; }
+.home-note-edit {
+  flex: none; width: 32px; height: 32px; margin: -6px -6px -6px 0;
+  border: none; background: none; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 8px;
+}
+.home-note-edit:active { background: rgba(0,0,0,.05); }
+.home-note-body { font-size: 14px; line-height: 1.6; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.home-note-input {
+  width: 100%; box-sizing: border-box; min-height: 88px; resize: vertical;
+  border: 1px solid rgba(0,0,0,.14); border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; line-height: 1.6; color: var(--text); font-family: inherit;
+  outline: none; -webkit-appearance: none;
+}
+.home-note-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,132,255,.15); }
+.home-note-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.home-note-btn {
+  min-height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  border: none; cursor: pointer; transition: var(--t-spring);
+}
+.home-note-btn.ghost { background: rgba(118,118,128,.12); color: var(--text-sub); }
+.home-note-btn.primary { background: var(--primary); color: #fff; }
+.home-note-btn:active { transform: scale(.97); opacity: .92; }
 .board-card {
   background: #fff; border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
@@ -3999,6 +4037,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <div class="home-greeting" id="home-greeting"></div>
     <!-- Wave 254: 家族未参加なら招待導線 -->
     <div id="home-invite-cta"></div>
+    <!-- 編集できるお知らせ/メモ（クラウド同期・自分の全端末で更新が反映される） -->
+    <div id="home-note"></div>
     <div class="home-grid" id="home-grid"></div>
     <div id="home-ad-bar"></div>
     <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
@@ -6615,7 +6655,7 @@ const SYNC_KEYS = [
   'notifs','tabConfig','widgetItems','homeOrder',
   'userPhotos','userAvatars','userAvatarType',
   'userProfile','isPremiumUser','onboardCompleted','hokuContext',
-  'cashflowSettings','demoProfiles','familyId'
+  'cashflowSettings','demoProfiles','familyId','homeNote'
 ];
 
 /* 家族で共有するキー（家族参加中は全メンバー分をマージ）。
@@ -8763,7 +8803,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','homeNote','_deletions'];
 
 function saveS() {
   const d = {};
@@ -11305,6 +11345,55 @@ function reseedDefaultDemoProfiles() {
 /* ============================================================
    HOME RENDER
    ============================================================ */
+/* ── 編集できるお知らせ/メモ（ホーム上部・クラウド同期） ──
+   S.homeNote に保存。SYNC_KEYS に含むため“自分の全端末”で同期される（家族には非共有）。
+   編集→保存で saveS()→クラウドへ自動 push。次回どの端末で開いても最新が表示される。 */
+let _homeNoteEditing = false;
+function renderHomeNote() {
+  const el = document.getElementById('home-note');
+  if(!el) return;
+  const note = (S.homeNote || '').toString();
+  if(_homeNoteEditing) {
+    el.innerHTML =
+      '<div class="home-note-card editing">'
+      + '<textarea id="home-note-input" class="home-note-input" maxlength="2000" placeholder="お知らせやテストメモを書けます（自分の全端末で同期されます）"></textarea>'
+      + '<div class="home-note-actions">'
+      +   '<button class="home-note-btn ghost" onclick="cancelHomeNote()">キャンセル</button>'
+      +   '<button class="home-note-btn primary" onclick="saveHomeNote()">保存</button>'
+      + '</div></div>';
+    const ta = document.getElementById('home-note-input');
+    if(ta) { ta.value = note; ta.focus(); try { ta.setSelectionRange(note.length, note.length); } catch(_){} }
+    return;
+  }
+  if(!note.trim()) {
+    el.innerHTML =
+      '<button class="home-note-card empty" onclick="editHomeNote()" aria-label="お知らせ・メモを書く">'
+      + '<span class="home-note-ic" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>'
+      + '<span class="home-note-empty-text">お知らせ・メモを書く</span>'
+      + '</button>';
+    return;
+  }
+  el.innerHTML =
+    '<div class="home-note-card">'
+    + '<div class="home-note-head"><span class="home-note-title">お知らせ</span>'
+    +   '<button class="home-note-edit" onclick="editHomeNote()" aria-label="編集">'
+    +     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
+    +   '</button></div>'
+    + '<div class="home-note-body">'+H(note)+'</div>'
+    + '</div>';
+}
+function editHomeNote() { _homeNoteEditing = true; renderHomeNote(); }
+function cancelHomeNote() { _homeNoteEditing = false; renderHomeNote(); }
+function saveHomeNote() {
+  const ta = document.getElementById('home-note-input');
+  const v = ta ? ta.value : '';
+  S.homeNote = (v || '').slice(0, 2000);
+  try { saveS(); } catch(_){}   // ローカル保存＋（ログイン時）クラウドへ自動 push
+  _homeNoteEditing = false;
+  renderHomeNote();
+  try { showToast(isSupaLoggedIn() ? 'お知らせを保存しました（全端末に同期されます）' : 'お知らせを保存しました', 'success'); } catch(_){}
+}
+
 function renderHome() {
   const m = S.user || MEMBERS[0];
   try { applyTheme(); } catch(_){}   // ホーム背景テーマを適用
@@ -11489,6 +11578,8 @@ function renderHome() {
       inviteCta.innerHTML = '';
     }
   }
+
+  try { renderHomeNote(); } catch(_){}
 
   // Wave 225: ゲストユーザー向けクラウド登録促進バナー
   var adBar = document.getElementById('home-ad-bar');
