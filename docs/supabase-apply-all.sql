@@ -79,7 +79,7 @@ create policy "family_read" on public.fl_family_data for select
         'prep','prepRoutines','folders','docs','albumPhotos',
         'shoppingItems','shoppingFrequent','members',
         'customBoards','boardItems','boardSections',
-        'recurringTxs','memos','memoFolders','workspaces',
+        'recurringTxs','memos','memoFolders','workspaces','homeNote',
         '_deletions'
       ])
     )
@@ -439,7 +439,7 @@ create policy "family_read" on public.fl_family_data for select
         'prep','prepRoutines','folders','docs','albumPhotos',
         'shoppingItems','shoppingFrequent','members',
         'customBoards','boardItems','boardSections',
-        'recurringTxs','memos','memoFolders','workspaces',
+        'recurringTxs','memos','memoFolders','workspaces','homeNote',
         '_deletions'
       ])
     )
@@ -500,7 +500,7 @@ create policy "family_read" on public.fl_family_data for select
         'prep','prepRoutines','folders','docs','albumPhotos',
         'shoppingItems','shoppingFrequent','members',
         'customBoards','boardItems','boardSections',
-        'recurringTxs','memos','memoFolders','workspaces','_deletions'
+        'recurringTxs','memos','memoFolders','workspaces','homeNote','_deletions'
       ])
     )
   );

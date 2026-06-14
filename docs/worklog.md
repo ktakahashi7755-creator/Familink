@@ -22397,3 +22397,43 @@ Phase 2: 家族共有のセキュリティ強化＝membership 方式で別家族
 
 ### コミット
 - 本コミット（worklog のみ）
+
+---
+
+## 2026-06-14 21:30  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+ホームの「お知らせ」を家族ごとのページ化＝A家族/B家族/…/Z家族ページ＋デモ用デフォルト
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260613n)
+- docs/supabase-{setup,family-isolation,policy-reset,apply-all}-sql.sql（RLS whitelist に homeNote 追加）
+- docs/worklog.md
+
+### 変更内容
+- 前コミット(a93097b)で追加した編集できる「お知らせ」(S.homeNote) を家族共有キーに昇格。
+  - FAMILY_SHARED_KEYS に homeNote 追加 → 家族参加中はメンバー全員で共有＝「その家族のページ」。
+  - 家族未参加(S.familyId=null)は自分の行のみ＝「デフォルト（デモ）ページ」。
+  - 1つのキーで A家族/B家族/…/Z家族 それぞれのページ＋デモ用デフォルトを自然に実現。
+- 表示に文脈ラベルを追加（参加中:「この家族で共有」／未参加:「デモ（自分用）」）。
+- サーバ RLS の family_read ホワイトリストに 'homeNote' を追加（全SQLファイル）。
+  → 本番は docs/supabase-policy-reset.sql の再Runで反映（冪等）。
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- 動作確認(Playwright): 未参加→「デモ（自分用）」/参加中→「この家族で共有」/共有キー登録 すべてPASS・pageerror0
+- ローカル実DB(apply-all適用): A家族メンバーは homeNote 読める／別家族Bは読めない を確認
+
+### 未確認事項
+- 本番反映には docs/supabase-policy-reset.sql の再Runが必要（homeNote をホワイトリストに追加するため）。
+  未Runでも個人(自分の全端末)同期は動く＝家族共有のみ未反映。
+
+### iPhone確認ポイント
+- ホーム上部の「お知らせ」を編集→保存→別端末/家族で反映されるか
+- 家族参加中は「この家族で共有」、未参加は「デモ（自分用）」と出るか
+
+### 次にやること
+- policy-reset 再Run（homeNote追加版）→ 実機で家族ページ共有の確認
+
+### コミット
+- 本コミット

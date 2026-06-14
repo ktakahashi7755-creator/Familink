@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613m';
+  var V='v20260613n';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -1453,7 +1453,8 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .home-note-card.empty:active { transform: scale(.99); }
 .home-note-ic { flex: none; display: flex; color: var(--text-muted); }
 .home-note-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.home-note-title { font-size: 12px; font-weight: 700; color: var(--text-sub, #6b7280); letter-spacing: .2px; }
+.home-note-title { font-size: 12px; font-weight: 700; color: var(--text-sub, #6b7280); letter-spacing: .2px; display: flex; align-items: center; gap: 7px; }
+.home-note-scope { font-size: 10.5px; font-weight: 600; color: var(--text-muted); background: var(--bg-muted, #f0f1f4); border-radius: 8px; padding: 1px 7px; }
 .home-note-edit {
   flex: none; width: 32px; height: 32px; margin: -6px -6px -6px 0;
   border: none; background: none; color: var(--text-muted); cursor: pointer;
@@ -6681,7 +6682,8 @@ const FAMILY_SHARED_KEYS = [
   'prep','prepRoutines','folders','docs','albumPhotos',
   'shoppingItems','shoppingFrequent','members',
   'customBoards','boardItems','boardSections',
-  'recurringTxs','memos','memoFolders','workspaces'
+  'recurringTxs','memos','memoFolders','workspaces',
+  'homeNote'
 ];
 
 let _syncTimer = null;
@@ -11366,10 +11368,16 @@ function renderHomeNote() {
   const el = document.getElementById('home-note');
   if(!el) return;
   const note = (S.homeNote || '').toString();
+  const inFamily = !!S.familyId;
+  // 家族参加中は「この家族のページ」（メンバー全員で共有）。未参加はデモ用の自分専用ページ。
+  const scopeLabel = inFamily ? 'この家族で共有' : 'デモ（自分用）';
+  const ph = inFamily
+    ? '家族みんなへのお知らせを書けます（この家族のメンバーに共有されます）'
+    : 'お知らせ・メモを書けます（家族に参加すると家族ページとして共有されます）';
   if(_homeNoteEditing) {
     el.innerHTML =
       '<div class="home-note-card editing">'
-      + '<textarea id="home-note-input" class="home-note-input" maxlength="2000" placeholder="お知らせやテストメモを書けます（自分の全端末で同期されます）"></textarea>'
+      + '<textarea id="home-note-input" class="home-note-input" maxlength="2000" placeholder="'+H(ph)+'"></textarea>'
       + '<div class="home-note-actions">'
       +   '<button class="home-note-btn ghost" onclick="cancelHomeNote()">キャンセル</button>'
       +   '<button class="home-note-btn primary" onclick="saveHomeNote()">保存</button>'
@@ -11388,7 +11396,7 @@ function renderHomeNote() {
   }
   el.innerHTML =
     '<div class="home-note-card">'
-    + '<div class="home-note-head"><span class="home-note-title">お知らせ</span>'
+    + '<div class="home-note-head"><span class="home-note-title">お知らせ<span class="home-note-scope">'+H(scopeLabel)+'</span></span>'
     +   '<button class="home-note-edit" onclick="editHomeNote()" aria-label="編集">'
     +     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
     +   '</button></div>'
