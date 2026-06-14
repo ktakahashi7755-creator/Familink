@@ -3,32 +3,16 @@
 <head>
 <script>
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
-   sw.js?v=V を登録し、V が変わると更新を検知して下部にバナー表示（強制リロードはせず、
-   開いた瞬間はキャッシュから即表示。タップで最新へ更新）。 */
-var V='v20260614s';
+   通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
+   1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
+var V='v20260614t';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
     if(_flReloaded) return; _flReloaded = true; location.reload();
   });
-  var _flShowUpdate = function(reg){
-    if(document.getElementById('fl-update-bar')) return;
-    try {
-      var b = document.createElement('div'); b.id = 'fl-update-bar';
-      b.textContent = '新しいバージョンがあります（タップで更新）';
-      b.setAttribute('style','position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99999;background:#0A84FF;color:#fff;font:600 13px/1.45 -apple-system,sans-serif;padding:10px 18px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer;max-width:90%;');
-      b.onclick = function(){ if(reg.waiting) reg.waiting.postMessage('SKIP_WAITING'); else location.reload(); };
-      (document.body || document.documentElement).appendChild(b);
-    } catch(e){}
-  };
   navigator.serviceWorker.register('sw.js').then(function(reg){
-    if(reg.waiting && navigator.serviceWorker.controller) _flShowUpdate(reg);
-    reg.addEventListener('updatefound', function(){
-      var nw = reg.installing; if(!nw) return;
-      nw.addEventListener('statechange', function(){
-        if(nw.state === 'installed' && navigator.serviceWorker.controller) _flShowUpdate(reg);
-      });
-    });
+    if(reg && reg.update) { try { reg.update(); } catch(e){} }   // 起動毎に更新確認＝最新を取りこぼさない
   }).catch(function(){});
 }
 </script>
