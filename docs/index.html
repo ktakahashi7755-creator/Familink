@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    sw.js?v=V を登録し、V が変わると更新を検知して下部にバナー表示（強制リロードはせず、
    開いた瞬間はキャッシュから即表示。タップで最新へ更新）。 */
-var V='v20260614q';
+var V='v20260614r';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -6480,7 +6480,7 @@ function initSupabase() {
               // 取得後に必ず送信＝端末のデータも自動でクラウドへ。さらに招待リンク経由なら自動参加。
               _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} try{ _processPendingJoin(); }catch(_){} }).catch(_=>{ try{ _processPendingJoin(); }catch(_){} });
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
-                showToast('Magic Link でログインしました', 'success');
+                showToast('ログインしました', 'success');
                 _enterApp(true);
               } else {
                 showToast('クラウドにログインしました', 'success');

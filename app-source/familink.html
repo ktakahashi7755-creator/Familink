@@ -6448,7 +6448,7 @@ function initSupabase() {
               // 取得後に必ず送信＝端末のデータも自動でクラウドへ。さらに招待リンク経由なら自動参加。
               _fetchFromSupabase().then(function(){ try{ _pushToSupabase(); }catch(_){} try{ _processPendingJoin(); }catch(_){} }).catch(_=>{ try{ _processPendingJoin(); }catch(_){} });
               if(!S.loggedIn || S.screen === 's-ob' || S.screen === 's-login') {
-                showToast('Magic Link でログインしました', 'success');
+                showToast('ログインしました', 'success');
                 _enterApp(true);
               } else {
                 showToast('クラウドにログインしました', 'success');

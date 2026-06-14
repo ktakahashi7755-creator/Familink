@@ -1,13 +1,13 @@
 // Familink Service Worker — オフライン対応＋即時起動（cache-first / 版管理は ?v= で）
 // 方針:
-//  ・登録は sw.js?v=<版数> 。トップHTMLの版数 V が変わると URL が変わり、新SWのインストールを検知
-//    → ページ下部に「更新」バナーを出す（待たせない＝即時表示のまま、タップで最新へ）。
+//  ・SW_VERSION（= index.html の var V と同値）を本ファイルに焼き込む。版が変わると sw.js のバイトが
+//    変わり、ブラウザが新SWを検知 → ページ下部に「更新」バナー（待たせない＝即時表示のまま、タップで最新へ）。
 //  ・同一オリジンの GET はキャッシュ優先で即返す → 遅い回線でも一瞬・オフラインでも動く。
 //    返した後、裏でネットワーク取得しキャッシュを更新（次回さらに新しく）。
 //  ・別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワークに任せる
 //    （未接続時はアプリが LocalStorage のみで動作する設計）。
 // SW_VERSION は docs 同期(§12.3)で index.html の var V と同じ値に更新する（バイトが変わり更新検知される）
-var SW_VERSION = 'v20260614q';
+var SW_VERSION = 'v20260614r';
 var CACHE = 'familink-' + SW_VERSION;
 var CORE  = ['./', './index.html', './manifest.json', './icon-192.png', './icon-256.png'];
 
