@@ -22142,3 +22142,47 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 00:35  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+ウェルカム画面の Hoku が背後にカード枠の「四角いつなぎ目」を見せる違和感を解消＋全体総点検
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（v20260613i に同期）
+- docs/worklog.md
+
+### 原因
+- ウェルカムのヒーロー画像（`.ob2-hero-img`）は border-radius:22px ＋ drop-shadow を持つ「カード」。
+- Hoku（`.ob2-star` / #ob-hoku-star）が絶対配置でカードの左下「角」をまたいでいたため、
+  丸角の枠線＋影が Hoku の背後に四角いつなぎ目として透けて見えていた。
+
+### 変更内容
+- Hoku を `<span class="ob2-star-wrap">` で包み、`::before` でやわらかい光のにじみ
+  （warm-white の radial-gradient・closest-side・72% でフェード）を Hoku 背後に敷設。
+  これでカード角の枠／影のつなぎ目が溶けてシーンに自然になじむ。
+  ※`::before` は img 要素には効かないため span ラッパーを採用。
+- ドロップシャドウを黒→暖色寄り(rgba(120,90,30,.18))に微調整し、イラストの色温度に合わせた。
+- 位置は bottom:4% / left:3%、幅16%(max60/min38px)で従来とほぼ同等を維持。
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**
+- tools/qa_otp_onboard_test.js: 10/10 PASS ／ tools/qa_invite_link_test.js: 13/13 PASS
+- 表示確認(Playwright): 390 / 375 / 320px すべて横スクロールなし・レイアウト崩れなし
+- ウェルカム拡大確認: 角の四角いつなぎ目が消え、Hoku が自然になじむことを目視確認
+
+### 未確認事項
+- なし（実機での見え方は iPhone確認ポイント参照）
+
+### iPhone確認ポイント
+- ウェルカム画面の Hoku の背後に四角い枠／つなぎ目が出ていないか（自然になじんで見えるか）
+- 光のにじみが白い円としてくっきり見えていないか（やわらかく溶けているか）
+
+### 次にやること
+- 実機での Hoku なじみ確認。OK なら main へ反映を検討
+
+### コミット
+- 本コミット
