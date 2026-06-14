@@ -22186,3 +22186,48 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 10:50  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+リアルタイム同期の堅牢化＝クラウド取得(fetch)を直列化(mutex)し多重トリガの競合を防止
+
+### 背景
+- 実機で同一アカウント＋同一パスワードのリアルタイム同期が動作確認できた。念のための磨き込み。
+- `_fetchFromSupabase` は realtime / 20秒ポーリング / 復帰(visibilitychange・focus) / online の
+  多数トリガから同時に呼ばれ得るが、再入ガードが無く、取得→マージ→再描画が重なると
+  無駄な多重ネットワーク・二重再描画・マージ競合の恐れがあった。
+
+### 変更ファイル
+- app-source/familink.html
+- docs/index.html（v20260613j に同期）
+- docs/worklog.md
+
+### 変更内容
+- `_fetchFromSupabase` を「Promiseチェーンによる直列化ラッパー」と実体 `_fetchFromSupabaseImpl`
+  に分離。複数トリガが同時に来ても取得は常に1本ずつ順次実行（重なりゼロ）。
+- await する呼び出し元（ログイン→push→家族参加処理 等）には「自分の取得完了」Promise を
+  返すため、従来の順序保証はそのまま維持。早期returnの再入ガードは順序を壊すため不採用。
+- 認証方式・DBスキーマ・LocalStorage構造・PERSISTキーは一切変更なし（挙動の磨きのみ）。
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**
+- 同期系: autosync 10/10・cloudfirst_login 9/9・invite_token 13/13・sync_harness 68/68・
+  cloudbanner 5/5・invite_link 13/13・otp_onboard 10/10 すべて PASS
+- mutex動作検証(Playwright): 6本同時呼び出し→maxActive=1（常に直列）・6本全完了・
+  デッドロックなし・pageerror 0件 を確認
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 同期挙動は従来どおり（同一アカウント複数端末／家族間でリアルタイム反映）であること
+- 画面復帰直後やオンライン復帰時に二重のチラつき再描画が起きないこと
+
+### 次にやること
+- 実機で複数端末同時編集時の安定性を確認。OK なら main へ反映
+
+### コミット
+- 本コミット

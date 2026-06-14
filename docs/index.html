@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613i';
+  var V='v20260613j';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -6829,7 +6829,17 @@ function _withTimeout(promise, ms) {
     new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('timeout')); }, ms); })
   ]);
 }
-async function _fetchFromSupabase() {
+/* 取得の直列化（mutex）：realtime / 20秒ポーリング / 復帰(visibility・focus) /
+   online など多数のトリガから同時に呼ばれても、取得→マージ→再描画が重ならない
+   よう 1 本ずつ順に実行する。await する呼び出し元（ログイン→家族参加処理など）には
+   「自分の取得が完了した」Promise を返すため、従来の順序保証はそのまま維持される。 */
+let _fetchChain = Promise.resolve();
+function _fetchFromSupabase() {
+  const run = _fetchChain.catch(function(){}).then(function(){ return _fetchFromSupabaseImpl(); });
+  _fetchChain = run.catch(function(){});
+  return run;
+}
+async function _fetchFromSupabaseImpl() {
   const sb = getSupabase();
   if(!sb || !isSupaLoggedIn()) return;
   // クラウド取得で全画面ローディングを出さない（アプリはローカルデータで動作）。状態は同期ドットで表示
