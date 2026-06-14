@@ -8,7 +8,7 @@
 //  ・別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワークに任せる
 //    （未接続時はアプリが LocalStorage のみで動作する設計）。
 // SW_VERSION は docs 同期(§12.3)で index.html の var V と同じ値に更新する（バイトが変わり更新検知される）
-var SW_VERSION = 'v20260614t';
+var SW_VERSION = 'v20260614u';
 var CACHE = 'familink-' + SW_VERSION;
 var CORE  = ['./', './index.html', './manifest.json', './icon-192.png', './icon-256.png'];
 
@@ -43,6 +43,7 @@ self.addEventListener('fetch', function(e) {
   var url;
   try { url = new URL(req.url); } catch(_) { return; }
   if(url.origin !== self.location.origin) return;   // 別オリジンはネットワークに任せる
+  if(/\/sw\.js$/.test(url.pathname)) return;         // SW 自身はキャッシュしない（更新検知を妨げない）
 
   var isNav = req.mode === 'navigate';
   var key = isNav ? './index.html' : req;

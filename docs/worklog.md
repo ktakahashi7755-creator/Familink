@@ -22592,3 +22592,38 @@ SWを自動更新化（古いキャッシュ張り付き解消）。Hoku繋ぎ�
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 23:48  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+SW自動更新の確実化（updateViaCache:none）＝実機に最新が確実に届くように（Magic文言の残存=旧版表示の解消）
+
+### 背景
+- 実機で Hoku は改善したが「マジックログイン」表記が残存。現行コードに該当文言は無く（全トースト=
+  「ログインしました」/「クラウドにログインしました」）、原因は更新が確実に届かず旧版表示が続いていた点。
+- 重大な抜け: ブラウザのSW更新チェックがHTTPキャッシュの古い sw.js を見ると新版を検知できない。
+
+### 変更ファイル
+- docs/index.html（register に updateViaCache:'none'＋毎分 update() ・V=u）
+- docs/sw.js（sw.js 自身はキャッシュしないガード追加・SW_VERSION=u）／docs/worklog.md
+
+### 変更内容
+- register('sw.js', {updateViaCache:'none'}) ＝ sw.js を常にネットワーク検証→更新取りこぼし防止。
+- 表示中も毎分 reg.update() で新版チェック。fetch ハンドラで sw.js を除外（更新検知を妨げない）。
+- これで skipWaiting + controllerchange の自動更新が確実に走り、実機は次回起動で最新へ。
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- Playwright: 版 u→w を新デプロイ模擬→自動更新OK／オフライン起動OK。
+
+### iPhone確認ポイント
+- 次回起動で自動更新され、ログイン時トーストが「ログインしました」になるか
+- 通常起動の即時表示・オフライン起動が維持されているか
+
+### 次にやること
+- 全体総点検（世界最高峰の品質/デザイン）→ 改善 → ネクストアクション提示・再評価
+
+### コミット
+- 本コミット
