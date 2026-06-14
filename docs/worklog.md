@@ -22523,3 +22523,35 @@ Phase 2: 家族共有のセキュリティ強化＝membership 方式で別家族
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 23:30  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+ウェルカム画面の Hoku が一定時間「Hoku」テキスト表示になる問題を解消（画像を即表示）
+
+### 原因
+- ウェルカムの Hoku img(#ob-hoku-star) は HTML に src が無く、巨大JSが全読込→init で IMGS.hoku を
+  JS 代入するまで alt="Hoku" のテキストだけが表示されていた（遅延フラッシュ）。
+
+### 変更ファイル
+- app-source/familink.html（Hoku img の src に base64 データURIを直接埋め込み・decoding=async）
+- docs/index.html(v20260614s)／docs/sw.js(SW_VERSION 同値)／docs/worklog.md
+
+### 変更内容
+- ウェルカム Hoku 画像をHTMLの src に直接埋め込み → パース時点で即描画。テキスト「Hoku」の
+  フラッシュを解消し、キャラクターが最初から表示される。boot 時の obStar.src 代入は無害なため温存。
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- Playwright: DOMContentLoaded 時点で img.complete=true・naturalWidth=240（init 前に即表示）を確認
+
+### iPhone確認ポイント
+- ウェルカム画面を開いた瞬間から Hoku キャラクターが表示されるか（「Hoku」テキストが出ないか）
+
+### 次にやること
+- 実機体感の確認
+
+### コミット
+- 本コミット
