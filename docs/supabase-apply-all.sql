@@ -471,3 +471,61 @@ commit;
 --   ・本SQL適用後は「招待トークン(INV-)＝使い捨てリンク」での参加に一本化され、
 --     family_id を直接知っただけでは参加できない（membership が必須）。
 -- ============================================================
+
+-- ============================================================
+-- 【追補 2026-06-14b】ポリシー完全リセット（再実行で緩いポリシーを自動一掃）
+-- 元: docs/supabase-policy-reset.sql
+-- ============================================================
+do $$
+declare p record; t text;
+begin
+  foreach t in array array['fl_family_data','fl_family_members','fl_family_invites','fl_entitlements'] loop
+    if exists (select 1 from information_schema.tables where table_schema='public' and table_name=t) then
+      execute format('alter table public.%I enable row level security', t);
+      for p in select policyname from pg_policies where schemaname='public' and tablename=t loop
+        execute format('drop policy if exists %I on public.%I', p.policyname, t);
+      end loop;
+    end if;
+  end loop;
+end $$;
+
+-- fl_family_data: 自分の行 / 家族の共有キーのみ読める。書込は自分の行かつ自家族のみ
+create policy "family_read" on public.fl_family_data for select
+  using (
+    auth.uid() = user_id
+    or (
+      family_id in (select public.fl_my_family_ids())
+      and data_key = any (array[
+        'events','tasks','txs','health','posts','announces',
+        'prep','prepRoutines','folders','docs','albumPhotos',
+        'shoppingItems','shoppingFrequent','members',
+        'customBoards','boardItems','boardSections',
+        'recurringTxs','memos','memoFolders','workspaces','_deletions'
+      ])
+    )
+  );
+create policy "own_insert" on public.fl_family_data for insert
+  with check (auth.uid() = user_id and (family_id is null or family_id in (select public.fl_my_family_ids())));
+create policy "own_update" on public.fl_family_data for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and (family_id is null or family_id in (select public.fl_my_family_ids())));
+create policy "own_delete" on public.fl_family_data for delete
+  using (auth.uid() = user_id);
+
+-- fl_family_members: 参照は自分の家族のみ。変更は RPC(SECURITY DEFINER)のみ＝直接の書込ポリシーは作らない
+create policy "member_select_own_families" on public.fl_family_members for select
+  using (family_id in (select public.fl_my_family_ids()));
+
+-- fl_family_invites: 作成は自家族のみ・参照/更新/削除は作成者のみ
+create policy "invite_insert_own_family" on public.fl_family_invites for insert
+  with check (auth.uid() = created_by and family_id in (select public.fl_my_family_ids()));
+create policy "invite_select_creator" on public.fl_family_invites for select
+  using (auth.uid() = created_by);
+create policy "invite_update_creator" on public.fl_family_invites for update
+  using (auth.uid() = created_by) with check (auth.uid() = created_by);
+create policy "invite_delete_creator" on public.fl_family_invites for delete
+  using (auth.uid() = created_by);
+
+-- fl_entitlements: 本人の読み取りのみ。書込ポリシーは作らない＝クライアントから課金付与は不可
+create policy "ent_select_own" on public.fl_entitlements for select
+  using (auth.uid() = user_id);

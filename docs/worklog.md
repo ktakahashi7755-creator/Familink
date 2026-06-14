@@ -22334,3 +22334,47 @@ Phase 2: 家族共有のセキュリティ強化＝membership 方式で別家族
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 15:10  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+本番RLS分離テストで「個人情報が家族に漏れる」検出→原因(レガシー緩いポリシー)特定→ポリシー完全リセットで修正
+
+### 検出・原因
+- 本番 Supabase で security-tests を実行したところ「参加後でも個人情報(userProfile)は読めない」が
+  pass=false（＝家族メンバーが他人の userProfile を読めてしまう）。
+- 原因: 本番 fl_family_data に、過去に手動/旧マイグレーションで付与された緩い SELECT ポリシー
+  （USING(true) 等）が残存。permissive ポリシーは OR 合成されるため、family_read の
+  ホワイトリストを無視して全データが読めていた（分離が無効化）。
+- ローカル PostgreSQL16（apply-all 全適用＋rogueポリシー混入）で同現象を再現・確認。
+
+### 変更ファイル
+- docs/supabase-policy-reset.sql（新規・全テーブルのポリシーを動的 drop→正しい最小権限を再作成）
+- docs/supabase-apply-all.sql（末尾にポリシー完全リセットを同梱＝再実行で緩いポリシーを自動一掃する自己修復版）
+- docs/security-tests.sql（Supabase SQL Editor 直貼り版に刷新。\set を廃し session_replication_role で
+  FK回避＋RLSは通常モード検証。begin/rollback で痕跡ゼロ）
+- docs/worklog.md
+
+### 修正内容（ユーザーが本番適用済み）
+- docs/supabase-policy-reset.sql を本番 SQL Editor で Run → 緩いポリシー一掃完了（Success）。
+
+### テスト結果（ローカル実DB・prod同一構成）
+- リセット前: テスト4 = false（再現）
+- リセット後/自己修復版apply-all適用後: security-tests.sql で
+  1=pass / 3=pass / 4=pass、2=「bearer INSERT -> PASS(拒否)」を確認
+- 残存ポリシーは正しい最小セットのみ（fl_family_data 4・members 1・invites 4・entitlements 1）
+
+### 未確認事項
+- 本番でのリセット後 security-tests 再実行結果（ユーザー確認待ち。テスト4が pass=t になる想定）
+- どの緩いポリシー名が残っていたか（記録用・任意）
+
+### iPhone確認ポイント
+- 実機2アカウントで、別家族コードでは参加・閲覧できないこと／同家族では共有されること
+
+### 次にやること
+- 本番 security-tests 再実行で全 pass 確認 → 実機2台で家族分離の最終確認
+
+### コミット
+- 本コミット
