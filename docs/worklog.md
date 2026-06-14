@@ -22627,3 +22627,38 @@ SW自動更新の確実化（updateViaCache:none）＝実機に最新が確実�
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-15 00:05  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+世界最高峰へ向けた総点検＋第1弾改善（装飾絵文字→ラインアイコン統一）
+
+### 総点検（専任レビュー）要点
+- 現状 B+級。A級(TimeTree/みてね)への最短は「細部統一・文言・空状態・技術用語排除」。大規模改修は不要。
+- 最重要TOP5: ①技術用語露出(診断のみ・dev) ②タップ領域44px統一 ③余白のCSS変数統一 ④空状態の質 ⑤敬語の簡潔化
+
+### 変更ファイル（第1弾＝安全・即効）
+- app-source/familink.html／docs/index.html(v20260614v)／docs/sw.js(同値)／docs/worklog.md
+
+### 変更内容
+- 装飾絵文字をラインアイコン(SVG stroke)へ統一（デザイン原則）:
+  - auth バナーの ❌⚠️✅ℹ️ → SVG(x-circle/alert/check/info, currentColor)
+  - パスワード再設定完了の 🔑(48px) → SVG 鍵アイコン
+  - Hoku の「…聞かせて😊」→「…聞かせてね。」（絵文字除去・温かさ維持）
+- showToast は既に SVG（緑✓はSVG）＝変更不要を確認。
+- 残る ✅❌⚠️ は #qa-debug／接続診断（dev・診断用）のみ＝通常UI非表示のため対象外（次段で検討）。
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS ／ Playwright: auth バナーSVG描画OK・pageerror0
+
+### 次にやること（ネクストアクション＝再評価のための残タスク）
+- A: 空状態を「最初の〇〇を追加してみましょう＋例」へ（home/cal/task/budget/album/board）
+- A: 敬語の簡潔化（ご確認ください→確認してください 等）を主要モーダルで
+- A: タップ領域の実害箇所のみ44px化（削除/閉じる等の独立小ボタン）
+- B: 余白のCSS変数(--sp-*)導入と段階適用（既存を壊さない範囲）
+- B: 接続診断/qa-debug の絵文字もアイコン化（dev品質）
+
+### コミット
+- 本コミット

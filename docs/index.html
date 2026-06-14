@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260614u';
+var V='v20260614v';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -5167,7 +5167,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <!-- 「パスワード再設定メール送信済み」 -->
     <div id="supa-auth-reset-sent-wrap" style="display:none;">
       <div style="text-align:center;padding:14px 8px 6px;">
-        <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔑</div>
+        <div style="margin-bottom:10px;display:flex;justify-content:center;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg></div>
         <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">再設定メールを送信しました</div>
         <div style="font-size:12px;color:var(--text-sub);line-height:1.7;">
           以下のアドレスにメールを送りました。<br>
@@ -7786,10 +7786,10 @@ function _setSupaBanner(type, title, body, actions) {
   const el = document.getElementById('supa-auth-banner');
   if(!el) return;
   const styles = {
-    error:   { bg:'#FEF2F2', border:'#FCA5A5', color:'#7F1D1D', icon:'❌' },
-    warn:    { bg:'#FFFBEB', border:'#FDE68A', color:'#92400E', icon:'⚠️' },
-    success: { bg:'#ECFDF5', border:'#A7F3D0', color:'#065F46', icon:'✅' },
-    info:    { bg:'#EFF6FF', border:'#BFDBFE', color:'#1E3A8A', icon:'ℹ️' },
+    error:   { bg:'#FEF2F2', border:'#FCA5A5', color:'#7F1D1D', icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' },
+    warn:    { bg:'#FFFBEB', border:'#FDE68A', color:'#92400E', icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+    success: { bg:'#ECFDF5', border:'#A7F3D0', color:'#065F46', icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' },
+    info:    { bg:'#EFF6FF', border:'#BFDBFE', color:'#1E3A8A', icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' },
   };
   const s = styles[type] || styles.info;
   el.style.background = s.bg;
@@ -23547,7 +23547,7 @@ function _hokuAiCapNoticeOnce() {
   const u = _hokuAiUsageToday();
   if(u.noticed) return '';
   u.noticed = true; try { saveS(); } catch(_){}
-  return '今日はたくさん話したね！また明日、いっぱい聞かせて😊\n\n';
+  return '今日はたくさん話したね。また明日、いっぱい聞かせてね。\n\n';
 }
 /* 明確な「参照・確認」の言い回し（教えて／見せて／何件／ある？／〜欲しい 等）を検出する安全ガード。
    追加・削除系の動詞が含まれる場合は対象外。AI でもローカルでも、こういう"質問"の発話を
