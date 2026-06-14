@@ -22378,3 +22378,22 @@ Phase 2: 家族共有のセキュリティ強化＝membership 方式で別家族
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 15:20  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+本番ポリシーリセット適用＆分離テスト再実行で「個人情報の家族漏れ」修正を確認
+
+### 結果（本番 Supabase）
+- docs/supabase-policy-reset.sql を本番適用済み（Success）。
+- docs/security-tests.sql 再実行 → テスト4「参加後でも個人情報(userProfile)は読めない」= pass=true を確認。
+  → 緩いレガシーポリシー起因の漏れは解消。家族分離が本番で担保された。
+- 残課題: 実機2アカウントでの最終動作確認（別家族コードで参加・閲覧不可／同家族のみ共有）。
+
+### 次にやること
+- 実機2台で家族分離の最終確認。問題なければ membership 強化版を main へ公開。
+
+### コミット
+- 本コミット（worklog のみ）
