@@ -1,35 +1,66 @@
-// Familink Service Worker v20260527u
-// ネットワーク優先: キャッシュを一切使わず常に最新版を配信
-var SW_VERSION = '20260527u';
+// Familink Service Worker — オフライン対応＋即時起動（cache-first / 版管理は ?v= で）
+// 方針:
+//  ・登録は sw.js?v=<版数> 。トップHTMLの版数 V が変わると URL が変わり、新SWのインストールを検知
+//    → ページ下部に「更新」バナーを出す（待たせない＝即時表示のまま、タップで最新へ）。
+//  ・同一オリジンの GET はキャッシュ優先で即返す → 遅い回線でも一瞬・オフラインでも動く。
+//    返した後、裏でネットワーク取得しキャッシュを更新（次回さらに新しく）。
+//  ・別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワークに任せる
+//    （未接続時はアプリが LocalStorage のみで動作する設計）。
+// SW_VERSION は docs 同期(§12.3)で index.html の var V と同じ値に更新する（バイトが変わり更新検知される）
+var SW_VERSION = 'v20260614q';
+var CACHE = 'familink-' + SW_VERSION;
+var CORE  = ['./', './index.html', './manifest.json', './icon-192.png', './icon-256.png'];
 
 self.addEventListener('install', function(e) {
-  self.skipWaiting();
+  // skipWaiting は呼ばない＝更新はユーザーがバナーをタップしてから適用（中断させない）
+  e.waitUntil(
+    caches.open(CACHE).then(function(c) {
+      return Promise.all(CORE.map(function(u) {
+        return fetch(u, { cache: 'reload' })
+          .then(function(r) { if(r && r.ok) return c.put(u, r.clone()); })
+          .catch(function() {});
+      }));
+    })
+  );
 });
 
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
-      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-    }).then(function() {
-      return self.clients.claim();
-    }).then(function() {
-      // 全クライアントにリロード要求（古いページを強制更新）
-      return self.clients.matchAll({ type: 'window' }).then(function(clients) {
-        clients.forEach(function(c) { c.navigate(c.url); });
-      });
-    })
+      return Promise.all(keys.map(function(k) { if(k !== CACHE) return caches.delete(k); }));
+    }).then(function() { return self.clients.claim(); })
   );
 });
 
+self.addEventListener('message', function(e) {
+  if(e.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', function(e) {
-  // 常にネットワークから取得（キャッシュ不使用）
-  if(e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' }).catch(function() {
-        return fetch(e.request);
-      })
-    );
-    return;
-  }
-  e.respondWith(fetch(e.request));
+  var req = e.request;
+  if(req.method !== 'GET') return;
+  var url;
+  try { url = new URL(req.url); } catch(_) { return; }
+  if(url.origin !== self.location.origin) return;   // 別オリジンはネットワークに任せる
+
+  var isNav = req.mode === 'navigate';
+  var key = isNav ? './index.html' : req;
+
+  // 背景更新を最後まで完了させる keep-alive
+  var _done;
+  e.waitUntil(new Promise(function(res){ _done = res; }));
+
+  e.respondWith(
+    caches.open(CACHE).then(function(c) {
+      return c.match(key).then(function(cached) {
+        var net = fetch(req).then(function(r) {
+          if(r && r.ok) { try { c.put(key, r.clone()); } catch(_) {} }
+          return r;
+        }).catch(function() { return null; });
+        net.then(function(){ _done(); }, function(){ _done(); });
+        if(cached) return cached;                        // キャッシュがあれば即返す
+        return net.then(function(r){ return r || new Response('', { status: 503 }); });
+      });
+    })
+  );
 });

@@ -12,7 +12,7 @@
 
 ### 技術スタック
 - **本体**: 単一 HTML（`app-source/familink.html`）／**Vanilla JS / CSS**／フレームワーク・バンドラなし。
-- **公開**: GitHub Pages（`docs/index.html`＝本体＋先頭の Service Worker＋キャッシュバスター）。
+- **公開**: GitHub Pages（`docs/index.html`＝本体＋先頭の Service Worker。`docs/sw.js` は cache-first＝即時起動/オフライン対応）。
 - **保存**: ブラウザ LocalStorage（主キー `familink_v3`）。写真は base64。
 - **クラウド**: Supabase（CDN `@supabase/supabase-js@2`・**anon キーのみ**）。テーブルは
   `fl_family_data`（key-value JSONB）＋ `fl_family_invites` / `fl_entitlements`（SQL は docs/）。
@@ -461,19 +461,25 @@ Claude Code は以下を自律的に検知し、**提案 / 小規模改善** に
 
 ### 12.3 app-source ⇄ docs 同期義務（必須）
 - `app-source/familink.html` を修正したら、必ず `docs/index.html` に同期する（逆も同様）
-- `docs/index.html` は GitHub Pages 公開用で、先頭 15 行が **Service Worker 登録 + キャッシュバスター**ブロック。本体との差分はこの先頭ブロックのみ
+- `docs/index.html` は GitHub Pages 公開用で、先頭が **Service Worker 登録ブロック**。本体との差分は
+  この先頭ブロックのみで、末尾の `<!-- FL-HEAD-END -->` マーカーまでが先頭ブロック（行数固定ではなくマーカーで区切る）。
+- **SW はキャッシュ優先（cache-first）方式**：開いた瞬間にキャッシュから即表示＝遅い回線でも待たせず
+  オフラインでも動く。`docs/sw.js` の `SW_VERSION` と `docs/index.html` の `var V` は**必ず同じ値**にする
+  （sw.js のバイトが変わることで更新が検知され、画面下に「更新」バナーが出る＝強制リロードしない）。
 - **同期コマンド**（毎回このパターンで実施）:
   ```sh
-  # 1. docs/index.htmlの先頭15行(SW+キャッシュバスター)を取得し、バージョンをバンプ
-  head -16 docs/index.html | sed 's/v20260531h/v20260531i/'  # 末尾文字を1つ進める
-  # 2. 先頭ブロック + app-source本体(4行目以降)を結合
-  { head -16 docs/index.html | sed 's/vXXXX/vYYYY/'; tail -n +4 app-source/familink.html; } > /tmp/new_index.html
+  # 1. 先頭ブロック(マーカーまで)を取得し V をバンプ + app-source本体(4行目以降)を結合
+  { sed '/<!-- FL-HEAD-END -->/q' docs/index.html | sed 's/v20260614q/v20260614r/'; \
+    tail -n +4 app-source/familink.html; } > /tmp/new_index.html
   cp /tmp/new_index.html docs/index.html
-  # 3. 確認
-  grep "var V=" docs/index.html
+  # 2. sw.js の SW_VERSION も同じ値へ（更新検知に必須・忘れない）
+  sed -i "s/var SW_VERSION = '[^']*'/var SW_VERSION = 'v20260614r'/" docs/sw.js
+  # 3. 確認（3つが一致していること）
+  grep "var V=" docs/index.html; grep "SW_VERSION =" docs/sw.js
+  diff <(tail -n +4 app-source/familink.html) <(sed '1,/<!-- FL-HEAD-END -->/d' docs/index.html) && echo 本体一致OK
   ```
-- バージョン文字列形式: `v{YYYYMMDD}{a-z}` 例 `v20260531h` → 同日更新なら `v20260531i`
-- 「片方だけ修正して同期忘れ」は禁止
+- バージョン文字列形式: `v{YYYYMMDD}{a-z}` 例 `v20260614q` → 同日更新なら `v20260614r`
+- 「片方だけ修正して同期忘れ」「var V と SW_VERSION の不一致」は禁止
 
 ### 12.4 安全な実装姿勢
 - 入力値をそのまま `innerHTML` に渡さない（XSS 回避。家族情報・体調・写真・家計情報は特に慎重に）

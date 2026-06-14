@@ -6685,26 +6685,36 @@ function _setSyncDot(state) {
 /* オフライン／通信失敗バナーの出し分け（クラウド利用者のみ）。
    ユーザーが手動で閉じた場合は同一セッション中は再表示しない（うるさくしない）。 */
 let _netBannerDismissed = false;
+let _netErrNotified = false;   // 同一エラーepisodeで既に1回出したか（連続表示の抑制）
 function _updateNetBanner(state) {
   const b = document.getElementById('net-banner');
   if(!b) return;
   // クラウド未ログイン（ローカル専用）には出さない
-  if(typeof isSupaLoggedIn === 'function' && !isSupaLoggedIn()) { b.classList.remove('show'); return; }
+  if(typeof isSupaLoggedIn === 'function' && !isSupaLoggedIn()) {
+    b.classList.remove('show'); _netErrNotified = false; _netBannerDismissed = false; return;
+  }
   const msg = document.getElementById('net-banner-msg');
   const retry = document.getElementById('net-banner-retry');
-  if(!navigator.onLine) {
-    if(msg) msg.textContent = 'オフラインです。通信が戻ると自動で同期します。';
-    if(retry) retry.style.display = 'none';
-    if(!_netBannerDismissed) b.classList.add('show');
-  } else if(state === 'error') {
-    if(msg) msg.textContent = '同期に失敗しました。通信環境をご確認のうえ再試行してください。';
-    if(retry) retry.style.display = '';
-    if(!_netBannerDismissed) b.classList.add('show');
-  } else {
-    // synced / syncing / offline(=未ログイン) は隠す。回復したら閉じたフラグも解除。
-    b.classList.remove('show');
-    if(state === 'synced') _netBannerDismissed = false;
+  if(state === 'synced') {
+    // 同期成功＝エラーepisode終了。次の失敗でまた1回だけ出せるようリセット。
+    b.classList.remove('show'); _netErrNotified = false; _netBannerDismissed = false; return;
   }
+  const problem = (!navigator.onLine) || (state === 'error');
+  if(problem) {
+    if(!navigator.onLine) {
+      if(msg) msg.textContent = 'オフラインです。通信が戻ると自動で同期します。';
+      if(retry) retry.style.display = 'none';
+    } else {
+      if(msg) msg.textContent = '同期に失敗しました。通信環境をご確認のうえ再試行してください。';
+      if(retry) retry.style.display = '';
+    }
+    // このepisodeで未通知 & ユーザーが閉じていない時だけ「1回だけ」表示する。
+    // 以後の失敗ティック（20秒ポーリング/realtime再試行）では再表示しない＝煩わしさ解消。
+    // 状態は常にヘッダーの同期ドット（緑/赤）で分かる。
+    if(!_netBannerDismissed && !_netErrNotified) { b.classList.add('show'); _netErrNotified = true; }
+    return;
+  }
+  // syncing など中間状態は表示を変えない（チラつき防止）
 }
 /* 「再試行」: クラウドへ再同期を試みる */
 function retrySyncNow() {
