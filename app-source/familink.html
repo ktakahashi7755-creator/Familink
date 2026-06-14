@@ -1102,7 +1102,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 .alb-hoku-hint .ahh-body { flex:1; min-width:0; }
 .alb-hoku-hint .ahh-text { font-size:13.5px; font-weight:700; color:var(--text); line-height:1.4; }
 .alb-hoku-hint .ahh-cta { font-size:12px; font-weight:700; color:var(--primary); margin-top:2px; }
-.alb-hoku-hint .ahh-x { flex:none; align-self:flex-start; width:24px; height:24px; border:none; background:none; color:var(--text-muted); font-size:17px; line-height:1; cursor:pointer; padding:0; }
+.alb-hoku-hint .ahh-x { flex:none; align-self:flex-start; width:44px; height:44px; margin:-10px -10px 0 0; border:none; background:none; color:var(--text-muted); font-size:17px; line-height:1; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
 /* Wave 266: 人物を選ぶピッカー */
 .pp-sub { font-size:12.5px; color:var(--text-muted); line-height:1.5; margin:-2px 2px 10px; }
 .pp-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
@@ -7299,20 +7299,20 @@ function _checkSupaEmailHint() {
   // 既知 typo 一覧と照合
   for(const [bad, good] of _SUPA_DOMAIN_FIXES) {
     if(dom === bad) {
-      hint.innerHTML = '⚠️ もしかして <b>@' + H(good) + '</b> ですか？お確かめください。';
+      hint.innerHTML = 'もしかして <b>@' + H(good) + '</b> ですか？お確かめください。';
       hint.style.display = '';
       return;
     }
   }
   // .test / .local / .example 等の RFC 予約 TLD は Supabase が受け付けない
   if(/\.(test|local|example|invalid|localhost)$/i.test(dom)) {
-    hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。実在するメールアドレスをお使いください。';
+    hint.innerHTML = '<b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。実在するメールアドレスをお使いください。';
     hint.style.display = '';
     return;
   }
   // Wave 209: RFC2606 予約ドメイン（example.com / example.org / example.net）も拒否される
   if(/^example\.(com|org|net)$|^localhost$/i.test(dom)) {
-    hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。実在するメールアドレスをお使いください。';
+    hint.innerHTML = '<b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。実在するメールアドレスをお使いください。';
     hint.style.display = '';
     return;
   }
@@ -7958,16 +7958,16 @@ document.addEventListener('input', function(e){
     if(!v || v.indexOf('@') < 0) { hint.style.display = 'none'; return; }
     const dom = v.split('@')[1] || '';
     for(const [bad, good] of _SUPA_DOMAIN_FIXES) {
-      if(dom === bad) { hint.innerHTML = '⚠️ もしかして <b>@' + H(good) + '</b> ですか？'; hint.style.display = ''; return; }
+      if(dom === bad) { hint.innerHTML = 'もしかして <b>@' + H(good) + '</b> ですか？'; hint.style.display = ''; return; }
     }
     if(/\.(test|local|example|invalid|localhost)$/i.test(dom)) {
-      hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。';
+      hint.innerHTML = '<b>@' + H(dom) + '</b> はテスト用ドメインのため受け付けられない場合があります。';
       hint.style.display = '';
       return;
     }
     // Wave 209: RFC2606 予約ドメインも拒否される
     if(/^example\.(com|org|net)$|^localhost$/i.test(dom)) {
-      hint.innerHTML = '⚠️ <b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。';
+      hint.innerHTML = '<b>@' + H(dom) + '</b> は予約済みドメインのため Supabase に拒否されます。';
       hint.style.display = '';
       return;
     }
@@ -15872,7 +15872,7 @@ function _checkEventNotifs() {
     if(overdueTasks.length) {
       sessionStorage.setItem(overdueKey, '1');
       try {
-        new Notification('⚠️ 期限切れのタスクがあります', {
+        new Notification('期限切れのタスクがあります', {
           body: overdueTasks.length + '件のタスクが期限を過ぎています',
           icon: '/favicon.ico', tag: 'fl_overdue', silent: true
         });
@@ -21102,7 +21102,7 @@ function _openLoginBonusModal() {
     +     '<span style="font-size:30px;font-weight:900;color:#E8960A;font-variant-numeric:tabular-nums;">+'+d.coins+'</span>'
     +     '<span style="font-size:14px;font-weight:700;color:#B5790A;align-self:flex-end;margin-bottom:5px;">ファミコイン</span>'
     +   '</div>'
-    +   (d.bonusLabel ? '<div style="margin-top:8px;font-size:12.5px;font-weight:700;color:#D9534F;background:#FFF;border-radius:10px;padding:6px 10px;display:inline-block;">🎉 '+H(d.bonusLabel)+'</div>' : '')
+    +   (d.bonusLabel ? '<div style="margin-top:8px;font-size:12.5px;font-weight:700;color:#D9534F;background:#FFF;border-radius:10px;padding:6px 10px;display:inline-block;">'+H(d.bonusLabel)+'</div>' : '')
     + '</div>'
     + '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0 2px;font-size:12px;color:var(--text-muted);">'
     +   '<span style="display:inline-flex;align-items:center;gap:4px;font-weight:700;color:var(--text-sub);">'+ICON('flame',14)+' '+d.streak+'日連続</span>'
