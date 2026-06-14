@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260614v';
+var V='v20260614w';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -2330,7 +2330,7 @@ body.album-selecting #tabbar, body.album-selecting #hoku-fab, body.album-selecti
 .hoku-hd-name { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; letter-spacing: -0.2px; }
 .hoku-hd-sub  { font-size: 11px; color: var(--text-muted); }
 .hoku-reset-btn {
-  height: 30px; padding: 0 12px; border-radius: var(--r-full);
+  height: 38px; padding: 0 14px; border-radius: var(--r-full);
   background: rgba(118,118,128,0.12); border: none;
   font-size: 12px; font-weight: 500; color: var(--text-sub);
   cursor: pointer; transition: var(--t); flex-shrink: 0;
@@ -5094,7 +5094,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
           </button>
         </div>
         <p id="supa-auth-info" style="font-size:11px;color:var(--text-muted);line-height:1.7;margin:14px 0 0;background:rgba(10,132,255,.06);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;">
-          ログインすると、将来「クラウド同期」「家族とのデータ共有」が利用できます。<br>ログインなしでも全機能ご利用いただけます。
+          ログインすると、将来「クラウド同期」「家族とのデータ共有」が使えます。<br>ログインなしでも全機能を使えます。
         </p>
         <!-- ログイン失敗時の補助導線（最後のエラー後だけ表示） -->
         <div id="supa-auth-error-help" style="display:none;margin-top:10px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 12px;">
@@ -5610,8 +5610,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         解約を進める前に、以下の内容をご確認ください。
       </div>
       <ul style="font-size:12px;line-height:1.85;color:var(--text-sub);padding-left:20px;margin:12px 0;">
-        <li>プレミアム機能（特別アバター・家族ボード追加・家計の詳細表示・Hoku の高度な提案など）がご利用いただけなくなります。</li>
-        <li>無料プランの基本機能は、引き続きそのままご利用いただけます。</li>
+        <li>プレミアム機能（特別アバター・家族ボード追加・家計の詳細表示・Hoku の高度な提案など）が使えなくなります。</li>
+        <li>無料プランの基本機能は、引き続きそのまま使えます。</li>
         <li>これまでに記録された予定・タスク・家計などのデータは削除されません。</li>
         <li>提供期間の途中で解約された場合も、日割りでの返金は行われません。</li>
       </ul>
