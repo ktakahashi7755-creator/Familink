@@ -22275,3 +22275,62 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-14 11:30  env: iPhone経由  branch: claude/latest-build-device-test-ouaowe
+
+### 作業名
+Phase 2: 家族共有のセキュリティ強化＝membership 方式で別家族の完全分離（ベアラ弱点を解消）
+
+### 背景・解決した弱点
+- 現状でも別 family_id の家族は相互に見えない（A は B を読めない）。残る構造的弱点は
+  「family_id を知る＝参加できる」ベアラ方式（docs/security-tests 旧 3-1）。
+- これを membership（家族メンバー表）方式に強化。family_id を知っていても、メンバー表に
+  無い人は A 家族の共有データを SELECT も INSERT/UPDATE も一切できない。
+  ABCDE 複数家族でも、A は A のメンバーだけ・B は B のメンバーだけで共有される。
+
+### 変更ファイル
+- docs/supabase-family-isolation-sql.sql（新規・本番適用SQL／冪等／既存家族 backfill）
+- docs/supabase-apply-all.sql（上記を末尾に同梱）
+- docs/security-tests.sql（membership 版に刷新。3-1/3-2 でベアラ封じ込めを実証）
+- app-source/familink.html（後方互換クライアント）／docs/index.html（v20260613l）
+- tools/qa_invite_link_test.js / qa_invite_token_test.js（トークン化に追従＋漏洩耐性を検証）
+- docs/worklog.md
+
+### サーバ側（本番 Supabase への適用が必要・k.takahashi さん操作）
+- fl_family_members 表＋RLS（参照は自家族のみ／INSERT等は禁止）
+- fl_my_family_ids() を「メンバー表参照」に変更（データ行を書いただけでは参加にならない）
+- fl_create_family / redeem_family_invite（membership 付与）/ fl_leave_family の RPC
+- fl_family_data の own_insert/own_update を membership 必須に厳格化
+- 既存家族は backfill で自動メンバー登録 → 共有は途切れない
+- ※ docs/supabase-apply-all.sql を SQL Editor に貼り付けて Run（冪等）
+
+### クライアント（後方互換・SQL未適用でも壊れない）
+- 招待リンクを「使い捨てトークン(INV-/72h/1回)」優先に。発行失敗時は family_id リンクに自動フォールバック
+- リンク受領時は INV- を redeem RPC で family_id に交換して参加（membership 付与）。FAMI- も後方互換受理
+- 家族作成は _createNewFamily() に集約し fl_create_family RPC でメンバー登録（RPC無しなら無害スキップ）
+- 家族離脱で fl_leave_family RPC を best-effort 呼び出し
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- 招待/同期スイート: invite_link 14/14・invite_token 15/15・autosync 10/10・
+  cloudfirst 9/9・cloudbanner 5/5・sync_harness 68/68・otp 10/10 全 PASS
+- 本番SQL適用の実DB検証（ローカル PostgreSQL16・setup→invites→isolation を適用後 security-tests.sql 実行）:
+  1-1〜2-2 / 3-3 すべて pass=t、3-1/3-2（ベアラの UPDATE/INSERT）は RLS で拒否=PASS
+- supabase-apply-all.sql 一括適用もエラーなし
+- Vitest: 未実施（環境に vitest 無し・npm依存ゼロ/ネットワーク制限）
+
+### 未確認事項
+- 本番 Supabase への apply-all 適用は未実施（要 k.takahashi さん操作）。適用前は従来挙動（後方互換）。
+- 適用後の実機での「トークン招待リンク参加」フロー実機確認。
+
+### iPhone確認ポイント（本番SQL適用後）
+- 招待リンクが INV- トークン形式になり、開く→ログイン→自動参加できるか
+- 別アカウント（別家族）で他家族コードを入力/リンクしても参加・閲覧できないこと
+
+### 次にやること
+- 本番 Supabase に docs/supabase-apply-all.sql を適用 → security-tests.sql で全 pass 確認 → 実機検証
+
+### コミット
+- 本コミット

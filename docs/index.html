@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613k';
+  var V='v20260613l';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -8113,9 +8113,25 @@ function openSupaInviteModal() {
 let _pendingJoinCode = '';   // ログイン待ちの参加コード（リンク経由）
 
 /* 招待リンクのフルURLを作る（共有用） */
-function _buildInviteLink() {
+function _buildInviteLink(code) {
   const base = location.origin + location.pathname;
-  return base + '?join=' + (S.familyId || '');
+  return base + '?join=' + (code || S.familyId || '');
+}
+
+/* 新しい家族を作成する唯一の入口。membership 方式（本番SQL適用後）では作成者を
+   owner としてサーバのメンバー表へ登録する必要があるため fl_create_family RPC を呼ぶ。
+   RPC が無い（SQL未適用）環境では family_id のみで従来どおり動作する（後方互換）。
+   ※ own_insert は membership を要求するため、データ push の前に必ずメンバー登録しておく。 */
+async function _createNewFamily() {
+  const id = _generateFamilyId();
+  _setFamilyId(id);
+  try {
+    const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+    if(sb && typeof isSupaLoggedIn === 'function' && isSupaLoggedIn()) {
+      try { await sb.rpc('fl_create_family', { p_family_id: id }); } catch(_){}
+    }
+  } catch(_){}
+  return id;
 }
 
 /* 起動時に ?join=CODE を捕捉して保留に積む。URL は履歴から除去（再実行・共有事故を防ぐ）。 */
@@ -8127,7 +8143,8 @@ function _captureJoinFromUrl() {
       // localStorage に前回保留が残っていれば拾う（OAuth/Magic Link で再読込された場合）
       try { code = (localStorage.getItem('fl_pending_join') || '').trim().toUpperCase(); } catch(_){}
     }
-    if(code && /^FAMI-[A-Z0-9-]{4,}$/.test(code)) {
+    // 使い捨て招待トークン(INV-) または 後方互換の家族コード(FAMI-) を受理
+    if(code && /^(INV|FAMI)-[A-Z0-9-]{4,}$/.test(code)) {
       _pendingJoinCode = code;
       try { localStorage.setItem('fl_pending_join', code); } catch(_){}
     }
@@ -8149,7 +8166,22 @@ async function _processPendingJoin() {
   if(typeof isSupaLoggedIn !== 'function' || !isSupaLoggedIn()) return;  // ログイン後に再実行される
   if(code === S.familyId) { _clearPendingJoin(); return; }   // 既に同じ家族
   try {
-    _setFamilyId(code);   // familyId 確定（owner=自分・setByUser=true）
+    let famId = code;
+    // 使い捨てトークン(INV-)は redeem RPC で family_id に交換（membership も原子的に付与）。
+    if(/^INV-/.test(code)) {
+      const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+      if(!sb) return;  // クラウド未準備。次の機会に再試行（保留は残す）
+      const res = await sb.rpc('redeem_family_invite', { p_token: code });
+      if(res && !res.error && typeof res.data === 'string' && /^FAMI-/.test(res.data)) {
+        famId = res.data;
+      } else {
+        showToast('招待リンクが無効か、期限切れ・使用済みです。ご家族に新しいリンクを発行してもらってください', 'error');
+        _clearPendingJoin();
+        return;
+      }
+    }
+    if(famId === S.familyId) { _clearPendingJoin(); return; }
+    _setFamilyId(famId);   // familyId 確定（owner=自分・setByUser=true）
     showToast('家族に参加しています…', 'info');
     if(typeof _pushToSupabase === 'function') { try { await _pushToSupabase(); } catch(_){} }
     if(typeof _fetchFromSupabase === 'function') { try { await _fetchFromSupabase(); } catch(_){} }
@@ -8211,18 +8243,25 @@ async function _issueInviteToken() {
 let _curInviteCode = '';   // 表示中の招待コード（コピー対象。トークン優先）
 async function openMyInviteModal() {
   if(!S.familyId) {
-    _setFamilyId(_generateFamilyId());
+    await _createNewFamily();
   }
   const el = document.getElementById('my-invite-code');
   const sub = document.getElementById('my-invite-sub');
-  // 招待リンク（family_id 直結＝最も確実。受け手はリンクを開くだけ）
-  const link = _buildInviteLink();
-  _curInviteCode = link;
-  if(el) el.textContent = link;
-  if(sub) sub.textContent = '「招待リンクを送る」で LINE などに共有できます';
   openModal('m-my-invite');
   // 自分のデータに family_id を付与してクラウドへ反映（家族が開いたとき取得できるように）
   if(isSupaLoggedIn()) { try { await _pushToSupabase(); } catch(_){} }
+  // 招待リンクは「使い捨てトークン(INV-)」を優先＝family_id を直接配らず漏洩に強い。
+  // 発行失敗（SQL未適用/オフライン/未ログイン）時は family_id リンクにフォールバック（後方互換）。
+  let link = _buildInviteLink(S.familyId);
+  if(isSupaLoggedIn()) {
+    try {
+      const r = await _issueInviteToken();
+      if(r && r.ok && r.token) link = _buildInviteLink(r.token);
+    } catch(_){}
+  }
+  _curInviteCode = link;
+  if(el) el.textContent = link;
+  if(sub) sub.textContent = '「招待リンクを送る」で LINE などに共有できます';
   // ログイン状態に応じた案内：未ログインだと共有しても同期されない
   const note = document.getElementById('my-invite-login-note');
   const cta = document.getElementById('my-invite-login-cta');
@@ -8255,7 +8294,8 @@ function copyMyInviteCode() {
 }
 /* 招待リンクを共有（ネイティブ共有シート→失敗時はクリップボードへコピー） */
 async function shareInviteLink() {
-  const link = _buildInviteLink();
+  // openMyInviteModal で発行済みの使い捨てトークンリンクを使う（無ければ family_id リンク）
+  const link = _curInviteCode || _buildInviteLink(S.familyId);
   const text = 'Familink で家族の予定を共有しましょう。下のリンクを開いてログインするだけで参加できます。\n' + link;
   try {
     if(navigator.share) {
@@ -8374,10 +8414,15 @@ function leaveFamilyGroup() {
     '現在の家族コードを解除し、単独利用に戻します。端末内のデータは消えません。新しいコードを作り直したり、別の家族コードで参加し直せます。',
     '抜ける',
     function() {
+      const _fid = S.familyId;
       S.familyId = null;
       S.familyIdOwner = null;
       S.familyIdSetByUser = false;
       try { saveS(); } catch(_){}
+      // サーバのメンバー表からも自分を外す（membership 方式。RPC 無し環境では無害に無視）
+      if(isSupaLoggedIn() && _fid) {
+        try { const sb = getSupabase(); if(sb) sb.rpc('fl_leave_family', { p_family_id: _fid }); } catch(_){}
+      }
       // クラウド上の自分の行の family_id を解除（family_id=null で再 push）
       if(isSupaLoggedIn()) { try { _pushToSupabase(); } catch(_){} }
       showToast('家族グループから抜けました', 'success');
@@ -27483,7 +27528,7 @@ async function runFamilyShareSelfTest() {
   var uid = S.supaSession && S.supaSession.id;
   var L = [];
   function P(){ _renderFamTest('<b style="color:#FFD27A;">家族共有セルフテスト</b><br>' + L.join('<br>')); }
-  if(!S.familyId) { _setFamilyId(_generateFamilyId()); }
+  if(!S.familyId) { await _createNewFamily(); }
   L.push('家族コード: <b>' + H(String(S.familyId)) + '</b>');
   L.push('① 自分のデータを送信中…'); P();
   var pr = await _pushToSupabase();

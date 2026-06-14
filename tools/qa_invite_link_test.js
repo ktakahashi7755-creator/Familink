@@ -25,8 +25,9 @@ function stub(state){
     S.familyId='FAMI-AAAA-BBBB-CCCC'; saveS();
     await openMyInviteModal(); await new Promise(r2=>setTimeout(r2,200));
     const shown=document.getElementById('my-invite-code').textContent;
-    t('発行: 招待リンクURLが表示される', /\?join=FAMI-AAAA-BBBB-CCCC$/.test(shown));
-    t('発行: _buildInviteLink がフルURL', /^https?:\/\/.*\?join=FAMI-AAAA-BBBB-CCCC$/.test(_buildInviteLink()));
+    t('発行: 使い捨てトークンの招待リンクURLが表示される', /\?join=INV-[A-Z0-9-]+$/.test(shown));
+    t('発行: family_id を直接URLに晒さない（漏洩耐性）', !/FAMI-AAAA-BBBB-CCCC/.test(shown));
+    t('発行: _buildInviteLink(code) がフルURL', /^https?:\/\/.*\?join=FAMI-AAAA-BBBB-CCCC$/.test(_buildInviteLink('FAMI-AAAA-BBBB-CCCC')));
     t('発行: 「招待リンクを送る」ボタンがある', !!document.querySelector('#m-my-invite button[onclick="shareInviteLink()"]'));
     closeModal('m-my-invite');
     return out;

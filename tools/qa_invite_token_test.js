@@ -35,7 +35,9 @@ let pass=0, fail=0; const L=r=>{const ok=r.startsWith('PASS');ok?pass++:fail++;c
     S.familyId='FAMI-MYFM-MYFM-MYFM'; S.familyIdOwner=S.supaSession.id; saveS();
     await openMyInviteModal(); await wait(250);
     const shown=document.getElementById('my-invite-code').textContent;
-    t('発行: 招待モーダルはリンクを表示（?join=）', /\\?join=FAMI-MYFM-MYFM-MYFM$/.test(shown));
+    t('発行: 招待モーダルは使い捨てトークンリンクを表示（?join=INV-）', /\?join=INV-[A-Z0-9-]+$/.test(shown));
+    t('発行: family_id を直接URLに晒さない（漏洩耐性）', !/FAMI-MYFM-MYFM-MYFM/.test(shown));
+    t('発行: 招待トークンが fl_family_invites に登録される', inserted.some(x=>x.table==='fl_family_invites'&&/^INV-/.test(x.row&&x.row.token)));
     t('発行: _generateInviteToken は INV 形式を生成（機構温存）', /^INV-[A-Z0-9-]+$/.test(_generateInviteToken()));
     closeModal('m-my-invite');
 

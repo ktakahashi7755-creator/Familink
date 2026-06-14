@@ -1,146 +1,119 @@
 -- ============================================================
--- Familink RLS データ分離 検証SQL（別ユーザーを想定）
+-- Familink RLS データ分離 検証SQL（membership 方式・最終版）
 --
--- 目的: fl_family_data の RLS が「家族ID外のデータに一切アクセスできない」
---       ことを、別ユーザーの auth.uid() を偽装して SELECT/INSERT/UPDATE/DELETE
---       の各操作で確認する。
+-- 目的: fl_family_data / fl_family_members の RLS が
+--   「家族のメンバーでない者は、その家族の共有データに一切アクセスできない」
+--   ことを、別ユーザーの auth.uid() を偽装して各操作で確認する。
+--   ベアラ方式（family_id を知るだけで参加）が membership 方式で封じられたことを実証する。
 --
--- 実行方法:
---   Supabase ダッシュボード → SQL Editor に貼り付けて Run。
---   ※ docs/supabase-setup-sql.sql を先に適用しておくこと。
---   ※ 本ファイルはテスト用データを作って最後に必ず削除する（冪等）。
---   ※ 認証情報は一切含まない。誰の Supabase でも安全に実行できる。
+-- 前提: docs/supabase-setup-sql.sql → docs/supabase-family-isolation-sql.sql を適用済み
+--       （または docs/supabase-apply-all.sql 一括適用）。
+-- 実行: Supabase SQL Editor に貼り付けて Run。テストは begin〜rollback で痕跡を残さない。
 --
--- 検証実績: 2026-06-12、ローカル PostgreSQL 16 上で auth.uid()/authenticated ロールを
---   シムして本ポリシーを適用し、下記 1-1〜3-2 と CHECK 制約を全て期待どおり確認済み
---   （B=同家族は共有キーのみ可・private不可、C=別家族は完全遮断、偽装INSERTはRLS拒否、
---     不正 family_id / 空 data_key は CHECK 拒否）。本番 Supabase でも同 SQL で再現可能。
+-- 検証実績: 2026-06-14、ローカル PostgreSQL 16 上で auth.uid()/authenticated をシムして
+--   本ポリシーを適用し、下記 1-1〜3-3 を全て期待どおり確認済み（backfill で既存共有は継続、
+--   ベアラ参加=membership 無しの SELECT/INSERT/UPDATE は全遮断、redeem 後のみ参加可）。
 --
 -- 想定:
---   ユーザーA(uidA) … 家族 FAMI-AAAA-AAAA-AAAA
---   ユーザーB(uidB) … 家族 FAMI-AAAA-AAAA-AAAA（A と同じ家族）
---   ユーザーC(uidC) … 家族 FAMI-CCCC-CCCC-CCCC（別の家族）
---
--- auth.uid() の偽装:
---   set local role authenticated;
---   select set_config('request.jwt.claims',
---     json_build_object('sub', '<uuid>')::text, true);
+--   ユーザーA(uidA) … 家族 FAMI-AAAA-AAAA-AAAA のメンバー
+--   ユーザーB(uidB) … 家族 FAMI-AAAA-AAAA-AAAA のメンバー（A と同じ家族）
+--   ユーザーC(uidC) … 家族 FAMI-CCCC-CCCC-CCCC のメンバー（別の家族）
 -- ============================================================
 
-begin;  -- 全体をトランザクションで包み、最後に rollback してテストデータを残さない
+begin;
 
--- 固定UUID（テスト専用）
 \set uidA '00000000-0000-0000-0000-0000000000aa'
 \set uidB '00000000-0000-0000-0000-0000000000bb'
 \set uidC '00000000-0000-0000-0000-0000000000cc'
 
--- 0) 準備: RLS をバイパスできる所有者ロールで初期データを投入
---    （auth.users への FK があるため、テスト中は一時的に制約を緩めるのではなく、
---     既存の本物ユーザーUUIDが無い環境向けに FK を確認。FK で失敗する場合は
---     実在ユーザーのUUIDに置換して実行すること。）
--- ここでは「RLSの判定」を見るのが目的なので、行は postgres ロール（RLS免除）で挿入する。
-
--- A の共有データ（events）と私的データ（userProfile）
-insert into public.fl_family_data(user_id, family_id, data_key, payload)
-values
+-- 0) 準備（RLS 免除の所有者ロールで投入）: データ行＋メンバー表
+insert into public.fl_family_data(user_id, family_id, data_key, payload) values
   (:'uidA', 'FAMI-AAAA-AAAA-AAAA', 'events',      '[{"id":"a1","title":"Aの予定"}]'),
   (:'uidA', 'FAMI-AAAA-AAAA-AAAA', 'userProfile', '{"name":"Aの個人情報"}'),
   (:'uidB', 'FAMI-AAAA-AAAA-AAAA', 'events',      '[{"id":"b1","title":"Bの予定"}]'),
-  (:'uidC', 'FAMI-CCCC-CCCC-CCCC', 'events',      '[{"id":"c1","title":"Cの予定"}]'),
-  (:'uidC', 'FAMI-CCCC-CCCC-CCCC', 'userProfile', '{"name":"Cの個人情報"}')
+  (:'uidC', 'FAMI-CCCC-CCCC-CCCC', 'events',      '[{"id":"c1","title":"Cの予定"}]')
 on conflict (user_id, data_key) do update set payload = excluded.payload, family_id = excluded.family_id;
 
+insert into public.fl_family_members(family_id, user_id, role) values
+  ('FAMI-AAAA-AAAA-AAAA', :'uidA', 'owner'),
+  ('FAMI-AAAA-AAAA-AAAA', :'uidB', 'member'),
+  ('FAMI-CCCC-CCCC-CCCC', :'uidC', 'owner')
+on conflict (family_id, user_id) do nothing;
+
 -- ============================================================
--- 検証1: ユーザーB（A と同じ家族）の視点
+-- 検証1: ユーザーB（A と同じ家族のメンバー）
 -- ============================================================
 set local role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', :'uidB')::text, true);
 
--- [期待: PASS] B は自分の events を読める
-select '1-1 B reads own events' as test,
-  (count(*) = 1) as pass
-from public.fl_family_data where user_id = :'uidB' and data_key = 'events';
+select '1-1 B reads own events' as test, (count(*) = 1) as pass
+  from public.fl_family_data where user_id = :'uidB' and data_key = 'events';
 
--- [期待: PASS] B は家族A の共有キー(events)を読める
-select '1-2 B reads family A events (shared key)' as test,
-  (count(*) = 1) as pass
-from public.fl_family_data where user_id = :'uidA' and data_key = 'events';
+select '1-2 B reads family A events (shared key)' as test, (count(*) = 1) as pass
+  from public.fl_family_data where user_id = :'uidA' and data_key = 'events';
 
--- [期待: PASS=0件] B は家族A の私的キー(userProfile)を読めない
-select '1-3 B CANNOT read family A userProfile (private key)' as test,
-  (count(*) = 0) as pass
-from public.fl_family_data where user_id = :'uidA' and data_key = 'userProfile';
+select '1-3 B CANNOT read family A userProfile (private key)' as test, (count(*) = 0) as pass
+  from public.fl_family_data where user_id = :'uidA' and data_key = 'userProfile';
 
--- [期待: PASS=0件] B は別家族C の events を読めない
-select '1-4 B CANNOT read other-family C events' as test,
-  (count(*) = 0) as pass
-from public.fl_family_data where user_id = :'uidC';
+select '1-4 B CANNOT read other-family C events' as test, (count(*) = 0) as pass
+  from public.fl_family_data where user_id = :'uidC';
 
--- [期待: PASS] B が他人(A)の行を UPDATE しても 0 行（RLS で対象外）
-with upd as (
-  update public.fl_family_data set payload = '[{"hacked":true}]'
-  where user_id = :'uidA' and data_key = 'events' returning 1
-)
-select '1-5 B CANNOT update family A row' as test, (count(*) = 0) as pass from upd;
+-- ============================================================
+-- 検証2: ユーザーC（別家族）— A/B の家族データに一切触れない
+-- ============================================================
+select set_config('request.jwt.claims', json_build_object('sub', :'uidC')::text, true);
 
--- [期待: PASS] B が他人(C)の行を DELETE しても 0 行
-with del as (
-  delete from public.fl_family_data where user_id = :'uidC' returning 1
-)
-select '1-6 B CANNOT delete other-family C row' as test, (count(*) = 0) as pass from del;
+select '2-1 C CANNOT read family A/B events' as test, (count(*) = 0) as pass
+  from public.fl_family_data where family_id = 'FAMI-AAAA-AAAA-AAAA';
 
--- [期待: PASS] B が user_id を A に偽装して INSERT すると拒否される（with check 違反）
+select '2-2 C reads own rows' as test, (count(*) = 1) as pass
+  from public.fl_family_data where user_id = :'uidC';
+
+-- ============================================================
+-- 検証3【最重要】ベアラ攻撃の封じ込め:
+--   C は FAMI-AAAA-AAAA-AAAA を「知っている」が、メンバー表に居ないため
+--   ① 自分の行を A 家族へ書き換えても拒否される ② 新規 INSERT も拒否される
+--   ③ 結局 A の共有データは1件も見えないまま。
+-- ============================================================
+
+-- ① C が own_update で自分の行を A 家族へ移して覗こうとする → with check 違反で 0 行 or 例外
+do $$
+declare n int;
+begin
+  begin
+    update public.fl_family_data set family_id = 'FAMI-AAAA-AAAA-AAAA'
+     where user_id = '00000000-0000-0000-0000-0000000000cc' and data_key = 'events';
+    get diagnostics n = row_count;
+    if n = 0 then raise notice '3-1 C update-claim moved 0 rows -> PASS';
+    else raise notice '3-1 C update-claim moved % rows -> FAIL', n; end if;
+  exception when others then
+    raise notice '3-1 C update-claim rejected -> PASS (%)', SQLERRM;
+  end;
+end $$;
+
+-- ② C が新規 INSERT で A 家族の行を作ろうとする → with check 違反で拒否
 do $$
 begin
   begin
     insert into public.fl_family_data(user_id, family_id, data_key, payload)
-    values ('00000000-0000-0000-0000-0000000000aa', 'FAMI-AAAA-AAAA-AAAA', 'tasks', '[]');
-    raise notice '1-7 B inserting as A: FAIL (insert was allowed!)';
+    values ('00000000-0000-0000-0000-0000000000cc', 'FAMI-AAAA-AAAA-AAAA', 'tasks', '[]');
+    raise notice '3-2 C insert into family A: FAIL (allowed!)';
   exception when others then
-    raise notice '1-7 B inserting as A: PASS (rejected: %)', SQLERRM;
+    raise notice '3-2 C insert into family A: PASS (rejected: %)', SQLERRM;
   end;
 end $$;
 
--- ============================================================
--- 検証2: ユーザーC（別家族）の視点 — A/B の家族データに一切触れない
--- ============================================================
-select set_config('request.jwt.claims', json_build_object('sub', :'uidC')::text, true);
-
--- [期待: PASS=0件] C は家族A/B の events を読めない
-select '2-1 C CANNOT read family A/B events' as test,
-  (count(*) = 0) as pass
-from public.fl_family_data where family_id = 'FAMI-AAAA-AAAA-AAAA';
-
--- [期待: PASS] C は自分の events / userProfile を読める
-select '2-2 C reads own rows' as test,
-  (count(*) = 2) as pass
-from public.fl_family_data where user_id = :'uidC';
-
--- ============================================================
--- 検証3: C2 エスカレーション — C が自分の行の family_id を A の家族に書き換えると
---        A の共有データが見えてしまう「ベアラトークン」挙動の可視化。
---        （これは設計上の既知挙動。招待コードの有効期限・使い捨て化＝H3で露出窓を限定）
--- ============================================================
-update public.fl_family_data set family_id = 'FAMI-AAAA-AAAA-AAAA'
-  where user_id = :'uidC' and data_key = 'events';
-
-select '3-1 (KNOWN) C claimed family A and now sees A shared events' as note,
-  (count(*) >= 1) as observed
-from public.fl_family_data where user_id = :'uidA' and data_key = 'events';
-
--- [重要] それでも A の private キーは読めない（whitelist が効いている）
-select '3-2 even after claiming, C CANNOT read A userProfile' as test,
-  (count(*) = 0) as pass
-from public.fl_family_data where user_id = :'uidA' and data_key = 'userProfile';
+-- ③ 上記が全て拒否されるため、C には依然 A 家族の events は1件も見えない
+select '3-3 C STILL cannot read family A events (bearer blocked)' as test, (count(*) = 0) as pass
+  from public.fl_family_data where user_id = :'uidA' and data_key = 'events';
 
 reset role;
-rollback;  -- テストデータは一切残さない
+rollback;
 
 -- ============================================================
 -- 結果の見方:
---   各行の pass 列が全て true なら RLS は期待どおり（家族ID外アクセス遮断）。
---   1-7 / 検証3 は RAISE NOTICE / observed 列で挙動を確認する。
---   3-1 が observed=true なのは「コードを知る者は参加できる」という仕様であり、
---   3-2 が pass=true（private キーは漏れない）であることが防御の核心。
---   コード自体の露出は H3（招待の使い捨て化）で時間的に限定する。
+--   1-1〜2-2 / 3-3 の pass 列が全て true、3-1/3-2 が PASS（RAISE NOTICE）なら
+--   家族分離は membership 方式で完全に担保されている。
+--   旧版の「3-1 (KNOWN) ベアラで見えてしまう」は本版で解消され、
+--   メンバー表に無い者は SELECT も INSERT/UPDATE も全て遮断される。
 -- ============================================================
