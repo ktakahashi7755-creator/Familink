@@ -22786,3 +22786,40 @@ SW自動更新の確実化（updateViaCache:none）＝実機に最新が確実�
 
 ### コミット
 - 本コミット（main へ push）
+
+---
+
+## 2026-06-15 14:25  env: iPhone経由  branch: main
+
+### 作業名
+【最重要・配信の根本修正】sw.js の SW_VERSION 取りこぼしを修正＝実機に最新が届く
+
+### 背景（実機スクショで判明）
+- ユーザー実機に「Magic Link でログインしました」トーストが残存（古い文言）。
+  main のコードは既に「ログインしました」に修正済み＝**実機が古いキャッシュを表示**していた。
+- 真因: main の Service Worker は **cache-first**。`docs/sw.js` の `SW_VERSION` が `v20260615a` のままで、
+  直前の docs 同期で `index.html` の `var V` だけ `v20260615d` に上げ、**sw.js を上げ忘れていた**。
+  → sw.js のバイトが不変＝ブラウザが新SWを検知せず、古いキャッシュを配信し続けていた（§12.3 違反）。
+
+### 変更ファイル
+- docs/sw.js（SW_VERSION: v20260615a → v20260615d）／worklog
+
+### 変更内容
+- `docs/sw.js` の `SW_VERSION` を `v20260615d` に更新し、index.html の `var V` と一致させた。
+  これで sw.js のバイトが変わり、新SW検知→skipWaiting→controllerchange で**自動リロード**＝
+  古い「Magic Link…」表示やOTPログインが一掃され、最新（パスワードログイン主導線）が届く。
+
+### テスト結果
+- 版一致確認: var V = SW_VERSION = v20260615d ／ docs本体 == app-source本体（一致OK）
+- コード確認: SIGNED_IN/パスワードログインのトーストは「ログインしました」（"Magic Link" は
+  コメント/未到達のOTPコードのみで、通常導線では出ない）
+
+### iPhone確認ポイント
+- 再読み込み（または一度アプリを閉じて再起動）で自動更新→「Magic Link でログインしました」が出ない
+- ログインがパスワードのみ／Hoku文字化なし
+
+### 次にやること
+- 実機で v20260615d への自動更新を確認。以後 docs 同期時は var V と SW_VERSION を必ず同時に上げる
+
+### コミット
+- 本コミット（main へ push）
