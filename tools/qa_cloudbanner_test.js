@@ -17,10 +17,11 @@ let pass=0, fail=0; const L=r=>{const ok=r.startsWith('PASS');ok?pass++:fail++;c
   r = await page.evaluate(()=>{ S.supaSession={id:'u1',email:'a@b.c'}; S.familyId=null; renderHome();
     const cta=document.getElementById('home-invite-cta').textContent; return { invite:/家族を招待/.test(cta), noWarn:!/ログインが必要/.test(cta) }; });
   L((r.invite&&r.noWarn?'PASS ':'FAIL ')+'接続済み・家族なし: 招待CTA表示');
-  // 接続済み・家族あり → 何も出さない
+  // 接続済み・家族あり → 「家族で共有中」状態カードを表示（旧仕様の空表示から変更）
   r = await page.evaluate(()=>{ S.familyId='FAMI-AAAA-BBBB-CCCC'; renderHome();
-    return document.getElementById('home-invite-cta').textContent.trim()===''; });
-  L((r?'PASS ':'FAIL ')+'接続済み・家族あり: バナー非表示');
+    const t=document.getElementById('home-invite-cta').textContent;
+    return { shareCard:/共有中/.test(t), noWarn:!/ログインが必要/.test(t) }; });
+  L((r.shareCard&&r.noWarn?'PASS ':'FAIL ')+'接続済み・家族あり: 共有状態カード表示');
   L((errs.length===0?'PASS ':'FAIL ')+'pageerror 0件');
   console.log('────────'); console.log(`クラウド接続バナー テスト: PASS ${pass} / FAIL ${fail}`);
   await browser.close(); process.exit(fail>0?1:0);

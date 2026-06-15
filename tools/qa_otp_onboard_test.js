@@ -1,12 +1,14 @@
 /**
- * Familink OTP オンボーディング回帰テスト（Playwright）
- * 対象: 起動画面 s-ob の「メールでログイン / 新規登録」(OTP) 主導線。
- *   - クラウド未接続(オフライン)時: モーダルは signup へフォールバックし、入力メールが
- *     可視欄(supa-auth-email)に引き継がれる
- *   - メール形式不正: エラー文が常時表示され、モーダルは開かない
- *   - クラウド接続時(モック): OTP セクションが表示され、入力メールが OTP 欄に入る
- *   - パスワードでログインの折りたたみが開閉する
+ * Familink ウェルカム(ログイン)導線 回帰テスト（Playwright）
+ * 対象: 起動画面 s-ob を「通常ログイン（メール＋パスワード）」主導線に統一した仕様。
+ *   - メール＋パスワード欄と主ボタン「ログイン」が常時表示される
+ *   - OTP/マジックリンク導線（旧 #ob2-otp-btn / パスワード不要 文言）は表に出ない
+ *   - 未入力/形式不正でエラーが常時表示され、ログインは進まない
+ *   - 「新規登録」「パスワード再設定」リンクから認証モーダルが開く（OTPではなくフォーム）
+ *   - 認証モーダルの既定は signin（パスワード）モードで開く
  * モーダルの開状態は .modal-backdrop.open クラスで判定する（opacity 制御のため）。
+ *
+ * 注: ファイル名は履歴互換のため据え置き。内容はパスワードログイン主導線の検証。
  */
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 
@@ -27,52 +29,51 @@ const BASE = process.env.BASE_URL || 'http://127.0.0.1:9000/familink.html';
     return !!(m && m.classList.contains('open'));
   });
 
-  // Case 1: オフライン → signup フォールバックでも入力メールが可視欄に残る
+  // Case 1: ウェルカムはメール＋パスワード＋「ログイン」が常時表示／OTP導線は無い
   await reload();
-  await page.fill('#ob2-email', 'fallback@example.com');
-  await page.click('#ob2-otp-btn');
-  await page.waitForTimeout(400);
-  check('offline: 入力メールが可視 signup 欄に引き継がれる',
-    (await page.inputValue('#supa-auth-email').catch(() => '')) === 'fallback@example.com');
+  check('welcome: メール欄が可視', await page.isVisible('#ob2-email'));
+  check('welcome: パスワード欄が常時可視', await page.isVisible('#ob2-pass'));
+  check('welcome: 主ボタンが「ログイン」', (await page.textContent('#ob2-login-btn').catch(() => '')).trim() === 'ログイン');
+  check('welcome: 旧OTPボタンが存在しない', (await page.locator('#ob2-otp-btn').count()) === 0);
+  check('welcome: 旧パスワードトグルが存在しない', (await page.locator('#ob2-pass-toggle').count()) === 0);
 
-  // Case 2: メール形式不正 → エラー常時表示・モーダルは開かない
-  await reload();
-  await page.fill('#ob2-email', 'not-an-email');
-  await page.click('#ob2-otp-btn');
-  await page.waitForTimeout(300);
-  check('invalid: エラー文が表示される', /形式/.test(await page.textContent('#ob2-err').catch(() => '')));
-  check('invalid: エラー要素が可視', await page.isVisible('#ob2-err'));
-  check('invalid: モーダルは開かない', (await modalOpen()) === false);
+  // Case 2: OTP/マジックリンクの文言が画面に出ていない
+  const obText = await page.evaluate(() => (document.getElementById('s-ob').innerText || ''));
+  check('welcome: 「パスワードは不要」文言が無い', !/パスワードは不要/.test(obText));
+  check('welcome: 「メールでログイン」文言が無い', !/メールでログイン/.test(obText));
+  check('welcome: 「HOKU」テキストが出ていない', !/HOKU|Hoku/.test(obText));
 
-  // Case 3: クラウド接続(モック) → OTP モードで開き、メールが OTP 欄に入る
+  // Case 3: 未入力/形式不正でエラー表示・入室しない
   await reload();
-  await page.evaluate(() => {
-    window.SUPA_OK = true;
-    window.getSupabase = () => ({ auth: { signInWithOtp: async () => ({ error: null }), verifyOtp: async () => ({ data: { user: { id: 'x', email: 'a@b.co' } }, error: null }) } });
-    window.initSupabase = () => true;
-  });
-  await page.fill('#ob2-email', 'online@example.com');
-  await page.click('#ob2-otp-btn');
-  await page.waitForTimeout(400);
-  check('online: OTP セクションが表示', await page.isVisible('#supa-auth-otp-wrap'));
-  check('online: メールが OTP 欄に入る',
-    (await page.inputValue('#supa-otp-email').catch(() => '')) === 'online@example.com');
-  check('online: モーダルが開いている', await modalOpen());
-
-  // Case 4: パスワードでログインの折りたたみ開閉
-  await reload();
-  let passShown = await page.evaluate(() => { const s = document.getElementById('ob2-pass-section'); return !!(s && s.style.display !== 'none'); });
-  check('password 欄は初期非表示', passShown === false);
-  await page.click('#ob2-pass-toggle');
+  await page.click('#ob2-login-btn');
   await page.waitForTimeout(200);
-  passShown = await page.evaluate(() => { const s = document.getElementById('ob2-pass-section'); return !!(s && s.style.display !== 'none'); });
-  check('password 欄がトグルで開く', passShown === true);
+  check('empty: メール未入力でエラー表示', /入力してください/.test(await page.textContent('#ob2-err').catch(() => '')));
+  await page.fill('#ob2-email', 'not-an-email');
+  await page.fill('#ob2-pass', 'secret123');
+  await page.click('#ob2-login-btn');
+  await page.waitForTimeout(200);
+  check('invalid: メール形式不正でエラー表示', /形式/.test(await page.textContent('#ob2-err').catch(() => '')));
+  check('invalid: ログイン画面のまま', await page.isVisible('#ob2-login-btn'));
+
+  // Case 4: 「新規登録」で認証モーダルが signup フォームで開く
+  await reload();
+  await page.evaluate(() => openSupaAuthModal('signup'));
+  await page.waitForTimeout(300);
+  check('signup: モーダルが開く', await modalOpen());
+  check('signup: フォーム（メール欄）が表示', await page.isVisible('#supa-auth-email'));
+
+  // Case 5: モーダルの既定（mode 無指定）は signin/ signup フォーム（OTP欄ではない）
+  await reload();
+  await page.evaluate(() => openSupaAuthModal());
+  await page.waitForTimeout(300);
+  check('default: 既定モーダルでフォームが表示', await page.isVisible('#supa-auth-form-wrap'));
+  check('default: 既定モーダルでOTP欄は非表示', (await page.isVisible('#supa-auth-otp-wrap')) === false);
 
   check('pageerror が無い', pageErrors.length === 0);
 
   let pass = 0, fail = 0;
   for (const [name, ok] of results) { console.log((ok ? '✅' : '❌') + ' ' + name); ok ? pass++ : fail++; }
-  console.log(`\n📊 OTP オンボーディング: PASS ${pass} / FAIL ${fail} / 合計 ${results.length}`);
+  console.log(`\n📊 ウェルカム(パスワードログイン)導線: PASS ${pass} / FAIL ${fail} / 合計 ${results.length}`);
   if (pageErrors.length) console.log('pageerrors:', pageErrors.join(' | '));
   await browser.close();
   process.exit(fail ? 1 : 0);
