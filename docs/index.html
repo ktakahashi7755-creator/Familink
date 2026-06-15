@@ -8,7 +8,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613f';
+  var V='v20260615a';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
@@ -5040,7 +5040,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <button id="supa-auth-toggle" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="toggleSupaAuthMode()">まだアカウントをお持ちでない方はこちら（新規登録）</button>
         <button id="supa-auth-forgot" class="btn btn-ghost btn-block" style="font-size:12px;" onclick="setSupaAuthMode('reset')">パスワードをお忘れですか？</button>
         <button id="supa-auth-back" class="btn btn-ghost btn-block" style="font-size:12px;display:none;" onclick="setSupaAuthMode('signin')">← ログインに戻る</button>
-        <button id="supa-auth-otp-back" class="btn btn-ghost btn-block" style="font-size:12px;color:var(--primary);" onclick="setSupaAuthMode('otp')">← メールでコードを受け取る方法に戻る</button>
         <!-- Wave 209: メール詰まりの最終エスケープ。Wave 214: signup モードでは「今すぐ作成」と重複するため非表示 -->
         <button id="supa-auth-use-local-escape" class="btn btn-outline btn-block" style="font-size:12px;margin-top:4px;border-color:var(--border);color:var(--text-sub);" onclick="useLocalAndCloseSupa()">ログインせずに使い始める（ローカルのみ）</button>
         <button class="btn btn-ghost btn-block" onclick="closeModal('m-supa-auth')">閉じる</button>
@@ -7116,7 +7115,7 @@ function openSupaAuthModal(mode) {
   _hideSupaEmailHint();
   _clearSupaBanner();  // Wave 206: 開くたびにバナーをクリア
   const allowed = ['otp','otp-code','signin','signup','reset','sent','reset-sent'];
-  let m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'otp'; // Wave 205: 既定は OTP
+  let m = (mode && allowed.indexOf(mode) >= 0) ? mode : 'signin'; // Wave 220: 既定は通常ログイン（メール＋パスワード）。OTP/マジックリンクは表に出さない
   // Wave 213: Supabase 未接続なら signup モード強制（ローカル作成のみ使えるため）
   if(!supaAvailable && m !== 'signup') {
     m = 'signup';
@@ -7349,9 +7348,8 @@ async function doSupaAuthSubmit() {
         _setSupaBanner('info',
           'このメールアドレスは既に登録されています',
           '<b>' + H(email) + '</b> は登録済みです。<br>'
-          + 'パスワードでログインするか、パスワードを忘れた場合は<b>「メールでコードを受け取る」方式</b>でログインできます。',
+          + 'パスワードでログインしてください。パスワードを忘れた場合は再設定できます。',
           [
-            { label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" },
             { label:'パスワードを再設定する', onclick:"setSupaAuthMode('reset')" },
           ]);
         return;
@@ -7364,8 +7362,8 @@ async function doSupaAuthSubmit() {
           'アカウントを作成しました',
           '<b>' + H(email) + '</b> 宛に確認メールを送信しました。<br>'
           + '受信メール内のリンクをクリックして登録を完了させてください。<br>'
-          + '<b>👉 確認リンクが届かない / 効かない場合は、より確実な「メールでコード」方式をお試しください。</b>',
-          [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
+          + '完了後、メールアドレスとパスワードでログインできます。',
+          []);
         return;
       }
       // 確認不要プロジェクト：そのままログイン状態へ
@@ -7733,8 +7731,8 @@ function _setSupaBannerFromError(op, error) {
   if(/User already registered/i.test(msg)) {
     _setSupaBanner('info',
       'このメールアドレスは既に登録されています',
-      'パスワードを覚えていなくても、<b>「メールでコードを受け取る」方式</b>で同じメアドにログインできます。',
-      [{ label:'メールでコードでログイン →', onclick:"setSupaAuthMode('otp')" }]);
+      'パスワードでログインしてください。パスワードを忘れた場合は再設定できます。',
+      [{ label:'パスワードを再設定する', onclick:"setSupaAuthMode('reset')" }]);
     return;
   }
   // 3) メアド不正
@@ -7754,16 +7752,16 @@ function _setSupaBannerFromError(op, error) {
   if(/Invalid login/i.test(msg)) {
     _setSupaBanner('error',
       'ログインできませんでした',
-      'メールアドレス・パスワードをご確認ください。<br>登録直後の方は<b>メール内のリンクをまだクリックしていない</b>可能性があります。<br><b>👉 「メールでコードを受け取る」方式が確実です。</b>',
-      [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
+      'メールアドレス・パスワードをご確認ください。<br>登録直後の方は<b>メール内のリンクをまだクリックしていない</b>可能性があります。<br>パスワードを忘れた場合は再設定できます。',
+      [{ label:'パスワードを再設定する', onclick:"setSupaAuthMode('reset')" }]);
     return;
   }
   // 6) Email not confirmed
   if(/Email not confirmed/i.test(msg)) {
     _setSupaBanner('warn',
       'メール認証がまだ完了していません',
-      '受信メール内のリンクをクリックして登録を完了させてください。<br>または <b>「メールでコードを受け取る」方式</b>でログインできます（その場合はリンククリック不要）。',
-      [{ label:'メールでコードに切替 →', onclick:"setSupaAuthMode('otp')" }]);
+      '受信メール内のリンクをクリックして登録を完了させてください。<br>完了後、メールアドレスとパスワードでログインできます。',
+      []);
     return;
   }
   // 7) Token expired
@@ -7895,9 +7893,9 @@ function renderSupaDiag() {
        +  '<p style="font-size:12px;font-weight:700;color:#92400E;margin:0 0 6px;">よくある原因と対処</p>'
        +  '<ul style="font-size:11px;color:#92400E;line-height:1.7;margin:0;padding-left:18px;">'
        +    '<li><b>メールが届かない</b>：迷惑メールフォルダを確認 / メアド誤りなら入力し直し / Supabase 無料 SMTP は <b>1 時間 2 通 / 1 日 4 通</b>までの制限あり</li>'
-       +    '<li><b>確認リンクをクリックしても何も起きない</b>：このアプリは <b>「ログインコード（6桁）」</b>方式が確実です。メールで届く 6桁の数字を直接入力してください</li>'
+       +    '<li><b>確認リンクをクリックしても何も起きない</b>：少し待ってから、もう一度メールアドレスとパスワードでログインをお試しください</li>'
        +    '<li><b>テスト用ドメイン（@gmail.test 等）</b>は受け付けられません。実在するメールアドレスをお使いください</li>'
-       +    '<li><b>パスワードでログインできない</b>：「メールでコードを受け取る」をお試しください（既存アカウントでも使えます。パスワード不要）</li>'
+       +    '<li><b>パスワードでログインできない</b>：「パスワードをお忘れですか？」から再設定できます</li>'
        +    '<li><b>ネットワーク不安定</b>：CDN（cdn.jsdelivr.net）と Supabase API への通信が必要です</li>'
        +  '</ul>'
        +  '</div>';
@@ -11421,7 +11419,7 @@ function renderHome() {
   var adBar = document.getElementById('home-ad-bar');
   if(adBar) {
     if(!isSupaLoggedIn() && S.supaEntryChoice === 'guest') {
-      adBar.innerHTML = '<div style="background:linear-gradient(135deg,#EBF4FF,#F0FDF4);border:1.5px solid #D0E8FF;border-radius:14px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openSupaAuthModal(\'otp\')">'
+      adBar.innerHTML = '<div style="background:linear-gradient(135deg,#EBF4FF,#F0FDF4);border:1.5px solid #D0E8FF;border-radius:14px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openSupaAuthModal(\'signin\')">'
         + '<div style="width:34px;height:34px;border-radius:50%;background:var(--grad-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
         + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
         + '</div>'
