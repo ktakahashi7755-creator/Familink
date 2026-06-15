@@ -22139,3 +22139,42 @@ T-070本番SQL適用（ユーザー実施・Success確認）＋T-071招待トー
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-06-15 13:30  env: iPhone経由  branch: claude/latest-version-link-nvsjm9
+
+### 作業名
+ウェルカム画面 Hoku の「HOKU文字化」を根本修正＝画像を HTML src に直接埋め込み（JS非依存）
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615c)／worklog
+
+### 背景・根本原因
+- 前回 `alt=""`＋`onerror` で文字表示は抑止したが、ユーザー実機では依然「HOKU」文字が出ると報告。
+- 真因: `ob-hoku-star` は HTML に src が無く、初期化JS(`obStar.src = IMGS.hoku`, 27226行)が
+  走って初めて画像化される設計。JS適用前の描画・別経路表示・旧キャッシュ等で
+  src 空のまま＝代替テキスト/壊れ表示になり得た。
+
+### 変更内容
+- **Hoku 画像(IMGS.hoku の data URI・約8KB)を `ob-hoku-star` の `src` に直接埋め込み**。
+  これで JS の実行有無・キャッシュ状態に関わらず**初期描画から必ずアイコンが表示**される。
+- 既存の `alt=""`＋`onerror=display:none` は保険として維持。JS側 27226行の代入も無害なため残置。
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（コンソールエラー0）
+- 実挙動(Playwright): DOMContentLoaded 直後で既に src 長 8194（JS待ち不要）／naturalWidth 240・complete=true／
+  s-ob のテキストに "HOKU"/"Hoku" は皆無（hasHOKUtext=false）／pageerror 0／スクショで星アイコン表示確認
+
+### 未確認事項
+- 実機での最終見え方（旧キャッシュが残る場合は再読み込み→v20260615c）
+
+### iPhone確認ポイント
+- 起動直後のウェルカム画面で、家族イラスト左下に Hoku の星アイコンが出る（"HOKU"文字でない）こと
+- 読み込みの一瞬でも文字が出ないこと（src 直書きのため初期描画から画像）
+
+### 次にやること
+- 実機確認OKなら、前回からの同期失敗静音化・パスワードログイン統一とあわせて2台同期の通し検証へ
+
+### コミット
+- 本コミット
