@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260614w';
+var V='v20260615a';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -6470,7 +6470,7 @@ function initSupabase() {
                 showToast('ログインしました', 'success');
                 _enterApp(true);
               } else {
-                showToast('クラウドにログインしました', 'success');
+                showToast('ログインしました', 'success');
               }
             } catch(e) { console.warn('SIGNED_IN handler failed:', e); }
           }
@@ -6984,15 +6984,20 @@ async function _fetchFromSupabaseImpl() {
       saveS();
       // 家族の members を取り込んだら MEMBERS グローバルを再構築（ピッカー/アバター反映）
       try { applyMembersFromS(); } catch(_){}
-      // モーダルで入力中なら再描画を見送る（家族の同期で入力内容が消えるのを防ぐ。
-      // データは S に取り込み済みのため、モーダルを閉じた後の操作/遷移で反映される）
+      // モーダルで入力中なら再描画を見送る（家族の同期で入力内容が消えるのを防ぐ）。
+      // さらに「閲覧中の詳細/一覧画面」は背景同期で再描画しない＝スクロール飛び・画像チラつき・
+      // タップ取りこぼしを防ぐ。データは S に取り込み済みで、次の操作/遷移で反映される。
       const _modalOpen = document.querySelector('.modal-backdrop.open');
-      if(!_modalOpen) {
-        // 同期由来の再描画でスクロール位置が飛ばないよう保存→復元（家族の更新中もガクッとしない）
+      const _VIEW_NO_RERENDER = ['s-album','s-archive','s-board-detail','s-cdetail','s-custom-board','s-memo','s-hoku','s-cdetail'];
+      const _viewing = _VIEW_NO_RERENDER.indexOf(S.screen) >= 0;
+      if(!_modalOpen && !_viewing) {
+        // go() ではなく refresh() で内容のみ更新＝screen-in アニメを再生させずチラつかせない。
+        // スクロール位置も保存→復元してガクッとしない。
         let _sy = 0; try { const _sa = document.querySelector('.screen:not(.hidden) .scroll-area'); _sy = _sa ? _sa.scrollTop : 0; } catch(_){}
-        try { go(S.screen); } catch(_){}
+        try { (typeof refresh === 'function' ? refresh(S.screen) : go(S.screen)); } catch(_){}
         try { if(_sy) { const _sa2 = document.querySelector('.screen:not(.hidden) .scroll-area'); if(_sa2) _sa2.scrollTop = _sy; } } catch(_){}
       }
+      // 閲覧中で見送った画面は、次の遷移時に go()→refresh() で自然に最新化される
     }
     window._lastSyncError = '';
     _setSyncDot('synced');
@@ -7476,7 +7481,7 @@ async function doSupaAuthSubmit() {
     // signin 成功
     _recordSupaAttempt('signIn', email, { ok:true });
     closeModal('m-supa-auth');
-    showToast('クラウドにログインしました','success');
+    showToast('ログインしました','success');
     _enterApp(true);
   } finally {
     if(btn) {
@@ -7714,7 +7719,7 @@ async function doSupaVerifyOtp() {
         _fetchFromSupabase().catch(_=>{});
         _recordSupaAttempt('verifyOtp', email, { ok:true, via:'magiclink-paste' });
         closeModal('m-supa-auth');
-        showToast('クラウドにログインしました','success');
+        showToast('ログインしました','success');
         _enterApp(true);
         return;
       }
@@ -7732,7 +7737,7 @@ async function doSupaVerifyOtp() {
     if(!r || !r.ok) return;
     _recordSupaAttempt('verifyOtp', email, { ok:true });
     closeModal('m-supa-auth');
-    showToast('クラウドにログインしました','success');
+    showToast('ログインしました','success');
     _enterApp(true);
   } finally {
     if(btn) { btn.disabled = false; btn.textContent = 'ログインする'; }
