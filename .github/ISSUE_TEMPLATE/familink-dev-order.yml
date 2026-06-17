@@ -1,0 +1,95 @@
+name: "Familink 開発指示書（ITs経営OS 発注）"
+description: "ITs経営OS から Familink 開発チーム（Claude Code＋17 Skill）へ渡す開発オーダー。1 Issue = 1 オーダー。"
+title: "[DEV] "
+labels: ["familink:dev-order"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        この Issue が Familink 開発チームへの「発注書」です。埋めて作成すると、Claude Code が
+        CLAUDE.md のルールに従って実装→テスト(84/84)→docs同期→公開/PR まで進めます。
+        迷ったら空欄でも可（Claude が補完し、不明点は確認します）。
+
+  - type: input
+    id: goal
+    attributes:
+      label: 目的・背景（なぜやるか）
+      placeholder: 例）ログインで迷う家族が多い。最初からパスワード入力だけにしたい。
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: 対象（画面ID / 機能）
+      placeholder: 例）s-ob（ウェルカム）/ ログイン / 同期 / s-cal カレンダー
+    validations:
+      required: false
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 種別
+      options:
+        - バグ修正
+        - 改善（UX/文言/導線）
+        - 新機能
+        - 調査・総点検
+        - UI/デザイン調整
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度（CLAUDE.md §7）
+      options:
+        - "S（致命的・すぐ直す）"
+        - "A（公開前に直したい）"
+        - "B（公開後でよい）"
+        - "C（将来）"
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件（これが満たされたら完了）
+      placeholder: |
+        - ウェルカムで最初からメール＋パスワード＋「ログイン」だけが出る
+        - 「メールでログイン/コード」表記が出ない
+        - QA 84/84 PASS・コンソールエラー0
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 制約・やってはいけないこと（任意）
+      placeholder: |
+        - LocalStorage キー familink_v3 を壊さない
+        - 認証バックエンドは変えない（UIのみ）
+    validations:
+      required: false
+
+  - type: input
+    id: skill
+    attributes:
+      label: 希望 Skill（任意・空なら自動選択）
+      placeholder: 例）familink-uiux-designer / familink-debug-engineer
+    validations:
+      required: false
+
+  - type: dropdown
+    id: publish
+    attributes:
+      label: 公開要否
+      options:
+        - "main に反映してライブ公開する（var V と SW_VERSION も更新）"
+        - "PR を作って人間レビュー後に公開"
+        - "まだ公開しない（ブランチ作業のみ）"
+      default: 0
+    validations:
+      required: true

@@ -415,6 +415,7 @@ Claude Code は以下を自律的に検知し、**提案 / 小規模改善** に
 | `docs/app-store-release-checklist.md` | 公開前チェック（必要時に作成） |
 | `docs/development-workflow.md` | 1 セッションの基本ループ |
 | `docs/mobile-operation.md` | 携帯運用の短文指示マッピング |
+| `docs/its-os-bridge.md` | ITs経営OS⇄開発チーム連携（発注書/Issue起点の自動開発/Skillルーティング） |
 
 ドキュメントは過度に肥大化させず、**正本は 1 箇所** を徹底する（同じ内容を複数ファイルに書かない）。
 

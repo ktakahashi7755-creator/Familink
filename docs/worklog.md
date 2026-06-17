@@ -22823,3 +22823,42 @@ SW自動更新の確実化（updateViaCache:none）＝実機に最新が確実�
 
 ### コミット
 - 本コミット（main へ push）
+
+---
+
+## 2026-06-15 14:45  env: iPhone経由  branch: main
+
+### 作業名
+ITs経営OS ⇄ Familink 開発チーム 連携の土台を構築（発注書/Issue起点の自動開発）
+
+### 変更ファイル
+- docs/its-os-bridge.md（新規・連携仕様）
+- .github/ISSUE_TEMPLATE/familink-dev-order.yml（新規・開発指示書テンプレ）
+- CLAUDE.md（§10.10 ドキュメント表に1行追記）／worklog
+
+### 変更内容
+- ITs経営OS(claude.ai)＝経営の頭脳／Familink開発チーム(Claude Code＋17 Skill)＝開発の手足、
+  の役割分担で「指示→自動開発」を回すための橋を定義
+- 橋＝GitHub Issue。発注書フォーマット／指示→Skill自動ルーティング表／
+  開発側の実行契約(実装→QA84/84→docs同期(var V & SW_VERSION 同時)→公開/PR→Issue報告)を明文化
+- Issue テンプレ familink:dev-order を追加（目的/対象/種別/優先度/受け入れ条件/制約/希望Skill/公開要否）
+- ITs経営OS のプロジェクトにそのまま貼れる「発注書を出させる指示文」を同梱
+- セットアップ手順（GitHub連携・Claude Code on web の自動起動トリガー）を記載
+
+### テスト結果
+- 未実施（アプリ本体 app-source/docs/sw.js に変更なし＝QA対象の挙動変化なし）。
+  YAML/MD は構文目視確認。docs/index.html・SW版は不変のため公開アプリへの影響なし
+
+### 未確認事項
+- claude.ai 側の GitHub コネクタ接続と、Claude Code on web の Issue 自動起動トリガー設定は
+  プラットフォーム設定のためユーザー操作が必要（手順書に記載）。未設定でも「Issue #N を進めて」で運用可
+
+### iPhone確認ポイント
+- GitHub の New Issue に「Familink 開発指示書（ITs経営OS 発注）」テンプレが出るか
+
+### 次にやること
+- ユーザーが ITs経営OS に指示文を登録 → 試しに1件発注書を Issue 化 → 自動開発の通し確認
+- トリガー自動起動の設定（必要なら手順を一緒に詰める）
+
+### コミット
+- 本コミット（main へ push）
