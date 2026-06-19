@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260615d';
+var V='v20260615e';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -4058,8 +4058,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
     <!-- 編集できるお知らせ/メモ（クラウド同期・自分の全端末で更新が反映される） -->
     <div id="home-note"></div>
     <div class="home-grid" id="home-grid"></div>
-    <div id="home-ad-bar"></div>
-    <button class="home-add-btn" onclick="openBoardCreateModal(null)">＋ ボードを追加</button>
   </div>
 </div>
 
@@ -9041,8 +9039,8 @@ function renderStorageModal() {
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
          ['delete-album-all','すべて削除', s.albumCount > 0]])
-    + _renderStorageRow('書類保管庫の写真', s.docsBytes, s.docsCount,
-        [['delete-docs-photos','すべての書類写真を削除', s.docsCount > 0]])
+    + (s.docsCount > 0 ? _renderStorageRow('書類の写真（旧機能・整理用）', s.docsBytes, s.docsCount,
+        [['delete-docs-photos','すべての書類写真を削除', true]]) : '')
     + _renderStorageRow('メンバーアバター写真', s.photoBytes, s.photoCount,
         [['delete-avatar-photos','すべてのアバター写真を削除', s.photoCount > 0]])
     + _renderStorageRow('タスクの写真', s.taskPhotoBytes, s.taskPhotoCount,
@@ -11642,24 +11640,7 @@ function renderHome() {
 
   try { renderHomeNote(); } catch(_){}
 
-  // Wave 225: ゲストユーザー向けクラウド登録促進バナー
-  var adBar = document.getElementById('home-ad-bar');
-  if(adBar) {
-    if(!isSupaLoggedIn() && S.supaEntryChoice === 'guest') {
-      adBar.innerHTML = '<div style="background:linear-gradient(135deg,#EBF4FF,#F0FDF4);border:1.5px solid #D0E8FF;border-radius:14px;padding:12px 14px;margin-bottom:2px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openSupaAuthModal(\'signin\')">'
-        + '<div style="width:34px;height:34px;border-radius:50%;background:var(--grad-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-        + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
-        + '</div>'
-        + '<div style="flex:1;">'
-        + '<div style="font-size:13px;font-weight:700;color:var(--text);">データをクラウドに保存しよう</div>'
-        + '<div style="font-size:11px;color:var(--text-sub);">無料でメール登録するだけ。機種変更してもデータが守られます。</div>'
-        + '</div>'
-        + '<div style="color:var(--primary);font-size:18px;font-weight:700;">›</div>'
-        + '</div>';
-    } else {
-      adBar.innerHTML = '';
-    }
-  }
+  // Wave 255: ゲスト向けクラウド登録促進バナー（home-ad-bar）は撤廃
 
   // ── グリッド描画 ──
   hoInitOrder();
@@ -11728,9 +11709,10 @@ function renderHome() {
    ============================================================ */
 
 /* ホームに表示する固定ボードのID */
-var HO_FIXED = ['b_board','b_task','b_cal','b_health','b_memo','b_archive','b_album'];
-/* 旧バージョンで存在した固定ボード（廃止済 / homeOrder から除外する） */
-var HO_RETIRED = ['b_docs'];
+var HO_FIXED = ['b_board','b_task','b_cal','b_health','b_memo','b_album'];
+/* 旧バージョンで存在した固定ボード（廃止済 / homeOrder から除外する）。
+   Wave 255: 書類保管庫(b_archive) を撤廃＝既存ユーザーの homeOrder からも除外する */
+var HO_RETIRED = ['b_docs','b_archive'];
 
 /* homeOrder を初期化・マイグレーション */
 function hoInitOrder() {
