@@ -8,7 +8,7 @@
 //  ・別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワークに任せる
 //    （未接続時はアプリが LocalStorage のみで動作する設計）。
 // SW_VERSION は docs 同期(§12.3)で index.html の var V と同じ値に更新する（バイトが変わり更新検知される）
-var SW_VERSION = 'v20260615e';
+var SW_VERSION = 'v20260615f';
 var CACHE = 'familink-' + SW_VERSION;
 var CORE  = ['./', './index.html', './manifest.json', './icon-192.png', './icon-256.png'];
 

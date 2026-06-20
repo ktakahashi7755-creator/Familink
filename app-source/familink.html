@@ -5840,6 +5840,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
         <select class="input" id="ev-member"></select>
       </div>
       <div class="field">
+        <div class="field-label">通知（リマインド）</div>
+        <select class="input" id="ev-remind">
+          <option value="">なし</option>
+          <option value="0">開始時刻</option>
+          <option value="5">5分前</option>
+          <option value="10">10分前</option>
+          <option value="30" selected>30分前</option>
+          <option value="60">1時間前</option>
+          <option value="1440">前日（24時間前）</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
+          ※ アプリを開いている間に、端末の通知でお知らせします（OS通知の許可が必要）。
+        </div>
+      </div>
+      <div class="field">
         <div class="field-label">繰り返し</div>
         <select class="input" id="ev-repeat" onchange="evRepeatChange()">
           <option value="">なし（単発）</option>
@@ -5860,8 +5875,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
             <option value="year">年ごと</option>
           </select>
         </div>
+        <div id="ev-repeat-until-row" style="display:none;align-items:center;gap:8px;margin-top:8px;">
+          <span style="font-size:13px;color:var(--text-sub);flex:none;">繰り返しの終了日</span>
+          <input class="input" id="ev-repeat-until" type="date" style="flex:1;">
+          <button type="button" class="btn btn-ghost btn-sm" style="flex:none;font-size:12px;padding:6px 10px;" onclick="document.getElementById('ev-repeat-until').value='';">クリア</button>
+        </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;">
-          ※ カレンダー（月／週／日）に繰り返し表示されます。編集・削除はくり返し全体に反映されます。
+          ※ カレンダー（月／週／日）に繰り返し表示されます。編集・削除はくり返し全体に反映されます。終了日は任意（未設定なら無期限）。
         </div>
       </div>
       <div class="field">
@@ -13189,6 +13209,8 @@ function openEventModal(evId) {
     document.getElementById('ev-repeat').value= ev.repeat||'';
     document.getElementById('ev-repeat-interval').value = ev.repeatInterval || 2;
     document.getElementById('ev-repeat-unit').value = ev.repeatUnit || 'week';
+    { const _ru = document.getElementById('ev-repeat-until'); if(_ru) _ru.value = ev.repeatUntil || ''; }
+    { const _rm = document.getElementById('ev-remind'); if(_rm) _rm.value = (ev.remind === undefined || ev.remind === null) ? '30' : String(ev.remind); }
     evRepeatChange();
     sel = ev.color; S._evColor = ev.color;
     document.getElementById('ev-del-btn').style.display = 'flex';
@@ -13210,6 +13232,8 @@ function openEventModal(evId) {
     document.getElementById('ev-repeat').value= '';
     document.getElementById('ev-repeat-interval').value = 2;
     document.getElementById('ev-repeat-unit').value = 'week';
+    { const _ru = document.getElementById('ev-repeat-until'); if(_ru) _ru.value = ''; }
+    { const _rm = document.getElementById('ev-remind'); if(_rm) _rm.value = '30'; }
     evRepeatChange();
     sel = '#0A84FF'; S._evColor = '#0A84FF';
     document.getElementById('ev-del-btn').style.display = 'none';
@@ -13232,6 +13256,9 @@ function evRepeatChange() {
   const v = document.getElementById('ev-repeat').value;
   const row = document.getElementById('ev-repeat-custom');
   if(row) row.style.display = (v === 'custom') ? 'flex' : 'none';
+  // 繰り返しの終了日は、繰り返しが有効なときだけ表示
+  const untilRow = document.getElementById('ev-repeat-until-row');
+  if(untilRow) untilRow.style.display = v ? 'flex' : 'none';
 }
 /* 終日トグル：ONで開始/終了時刻欄を隠す */
 function evAllDayToggle() {
@@ -13257,6 +13284,7 @@ function _occursOn(e, ds) {
   const rep = e.repeat;
   if(!rep) return false;
   if(ds < e.date) return false;
+  if(e.repeatUntil && ds > e.repeatUntil) return false;  // 繰り返しの終了日を過ぎたら発生しない
   const a = new Date(e.date+'T00:00:00'), b = new Date(ds+'T00:00:00');
   const days = Math.round((b - a) / 86400000);
   if(days <= 0) return false;
@@ -13299,6 +13327,15 @@ function saveEvent() {
     repeatInterval = Math.min(99, Math.max(1, isNaN(iv) ? 1 : iv));
     repeatUnit = document.getElementById('ev-repeat-unit').value || 'week';
   }
+  // 繰り返しの終了日（繰り返し有効時のみ・開始日より前は無効化）
+  let repeatUntil = '';
+  if(repeat) {
+    const ru = (document.getElementById('ev-repeat-until')||{}).value || '';
+    if(ru && ru >= date) repeatUntil = ru;
+  }
+  // 通知（リマインド）：分前。'' は通知なし
+  const remindRaw = (document.getElementById('ev-remind')||{}).value;
+  const remind = (remindRaw === '' || remindRaw === undefined) ? '' : String(parseInt(remindRaw, 10) || 0);
 
   if(!title) { showToast('タイトルを入力してください','error'); return; }
   if(!date)  { showToast('日付を入力してください','error'); return; }
@@ -13312,7 +13349,7 @@ function saveEvent() {
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
     if(ev) {
-      Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor});
+      Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor});
       showToast('予定を更新しました');
     } else {
       // 同時編集：編集中に他の端末/家族がこの予定を削除した → 偽の「更新」を出さず案内
@@ -13323,7 +13360,7 @@ function saveEvent() {
     }
   } else {
     if(!checkPremiumLimit('events')) return;
-    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,color:S._evColor,workspaceId:curWsId()});
+    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor,workspaceId:curWsId()});
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -16005,20 +16042,26 @@ function _checkEventNotifs() {
   if(!_browserNotifSupported() || Notification.permission !== 'granted') return;
   const now  = new Date();
   const today = todayStr();
-  // 予定リマインダー（30 分前に 1 回）
+  // 予定リマインダー：各予定の通知設定（ev.remind 分前）に従い 1 回通知。
+  // 繰り返し予定も当日発生なら対象。ev.remind 未設定の旧データは従来どおり 30 分前。
   (S.events||[]).forEach(function(ev) {
-    if(ev.date !== today || !ev.time) return;
+    if(!ev.time) return;
+    if(!_occursOn(ev, today)) return;             // 当日（単発 or 繰り返し発生日）
+    const lead = (ev.remind === undefined || ev.remind === null) ? 30 : parseInt(ev.remind, 10);
+    if(ev.remind === '' || isNaN(lead)) return;   // 「なし」は通知しない
     try {
       const parts = ev.time.split(':');
       const h = parseInt(parts[0]), m = parseInt(parts[1]);
       const evMs  = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).getTime();
-      const diff  = (evMs - now.getTime()) / 60000;
-      if(diff < 25 || diff > 35) return;
+      const diff  = (evMs - now.getTime()) / 60000;   // 開始までの分
+      // 通知タイミング（lead 分前）を中心に ±5 分の窓で 1 回だけ
+      if(diff < lead - 5 || diff > lead + 5) return;
       const key = 'fn_ev_' + ev.id + '_' + today;
       if(sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
-      new Notification('📅 まもなく予定があります', {
-        body: ev.time + ' ' + ev.title, icon: '/favicon.ico',
+      const when = lead === 0 ? 'まもなく' : (lead >= 1440 ? '明日' : (lead >= 60 ? Math.round(lead/60)+'時間後' : lead+'分後'));
+      new Notification('予定のお知らせ', {
+        body: when + '：' + ev.time + ' ' + ev.title, icon: '/favicon.ico',
         tag: 'fl_ev_' + ev.id, silent: false
       });
     } catch(_) {}

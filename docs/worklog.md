@@ -22904,3 +22904,42 @@ ITs経営OS ⇄ Familink 開発チーム 連携の土台を構築（発注書/Is
 
 ### コミット
 - 本コミット（main へ push）
+
+---
+
+## 2026-06-15 16:30  env: iPhone経由  branch: main
+
+### 作業名
+TimeTreeクラスへ：予定リマインド（何分前を選択）＋繰り返し終了日 を実装
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615f)／docs/sw.js／
+  tools/qa_event_remind_test.js(新規)／worklog
+
+### 変更内容
+- **予定リマインドを選択式に**: 予定モーダルに「通知（リマインド）」select を追加
+  （なし/開始時刻/5分前/10分前/30分前/1時間前/前日）。ev.remind に保存。既定30分前で従来挙動を維持
+- **_checkEventNotifs を刷新**: 固定30分前→ev.remindのlead分前(±5分窓)で1回通知。
+  _occursOn採用で繰り返し予定の発生日にも通知。旧データ(remind未設定)は30分前として後方互換
+- **繰り返しに終了日**: 予定モーダルに「繰り返しの終了日」を追加し ev.repeatUntil に保存。
+  _occursOn が repeatUntil を尊重（終了日後は発生しない）。未設定は従来どおり無期限
+- 新規キーは event オブジェクト内のフィールド（S.events内）＝PERSIST/SYNC_KEYS変更不要
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（コンソールエラー0）
+- tools 全31スイート: **全PASS・失敗0**（新規 qa_event_remind_test 13/13 含む）
+- カレンダー系(integrity/allday/memberfilter/taptarget)・e2e・content 全緑
+- 版一致: var V = SW_VERSION = v20260615f／docs本体==app-source本体
+
+### 未確認事項
+- OS通知の実機挙動（PWAはアプリを開いている間の通知。完全なバックグラウンドpushは要サーバ実装）
+
+### iPhone確認ポイント
+- 予定追加で「通知（リマインド）」と「繰り返しの終了日」が選べる
+- 繰り返し予定が終了日以降カレンダーに出ない
+
+### 次にやること
+- 評価の次段：予定詳細の通知/終了日の可視化（バッジ）、予定への一言コメント等は将来候補
+
+### コミット
+- 本コミット（main へ push）
