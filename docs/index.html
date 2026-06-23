@@ -8,12 +8,11 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
-  var V='v20260613f';
+  var V='v20260613g';
   var q=location.search;
   if(q.indexOf('v='+V)>-1)return;
   location.replace(location.pathname+'?v='+V+'&r='+Date.now()+(location.hash||''));
 })();
-</script>
 <meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3844,12 +3843,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
       はじめての方は<a class="ob2-link-signup" onclick="supaEntryClickSignup()">新規登録</a>
     </div>
     <a class="ob2-link-guest" onclick="supaEntryClickGuest()">ログインせずに体験する</a>
-
-    <div class="ob2-footer">
-      <a class="ob2-footer-link" onclick="openLegalDoc('terms')">利用規約</a>
-      <span class="ob2-footer-dot">·</span>
-      <a class="ob2-footer-link" onclick="openLegalDoc('privacy')">プライバシーポリシー</a>
-    </div>
   </div>
 </div>
 
