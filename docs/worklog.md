@@ -22975,3 +22975,47 @@ TimeTreeクラスへ：予定リマインド（何分前を選択）＋繰り返
 
 ### コミット
 - 本コミット（main）＋ バックアップブランチ backup/2026-06-15-v20260615f-full-audit-clean
+
+---
+
+## 2026-06-15 19:30  env: iPhone経由  branch: main
+
+### 作業名
+世界最高峰へ品質引き上げ：3観点の専門監査→高価値・低リスク改善を一括実装
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615g)／docs/sw.js／worklog
+
+### 変更内容（監査：a11y/UXコピー/堅牢性 の3並行監査に基づく）
+- **[重大]保存型XSS修正**: 設定「スペース切り替え」の値 ${currentWorkspace().name} を H() 未適用で
+  innerHTML 挿入していた（ワークスペース名は編集可＝XSS成立）→ H() 適用。実挙動で無効化を確認
+- reduced-motion 拡充: 常時表示の Hoku フローティング(.hoku-fab-inner/.hoku-fab-pulse)・
+  プレミアムバッジ(.prm-badge)・空状態(.hoku-empty-img)・ツアー(.tour-spot) を抑制対象へ（WCAG2.3.3）
+- タップ領域: .pw-eye 36→44px。準備リスト削除× に44px化＋aria-label
+- aria-label: reactor-popup-close(×)/準備削除(×) に付与
+- フォーカス可視性: :focus-visible に select/a を追加
+- 二重送信ガード追加(6関数): saveBoardItem/savePrepItem/saveBoardCreate/saveBoardSection/
+  saveMemoFolder/savePrepRoutine
+- 長文の横はみ出し対策: .post-body/.notif-title/.settings-item-label に word-break 等
+- 空状態の温度感統一: ホーム3カード/カレンダー一覧/買い物/通知/家計 を「まだ〜ありません」＋
+  行動ガイドへ（既存の上質空状態に合わせる）
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（コンソールエラー0）
+- tools 全31スイート: 全PASS（doublesubmit/boundary/content/ext/cal系/e2e/invite/bill/ocr/tour 等）
+- 実挙動検証: XSS payload 無効化(injected=false/escaped=true)・pw-eye=44px・全画面pageerror0
+- 版一致: var V = SW_VERSION = v20260615g／docs本体==app-source本体
+
+### 未確認事項
+- text-muted のコントラストは境界値（多用のため今回は据え置き＝将来、12px補足のみ微調整候補）
+- 実機2台のクラウド同期通し（サンドボックス制約）
+
+### iPhone確認ポイント
+- 設定のスペース名に記号を入れても崩れない／端末の視差効果オフでHoku等が静止
+- 空状態が温かい文言＋次の一手の案内になっている
+
+### 次にやること
+- （任意）text-muted 微調整、Web Push 設計
+
+### コミット
+- 本コミット（main）
