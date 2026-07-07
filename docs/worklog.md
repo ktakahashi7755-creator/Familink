@@ -23139,3 +23139,57 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-07-07 21:10  env: リモート（claude.ai/code）  branch: claude/professional-docs-design-yfhneb
+
+### 作業名
+SPEC v3 正本ドキュメント体系の新規構築（全13文書・ゼロから再構築可能な要件定義/基本設計一式）
+
+### 変更ファイル
+- docs/spec-v3/00-document-index.md（体系索引・読み順・正本原則）
+- docs/spec-v3/01-product-vision.md（ビジョン・事業戦略・ペルソナ・ユニコーン戦略）
+- docs/spec-v3/02-requirements.md（要件定義書: FR-100〜257 / NFR-1〜7・実装状態つき）
+- docs/spec-v3/03-architecture.md（基本設計書: 構成図・技術選定理由・同期/サーバ設計・不変条件）
+- docs/spec-v3/04-screens.md（画面設計書: 全22画面・ナビ・モーダル・ゲート表）
+- docs/spec-v3/05-data-design.md（PERSIST全88キー・15エンティティ・Supabaseスキーマ/RLS・同期プロトコル）
+- docs/spec-v3/06-api-edge-functions.md（Edge Functions 6本の入出力仕様・シークレット管理）
+- docs/spec-v3/07-security.md（脅威モデル14・RLS家族分離・XSS/CSP・課金完全性）
+- docs/spec-v3/08-design-system.md（トークン実測値・全コンポーネント・モーション・文言）
+- docs/spec-v3/09-hoku-ai.md（人格・二層応答・インテントエンジン・安全ガードレール）
+- docs/spec-v3/10-monetization.md（価格・機能境界・権利チェーン・Stripe・ファミコイン）
+- docs/spec-v3/11-quality-testing.md（QA84/tools33本/Vitest23の体系・リリース判定）
+- docs/spec-v3/12-operations-release.md（同期手順・SW配信・SQL適用順・ランブック索引）
+- docs/DOCS-INDEX.md（spec-v3 への正本移行を明記）
+
+### 変更内容
+- 全機能・全デザイン・世界観をコード実測（約29,300行）から逆算し、ゼロから再構築できる水準の
+  公式ドキュメント体系 docs/spec-v3/（13文書・約4,500行）を新規作成
+- ブランチを最新 main（f6fa76d・Stripe決済実装込み）へファストフォワードしてから執筆
+- 旧 SPEC-v2 / architecture-overview.md は歴史的文書扱いとし、正本を spec-v3 に一本化
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS（コミット前に実施）
+- npx vitest run: 23/23 PASS
+- 変更は docs のみ（app-source/familink.html・docs/index.html は未変更＝同期作業なし）
+
+### 未確認事項
+- コード実測で判明した既存記載との齟齬（各文書に注記済み・要フォロー）:
+  1. PERSIST は88キー・SYNC_KEYS は38キー（CLAUDE.md「66キー超」/旧資料87・40は古い）
+  2. FAMILY_SHARED_KEYS: クライアント22キーに対しサーバRLS許可は+_deletions の23件（07号 §4.3）
+  3. CLAUDE.md §12.3「更新バナー」記述 vs 実装は skipWaiting+1回自動リロード（12号 §4）
+  4. AUDIT.md A-C2「招待トークン未配線」は実装済みで記載が古い
+  5. プレミアム比較表「500MB/20GB」訴求と件数上限実装の乖離ほか表示整合3点（10号 §12）
+- fl_entitlements の SQL が IAP想定版と Stripe版の2変種併存（06号に明記）
+
+### iPhone確認ポイント
+- なし（docs のみの変更。アプリ本体・公開HTMLに変更なし）
+
+### 次にやること
+- CLAUDE.md の古い記述（PERSIST キー数・SW更新バナー文言）の §15 ルールに沿った小修正
+- 10号 §12 の課金表示整合3点の解消（正式リリース前）
+
+### コミット
+- ハッシュ: 本コミットほか（6ed0266 / 4903fd4 / cb6b9cc / 2771256 / f1027c0 / b0608e6 / fb541e1）
+- メッセージ: docs(spec-v3): 画面設計書(04)と worklog を追加（体系完成）
