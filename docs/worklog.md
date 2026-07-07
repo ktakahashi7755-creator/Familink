@@ -23019,3 +23019,39 @@ TimeTreeクラスへ：予定リマインド（何分前を選択）＋繰り返
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-06-15 21:30  env: iPhone経由  branch: main
+
+### 作業名
+Web Push（アプリを閉じても届く通知）実装：クライアント/SW完了＋サーバ成果物一式
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615h)／docs/sw.js
+- docs/push-subscriptions.sql／docs/edge-functions/push-send/index.ts／docs/WEB-PUSH-SETUP.md／worklog
+
+### 変更内容
+- クライアント購読モジュール（全ガード）＋通知設定トグル「アプリを閉じても届く通知」
+- PERSIST に webPushEnabled 追加／起動時に購読を最新化
+- Service Worker(docs/sw.js) に push / notificationclick ハンドラ追加
+- サーバ成果物（要デプロイ）: 購読テーブル+RLS(SQL)・送信Edge Function(Deno/web-push・
+  予定リマインド定期スキャン+テスト送信・_occursOn移植・失効購読削除・重複排除)・手順書
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS／重点スイート(content/boundary/final_smoke/release/ext/3states)全緑
+- 通知設定に Web Push トグル表示OK（VAPID未設定で「準備中」）・pageerror0
+- docs/sw.js node --check OK・push/notificationclick保持・秘密情報混入なし
+- 版一致: var V = SW_VERSION = v20260615h
+
+### 未確認事項
+- VAPID生成→公開鍵設定→SQL→Edge Functionデプロイ→pg_cron→iOS疎通（ユーザー作業・本番Supabase必須）
+
+### iPhone確認ポイント
+- 設定→通知設定に「アプリを閉じても届く通知」が表示（サーバ設定前は準備中）
+
+### 次にやること
+- WEB-PUSH-SETUP.md に沿ってサーバ設定→公開鍵をアプリに入れて再同期→疎通確認
+
+### コミット
+- 本コミット（main）

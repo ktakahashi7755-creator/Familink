@@ -8,7 +8,7 @@
 //  ・別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワークに任せる
 //    （未接続時はアプリが LocalStorage のみで動作する設計）。
 // SW_VERSION は docs 同期(§12.3)で index.html の var V と同じ値に更新する（バイトが変わり更新検知される）
-var SW_VERSION = 'v20260615g';
+var SW_VERSION = 'v20260615h';
 var CACHE = 'familink-' + SW_VERSION;
 var CORE  = ['./', './index.html', './manifest.json', './icon-192.png', './icon-256.png'];
 
@@ -35,6 +35,43 @@ self.addEventListener('activate', function(e) {
 
 self.addEventListener('message', function(e) {
   if(e.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// ── Web Push（アプリを閉じていても届く通知）Wave 268 ──────────────
+// 送信側(Edge Function)が JSON {title, body, url, tag, icon} を送る。
+// data 無し（VAPID疎通確認等）でも安全に既定表示する。
+self.addEventListener('push', function(e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; }
+  catch(_) { try { data = { body: e.data && e.data.text() }; } catch(__) { data = {}; } }
+  var title = data.title || 'Familink';
+  var opts = {
+    body: data.body || '',
+    icon: data.icon || './icon-256.png',
+    badge: './icon-256.png',
+    tag: data.tag || 'familink',
+    renotify: !!data.tag,
+    data: { url: data.url || './' }
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', function(e) {
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
+      for(var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if('focus' in c) {
+          try { c.focus(); } catch(_) {}
+          if('navigate' in c && url) { try { c.navigate(url); } catch(_) {} }
+          return;
+        }
+      }
+      if(self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener('fetch', function(e) {

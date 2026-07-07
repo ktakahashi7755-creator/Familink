@@ -8838,7 +8838,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','homeNote','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','webPushEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','homeNote','_deletions'];
 
 function saveS() {
   const d = {};
@@ -15966,6 +15966,25 @@ function openNotifSettings() {
     + '</div>'
     + '<div style="font-size:11px;color:var(--text-muted);line-height:1.65;padding:8px 4px 14px;">OS通知はアプリを開いている間のみ動作します。</div>';
 
+  // Wave 268: Web Push（アプリを閉じても届く）
+  const wpSupport = _webPushSupported();
+  const wpConfigured = _webPushConfigured();
+  const wpOn = !!S.webPushEnabled;
+  const wpNote = !wpSupport ? '（この端末は非対応）'
+               : !wpConfigured ? '（準備中）'
+               : (typeof Notification !== 'undefined' && Notification.permission === 'denied' ? '（端末設定で拒否中）' : '');
+  const webPushSection =
+    '<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;padding:14px 4px 6px;">プッシュ通知</div>'
+    + '<div onclick="toggleWebPush()" style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;">'
+    +   '<div style="color:var(--primary);flex:none;">'+ICON('bell',20)+'</div>'
+    +   '<div style="flex:1;">'
+    +     '<div style="font-size:14px;color:var(--text);">アプリを閉じても届く通知 '+H(wpNote)+'</div>'
+    +     '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">予定のリマインドなどを、アプリを開いていなくてもお知らせします。</div>'
+    +   '</div>'
+    +   _switchHtml(wpOn)
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text-muted);line-height:1.65;padding:8px 4px 14px;">iPhone は「ホーム画面に追加」したアプリでご利用いただけます（iOS 16.4 以降）。ログインが必要です。</div>';
+
   body.innerHTML =
     '<div style="font-size:12px;color:var(--text-sub);line-height:1.65;padding:2px 4px 12px;">受け取りたいお知らせを選べます。</div>'
     + NOTIF_PREF_DEFS.map(function(d){
@@ -15976,7 +15995,7 @@ function openNotifSettings() {
           + _switchHtml(on)
           + '</div>';
       }).join('')
-    + browserSection;
+    + browserSection + webPushSection;
   openModal('m-notif-settings');
 }
 function toggleNotifPref(key) {
@@ -16034,6 +16053,113 @@ function toggleBrowserNotif() {
     showToast('OS通知をオフにしました');
     openNotifSettings();
   }
+}
+
+/* ── Wave 268: Web Push（アプリを閉じても届く通知）───────────────
+   バックグラウンド配信。Service Worker(docs/sw.js) の push ハンドラで通知表示。
+   有効化にはサーバ側の設定が必要:
+   ・VAPID_PUBLIC_KEY をここに設定（公開鍵。秘密鍵は Supabase Edge Function のシークレットへ）
+   ・テーブル fl_push_subscriptions + RLS（docs/push-subscriptions.sql）
+   ・送信用 Edge Function（docs/edge-functions/push-send）＋定期実行（pg_cron 等）
+   ・iOS は「ホーム画面に追加」した PWA でのみ動作（iOS 16.4+）
+   手順書: docs/WEB-PUSH-SETUP.md
+   未設定（VAPID_PUBLIC_KEY 空）でも UI は「準備中」表示になり、既存挙動は一切壊さない。
+   ───────────────────────────────────────────────────────────── */
+const VAPID_PUBLIC_KEY = '';   // ← 生成した VAPID 公開鍵を貼る（未設定なら Web Push は「準備中」表示）
+
+function _webPushSupported() {
+  return typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+      && typeof window !== 'undefined' && 'PushManager' in window && 'Notification' in window;
+}
+function _webPushConfigured() {
+  return typeof VAPID_PUBLIC_KEY === 'string' && VAPID_PUBLIC_KEY.length > 20;
+}
+function _urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+async function _getSWRegistration() {
+  if(!('serviceWorker' in navigator)) return null;
+  try { return await navigator.serviceWorker.ready; } catch(_) { return null; }
+}
+async function _storePushSubscription(sub) {
+  const sb = getSupabase();
+  if(!sb || !isSupaLoggedIn()) return { ok:false, reason:'not_logged_in' };
+  try {
+    const j = sub.toJSON();
+    const row = {
+      user_id: S.supaSession.id,
+      family_id: S.familyId || null,
+      endpoint: j.endpoint,
+      p256dh: j.keys && j.keys.p256dh,
+      auth: j.keys && j.keys.auth,
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await sb.from('fl_push_subscriptions').upsert(row, { onConflict: 'endpoint' });
+    if(error) { console.warn('[push] store error:', error.message); return { ok:false, error }; }
+    return { ok:true };
+  } catch(e) { console.warn('[push] store exception:', e && e.message); return { ok:false }; }
+}
+async function _pushSubscribeAndStore() {
+  const reg = await _getSWRegistration();
+  if(!reg || !reg.pushManager) return { ok:false, reason:'no_sw' };
+  let sub = null;
+  try { sub = await reg.pushManager.getSubscription(); } catch(_){}
+  if(!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
+  return await _storePushSubscription(sub);
+}
+async function _removePushSubscription() {
+  try {
+    const reg = await _getSWRegistration();
+    const sub = (reg && reg.pushManager) ? await reg.pushManager.getSubscription() : null;
+    if(sub) {
+      const ep = sub.endpoint;
+      try { await sub.unsubscribe(); } catch(_){}
+      const sb = getSupabase();
+      if(sb && isSupaLoggedIn()) { try { await sb.from('fl_push_subscriptions').delete().eq('endpoint', ep); } catch(_){} }
+    }
+  } catch(_){}
+}
+async function enableWebPush() {
+  if(!_webPushSupported())  { showToast('この端末はプッシュ通知に対応していません','info'); return false; }
+  if(!_webPushConfigured()) { showToast('プッシュ通知は準備中です（サーバ設定の完了後に有効化されます）','info'); return false; }
+  if(!isSupaLoggedIn())     { showToast('プッシュ通知にはログインが必要です','info'); return false; }
+  let perm = Notification.permission;
+  if(perm === 'default') { try { perm = await Notification.requestPermission(); } catch(_){} }
+  if(perm !== 'granted')  { showToast('通知が許可されていません。端末の設定をご確認ください','info'); return false; }
+  const r = await _pushSubscribeAndStore();
+  if(!r.ok) { showToast('プッシュ通知の登録に失敗しました。通信環境をご確認ください','error'); return false; }
+  S.webPushEnabled = true; try { saveS(); } catch(_){}
+  showToast('プッシュ通知をオンにしました');
+  return true;
+}
+async function disableWebPush() {
+  await _removePushSubscription();
+  S.webPushEnabled = false; try { saveS(); } catch(_){}
+  showToast('プッシュ通知をオフにしました');
+}
+async function toggleWebPush() {
+  if(S.webPushEnabled) { await disableWebPush(); }
+  else { await enableWebPush(); }
+  try { openNotifSettings(); } catch(_){}
+}
+/* 起動時：有効かつ許可済みなら購読を最新化（endpoint 更新に追従） */
+async function _refreshWebPushOnStart() {
+  try {
+    if(S.webPushEnabled && _webPushSupported() && _webPushConfigured()
+       && isSupaLoggedIn() && Notification.permission === 'granted') {
+      await _pushSubscribeAndStore();
+    }
+  } catch(_){}
 }
 
 function _startNotifChecker() {
@@ -27470,6 +27596,8 @@ function init() {
     if(_pendingJoinCode) { setTimeout(function(){ try { _processPendingJoin(); } catch(_){} }, 1500); }
     // Wave 250: 起動時に Hoku ログインボーナスをチェック（7時以降・同日初回のみ表示）
     setTimeout(function(){ try { checkLoginBonus(); } catch(_){} }, 900);
+    // Wave 268: Web Push が有効なら購読を最新化（endpoint 更新に追従・失敗しても無害）
+    setTimeout(function(){ try { _refreshWebPushOnStart(); } catch(_){} }, 2500);
     // Wave 65: ?chrome=off で tabbar / FAB を隠してスクショ風に見せる
     if(params.get('chrome') === 'off') {
       document.getElementById('tabbar')?.classList.add('hidden');
