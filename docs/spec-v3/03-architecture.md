@@ -99,7 +99,7 @@ Familink/
 スクリプト内の論理モジュール（ファイル分割はしないが、責務は明確に区分）:
 
 1. **クラウド接続層**（L6300–8300 付近）: `initSupabase` / 認証 / `_pushToSupabase` / `_fetchFromSupabase` / Realtime / 招待
-2. **状態・永続化層**（L8300–9100）: `S` 定義 / `PERSIST`（87 キー）/ `saveS` / `loadS` / マイグレーション / ストレージ統計
+2. **状態・永続化層**（L8300–9100）: `S` 定義 / `PERSIST`（88 キー）/ `saveS` / `loadS` / マイグレーション / ストレージ統計
 3. **共通基盤**（L9100–10100）: `uid` / 日付ヘルパー / `H()` エスケープ / `_validateUploadFile` / モーダル・トースト・確認
 4. **画面 render 層**（L10100–23600）: 画面ごとの `renderXxx` / `openXxxModal` / `saveXxx`
 5. **Hoku 層**（L23600–27500）: 二層応答（ローカル/LLM）・インテントエンジン・音声・OCR 導線
@@ -119,7 +119,7 @@ Familink/
 ### 3.1 状態管理
 
 - 単一のグローバル状態 `S`（プレーンオブジェクト）。UI は「`S` 変更 → `saveS()` → 対象画面 `renderXxx()` 再描画」の単方向フロー
-- `PERSIST` 配列（87 キー）に列挙されたキーだけが LocalStorage へ保存される。**新規保存キーは PERSIST への追加が必須**（技術的不変条件・CLAUDE.md §12.2）
+- `PERSIST` 配列（88 キー）に列挙されたキーだけが LocalStorage へ保存される。**新規保存キーは PERSIST への追加が必須**（技術的不変条件・CLAUDE.md §12.2）
 - `S._xxx` 形式のキーは揮発（PERSIST 非対象）— 例: `S._serverEntitlement`（課金権利のサーバキャッシュ）、`S._deletions` は例外的に永続
 - `saveS()` は boolean を返し、容量超過時は呼び出し側がロールバック（§5.3 データ保護）
 
@@ -161,7 +161,7 @@ DOMContentLoaded
 ```
 ユーザー操作 → S 変更 → saveS()
   → _scheduleSyncToSupabase()（1500ms デバウンス）
-  → _pushToSupabase(): SYNC_KEYS（40キー）を {user_id, family_id, data_key, payload(JSONB), updated_at}
+  → _pushToSupabase(): SYNC_KEYS（38キー）を {user_id, family_id, data_key, payload(JSONB), updated_at}
     の行に変換し 20 行バッチで upsert（onConflict: user_id,data_key）・指数バックオフ 3 回
 
 他端末の変更 → Postgres → Realtime(postgres_changes)
