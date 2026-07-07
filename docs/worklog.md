@@ -23055,3 +23055,46 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-06-15 23:10  env: iPhone経由  branch: main
+
+### 作業名
+家族リアルタイム同期の徹底検証＋同時編集精度の磨き込み（世界最高峰）
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615i)／docs/sw.js
+- tools/qa_sync_merge_test.js（新規）／worklog
+
+### 変更内容
+- **中核ロジックの網羅テストを新設**（qa_sync_merge_test・22件）: _mergeSyncArray(LWW)/
+  _isTombstoned/_mergeDeletions/_gcDeletions/_dedupByContent/_occursOn を、家族2端末の
+  同時編集・削除伝播・重複防止・繰り返しで実証。全て正しく解決（データ欠損なし）を確認
+- **リアルタイム購読を精読**（startRealtimeSync）: echo抑制/debounce/指数バックオフ/
+  再接続時catch-up が実装済みで堅牢と確認
+- **項目レベル updatedAt の打刻を追加**（同時編集の解決精度向上）:
+  予定(saveEvent 作成/編集)・家計(saveTx 作成/編集)にフルISOのupdatedAt/createdAtを付与。
+  タスク・体調は既に打刻済み。これで LWW が「押した順」ではなく「編集時刻」で決まり、
+  削除後の編集が正しく残る（トゥームストーンと整合）
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- qa_sync_merge_test: 22/22 PASS（新規）／event_remind 13・cal_integrity 10・
+  bill_centralized 12・content 22・autosync 10 全緑
+- 実挙動: 予定保存で updatedAt/createdAt 付与を確認・全画面pageerror0
+- 版一致: var V = SW_VERSION = v20260615i
+
+### 未確認事項
+- 実機2台での本番Supabase経由の end-to-end リアルタイム（サンドボックス制約で未検証）。
+  ロジックとモックは全緑。実配信は本番で最終確認を推奨
+
+### iPhone確認ポイント
+- 2台でリンク招待→参加→一方の予定編集/削除が他方へ数秒で反映
+- 同じ予定を両者が編集→後から編集した内容が残る／削除した予定が復活しない
+
+### 次にやること
+- （任意）実機2台での通し確認 ／ 決済本実装
+
+### コミット
+- 本コミット（main）

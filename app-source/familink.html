@@ -13354,7 +13354,7 @@ function saveEvent() {
   if(eid) {
     const ev = (S.events||[]).find(e=>e.id===eid);
     if(ev) {
-      Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor});
+      Object.assign(ev, {title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor,updatedAt:new Date().toISOString()});
       showToast('予定を更新しました');
     } else {
       // 同時編集：編集中に他の端末/家族がこの予定を削除した → 偽の「更新」を出さず案内
@@ -13365,7 +13365,7 @@ function saveEvent() {
     }
   } else {
     if(!checkPremiumLimit('events')) return;
-    (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor,workspaceId:curWsId()});
+    { const _now=new Date().toISOString(); (S.events=S.events||[]).push({id:uid(),title,date,time,endTime,allDay,member,note,repeat,repeatInterval,repeatUnit,repeatUntil,remind,color:S._evColor,workspaceId:curWsId(),createdAt:_now,updatedAt:_now}); }
     showToast('予定を追加しました');
   }
   saveS(); closeModal('m-event'); renderCal(); renderHome();
@@ -15884,13 +15884,13 @@ function saveTx() {
   if(id) {
     const tx = (S.txs||[]).find(t => t.id === id);
     let _snap = null;
-    if(tx) { _snap = Object.assign({}, tx); Object.assign(tx, {type, amount, cat, desc: desc||cat, date, member}); }
+    if(tx) { _snap = Object.assign({}, tx); Object.assign(tx, {type, amount, cat, desc: desc||cat, date, member, updatedAt:new Date().toISOString()}); }
     if(!saveS()) { if(tx && _snap) Object.assign(tx, _snap); showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error'); return; }
     closeModal('m-budget'); renderBudget();
     showToast('保存しました');
   } else {
     if(!checkPremiumLimit('txs')) return;
-    (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member,workspaceId:curWsId()});
+    { const _now=new Date().toISOString(); (S.txs=S.txs||[]).push({id:uid(),type,amount,cat,desc:desc||cat,date,member,workspaceId:curWsId(),createdAt:_now,updatedAt:_now}); };
     if(!saveS()) { S.txs.pop(); showToast('容量不足のため保存できませんでした。設定 → ストレージ管理から整理してください。','error'); return; }
     closeModal('m-budget'); renderBudget();
     showToast('記録しました');
