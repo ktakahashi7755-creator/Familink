@@ -23098,3 +23098,44 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-06-16 00:40  env: iPhone経由  branch: main
+
+### 作業名
+決済（Stripe Checkout）本実装：クライアント導線完了＋サーバ成果物一式
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260615j)／docs/sw.js
+- docs/billing-entitlements.sql／docs/edge-functions/{create-checkout,stripe-webhook,billing-portal}/index.ts
+- docs/BILLING-SETUP.md／worklog
+
+### 変更内容
+- **クライアント決済導線**（STRIPE_ENABLED フラグでガード・既定false=現行β/トライアル維持）:
+  startCheckout()（create-checkout invoke→Stripe決済ページへ）/ openBillingPortal()（解約・管理）/
+  _handleCheckoutReturn()（?checkout=success で権利を数回リトライ再同期）
+- プレミアム画面CTA: STRIPE_ENABLED時は「プレミアムに登録(月額480円)」「お支払い・解約の管理」へ切替
+- **権利の正本はサーバ**（既存 isPremium()→_serverEntitlement→fl_my_premium を活用）
+- **サーバ成果物**（要デプロイ）: fl_entitlements+fl_my_premiumビュー+RLS(SQL)、
+  Edge Function 3本（Checkoutセッション作成/Webhookで権利付与(署名検証・service_role)/Billing Portal）、
+  セットアップ手順書（Stripe商品→SQL→deploy→Webhook→フラグON→テストカード検証・iOS IAP注意）
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- 決済導線: STRIPE_ENABLED=false でプレミアム画面/CTA/βバナー現行維持・startCheckoutガードOK・pageerror0
+- 秘密情報の混入なし（STRIPE_ENABLED=false・secret類はリポジトリに置かない設計）
+- 版一致: var V = SW_VERSION = v20260615j
+
+### 未確認事項（ユーザー作業・本番Stripe/Supabase必須）
+- Stripe商品作成→SQL適用→Edge Functionデプロイ→Webhook登録→シークレット設定→STRIPE_ENABLED=true→
+  テストカードでend-to-end検証
+
+### iPhone確認ポイント
+- サーバ設定＋フラグON後：プレミアム画面「登録」→Stripe決済→成功で「プレミアム利用中」→Portalで解約
+
+### 次にやること
+- （ユーザー）BILLING-SETUP.md に沿って設定→疎通→本番モード切替
+
+### コミット
+- 本コミット（main）

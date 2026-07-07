@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260615i';
+var V='v20260615j';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -21239,15 +21239,29 @@ function renderPremium() {
     const betaBar = '<div style="font-size:10.5px;line-height:1.5;color:#9A5A00;background:#FFF6E8;border:1px solid rgba(255,159,10,.25);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:8px;">現在はベータ版です。実際の課金は発生しません（正式リリース時にApp Store経由で開始）</div>';
     // プレミアム利用中はこの画面から解約/管理できる導線を常設
     const manageLink = '<div class="prm-links"><button class="prm-link" onclick="cancelPremium()">プレミアムを解約 / 管理</button></div><div style="height:6px"></div>';
-    ctaBar.innerHTML = isPrem
-      ? betaBar + trialBadge + '<div class="prm-cta-already">✓ プレミアム利用中</div>'
-        + (inTrial ? '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px;">無料期間終了後は月額480円で自動更新（正式リリース後）</div>' : '')
-        + manageLink
-      : betaBar + trialBadge + '<button class="prm-cta-btn" onclick="prmStartTrial()">'
-        + '<span>30日間 無料でためす</span>'
-        + '<span class="prm-cta-btn-sub">クレジットカード不要・今すぐ開始</span>'
-        + '</button>'
-        + linksHtml;
+    if(typeof STRIPE_ENABLED !== 'undefined' && STRIPE_ENABLED) {
+      // 実決済（Stripe Checkout）有効時：βバナーは出さず、実際の登録/お支払い管理へ
+      ctaBar.innerHTML = isPrem
+        ? trialBadge + '<div class="prm-cta-already">✓ プレミアム利用中</div>'
+          + '<div class="prm-links"><button class="prm-link" onclick="openBillingPortal()">お支払い・解約の管理</button></div><div style="height:6px"></div>'
+        : trialBadge
+          + '<button class="prm-cta-btn" onclick="startCheckout()">'
+          + '<span>プレミアムに登録</span>'
+          + '<span class="prm-cta-btn-sub">月額480円・いつでも解約できます</span>'
+          + '</button>'
+          + (S.trialStartedAt ? '' : '<button class="prm-link" style="display:block;margin:8px auto 0;background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;" onclick="prmStartTrial()">まずは30日間 無料でためす</button>')
+          + linksHtml;
+    } else {
+      ctaBar.innerHTML = isPrem
+        ? betaBar + trialBadge + '<div class="prm-cta-already">✓ プレミアム利用中</div>'
+          + (inTrial ? '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px;">無料期間終了後は月額480円で自動更新（正式リリース後）</div>' : '')
+          + manageLink
+        : betaBar + trialBadge + '<button class="prm-cta-btn" onclick="prmStartTrial()">'
+          + '<span>30日間 無料でためす</span>'
+          + '<span class="prm-cta-btn-sub">クレジットカード不要・今すぐ開始</span>'
+          + '</button>'
+          + linksHtml;
+    }
   }
 }
 
@@ -22459,6 +22473,67 @@ function isPremium() {
     return S._serverEntitlement.premium;
   }
   return !!(typeof S !== 'undefined' && S.isPremiumUser);
+}
+
+/* ── Wave 269: 決済（Stripe Checkout）本実装 ───────────────────────
+   ・実決済は Stripe Checkout（リダイレクト型・カード情報はアプリを通らない/PCIはStripe側）。
+   ・秘密鍵は Edge Function のシークレットのみ。クライアント・リポジトリには置かない。
+   ・権利の正本はサーバ（fl_entitlements）。Webhook が付与し、fl_my_premium ビュー→
+     _syncPremiumFromServer()→isPremium() が参照。クライアント改ざんでは付与できない。
+   ・STRIPE_ENABLED=false の間は従来（β/トライアル）挙動のまま（既存を一切壊さない）。
+   必要な Edge Function: create-checkout / billing-portal / stripe-webhook
+   手順書: docs/BILLING-SETUP.md
+   ───────────────────────────────────────────────────────────── */
+const STRIPE_ENABLED = false;   // ← サーバ側の設定完了後に true にして再同期
+
+async function startCheckout() {
+  if(!STRIPE_ENABLED) { showToast('決済は準備中です（サーバ設定の完了後にご利用いただけます）','info'); return; }
+  if(!isSupaLoggedIn()) { showToast('ご登録にはログインが必要です','info'); openSupaAuthModal('signin'); return; }
+  const sb = getSupabase();
+  if(!sb || !sb.functions) { showToast('接続を確認しています。しばらくして再度お試しください','info'); return; }
+  try {
+    showLoading('決済ページへ移動します…');
+    const origin = location.origin + location.pathname;
+    const r = await sb.functions.invoke('create-checkout', { body: { returnUrl: origin } });
+    hideLoading();
+    if(r && !r.error && r.data && r.data.url) { window.location.assign(r.data.url); return; }
+    showToast('決済ページを開けませんでした。時間をおいて再度お試しください','error');
+  } catch(e) { try{ hideLoading(); }catch(_){} showToast('決済の開始に失敗しました','error'); }
+}
+
+async function openBillingPortal() {
+  if(!STRIPE_ENABLED) { showToast('お支払い管理は準備中です','info'); return; }
+  if(!isSupaLoggedIn()) { showToast('ログインが必要です','info'); return; }
+  const sb = getSupabase();
+  if(!sb || !sb.functions) { showToast('接続を確認しています。しばらくして再度お試しください','info'); return; }
+  try {
+    showLoading('お支払い管理ページへ移動します…');
+    const origin = location.origin + location.pathname;
+    const r = await sb.functions.invoke('billing-portal', { body: { returnUrl: origin } });
+    hideLoading();
+    if(r && !r.error && r.data && r.data.url) { window.location.assign(r.data.url); return; }
+    showToast('管理ページを開けませんでした','error');
+  } catch(e) { try{ hideLoading(); }catch(_){} showToast('管理ページの表示に失敗しました','error'); }
+}
+
+/* Checkout から戻ってきたとき（?checkout=success|cancel）の処理。init から呼ぶ。 */
+function _handleCheckoutReturn() {
+  try {
+    const q = new URLSearchParams(location.search || '');
+    const c = q.get('checkout');
+    if(!c) return;
+    // URL からパラメータを除去（リロードで再表示しない）
+    try { const u = new URL(location.href); u.searchParams.delete('checkout'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch(_){}
+    if(c === 'success') {
+      showToast('ご登録ありがとうございます。プレミアムを反映しています…','success');
+      // サーバ権利を反映（Webhook 反映に少し遅れることがあるので数回リトライ）
+      let n = 0;
+      const tick = function(){ n++; try { _syncPremiumFromServer(); } catch(_){}; if(n < 5) setTimeout(tick, 1500); };
+      setTimeout(tick, 800);
+    } else if(c === 'cancel') {
+      showToast('お手続きをキャンセルしました。いつでもご登録いただけます','info');
+    }
+  } catch(_){}
 }
 
 const PREMIUM_LIMITS = {
@@ -27617,6 +27692,8 @@ function init() {
     setTimeout(function(){ try { checkLoginBonus(); } catch(_){} }, 900);
     // Wave 268: Web Push が有効なら購読を最新化（endpoint 更新に追従・失敗しても無害）
     setTimeout(function(){ try { _refreshWebPushOnStart(); } catch(_){} }, 2500);
+    // Wave 269: Stripe Checkout からの復帰（?checkout=success|cancel）を処理
+    try { _handleCheckoutReturn(); } catch(_){}
     // Wave 65: ?chrome=off で tabbar / FAB を隠してスクショ風に見せる
     if(params.get('chrome') === 'off') {
       document.getElementById('tabbar')?.classList.add('hidden');
