@@ -23174,3 +23174,48 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-07-08 11:35  env: iPhone経由  branch: claude/code-review-refinement-hlqr8i
+
+### 作業名
+全体総点検：残骸コード除去・エラー箇所/導線切れ調査・全テスト複数周回で全緑確認
+
+### 変更ファイル
+- app-source/familink.html／docs/index.html(v20260708a)／docs/sw.js／tools/qa_ocr_unit_test.js／worklog
+
+### 変更内容
+- **未使用関数（残骸）6件を削除**: syncToSupabase/syncFromSupabase（手動同期ボタン撤去時の取り残し）、
+  copyMyInviteCode（招待リンク方式化で不要）、supaEntryClickSignup（Wave 211導線の取り残し）、
+  ob2StartOtp/ob2TogglePassLogin（オンボード刷新の取り残し）＋孤立CSS `.ob2-pass-section` 1行
+- **テスト経年劣化を修正**: qa_ocr_unit_test.js が固定日付 2026-06-15 を使用しており、
+  実行日がそれを過ぎたため「過去日付」警告で needsReview 判定テストが FAIL → 実行日+30日の動的日付に変更
+- 静的点検: TODO/FIXME残骸 0・console.log残骸 0・onclick未定義関数 0・PERSIST 88キー整合・
+  画面ID 22 と遷移先の完全一致・innerHTML の H() 未適用疑い 0（誤検知16件は全て安全パターン）
+- 動的点検: 全画面遷移 OK・pageerror 0・console.error 0・iPhone SE幅(375px)横スクロール 0・
+  カスタムボード/子ども詳細/ボード詳細の実データ遷移 OK・ボード未指定時の s-custom-board ガードは設計どおり
+- docs 同期(§12.3): v20260615j → v20260708a（index.html/sw.js とも版一致・本体バイト一致確認済み）
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（残骸削除後に再実行）
+- Vitest: **23/23 PASS**
+- tools/ 全32スイート: **328+ PASS / FAIL 0**（OCR修正後16/16含む・関連8スイートは削除後にも再実行して全緑）
+- docs/index.html 起動スモーク: v20260708a・pageerror 0
+
+### 未確認事項
+- Chromiumのリロード時に、巨大インラインscript内の文字列をプリロードスキャナが誤走査し
+  存在しないURLへ投機fetch（404）が飛ぶ既知のブラウザ挙動を確認（初回ロードでは発生せず、
+  DOM・表示・機能への影響ゼロ）。アプリ側の不具合ではないため対処不要と判断
+- tools/ 配下の他スイートにも固定日付（2026-06-xx）が残るが、現時点で日付非依存のため全PASS。
+  将来FAILしたら今回同様に動的日付化する
+
+### iPhone確認ポイント
+- 更新後の初回起動で自動リロード（SW版替え）が1回走った後、通常どおり使えるか
+- 設定→家族を招待する→招待リンク共有が従来どおり動くか（copyMyInviteCode削除の影響なし確認）
+
+### 次にやること
+- （ユーザー）実機2台での自動同期・招待リンクの最終確認／Web Push・Stripe本番設定
+
+### コミット
+- 本コミット
