@@ -112,7 +112,8 @@ diff <(tail -n +4 app-source/familink.html) \
 | 除外 | 別オリジン（Supabase CDN / Google Fonts）はキャッシュせずネットワーク任せ。`sw.js` 自身もキャッシュしない | 未接続時はアプリが LocalStorage のみで動作する設計のため問題なし |
 | Web Push | `push` ハンドラ（JSON `{title, body, url, tag, icon}`）＋ `notificationclick` で既存ウィンドウへフォーカス/遷移 | アプリを閉じていても通知が届く（Wave 268） |
 
-> **記載齟齬（2026-07-07 時点）**: CLAUDE.md §12.3 には「画面下に『更新』バナーが出る＝強制リロードしない」とあるが、現行実装（`docs/sw.js` v20260615j ＋ index.html 先頭ブロック）は **skipWaiting → controllerchange で 1 回だけ自動リロード**する方式である。現行コードを正とし、CLAUDE.md 側の文言更新が必要。
+> **解消済み（2026-07-08）**: CLAUDE.md §12.3 の旧記述「更新バナーが出る＝強制リロードしない」は、現行実装
+> （**skipWaiting → controllerchange で 1 回だけ自動リロード**）に合わせて修正済み。本節の記述が正本である。
 
 ---
 
