@@ -9039,7 +9039,7 @@ function renderStorageModal() {
     +   '<div style="font-size:11px;color:'+barColor+';margin-top:6px;font-weight:600;">'+s.pct+'%</div>'
     + '</div>'
     + (warn ? '<div class="cf-warn '+(warn==='danger'?'danger':'')+'">'+(warn==='danger' ? ICON('warning',13)+' 容量がほぼ上限です。新しい写真を保存できません。下記の整理をご検討ください。' : '注意：容量が 70% を超えました。早めの整理をおすすめします。')+'</div>' : '')
-    + (!S.isPremiumUser && warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-size:12px;font-weight:700;color:var(--text);" style="display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/></svg>ストレージを20GBに拡張</div><div style="font-size:11px;color:var(--text-sub);">プレミアムで容量の問題を解決できます</div></div><button onclick="closeModal(\'m-storage\');go(\'s-premium\')" style="flex-shrink:0;background:var(--grad-blue-violet);color:#fff;border:none;border-radius:var(--r-full);font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">詳しく</button></div>' : '')
+    + (warn ? '<div style="margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#EBF4FF,#FFF8EC);border-radius:12px;border:1px solid #D8E8FF;font-size:11px;color:var(--text-sub);line-height:1.6;">端末内の保存容量はブラウザの上限に依存します。下記の内訳から古い写真・書類の整理や、設定の「データを書き出す」でのバックアップをおすすめします。</div>' : '')
     + '<div style="font-size:12px;color:var(--text-muted);font-weight:700;margin:14px 0 6px;letter-spacing:.5px;">内訳</div>'
     + _renderStorageRow('アルバム写真', s.albumBytes, s.albumCount,
         [['delete-album-old','古い10件を削除', s.albumCount > 0],
@@ -16253,7 +16253,7 @@ const LEGAL_PRIVACY = {
       '2.5 写真・カメラ：撮影・選択した画像は端末内またはSupabase（ログイン時）に保存されます。'] },
     { h:'3. 収集しない情報', items:[
       '・住所・位置情報（GPS）',
-      '・クレジットカード情報（課金はApp Store/Google Play経由）',
+      '・クレジットカード情報（課金はApp Store/Google Play/決済事業者経由）',
       '・連絡先・OSカレンダー連携',
       '・端末識別子（IDFA等）・IPアドレス・アクセスログ（ゲスト使用時）'] },
     { h:'4. クッキー・類似技術', items:[
@@ -16269,7 +16269,7 @@ const LEGAL_PRIVACY = {
     { h:'7. 子どものプライバシー', items:[
       '本アプリは13歳未満の子ども本人による利用を意図していません。保護者が子どもの情報を記録する用途で使用されますが、それらも端末内にのみ保存されます。'] },
     { h:'8. 課金情報', items:[
-      'Familink プレミアム（月額480円予定）は将来提供予定です。課金処理は App Store / Google Play を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
+      'Familink プレミアム（月額480円予定）は将来提供予定です。課金処理は App Store / Google Play または決済事業者（Stripe 等）を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
     { h:'9. データの利用目的', items:[
       '入力データは、予定・タスク・家計・体調等の表示、Hoku の応答、集計表示のためにのみ、端末内で使用されます。外部送信は行いません。'] },
     { h:'10. お問い合わせ', items:[
@@ -16303,7 +16303,7 @@ const LEGAL_TERMS = {
     { h:'第7条（Hoku の利用）', items:[
       'Hoku は入力文を端末内で分類し保存先や操作を提案する機能です。応答は参考情報であり、専門的助言ではありません。音声入力は端末ブラウザの Web Speech API を利用します。'] },
     { h:'第8条（プレミアム機能）', items:[
-      'プレミアム機能は将来提供予定です。課金は App Store / Google Play を通じて行います。解約は各ストアアカウントの設定から行ってください。'] },
+      'プレミアム機能は将来提供予定です。課金は App Store / Google Play または決済事業者（Stripe 等）を通じて行います。解約はアプリ内の「プレミアム」画面、または各ストアアカウントの設定から行えます。'] },
     { h:'第9条（サービスの変更・中止）', items:[
       '開発者は事前通知なく本アプリの内容を変更・中止する場合があります。これにより生じた損害について責任を負いません。'] },
     { h:'第10条（免責事項）', items:[
@@ -21103,7 +21103,7 @@ function renderPremium() {
 
   // ── 3 benefits ────────────────────────────────────────────
   const benefitsHtml = '<div class="prm-checklist">'
-    + ['広告なしで家族管理に集中できる','Hokuを制限なく使える','写真・書類・思い出をたっぷり保存できる'].map(b =>
+    + ['Hokuを制限なく使える','写真・書類・思い出をたっぷり保存できる','予定表の写真読み取りが月30回まで使える'].map(b =>
         '<div class="prm-check-item">'
         + '<div class="prm-check-icon">' + checkIcon + '</div>'
         + '<span>' + b + '</span></div>'
@@ -21114,14 +21114,14 @@ function renderPremium() {
   const _si = (paths, color) =>
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
   const features = [
-    { icon: _si('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>', '#D94444'),
-      bg:'#FFF0F0', name:'広告なしで使える',
-      desc:'家族の予定・タスク・家計管理を、広告に邪魔されず快適に使えます。',
-      detail:'無料プランでは画面に広告が表示されます。プレミアムでは一切表示されません。' },
+    { icon: _si('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>', '#D94444'),
+      bg:'#FFF0F0', name:'予定表の読み取りが月30回まで',
+      desc:'園や学校の予定表を写真に撮るだけで、カレンダーへまとめて登録できます。',
+      detail:'無料プランでは月1回までです。プレミアムでは月30回まで利用できます。' },
     { icon: _si('<polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>', '#0A84FF'),
-      bg:'#EEF5FF', name:'ストレージを20GBまで拡張',
+      bg:'#EEF5FF', name:'写真・書類の保存枠が無制限',
       desc:'写真、動画、書類、思い出をまとめて保存できます。',
-      detail:'無料プランのストレージ上限は500MBです。プレミアムでは20GBまで利用できます。' },
+      detail:'無料プランでは写真20枚・書類15件・メモ20件までです。プレミアムでは件数の上限なく保存できます（端末の空き容量の範囲）。' },
     { icon: _si('<path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/>', '#D97706'),
       bg:'#FFFAEB', name:'プレミアムアバターが使える',
       desc:'家族メンバーごとに特別なアバターを設定できます。',
@@ -21144,8 +21144,8 @@ function renderPremium() {
   // ── compare table ─────────────────────────────────────────
   const rows = [
     ['価格',          '¥0',       '¥480/月'],
-    ['広告非表示',     '—',        '✓'],
-    ['ストレージ',     '500MB',    '20GB'],
+    ['予定表の読み取り', '月1回',    '月30回'],
+    ['写真・書類の保存枠','写真20枚ほか','無制限'],
     ['Hoku利用',      '1日5回',   '無制限'],
     ['プレミアムアバター','—',     '✓'],
     ['写真/書類管理',  '基本機能', '拡張機能'],
@@ -21172,9 +21172,9 @@ function renderPremium() {
     '30日間無料でお試しいただけます。',
     '無料期間中に解約すれば料金はかかりません。',
     '無料期間終了後は、月額480円で自動更新されます。',
-    'ご契約と解約は、App Storeのアカウント設定から行えます。',
+    'ご契約と解約は、この「プレミアム」画面からいつでも行えます。',
     '家族で利用する場合も、代表者1名の契約でプレミアム機能を利用できます。',
-    '購入済みの場合は「購入を復元」から状態を確認できます。',
+    '同じアカウントでログインすると、ご契約状態は自動的に反映されます。',
   ];
   const termsHtml = '<div class="prm-section-title">プレミアムのご契約について</div>'
     + '<div class="prm-terms">'
@@ -21185,7 +21185,7 @@ function renderPremium() {
   const faqs = [
     { q:'家族もプレミアム機能を使えますか？', a:'はい。代表者1名がプレミアム契約すると、同じ家族スペース内のメンバーも対象機能を利用できます。' },
     { q:'無料期間中に解約できますか？', a:'はい。無料期間中に解約すれば料金は発生しません。' },
-    { q:'プランは変更できますか？', a:'将来的に月額プラン・年額プランを選べるようにする予定です。' },
+    { q:'プランは変更できますか？', a:'はい。月額プラン（480円）と年額プラン（4,800円）からお選びいただけます。' },
     { q:'解約するとどうなりますか？', a:'プレミアム限定機能は利用できなくなりますが、保存済みの基本データは削除されません。' },
     { q:'購入を復元できますか？', a:'はい。購入済みの場合は「購入を復元」から状態を確認できます。' },
   ];
@@ -21890,7 +21890,7 @@ function renderSettings() {
     ? '<div class="menu-premium-member"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>プレミアム会員</div>'
       + '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">すべての機能が使い放題です</div>'
     : '<div class="menu-premium-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8960A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 6 6-8 6 8 4-6-1 12H3z"/><line x1="3" y1="20" x2="21" y2="20"/></svg>Familink Premium</div>'
-      +'<div class="menu-premium-desc">広告なし・Hoku無制限・20GBストレージ<br><strong style="color:#0A84FF">今なら30日間無料</strong>で体験できます</div>'
+      +'<div class="menu-premium-desc">Hoku無制限・保存枠の拡大・予定表読み取り 月30回<br><strong style="color:#0A84FF">今なら30日間無料</strong>で体験できます</div>'
       +'<button class="menu-premium-btn" onclick="go(\'s-premium\')">30日間無料でためす →</button>';
 
   const mailIcon = si('<path d="M4 4h16v16H4z" fill="none"/><path d="M2 6l10 7L22 6"/><rect x="2" y="4" width="20" height="16" rx="2"/>','#0A84FF');
@@ -22443,7 +22443,6 @@ function selectAvatarItem(avatarId) {
 const PREMIUM_FEATURES = {
   ocr:       { free: 1,  premium: 30, label: '予定表の読み取り（月）' },
   hokuDaily: { free: 5,              label: 'Hokuの相談（1日）' },   // premium は無制限
-  adFree:    { premiumOnly: true,    label: '広告なし' },
   themes:    { premiumOnly: true,    label: 'テーマ着せ替え' },
 };
 /* プレミアム状態の唯一の判定アクセサ。課金済み(premiumPaid)＋トライアルを
@@ -28738,8 +28737,8 @@ async function _oauthSignIn(provider) {
           <span style="font-size:13px;font-weight:700;color:var(--text);">安全なお支払い</span>
         </div>
         <div style="font-size:12px;line-height:1.7;color:var(--text-sub);">
-          お支払いは App Store を通じて安全に処理されます。クレジットカード情報をアプリに入力する必要はありません。<br>
-          サブスクリプションの管理・解約は「設定 → Apple ID → サブスクリプション」からいつでも行えます。
+          現在はベータ版のため、実際の請求は発生せず、入力内容が端末の外へ送信されることもありません。<br>
+          正式リリース後のお支払いは App Store または決済事業者を通じて安全に処理され、カード情報がこのアプリに保存されることはありません。サブスクリプションの管理・解約は「プレミアム」画面からいつでも行えます。
         </div>
       </div>
       <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:4px 0 12px;">
