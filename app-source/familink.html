@@ -7013,20 +7013,6 @@ async function _fetchFromSupabaseImpl() {
   }
 }
 
-async function syncToSupabase() {
-  if(!isSupaLoggedIn()) { showToast('クラウドへの送信にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
-  const r = await _pushToSupabase();
-  if(r && r.ok) { showToast('クラウドに保存しました','success'); }
-  else { showToast('クラウドへの保存に失敗しました。通信環境をご確認のうえ再度お試しください','error'); }
-  return r || { ok:false };
-}
-async function syncFromSupabase() {
-  if(!isSupaLoggedIn()) { showToast('クラウドからの取得にはログインが必要です','info'); return { ok:false, reason:'not_logged_in' }; }
-  await _fetchFromSupabase();
-  showToast('クラウドから取得しました','success');
-  return { ok:true };
-}
-
 /* ── Wave 233: Supabase Realtime — 家族間リアルタイム同期 ──────────────
    fl_family_data への変更を家族全員に即座に反映する。
    同一 family_id を持つメンバー間で変更がリアルタイムに届く。
@@ -7116,12 +7102,6 @@ let _lastPushAt = null;
    - ログインせずに体験する：既存の _enterApp（ローカル動作のまま）へ
    - 招待コードで参加する：m-supa-invite を開く（doSupaInviteSubmit で実参加）
    ============================================================ */
-/* Wave 211: signup モード直行（welcome → ワンクリックで「メール認証不要で作成」緑ボタンに到達） */
-function supaEntryClickSignup() {
-  S.supaEntryChoice = 'supa';
-  saveS();
-  openSupaAuthModal('signup');
-}
 function supaEntryClickGuest() {
   S.supaEntryChoice = 'guest';
   saveS();
@@ -8343,17 +8323,6 @@ async function openMyInviteModal() {
   }
 }
 
-function copyMyInviteCode() {
-  const code = _curInviteCode || S.familyId || '';
-  try {
-    if(navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(code);
-      showToast('招待リンクをコピーしました');
-    } else {
-      showToast('リンクを長押しでコピーしてください', 'info');
-    }
-  } catch(e) { showToast('リンクを長押しでコピーしてください', 'info'); }
-}
 /* 招待リンクを共有（ネイティブ共有シート→失敗時はクリップボードへコピー） */
 async function shareInviteLink() {
   // openMyInviteModal で発行済みの使い捨てトークンリンクを使う（無ければ family_id リンク）
@@ -28540,36 +28509,6 @@ function ob2TogglePass() {
   const inp = document.getElementById('ob2-pass');
   if(!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-/* メールでログイン（パスワード不要・コード方式）。新規・既存どちらもこの導線で完結する。
-   Supabase の「Confirm email」設定に左右されず、コード入力だけで即ログイン・即同期できる。 */
-function ob2StartOtp() {
-  const email = (document.getElementById('ob2-email')?.value || '').trim();
-  const errEl = document.getElementById('ob2-err');
-  if(errEl) errEl.textContent = '';
-  if(email && !_validEmail(email)) {
-    if(errEl) errEl.textContent = 'メールアドレスの形式が正しくありません';
-    try { document.getElementById('ob2-email')?.focus(); } catch(_){}
-    return;
-  }
-  openSupaAuthModal('otp');
-  // 入力済みメールを引き継ぐ。クラウド未接続時はモーダルが signup へ強制切替されるため、
-  // OTP欄とパスワード登録欄の両方に入れて、どのモードで開いても消えないようにする。
-  if(email) {
-    ['supa-otp-email','supa-auth-email'].forEach(function(id){
-      const el = document.getElementById(id); if(el) el.value = email;
-    });
-  }
-}
-/* 既存ユーザー向けにパスワードログイン欄を開閉する */
-function ob2TogglePassLogin() {
-  const sec = document.getElementById('ob2-pass-section');
-  const tog = document.getElementById('ob2-pass-toggle');
-  if(!sec) return;
-  const show = (sec.style.display === 'none' || !sec.style.display);
-  sec.style.display = show ? '' : 'none';
-  if(tog) tog.style.display = show ? 'none' : '';
-  if(show) { const p = document.getElementById('ob2-pass'); if(p) try { p.focus(); } catch(_){} }
 }
 async function ob2Login() {
   const email = (document.getElementById('ob2-email')?.value || '').trim();
