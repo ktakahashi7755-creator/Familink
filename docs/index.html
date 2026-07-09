@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260709a';
+var V='v20260709b';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -22404,6 +22404,9 @@ function endAppTour(completed) {
     try { go('s-home'); } catch(_){}
     showToast('ツアー完了！設定 → 使い方ガイドからいつでも見直せます','success');
   }
+  // ボーナスがツアー開始前に開いて閉じられた場合、保留(_loginBonusPending)が残ったままになる。
+  // ツアー終了後に必ず再表示する（受け取り損ねの防止）。
+  try { if(typeof _loginBonusPending !== 'undefined' && _loginBonusPending) setTimeout(_openLoginBonusModal, 600); } catch(_){}
 }
 window.addEventListener('resize', function(){ if(_tourState.on) _tourShow(_tourState.i, 1); });
 

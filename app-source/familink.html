@@ -22385,6 +22385,9 @@ function endAppTour(completed) {
     try { go('s-home'); } catch(_){}
     showToast('ツアー完了！設定 → 使い方ガイドからいつでも見直せます','success');
   }
+  // ボーナスがツアー開始前に開いて閉じられた場合、保留(_loginBonusPending)が残ったままになる。
+  // ツアー終了後に必ず再表示する（受け取り損ねの防止）。
+  try { if(typeof _loginBonusPending !== 'undefined' && _loginBonusPending) setTimeout(_openLoginBonusModal, 600); } catch(_){}
 }
 window.addEventListener('resize', function(){ if(_tourState.on) _tourShow(_tourState.i, 1); });
 

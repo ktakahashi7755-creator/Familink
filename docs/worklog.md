@@ -23235,3 +23235,35 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット
+
+---
+
+## 2026-07-09 22:20  env: iPhone経由（Claude Code リモート）  branch: claude/final-review-polish-795tjc
+
+### 作業名
+最終総点検の追いコミット：ツアー終了後にログインボーナスが再表示されない競合を修正（不安定テストの根本原因）
+
+### 変更ファイル
+- app-source/familink.html ／ docs/index.html（v20260709b・§12.3同期）／ docs/sw.js
+
+### 変更内容
+- ボーナスモーダルがウェルカム提案より先に開いた場合、ツアー開始で閉じられたあと
+  `_loginBonusPending` が残ったまま再表示されず、受け取り損ねになる競合を修正
+  （endAppTour で保留ボーナスを必ず再表示）
+- qa_tour_firstrun の間欠 FAIL はこのアプリ側競合が原因（テストは正しかった）
+
+### テスト結果
+- qa_tour_firstrun: 3回連続 全PASS ／ qa_tour: PASS ／ node qa_full_test.js: 84/84 PASS
+- 版一致: var V = SW_VERSION = v20260709b
+
+### 未確認事項
+- なし
+
+### iPhone確認ポイント
+- 初回起動→ツアーを見る→終了後にログインボーナスが出るか
+
+### 次にやること
+- 実機2台での同期end-to-end再確認 → 問題なければ main へマージして Pages 反映
+
+### コミット
+- 本コミット
