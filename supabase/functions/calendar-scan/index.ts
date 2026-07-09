@@ -21,8 +21,11 @@ const SHARED_KEY = Deno.env.get("CALENDAR_SCAN_SHARED_KEY") || "";
 const PRIMARY_MODEL = Deno.env.get("CALENDAR_SCAN_MODEL") || "gpt-4o";   // 高精度（密なOCR向き）
 const FALLBACK_MODEL = "gpt-4o-mini";                                    // アクセス不可時の保険
 
+// 許可オリジンは環境変数 ALLOWED_ORIGIN で絞れる（未設定なら '*'・公開後はオリジン限定を推奨・P1-09）。
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "*";
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Vary": "Origin",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-cal-key, x-supabase-api-version",

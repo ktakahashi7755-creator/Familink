@@ -1,0 +1,37 @@
+# Familink Supabase 設定（Edge Functions の JWT 強制を固定）
+#
+# 目的（P1-03）: hoku / calendar-scan は「ログイン済みユーザーのみ」呼び出せるべきである。
+# Supabase の verify_jwt 設定に依存するのではなく、この config.toml をリポジトリで正本化し、
+# `supabase functions deploy` 時に必ず JWT 検証が有効になるようにする。
+#
+# デプロイ例:
+#   supabase functions deploy hoku            # verify_jwt=true が適用される
+#   supabase functions deploy calendar-scan   # 同上
+#   supabase functions deploy stripe-webhook  # verify_jwt=false（Stripe には JWT が無いため。署名で真正性を担保）
+#   supabase functions deploy push-send       # verify_jwt=false（pg_cron / service_role から呼ぶため）
+
+project_id = "familink"
+
+# ── Hoku 応答（要ログイン。未ログインはローカル応答にフォールバックするため呼ばない） ──
+[functions.hoku]
+verify_jwt = true
+
+# ── 予定表 OCR（要ログイン。未ログインは端末内モックにフォールバック） ──
+[functions.calendar-scan]
+verify_jwt = true
+
+# ── Stripe Webhook（Stripe から呼ばれ JWT を持たない。stripe.constructEventAsync の署名検証で真正性を担保） ──
+[functions.stripe-webhook]
+verify_jwt = false
+
+# ── Stripe Checkout セッション作成（要ログイン。関数内でも getUser() 検証済み） ──
+[functions.create-checkout]
+verify_jwt = true
+
+# ── Stripe Billing Portal（要ログイン） ──
+[functions.billing-portal]
+verify_jwt = true
+
+# ── Web Push 送信（pg_cron / service_role から呼ぶ。Bearer は service_role キー） ──
+[functions.push-send]
+verify_jwt = false

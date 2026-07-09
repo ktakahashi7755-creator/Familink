@@ -49,7 +49,7 @@ alter table public.fl_family_data
 -- 1) 自分の family_id を返す補助関数（SECURITY DEFINER で RLS 再帰を回避）
 create or replace function public.fl_my_family_ids()
   returns setof text language sql security definer stable
-  set search_path = public as $$
+  set search_path = public, pg_temp as $$
     select distinct family_id from public.fl_family_data
     where user_id = auth.uid() and family_id is not null
   $$;
@@ -168,7 +168,7 @@ create policy "invite_delete_creator" on public.fl_family_invites for delete
 -- 使い捨て消費 RPC: 有効なトークンを「未使用かつ未期限」のときだけ原子的に
 -- used 化し、family_id を返す。二重消費は行ロックで防止。
 create or replace function public.redeem_family_invite(p_token text)
-  returns text language plpgsql security definer set search_path = public as $$
+  returns text language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_family text;
 begin
@@ -220,37 +220,60 @@ grant execute on function public.redeem_family_invite(text) to authenticated;
 -- 適用: docs/supabase-setup-sql.sql の後に SQL Editor で実行（冪等）。
 -- ============================================================
 
+-- 正本スキーマ（Stripe / IAP 両対応のスーパーセット・P1-02 で統一）。
+--   ・Stripe 経路: status / stripe_customer_id / stripe_subscription_id / current_period_end
+--   ・IAP/プロモ経路: premium(直接) / source / expires_at
+--   どちらの Webhook が書いても fl_my_premium が正しく premium を算出する。
+--   既存テーブルにも add column if not exists で安全にアップグレードできる（適用順非依存）。
 create table if not exists public.fl_entitlements (
   user_id     uuid primary key references auth.users(id) on delete cascade,
   premium     boolean not null default false,
-  source      text,                              -- 'app_store' | 'play' | 'promo' | 'trial' 等
-  expires_at  timestamptz,                       -- サブスク期限（null=無期限/買い切り）
-  updated_at  timestamptz not null default now(),
-  constraint fl_ent_source_chk check (source is null or char_length(source) <= 32)
+  updated_at  timestamptz not null default now()
 );
+-- 列の後方追加（どの版で作られたテーブルにも両対応の列を揃える）
+alter table public.fl_entitlements add column if not exists source                 text;
+alter table public.fl_entitlements add column if not exists expires_at             timestamptz;
+alter table public.fl_entitlements add column if not exists status                 text;
+alter table public.fl_entitlements add column if not exists stripe_customer_id     text;
+alter table public.fl_entitlements add column if not exists stripe_subscription_id text;
+alter table public.fl_entitlements add column if not exists current_period_end     timestamptz;
+alter table public.fl_entitlements drop constraint if exists fl_ent_source_chk;
+alter table public.fl_entitlements add  constraint fl_ent_source_chk check (source is null or char_length(source) <= 32) not valid;
+create index if not exists fl_ent_customer on public.fl_entitlements (stripe_customer_id);
 alter table public.fl_entitlements enable row level security;
 
 -- 読み取り: 本人のみ自分の権利を読める
-drop policy if exists "ent_select_own" on public.fl_entitlements;
+drop policy if exists "ent_select_own"    on public.fl_entitlements;
+drop policy if exists "fl_ent_own_select" on public.fl_entitlements;
 create policy "ent_select_own" on public.fl_entitlements for select
   using (auth.uid() = user_id);
 
 -- ★書き込みポリシーは作らない★
 --   → authenticated ロールからの INSERT/UPDATE/DELETE は RLS により全て拒否される。
 --     権利の付与・更新は service_role（RLSをバイパス）を持つサーバ側
---     （IAPレシート検証 Edge Function）でのみ行う。これによりクライアント改ざんでは
---     premium を true にできない。
+--     （Stripe Webhook / IAPレシート検証 Edge Function）でのみ行う。
+--     これによりクライアント改ざんでは premium を true にできない。
 grant select on public.fl_entitlements to authenticated;
 
--- 失効を考慮した「現在プレミアムか」を返すビュー（クライアントはこれを読む）
-create or replace view public.fl_my_premium as
+-- 失効を考慮した「現在プレミアムか」を返すビュー（クライアントはこれを読む）。
+--   Stripe(status/current_period_end) と IAP(premium/expires_at) の両経路を OR で判定。
+--   security_invoker=true で呼び出しユーザーの RLS を尊重（owner権限バイパスを避ける）。
+drop view if exists public.fl_my_premium;
+create view public.fl_my_premium
+  with (security_invoker = true) as
   select
-    coalesce(e.premium, false)
-      and (e.expires_at is null or e.expires_at > now()) as premium,
-    e.expires_at
+    e.user_id,
+    (
+      (coalesce(e.premium, false)
+        and (e.expires_at is null or e.expires_at > now()))
+      or
+      (e.status in ('active','trialing')
+        and (e.current_period_end is null or e.current_period_end > now()))
+    ) as premium,
+    coalesce(e.current_period_end, e.expires_at) as expires_at
   from public.fl_entitlements e
   where e.user_id = auth.uid();
-grant select on public.fl_my_premium to authenticated;
+grant select on public.fl_my_premium to anon, authenticated;
 
 -- ============================================================
 -- サーバ側（service_role）での権利付与例（Edge Function 内で実行）:
@@ -348,7 +371,7 @@ on conflict (family_id, user_id) do nothing;
 --    メンバー表参照に変えることで、データ行を書いただけでは参加にならない。
 create or replace function public.fl_my_family_ids()
   returns setof text language sql security definer stable
-  set search_path = public as $$
+  set search_path = public, pg_temp as $$
     select distinct family_id from public.fl_family_members
     where user_id = auth.uid()
   $$;
@@ -366,7 +389,7 @@ create policy "member_select_own_families" on public.fl_family_members for selec
 --    他人が既にメンバーの family_id は奪えない（衝突＝astronomically unlikely だが安全側に倒す）。
 --    自分が既にメンバーなら冪等に成功する（招待モーダルの再オープン等で再呼び出しされても安全）。
 create or replace function public.fl_create_family(p_family_id text)
-  returns text language plpgsql security definer set search_path = public as $$
+  returns text language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   if p_family_id is null or p_family_id !~ '^FAMI-[A-Z0-9-]{4,40}$' then
     raise exception 'bad_family_id' using errcode = 'P0001';
@@ -388,7 +411,7 @@ grant execute on function public.fl_create_family(text) to authenticated;
 --    有効・未使用・未期限のトークンのときだけ used 化し、呼び出し本人をメンバーに追加して
 --    family_id を返す。二重消費は行ロックで防止。
 create or replace function public.redeem_family_invite(p_token text)
-  returns text language plpgsql security definer set search_path = public as $$
+  returns text language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_family text;
 begin
   update public.fl_family_invites
@@ -412,7 +435,7 @@ grant execute on function public.redeem_family_invite(text) to authenticated;
 
 -- 7) 家族からの離脱 RPC: 自分のメンバー行だけを削除する（他人は消せない）。
 create or replace function public.fl_leave_family(p_family_id text)
-  returns void language plpgsql security definer set search_path = public as $$
+  returns void language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   delete from public.fl_family_members
    where family_id = p_family_id and user_id = auth.uid();

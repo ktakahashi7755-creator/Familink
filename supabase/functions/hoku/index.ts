@@ -25,8 +25,12 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const HOKU_SHARED_KEY = Deno.env.get("HOKU_SHARED_KEY") || "";
 const MODEL = Deno.env.get("HOKU_MODEL") || "gpt-4o-mini"; // 安価＆十分賢い既定
 
+// 許可オリジンは環境変数 ALLOWED_ORIGIN で絞れる（例: https://ktakahashi7755-creator.github.io）。
+// 未設定なら '*'（Bearer トークン認証のため CSRF は成立しないが、公開後はオリジン限定を推奨・P1-09）。
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "*";
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Vary": "Origin",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   // supabase-js(ブラウザ invoke) は x-client-info / x-supabase-api-version 等を送るため、
   // これらを許可しないと CORS preflight でブロックされ「Failed to send a request」になる。
