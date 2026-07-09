@@ -5,7 +5,7 @@
 /* Familink: オフライン対応＋即時起動。版数 V は docs 同期(§12.3)で更新する。
    通常は開いた瞬間にキャッシュから即表示。新版がある時だけ SW が自動で入れ替わり、
    1回だけ自動リロードして最新へ（古いキャッシュに張り付かない・手動操作不要）。 */
-var V='v20260708b';
+var V='v20260708c';
 if('serviceWorker' in navigator){
   var _flReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -5684,6 +5684,9 @@ select:focus-visible, a:focus-visible {
       <div style="font-size:12px;color:var(--text-sub);line-height:1.65;margin-bottom:4px;">
         メールアドレスとパスワードを登録すると、データをこのアカウントに紐づけて管理できます。
       </div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6;background:var(--bg-muted);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
+        これはこの端末内で使う簡易ログインです（パスワードは端末の外に出ません）。ご家族との共有やバックアップには、設定からのクラウド連携をおすすめします。
+      </div>
       <div class="field">
         <div class="field-label">メールアドレス</div>
         <input class="input" id="signup-email" type="email" autocomplete="email" placeholder="example@mail.com">
@@ -6665,7 +6668,7 @@ async function supaSignOut() {
          and data_key = any(array['events','tasks','txs','health','posts','announces',
            'prep','prepRoutines','folders','docs','albumPhotos','shoppingItems','shoppingFrequent',
            'members','customBoards','boardItems','boardSections','recurringTxs','memos','memoFolders',
-           'workspaces','_deletions'])));
+           'workspaces','homeNote','_deletions'])));
      create policy "own_insert" on fl_family_data for insert with check (auth.uid() = user_id);
      create policy "own_update" on fl_family_data for update
        using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -7140,10 +7143,10 @@ function useLocalAndCloseSupa() {
     // signup / sent 文脈で email+pass が揃っていればローカルアカウント化
     const e = (document.getElementById('supa-auth-email')?.value || '').trim();
     const p = (document.getElementById('supa-auth-pass')?.value || '');
-    if(_validEmail(e) && p.length >= 6 && typeof _hashStr === 'function' && typeof _genRecoveryCode === 'function') {
+    if(_validEmail(e) && p.length >= 6 && typeof _makePassHash === 'function' && typeof _genRecoveryCode === 'function') {
       S.account = {
         email: _normEmail(e),
-        passHash: _hashStr(p),
+        passHash: _makePassHash(p),
         recoveryCode: _genRecoveryCode(),
         createdAt: (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10),
       };
@@ -7179,7 +7182,7 @@ function doSupaLocalSignup() {
   try {
     S.account = {
       email: _normEmail(email),
-      passHash: _hashStr(pass),
+      passHash: _makePassHash(pass),
       recoveryCode: _genRecoveryCode(),
       createdAt: (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10),
     };
@@ -8795,6 +8798,7 @@ let S = {
   hokuApiKey: '',       // Hoku API 簡易保護用の共有シークレット（任意。x-hoku-key ヘッダで送る）
   hokuChatMode: false,  // （旧）会話モード手動フラグ。Wave258以降はプレミアム自動ONのため未使用
   hokuAiOff: false,     // Wave258: プレミアムのAI版Hokuを明示OFFにする opt-out（既定OFF=AI有効）
+  hokuShareHealth: false, // P1-04: 体調（子の名前+体温+症状）を外部AIへ送るか。既定OFF（プライバシー最優先・明示opt-in）
   hokuDailyUsage: null, // Wave 200: Hoku 1日利用カウント {date:'YYYY-MM-DD', count:0}
   hokuAiUsage: null,    // プレミアムAI版Hokuの1日利用カウント(フェアユース) {date, count, noticed}
   tabConfig: null,   // タブカスタマイズ: [{id,vis}] | null=デフォルト5タブ
@@ -8826,7 +8830,7 @@ let S = {
 };
 
 const APP_VERSION = 'v1.4.0';
-const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','webPushEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','homeNote','_deletions'];
+const PERSIST = ['loggedIn','user','events','tasks','txs','posts','announces','health','prep','prepRoutines','notifs','budgetY','budgetM','folders','docs','albumPhotos','faceGroups','ocrImports','ocrScanUsage','albumPrefs','kanbanCols','tkVisibleMembers','budgetVisibleMembers','calVisibleMembers','userPhotos','userAvatars','userAvatarType','isPremiumUser','premiumPaid','homeOrder','customBoards','boardItems','boardSections','userProfile','onboardCompleted','boardCustomTabs','defaultCustomBoardsSeeded','shoppingItems','shoppingFrequent','shoppingHistory','shoppingTab','members','recurringTxs','cashflowSettings','budgetTab','shoppingMigrated','hokuContext','hokuQuickSave','hokuApiUrl','hokuApiKey','hokuChatMode','hokuAiOff','hokuShareHealth','hokuDailyUsage','hokuAiUsage','guideSeen','albumFolders','notifPrefs','account','demoSeeded','memos','memoFolders','tabConfig','widgetItems','workspaces','currentWorkspaceId','demoProfiles','activeDemoProfileId','demoModeEnabled','demoBackupBeforeApply','demoProfilesSeeded','supaSession','supaEntryChoice','familyId','familyIdOwner','familyIdSetByUser','trialStartedAt','browserNotifEnabled','webPushEnabled','lastActiveDate','activeStreak','loginBonus','shop','activeTheme','hokuOwnedSkins','hokuEquippedSkin','hokuShopPurchaseHistory','homeNote','_deletions'];
 
 function saveS() {
   const d = {};
@@ -9738,6 +9742,7 @@ function updateLoginGreeting() {
 /* ── アカウント認証ヘルパー（ローカル / LocalStorage） ──
    注：パスワードは端末内保存のため、暗号学的ハッシュではなく難読化用の
    軽量ハッシュを用いる。本物のサーバー認証は Supabase 移行時に実装する。 */
+/* 旧形式（無ソルト・非ストレッチ）ハッシュ。後方互換の照合にのみ残す。 */
 function _hashStr(s) {
   s = String(s);
   let h1 = 0x811c9dc5, h2 = 0x1505;
@@ -9747,6 +9752,56 @@ function _hashStr(s) {
     h2 = (((h2 << 5) + h2) + c) >>> 0;
   }
   return ('00000000'+h1.toString(16)).slice(-8) + ('00000000'+h2.toString(16)).slice(-8);
+}
+/* ── ローカルアカウントのパスワードハッシュ（P1-05）───────────────────────────
+   注記: ローカルアカウントは「端末内の簡易ロック」であり、本物の認証ではない
+   （passHash は端末外へ出ず、サーバ認証は Supabase が担う）。それでも端末/LocalStorage を
+   直接覗かれた場合に備え、アカウント毎のランダムソルト＋反復ストレッチで
+   総当たり・レインボー攻撃のコストを上げる。形式: `s2$<saltHex>$<hashHex>`。 */
+function _genSaltHex() {
+  try { const b = new Uint8Array(16); crypto.getRandomValues(b); return Array.from(b, x=>('0'+x.toString(16)).slice(-2)).join(''); }
+  catch(_) { let s=''; for(let i=0;i<32;i++) s+=Math.floor(Math.random()*16).toString(16); return s; }
+}
+function _saltedHash(pass, saltHex) {
+  // ソルト＋パスワードを 60,000 回ストレッチ（整数混合の反復）。非暗号学的だが端末内ロック用途には十分。
+  let acc = saltHex + '|' + String(pass);
+  const ROUNDS = 60000;
+  let h1 = 0x811c9dc5, h2 = 0x1505;
+  for(let r=0; r<ROUNDS; r++) {
+    for(let i=0; i<acc.length; i++) {
+      const c = acc.charCodeAt(i);
+      h1 = (h1 ^ c) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+      h2 = (((h2 << 5) + h2) + c) >>> 0;
+    }
+    // 毎ラウンド状態を混ぜ直して単純ループの短絡を防ぐ
+    acc = saltHex + h1.toString(16) + h2.toString(16);
+  }
+  return ('00000000'+h1.toString(16)).slice(-8) + ('00000000'+h2.toString(16)).slice(-8);
+}
+/* 新規保存用: ランダムソルト付きハッシュ文字列を生成 */
+function _makePassHash(pass) {
+  const salt = _genSaltHex();
+  return 's2$' + salt + '$' + _saltedHash(pass, salt);
+}
+/* 照合: 新形式(s2$)は塩付き検証、旧形式(16hex)はレガシー照合。合致すれば true。 */
+function _verifyPass(pass, stored) {
+  stored = String(stored||'');
+  if(stored.indexOf('s2$') === 0) {
+    const parts = stored.split('$');   // ['s2', salt, hash]
+    if(parts.length !== 3) return false;
+    return _saltedHash(pass, parts[1]) === parts[2];
+  }
+  // 旧形式（無ソルト）。移行期間の既存アカウント用。
+  return stored === _hashStr(pass);
+}
+/* 旧形式で保存されているアカウントを、正しいパスワード照合が済んだ直後に新形式へ自動移行 */
+function _maybeUpgradePassHash(pass) {
+  try {
+    if(S.account && S.account.passHash && S.account.passHash.indexOf('s2$') !== 0) {
+      S.account.passHash = _makePassHash(pass);
+      saveS();
+    }
+  } catch(_){}
 }
 function _normEmail(e) { return String(e||'').trim().toLowerCase(); }
 function _validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
@@ -9774,10 +9829,11 @@ function doLogin() {
     showToast('アカウントが見つかりません。新規登録してください。','error');
     return;
   }
-  if(S.account.email !== email || S.account.passHash !== _hashStr(pass)) {
+  if(S.account.email !== email || !_verifyPass(pass, S.account.passHash)) {
     showToast('メールアドレスまたはパスワードが正しくありません','error');
     return;
   }
+  _maybeUpgradePassHash(pass);
   _enterApp(true);
 }
 
@@ -9821,7 +9877,7 @@ function doSignup() {
   if(pass.length < 6) { showToast('パスワードは6文字以上にしてください','error'); return; }
   if(pass !== pass2) { showToast('確認用パスワードが一致しません','error'); return; }
   const code = _genRecoveryCode();
-  S.account = { email: email, passHash: _hashStr(pass), recoveryCode: code, createdAt: todayStr() };
+  S.account = { email: email, passHash: _makePassHash(pass), recoveryCode: code, createdAt: todayStr() };
   saveS();
   closeModal('m-signup');
   const cv = document.getElementById('recovery-code-val');
@@ -9866,7 +9922,7 @@ function doForgotPassword() {
   if(_normCode(S.account.recoveryCode) !== code) { showToast('リカバリーコードが正しくありません','error'); return; }
   if(pass.length < 6) { showToast('パスワードは6文字以上にしてください','error'); return; }
   if(pass !== pass2) { showToast('確認用パスワードが一致しません','error'); return; }
-  S.account.passHash = _hashStr(pass);
+  S.account.passHash = _makePassHash(pass);
   saveS();
   closeModal('m-forgot');
   showToast('パスワードを再設定しました。新しいパスワードでログインしてください。');
@@ -9884,7 +9940,7 @@ function doChangeEmail() {
   if(!hasAccount()) { showToast('登録済みのアカウントがありません','error'); return; }
   const pass  = document.getElementById('ce-pass').value;
   const email = _normEmail(document.getElementById('ce-email').value);
-  if(S.account.passHash !== _hashStr(pass)) { showToast('現在のパスワードが正しくありません','error'); return; }
+  if(!_verifyPass(pass, S.account.passHash)) { showToast('現在のパスワードが正しくありません','error'); return; }
   if(!_validEmail(email)) { showToast('メールアドレスの形式が正しくありません','error'); return; }
   if(email === S.account.email) { showToast('現在と同じメールアドレスです','error'); return; }
   S.account.email = email;
@@ -9905,11 +9961,11 @@ function doChangePass() {
   const cur  = document.getElementById('cp-cur').value;
   const np   = document.getElementById('cp-new').value;
   const np2  = document.getElementById('cp-new2').value;
-  if(S.account.passHash !== _hashStr(cur)) { showToast('現在のパスワードが正しくありません','error'); return; }
+  if(!_verifyPass(cur, S.account.passHash)) { showToast('現在のパスワードが正しくありません','error'); return; }
   if(np.length < 6) { showToast('新しいパスワードは6文字以上にしてください','error'); return; }
   if(np !== np2) { showToast('確認用パスワードが一致しません','error'); return; }
-  if(_hashStr(np) === S.account.passHash) { showToast('現在と同じパスワードです','error'); return; }
-  S.account.passHash = _hashStr(np);
+  if(_verifyPass(np, S.account.passHash)) { showToast('現在と同じパスワードです','error'); return; }
+  S.account.passHash = _makePassHash(np);
   saveS();
   closeModal('m-change-pass');
   showToast('パスワードを変更しました');
@@ -16248,9 +16304,10 @@ const LEGAL_PRIVACY = {
       '本アプリはクッキーを使用しません。Web版では LocalStorage を使用しますが、これは端末内にデータを保存する目的のみに使用します。'] },
     { h:'5. 第三者サービス', items:[
       '・Supabase（データ保存・認証。EU/アイルランド所在。クラウドログイン時のみ使用）',
+      '・OpenAI（AI処理の委託先。プレミアム加入かつログイン中に、①Hoku へ相談した文章と、そのとき画面に関係する予定・タスク・買い物・メモ等の文脈、②予定表の読み取り（OCR）で撮影した画像、を処理のために送信します。家計の金額は送信しません。体調（体温・症状）は既定では送信せず、設定でオンにした場合のみ送信します）',
       '・Google Fonts（フォント配信のみ。当方が受け取るデータなし）',
       '・Web Speech API（音声認識。端末側で完結）',
-      'これら以外の第三者サービス（解析・広告・SDK 等）は使用していません。'] },
+      'これら以外の第三者サービス（解析・広告・トラッキング SDK 等）は使用していません。'] },
     { h:'6. データの保持と削除', items:[
       'ゲスト使用時：データはお客様の端末内にのみ保存されます。アプリ削除や設定の「データを削除」で全削除できます。',
       'クラウドログイン時：Supabaseサービス上のデータを含みます。アカウント削除申請はGitHub Issuesからご連絡ください。削除後の復元はできません。'] },
@@ -16259,7 +16316,9 @@ const LEGAL_PRIVACY = {
     { h:'8. 課金情報', items:[
       'Familink プレミアム（月額480円予定）は将来提供予定です。課金処理は App Store / Google Play または決済事業者（Stripe 等）を通じて行われ、当方はクレジットカード情報を直接受け取りません。'] },
     { h:'9. データの利用目的', items:[
-      '入力データは、予定・タスク・家計・体調等の表示、Hoku の応答、集計表示のためにのみ、端末内で使用されます。外部送信は行いません。'] },
+      '入力データは、予定・タスク・家計・体調等の表示、Hoku の応答、集計表示のために使用されます。',
+      'ゲスト使用時・無料プランでは、これらの処理は端末内で完結し、外部送信は行いません。',
+      'プレミアム加入かつログイン中は、Hoku の応答生成と予定表の読み取り（OCR）のために、第5項に記載の範囲でデータを OpenAI に送信します。送信範囲は最小限にとどめ、家計の金額は送らず、体調は設定でオンにした場合のみ送信します。'] },
     { h:'10. お問い合わせ', items:[
       'GitHub Issues：github.com/ktakahashi7755-creator/Familink/issues'] },
     { h:'11. ポリシーの変更', items:[
@@ -16762,7 +16821,7 @@ function renderBoardReactDetail(id) {
   el.innerHTML = active.map(r => {
     const users = Object.entries(a.reactMap)
       .filter(([,k])=>k===r.key)
-      .map(([uid])=>getMem(uid).name).join('、');
+      .map(([uid])=>H(getMem(uid).name)).join('、');
     return `<div style="font-size:12px;color:var(--text-sub);padding:3px 0;display:flex;gap:6px;align-items:center;">
       <span>${ICON(r.icon,14)}</span>
       <strong>${r.label}</strong>：${users}
@@ -21064,7 +21123,7 @@ function renderPremium() {
   const isPrem = S.isPremiumUser;
   const trialLeft = _trialDaysLeft();
   const inTrial = isInTrial();
-  const H = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // エスケープはグローバル H()（' も含む5文字）に統一。ローカル再定義は行わない（P1-08）。
 
   const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
@@ -22025,6 +22084,13 @@ function renderSettings() {
         <div class="settings-item-icon" style="background:#EBF4FF">${si('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>','#0A84FF')}</div>
         <div class="settings-item-label">通知設定</div><div class="settings-arrow">›</div>
       </div>
+      <div class="settings-item" onclick="toggleHokuShareHealth()">
+        <div class="settings-item-icon" style="background:#FDECEC">${si('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>','#D94444')}</div>
+        <div class="settings-item-label">体調をHokuの相談に含める
+          <div style="font-size:11px;color:var(--text-muted);font-weight:400;">オンにすると体温・症状もAIに伝わり、より具体的な案内ができます（既定オフ）</div>
+        </div>
+        <div class="settings-value">${S.hokuShareHealth ? 'オン' : 'オフ'}</div>
+      </div>
       <div class="settings-item" onclick="toggleLoginBonus()">
         <div class="settings-item-icon" style="background:#FFF4E0">${si('<circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.2" y1="5.2" x2="6.9" y2="6.9"/><line x1="17.1" y1="17.1" x2="18.8" y2="18.8"/><line x1="5.2" y1="18.8" x2="6.9" y2="17.1"/><line x1="17.1" y1="6.9" x2="18.8" y2="5.2"/>','#E8960A')}</div>
         <div class="settings-item-label">Hokuログインボーナス
@@ -22440,6 +22506,10 @@ function isPremium() {
   if(typeof S !== 'undefined' && S._serverEntitlement && typeof S._serverEntitlement.premium === 'boolean') {
     return S._serverEntitlement.premium;
   }
+  // オフライン/サーバ権利未取得時のフォールバック（P1-07）:
+  //   ここは S.isPremiumUser（LocalStorage・改ざん可）を見るが、プレミアムは「機能解放UIのゲート」
+  //   のみに使い、サーバ側の資源保護には使わない前提。将来サーバ資源をプレミアムで守る場合は、
+  //   必ずサーバ側でも fl_entitlements を判定すること（このフォールバックに依存しない）。
   return !!(typeof S !== 'undefined' && S.isPremiumUser);
 }
 
@@ -23626,8 +23696,12 @@ function _hokuChatContext() {
     const tk = (S.tasks||[]).filter(t=>t && t.status!=='done')
       .slice(0,8).map(t=>(t.title||'')+(t.dueDate?`（期限${t.dueDate}）`:'')+(t.assignedTo?`（${nm(t.assignedTo)}）`:''));
     const shop = (S.shoppingItems||[]).slice(0,12).map(s=>s.name||s.title).filter(Boolean);
-    const health = (S.health||[]).filter(h=>h && h.date>=td)
-      .map(h=>`${nm(h.memberId||h.child)} ${h.temp?h.temp+'℃':''}${h.symptom?(' '+h.symptom):''}`.trim()).filter(Boolean);
+    // 体調（子どもの名前＋体温＋症状）は機微情報。既定では外部AIへ送らず、
+    // ユーザーが設定でオプトイン（S.hokuShareHealth=true）した場合のみ含める（P1-04）。
+    const health = (S.hokuShareHealth === true)
+      ? (S.health||[]).filter(h=>h && h.date>=td)
+          .map(h=>`${nm(h.memberId||h.child)} ${h.temp?h.temp+'℃':''}${h.symptom?(' '+h.symptom):''}`.trim()).filter(Boolean)
+      : [];
     const mem = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&m.name).filter(Boolean);
     // メンバーは役割つきで渡す（誰が子どもか分かると案内精度が上がる）
     const memDetail = (typeof MEMBERS!=='undefined'?MEMBERS:[]).map(m=>m&&{ name:m.name, role:(m.role==='parent'?'親':'子') }).filter(Boolean);
@@ -23736,6 +23810,20 @@ function _hokuIntentFromAI(intentType, e, rawText) {
 function _hokuAiAllowed()  { return !!(S.isPremiumUser && ((typeof isSupaLoggedIn==='function' && isSupaLoggedIn()) || S.hokuApiUrl)); }
 /* AI版は既定ON（opt-out）。プレミアムは設定せず賢くなる。OFFにしたい時だけ hokuAiOff=true。 */
 function _hokuChatActive() { return _hokuAiAllowed() && !S.hokuAiOff; }
+
+/* P1-04: 体調（子の名前+体温+症状）を外部AIへ送るかのオプトイン切替。既定オフ。 */
+function toggleHokuShareHealth() {
+  if(!S.hokuShareHealth) {
+    showConfirm('体調をHokuの相談に含める',
+      '体温や症状などの体調記録を、AIによる案内のために外部の処理サービス（OpenAI）へ送信します。より具体的な助言ができますが、機微な情報のため既定ではオフです。オンにしますか？',
+      'オンにする',
+      () => { S.hokuShareHealth = true; saveS(); if(typeof renderSettings==='function') renderSettings(); showToast('体調をHokuの相談に含めます'); },
+      'warning');
+  } else {
+    S.hokuShareHealth = false; saveS(); if(typeof renderSettings==='function') renderSettings();
+    showToast('体調はHokuの相談に含めません');
+  }
+}
 
 /* プレミアムAI版のフェアユース上限（OpenAI 課金の赤字防止）。
    1日 HOKU_AI_DAILY_CAP 通までAIで応答し、超えたら“優しく”ローカルHokuへ切替。
@@ -28553,7 +28641,7 @@ async function ob2Login() {
       try {
         S.account = {
           email: _normEmail(email),
-          passHash: _hashStr(pass),
+          passHash: _makePassHash(pass),
           recoveryCode: (S.account && S.account.recoveryCode) || _genRecoveryCode(),
           createdAt: (S.account && S.account.createdAt) || todayStr()
         };
@@ -28573,7 +28661,8 @@ async function ob2Login() {
   // 2) クラウド未接続（CDN失敗/オフライン）時のみ、ローカルアカウントでフォールバック入室
   if(typeof hasAccount === 'function' && hasAccount()
      && S.account.email === _normEmail(email)
-     && S.account.passHash === _hashStr(pass)) {
+     && _verifyPass(pass, S.account.passHash)) {
+    _maybeUpgradePassHash(pass);
     showToast('オフラインのため端末内データでログインしました。接続が戻るとクラウドと同期されます','info');
     _enterApp(true);
     return;
