@@ -15,7 +15,9 @@
   (function(){
     var V = '20260608b';
     var ts = Date.now();
-    var dest = '/Familink/app-source/familink.html?v=' + V + '&t=' + ts + (location.hash || '');
+    // location.search も引き継ぐ（?join= 招待リンクが 404 経由で失われないように）
+    var extra = (location.search || '').replace(/^\?/, '&');
+    var dest = '/Familink/app-source/familink.html?v=' + V + '&t=' + ts + extra + (location.hash || '');
     location.replace(dest);
   })();
 </script>

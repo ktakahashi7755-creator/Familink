@@ -34,6 +34,7 @@ const _TOMB_TTL_MS = 30 * 24 * 3600 * 1000;
 const HOKU_AI_DAILY_CAP = 40;  // app-source と一致させる（フェアユース上限）
 function saveS() { return true; }  // ハーネス用スタブ（_dedupByContent が呼ぶ）
 function isSupaLoggedIn() { return S.__loggedIn === true; }  // スタブ（_hokuAiAllowed が参照）
+function isPremium() { return !!S.isPremiumUser; }  // スタブ（_hokuAiAllowed が参照。サーバ権利はハーネス対象外）
 
 // 実コードのヘルパーを評価して関数化（S/_TOMB_TTL_MS をクロージャで参照）
 const srcs = ['_mergeSyncArray', '_recordDeletion', '_isTombstoned', '_mergeDeletions', '_gcDeletions', '_occursOn', '_dedupByContent', 'detectIntent', '_hokuAiAllowed', '_hokuChatActive', '_hokuLooksLikeView', '_hokuAiUsageToday', '_hokuAiUnderCap', '_hokuBumpAiUsage']
@@ -50,7 +51,8 @@ const FAMILY_SHARED_KEYS = [
 ];
 const SYNC_KEYS = FAMILY_SHARED_KEYS.concat([
   'notifs','tabConfig','widgetItems','homeOrder','userPhotos','userAvatars','userAvatarType',
-  'userProfile','isPremiumUser','onboardCompleted','hokuContext','cashflowSettings','demoProfiles','familyId','_deletions'
+  'userProfile','isPremiumUser','onboardCompleted','hokuContext','cashflowSettings','demoProfiles','familyId','_deletions',
+  'trialStartedAt','premiumPaid'
 ]);
 
 /* _fetchFromSupabase の中核（マージ＋トゥームストーン＋家族分離）を忠実に再現。
@@ -78,7 +80,7 @@ function simulateFetch(rowsAll, familyId, uid) {
     if (anyArray) {
       let merged = Array.isArray(S[k]) ? S[k] : [];
       rows.forEach(r => { if (Array.isArray(r.payload)) merged = _mergeSyncArray(merged, r.payload); });
-      if (FAMILY_SHARED_KEYS.includes(k) && S._deletions && S._deletions[k]) merged = merged.filter(it => !_isTombstoned(k, it));
+      if (S._deletions && S._deletions[k]) merged = merged.filter(it => !_isTombstoned(k, it));   // 実装と同じ：個人固有配列にも適用
       S[k] = merged;
     } else {
       const latest = rows[rows.length - 1];

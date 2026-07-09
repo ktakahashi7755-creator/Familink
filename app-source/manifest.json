@@ -1,0 +1,24 @@
+{
+  "name": "Familink — 家族をチームに",
+  "short_name": "Familink",
+  "description": "家族みんなで子育てをチームで回すアプリ。予定・タスク・家計・体調・Hoku AIをひとつに。",
+  "start_url": "/Familink/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0A84FF",
+  "lang": "ja",
+  "orientation": "portrait",
+  "categories": [
+    "productivity",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "../docs/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "scope": "/Familink/"
+}

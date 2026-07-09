@@ -23174,3 +23174,64 @@ Web Push（アプリを閉じても届く通知）実装：クライアント/SW
 
 ### コミット
 - 本コミット（main）
+
+---
+
+## 2026-07-09 21:40  env: iPhone経由（Claude Code リモート）  branch: claude/final-review-polish-795tjc
+
+### 作業名
+最終総点検（3周）：全テスト実行＋全画面精読レビュー（バグ/セキュリティ/データ整合/UI文言/同期課金招待）→ 検出17件を修正
+
+### 変更ファイル
+- app-source/familink.html ／ docs/index.html（v20260709a・§12.3同期）
+- docs/sw.js（SW_VERSION同期・存在しないicon-192参照を除去）
+- 404.html（?join= 招待リンクのクエリ引き継ぎ）
+- app-source/manifest.json（新規：本番入口のmanifest 404解消）
+- tools/qa_ocr_unit_test.js（日付依存の偽FAILを未来日動的化）
+- tools/sync_harness_test.js（SYNC_KEYS/トゥームストーン条件を実装に追随）
+
+### 変更内容（重大度順）
+- **[S] XSS修正**: ボードのリアクション詳細でメンバー名が未エスケープ→ H() 適用（家族同期データ経由で攻撃可能だった）
+- **[S] 招待リンクの無確認家族切替を防止**: 別家族参加中に ?join= リンクを開いても、手入力と同じ確認モーダルを必ず表示。redeem の二重実行ガードも追加
+- **[S] 別アカウントログインのデータ混入防止**: fl_last_cloud_uid でアカウント切替を検知し、前アカウントの端末内データを新アカウントのクラウドへ push しない（wipe→reload。クラウド保存済みのため復元可）
+- **[S] 買い物「購入済み」が家族同期で復活**: _recordDeletion を追加
+- **[S] 同期タイムスタンプ精度の統一**: リアクション/コメント/投稿編集/ピン留めの updatedAt を todayStr()→ISO時刻に（日付精度だと他端末のISOに負けて編集が20秒以内に消えていた）。準備リスト/カスタムボードのチェックにも updatedAt を付与
+- **[A] 差分push化**: push が毎回全38キーに updated_at=now を刻み「最終push優先」になっていた→変更キーのみ送信（family_id変更時は全件）。push実行中の変更も追い送りして「同期済み表示なのに未送信」を解消
+- **[A] 同名タスクの誤削除**: _dedupByContent の署名に status/workspaceId を追加（「完了済みゴミ出し」と「新規ゴミ出し」が畳まれて消えていた）
+- **[A] トライアルのフラッピング解消**: trialStartedAt/premiumPaid を SYNC_KEYS に追加（派生値だけ同期→別端末で false 再計算→往復、を根治）
+- **[A] プレミアム判定の一元化**: アバター解錠/Hoku AI/OCR上限/設定表示の直接 S.isPremiumUser 参照を isPremium()（サーバ権利優先）へ。ショップ購入済みアバターがグリッドでロック表示のままの不具合も修正
+- **[A] 利用規約/プライバシーの事実矛盾を修正**: 「外部サーバに送信されません/端末内にのみ保存」→ゲスト/クラウドログインの条件分けに全面整合（第2/6/7条・§7/§9ほか）
+- **[A] 家族同期中のデモデータ投入をブロック**: applyDemoProfile/doQuickDemo（デモが家族全員の実データに混入し除去不能になるため）
+- **[B] 通知削除の復活防止**: deleteNotif/全削除にトゥームストーン、fetch側の適用を個人固有配列にも拡大
+- **[B] homeNote編集中の背景同期で入力が消える→textarea再生成を抑止
+- **[B] loadS の破損データを退避（familink_v3_corrupt_backup）＋起動時トースト通知
+- **[B] Web Push subscribe の unhandled rejection を catch、renderTasks/renderTask の誤関数名を renderTaskScreen に修正、renderPremium 内の弱いローカルH()定義を撤去、デッドコード ob2TogglePassLogin 削除
+- **[B] 文言/UI**: ログインメールバナー・ログインボーナスの絵文字→テキスト/SVG化、決済ガード文言をユーザー語に、βご契約文言を実装（Stripe/ストア併記）に整合、Googleカレンダー案内を「できること」主語に
+- **[B] 公開経路**: og:image 404修正、404.html が ?join= を落とす問題修正、app-source/manifest.json 追加、sw.js の icon-192 参照除去
+
+### テスト結果
+- node qa_full_test.js: **84/84 PASS**（修正前後とも）
+- Vitest: 23/23 PASS ／ tools 全28スイート: 全PASS（修正後再実行）
+- sync_harness: 68/68 PASS ／ 修正検証（自作Playwright）: 21/21 PASS・pageerror 0
+- 全22画面スモーク（375px）: 表示OK・横スクロールなし・pageerror 0
+- 版一致: var V = SW_VERSION = v20260709a
+
+### 未確認事項（今回は見送り・要判断）
+- SW更新の自動リロードが入力中でも発火し得る（更新機構を壊さないため保留）
+- albumFolders が非同期（共有化はRLS許可リスト変更＝本番SQL適用が必要なため保留）
+- サーバ権利行が無いユーザーの isPremium はローカルフォールバックのまま（Stripe本番開始時に「行なし＝無料」へ切替を推奨）
+- FAMI- レガシー招待リンクは失効不可（revocation仕様は docs にあり・サーバ実装待ち）
+- 利用規約の事業者名が GitHub ユーザー名のまま（本人の正式名義が必要）
+- PERSIST 内の残骸キー（kanbanCols/hokuChatMode/hokuQuickSave/faceGroups 等）は温存
+
+### iPhone確認ポイント
+- 端末A/Bで：投稿にリアクション→20秒以内に消えないか／買い物を購入済みに→復活しないか
+- 別家族の招待リンクを開いた時に確認モーダルが出るか
+- ホームのお知らせ（homeNote）編集中に入力が消えないか
+- 設定→利用規約/プライバシーの文面（クラウド条件分け）
+
+### 次にやること
+- 実機2台での同期end-to-end再確認 → 問題なければ main へマージして Pages 反映
+
+### コミット
+- 本コミット
