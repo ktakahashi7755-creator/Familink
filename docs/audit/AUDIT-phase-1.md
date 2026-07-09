@@ -128,6 +128,25 @@
 
 ---
 
-## 5. 次フェーズ予告
+## 5. 修正実施記録（2026-07-08・承認「全て進めて」を受領して実施）
 
-Phase 1 承認・修正完了後、Phase 2（data-integrity: 同期競合・容量・マイグレーション・データ消失経路）へ進む。
+判断が必要だった 2 点はユーザー承認のもと以下で確定: **D** = Stripe を将来の主配布とみなし entitlements を Stripe/IAP 両対応スーパーセットに統一 ／ **E** = 健康データ送信は**既定オフの opt-in**。
+
+| ID | 対応 | 実装 | 検証 |
+|---|---|---|---|
+| P1-01 | ✅ 完了 | `renderBoardReactDetail` のメンバー名を `H()` 経由に（L16746） | `tools/qa_xss_boardreact_test.js` 5/5 PASS（生img挿入なし・onerror非発火） |
+| P1-02 | ✅ 完了 | `fl_entitlements` を Stripe/IAP 両対応スーパーセットに統一（`add column if not exists`・ビュー `security_invoker=true`・両ファイル一致） | ローカルPG: 適用順3パターン×3項目=9/9 PASS（ビュー消失せず両経路で premium=true） |
+| P1-03 | ✅ 完了 | `supabase/config.toml` 新規（hoku/calendar-scan/create-checkout/billing-portal=verify_jwt:true, stripe-webhook/push-send=false） | 設定ファイルで固定 |
+| P1-04 | ✅ 完了 | `_hokuChatContext` の健康データを `S.hokuShareHealth`（既定false）でゲート・設定トグル追加・プライバシーポリシー第5/9項に OpenAI 送信範囲を明記 | 既定で送信されないことをコードで担保 |
+| P1-05 | ✅ 完了 | ローカル passHash を塩付き＋6万回ストレッチ（`s2$salt$hash`）へ・旧形式は後方互換照合＋ログイン時自動移行・signup モーダルに「端末内簡易ロック」明示 | `tools/qa_passhash_test.js` 11/11 PASS（塩差異・後方互換・自動移行・日本語pass） |
+| P1-06 | 記録 | CSP `unsafe-inline` は構造的課題。P1-01 封鎖で当面の実害を除去。nonce/hash 化は Phase 3/4 で検討 | — |
+| P1-07 | ✅ 完了 | `isPremium()` にフォールバックの前提（UIゲート限定・サーバ資源はサーバ判定必須）をコメント明記 | — |
+| P1-08 | ✅ 完了 | renderPremium 内の副 `H()` を撤去しグローバル `H()` に統一 | 構文OK・QA緑 |
+| P1-09 | ✅ 完了 | hoku/calendar-scan の CORS を `ALLOWED_ORIGIN` 環境変数で絞れるように（既定`*`・`Vary: Origin`付与） | — |
+| P1-10 | ✅ 完了 | 6つの SECURITY DEFINER を `search_path = public, pg_temp` へ強化・埋め込みコメントのホワイトリストに `homeNote` 追加同期 | ローカルPG RLS 7/7 PASS 維持 |
+
+**品質ゲート（修正後）**: 全 script 構文OK ／ 静的総点検 全ゼロ維持 ／ ローカルPG RLS 7/7・課金スキーマ 9/9 ／ ブラウザ全テストバッテリーは別掲（AUDIT完了時点で全緑を確認）。docs/index.html 同期・v20260708c。
+
+## 6. 次フェーズ予告
+
+Phase 1 修正完了後、Phase 2（data-integrity: 同期競合・容量・マイグレーション・データ消失経路）へ進む。

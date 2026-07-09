@@ -68,7 +68,7 @@ Familink は高プライバシー情報を扱う前提で設計する（CLAUDE.m
 | メール＋パスワード | `supaSignUp` / `supaSignIn` | パスワードはアプリを素通し（Supabase Auth が管理）。アプリ側に保存しない |
 | メール OTP（6 桁） | `signInWithOtp({shouldCreateUser:true})` → `verifyOtp({type:'email'})` | コードは必ず本人が入力（原則 1）。無料 SMTP は 1 時間 2 通制限あり |
 | Magic Link | `detectSessionInUrl:true` + `flowType:'pkce'`、`SIGNED_IN` で自動入室 | PKCE フロー。確認メール再送 `resend`・再設定 `resetPasswordForEmail` あり |
-| ローカルアカウント | `S.account = {email, passHash, recoveryCode, createdAt}` | クラウド不要の端末内アカウント。パスワードはハッシュのみ保存（平文保存禁止＝原則 1） |
+| ローカルアカウント | `S.account = {email, passHash, recoveryCode, createdAt}` | クラウド不要の**端末内簡易ロック**（本認証ではない・passHash は端末外に出ない）。パスワードは塩付き＋6万回ストレッチのハッシュ（`s2$salt$hash`・`_makePassHash`/`_verifyPass`）で保存。旧無塩形式は後方互換照合＋ログイン時に自動移行（P1-05・2026-07-08） |
 
 ### 3.2 セッション管理
 
@@ -317,3 +317,12 @@ Stripe（決済成立）→ stripe-webhook（Edge Function・署名検証）
 - 実装と本書が矛盾した場合は実装を調査のうえ本書を修正する（推測で書かない）。
 - 監査の発見事項は `docs/AUDIT.md`（引き継ぎ正本）に記録し、本書には設計として確定した内容のみを反映する。
 - 既知の記載齟齬（2026-07-07 時点）: `docs/AUDIT.md` A-C2 の「client 配線 ⬜」は現行コードでは実装済み（`_processPendingJoin` → `redeem_family_invite` RPC、`tools/qa_invite_token_test.js` で回帰担保）。AUDIT.md 側の更新が必要。
+
+### Phase 1 セキュリティ強化（2026-07-08・詳細は `docs/audit/AUDIT-phase-1.md`）
+
+3 監査官並列＋ローカル Postgres 16 実適用検証による深層監査を実施（Critical 0）。以下を反映済み:
+- ボードのリアクション内訳のメンバー名エスケープ漏れ（stored XSS）を封鎖（`H()` 追加・回帰テスト新設）。
+- `fl_entitlements` を Stripe/IAP 両対応スーパーセットに統一し、`fl_my_premium` を `security_invoker=true` に（適用順ハザード解消）。
+- Edge Function の JWT 強制を `supabase/config.toml` で固定（hoku/calendar-scan/create-checkout/billing-portal=true）。
+- 健康データの LLM 送信を既定オフの opt-in（`S.hokuShareHealth`）に。プライバシーポリシーに OpenAI 送信範囲を明記。
+- ローカル passHash を塩付き＋ストレッチ化（§3.1）。SECURITY DEFINER の `search_path` を `public, pg_temp` に強化。CORS を `ALLOWED_ORIGIN` で限定可能に。
