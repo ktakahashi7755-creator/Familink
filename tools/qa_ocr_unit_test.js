@@ -39,10 +39,11 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
     // 過去日警告
     const past = N({ title: 'x', date: '2020-01-01' });
     t('過去日付の警告', past.warnings.some(w => w.includes('過去')));
-    // needsReview 判定
-    const low = N({ title: 'x', date: '2026-06-15', startTime: '10:00', confidence: 0.5 });
+    // needsReview 判定（固定日付だと実行日により過去日警告が付くため、常に未来日を使う）
+    const futureDate = (() => { const d = new Date(Date.now() + 30 * 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+    const low = N({ title: 'x', date: futureDate, startTime: '10:00', confidence: 0.5 });
     t('低信頼度はneedsReview', low.needsReview === true);
-    const hi = N({ title: 'x', date: '2026-06-15', startTime: '10:00', confidence: 0.95 });
+    const hi = N({ title: 'x', date: futureDate, startTime: '10:00', confidence: 0.95 });
     t('高信頼度・警告なしはneedsReview=false', hi.needsReview === false);
     // XSSタイトルが候補カードでエスケープされるか
     _ocr.cands = [N({ title: '<img src=x onerror=alert(1)>', date: '2026-06-15', startTime: '10:00', confidence: 0.9 })];
