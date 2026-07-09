@@ -23240,3 +23240,51 @@ SPEC v3 正本ドキュメント体系の新規構築（全13文書・ゼロか�
 ### コミット
 - ハッシュ: 0d9c392 / 9feb8ce / 78e08ce / a27acdf / 1f7cd65 / 本コミット
 - メッセージ: `docs: 公開前総合評価レポート(94/100)とworklogを追加（総点検完了）`
+
+---
+
+## 2026-07-08 15:00  env: リモート（claude.ai/code）  branch: audit/phase-1-security
+
+### 作業名
+世界最高峰品質化プログラム Phase 1（セキュリティ深層監査）— 監査→承認→修正→検証を完遂
+
+### 変更ファイル
+- app-source/familink.html（XSS封鎖・健康opt-in・passHash塩化・isPremium/コメント）
+- supabase/config.toml（新規・verify_jwt固定）
+- supabase/functions/hoku/index.ts, calendar-scan/index.ts（CORS環境変数化）
+- docs/supabase-apply-all.sql, docs/billing-entitlements.sql（entitlements統一・search_path強化）
+- docs/audit/AUDIT-phase-1.md（新規・監査レポート＋修正記録）, DECISIONS.md（新規）
+- docs/spec-v3/07-security.md（Phase1反映）
+- docs/index.html, docs/sw.js（同期 v20260708c）
+- tools/qa_xss_boardreact_test.js, tools/qa_passhash_test.js（新規回帰）
+
+### 変更内容
+- 3監査官並列（XSS/RLS課金/認証秘密情報）＋ローカルPostgres16実適用検証で深層監査（Critical 0）
+- High 1（ボードリアクション内訳のstored XSS）を封鎖、Medium 4＋Low/Info 4 を全対応
+- 承認判断: D=entitlementsをStripe/IAP両対応スーパーセットに統一 / E=健康データは既定オフのopt-in
+- 品質ゲート全通過: 構文OK・QA84/84・Vitest23/23・tools34本全緑・動的92/92・RLS実DB7/7・課金スキーマ9/9
+
+### テスト結果
+- node qa_full_test.js: 84/84 PASS
+- npx vitest run: 23/23 PASS
+- tools/qa_*_test.js（34本）: 全緑（新規 qa_xss_boardreact 5/5・qa_passhash 11/11 含む）
+- 動的総点検（375/320px×全画面）: 92/92 PASS
+- ローカルPostgres16: RLS家族分離7/7・課金スキーマ適用順9/9 PASS
+
+### 未確認事項
+- 本番Supabaseへの config.toml / 統一SQL の再適用が必要（デプロイ作業・オーナー実施）
+- CORS ALLOWED_ORIGIN の本番設定（公開URL確定後）
+- passHashストレッチ回数6万は端末性能とのトレードオフ（実機体感未確認）
+
+### iPhone確認ポイント
+- 設定→「体調をHokuの相談に含める」トグルの表示・確認ダイアログ
+- ローカルアカウント作成/ログイン/パスワード変更が塩化後も正常동작
+- signupモーダルの「端末内簡易ロック」案内文の見え方
+
+### 次にやること
+- Phase 2（data-integrity: 同期競合・容量・マイグレーション・データ消失経路）の監査に着手
+- 本ブランチ audit/phase-1-security のmainマージ判断（オーナー）
+
+### コミット
+- ハッシュ: 4dfd1cc（監査レポート）/ 4f4119b（修正3コミット）
+- メッセージ: fix(security/phase-1): 各修正 ＋ docs(phase-1)
